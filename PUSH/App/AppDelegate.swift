@@ -119,6 +119,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } catch {
                 print("AppDelegate: Failed to load Whisper model: \(error)")
                 AppState.shared.statusMessage = "Error: \(error.localizedDescription)"
+                NotificationManager.shared.showModelError()
             }
         }
     }

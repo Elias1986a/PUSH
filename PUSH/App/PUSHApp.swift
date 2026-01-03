@@ -10,7 +10,8 @@ struct PUSHApp: App {
             MenuBarView()
                 .environmentObject(appState)
         } label: {
-            Image(systemName: "mic.fill")
+            // Musical microphone icon
+            Image(systemName: "music.mic")
         }
         .menuBarExtraStyle(.menu)
 

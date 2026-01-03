@@ -67,6 +67,7 @@ actor TranscriptionPipeline {
             print("TranscriptionPipeline: Error - \(error)")
             await MainActor.run {
                 AppState.shared.statusMessage = "Error: \(error.localizedDescription)"
+                NotificationManager.shared.showTranscriptionError()
             }
         }
     }

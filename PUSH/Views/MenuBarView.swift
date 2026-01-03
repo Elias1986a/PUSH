@@ -5,25 +5,27 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Status
-            HStack {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 8, height: 8)
-                Text(appState.statusMessage)
-                    .font(.system(size: 12))
+            // Status - only show when actively listening or processing
+            if appState.isListening || appState.isProcessing {
+                HStack {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 8, height: 8)
+                    Text(appState.statusMessage)
+                        .font(.system(size: 12))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+                Divider()
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
 
-            Divider()
-
-            // Hotkey info
+            // Hotkey info - dynamically show selected hotkey
             HStack {
                 Text("Hold")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
-                Text("⌥ Right Option")
+                Text(appState.selectedHotkey.displayName)
                     .font(.system(size: 11, weight: .medium))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
