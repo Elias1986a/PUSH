@@ -205,6 +205,11 @@ final class HotkeyManager: @unchecked Sendable {
             AppState.shared.isListening = true
             AppState.shared.statusMessage = "Listening..."
 
+            // Play chirp sound if enabled
+            if AppState.shared.playSoundOnStart {
+                SoundPlayer.shared.playChirp()
+            }
+
             // Start audio recording
             AudioRecorder.shared.startRecording()
         }

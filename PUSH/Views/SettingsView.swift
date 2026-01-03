@@ -47,6 +47,7 @@ struct GeneralSettingsView: View {
                 }
 
                 Toggle("Enable hotkey", isOn: $appState.hotkeyEnabled)
+                Toggle("Play sound when recording starts", isOn: $appState.playSoundOnStart)
             }
         }
         .formStyle(.grouped)

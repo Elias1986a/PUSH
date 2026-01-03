@@ -11,6 +11,7 @@ class AppState: ObservableObject {
     private enum UserDefaultsKeys {
         static let selectedWhisperModel = "selectedWhisperModel"
         static let selectedHotkey = "selectedHotkey"
+        static let playSoundOnStart = "playSoundOnStart"
     }
 
     // MARK: - Published State
@@ -37,6 +38,12 @@ class AppState: ObservableObject {
     @Published var selectedHotkey: Hotkey = .rightOption {
         didSet {
             UserDefaults.standard.set(selectedHotkey.rawValue, forKey: UserDefaultsKeys.selectedHotkey)
+        }
+    }
+
+    @Published var playSoundOnStart: Bool = false {
+        didSet {
+            UserDefaults.standard.set(playSoundOnStart, forKey: UserDefaultsKeys.playSoundOnStart)
         }
     }
 
@@ -132,6 +139,9 @@ class AppState: ObservableObject {
            let hotkey = Hotkey(rawValue: savedHotkey) {
             self.selectedHotkey = hotkey
         }
+
+        // Load sound preference from UserDefaults
+        self.playSoundOnStart = UserDefaults.standard.bool(forKey: UserDefaultsKeys.playSoundOnStart)
     }
 
     private func notifyStateChange() {

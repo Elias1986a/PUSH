@@ -19,6 +19,14 @@ cp .build/release/PUSH "$APP_DIR/Contents/MacOS/"
 # Copy Info.plist
 cp PUSH.app/Contents/Info.plist "$APP_DIR/Contents/"
 
+# Copy resource bundles (for sound files and other resources)
+echo "Copying resource bundles..."
+for bundle in .build/release/*.bundle; do
+    if [ -e "$bundle" ]; then
+        cp -R "$bundle" "$APP_DIR/Contents/Resources/"
+    fi
+done
+
 # Copy frameworks (WhisperKit, SwiftLlama dependencies)
 echo "Copying frameworks..."
 for framework in .build/release/*.framework .build/release/*.dylib; do
