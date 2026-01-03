@@ -9,19 +9,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Request permissions
         requestMicrophonePermission()
-        requestAccessibilityPermission()
 
-        // Initialize hotkey manager
+        // Initialize hotkey manager (will handle accessibility permission itself)
         hotkeyManager = HotkeyManager.shared
         hotkeyManager?.startListening()
 
         // Setup floating pill window
         setupFloatingPillWindow()
 
-        // Check if models are downloaded, show onboarding if needed
-        if !ModelManager.shared.hasRequiredModels() {
-            showOnboarding()
-        }
+        // Pre-load Whisper model in background (will download if needed)
+        preloadModels()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -37,16 +34,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self.showPermissionAlert(for: "Microphone")
                 }
             }
-        }
-    }
-
-    private func requestAccessibilityPermission() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-        let trusted = AXIsProcessTrustedWithOptions(options as CFDictionary)
-
-        if !trusted {
-            // System will show the prompt automatically
-            print("Accessibility permission required")
         }
     }
 
@@ -74,19 +61,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let hostingController = NSHostingController(rootView: pillView)
 
         let window = NSWindow(contentViewController: hostingController)
-        window.styleMask = [.borderless]
+        window.styleMask = [.borderless, .fullSizeContentView]
         window.backgroundColor = .clear
         window.isOpaque = false
+        window.hasShadow = false
         window.level = .floating
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         window.isReleasedWhenClosed = false
+        window.ignoresMouseEvents = true  // Click-through
 
         // Position at bottom center of main screen
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
-            let windowSize = window.frame.size
+            // Force a layout to get the actual window size
+            hostingController.view.layoutSubtreeIfNeeded()
+            let windowSize = hostingController.view.fittingSize
+            window.setContentSize(windowSize)
+
             let x = screenFrame.midX - windowSize.width / 2
-            let y = screenFrame.minY + 100
+            let y = screenFrame.minY + 10  // 10px from bottom
             window.setFrameOrigin(NSPoint(x: x, y: y))
         }
 
@@ -112,8 +105,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func showOnboarding() {
-        // TODO: Show first-launch model download window
+    private func preloadModels() {
+        Task {
+            do {
+                print("AppDelegate: Pre-loading Whisper model...")
+                AppState.shared.statusMessage = "Downloading model..."
+                try await WhisperEngine.shared.loadModel()
+                AppState.shared.statusMessage = "Ready"
+                print("AppDelegate: Model pre-loaded successfully")
+            } catch {
+                print("AppDelegate: Failed to pre-load model: \(error)")
+                AppState.shared.statusMessage = "Model download failed"
+            }
+        }
     }
 }
 

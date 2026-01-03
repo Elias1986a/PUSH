@@ -39,7 +39,7 @@ struct MenuBarView: View {
             Divider()
 
             // Settings button
-            Button(action: openSettings) {
+            SettingsLink {
                 HStack {
                     Image(systemName: "gear")
                     Text("Settings...")
@@ -73,10 +73,6 @@ struct MenuBarView: View {
         } else {
             return .blue
         }
-    }
-
-    private func openSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 
     private func quitApp() {

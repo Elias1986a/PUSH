@@ -13,15 +13,29 @@ final class TextInjector: @unchecked Sendable {
 
     /// Insert text at the current cursor position in any app
     func insertText(_ text: String) {
-        // Method 1: Try using the Accessibility API (most reliable)
-        if insertViaAccessibility(text) {
-            print("TextInjector: Inserted via Accessibility API")
-            return
-        }
+        log("TextInjector: Attempting to insert: '\(text)'")
 
-        // Method 2: Fall back to clipboard + paste
+        // Use clipboard + paste as primary method (works in all apps)
         insertViaClipboard(text)
-        print("TextInjector: Inserted via clipboard")
+        log("TextInjector: ✅ Inserted via clipboard paste")
+        print("TextInjector: Inserted via clipboard paste")
+    }
+
+    private func log(_ message: String) {
+        let logPath = "/tmp/push_debug.log"
+        let timestamp = Date().ISO8601Format()
+        let logMessage = "\(timestamp): \(message)\n"
+        if let data = logMessage.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: logPath) {
+                if let fileHandle = FileHandle(forWritingAtPath: logPath) {
+                    fileHandle.seekToEndOfFile()
+                    fileHandle.write(data)
+                    fileHandle.closeFile()
+                }
+            } else {
+                try? data.write(to: URL(fileURLWithPath: logPath))
+            }
+        }
     }
 
     // MARK: - Private Methods
@@ -98,11 +112,13 @@ final class TextInjector: @unchecked Sendable {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
-        // Simulate Cmd+V
-        simulatePaste()
+        // Wait a bit for clipboard to sync, then paste
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            self.simulatePaste()
+        }
 
-        // Restore clipboard after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        // Restore clipboard after a longer delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let savedItems = savedItems, !savedItems.isEmpty {
                 pasteboard.clearContents()
                 for (type, data) in savedItems {

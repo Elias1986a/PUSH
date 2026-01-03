@@ -10,8 +10,7 @@ struct PUSHApp: App {
             MenuBarView()
                 .environmentObject(appState)
         } label: {
-            Image(systemName: appState.isListening ? "waveform" : "mic.fill")
-                .symbolRenderingMode(.hierarchical)
+            Image(systemName: "mic.fill")
         }
         .menuBarExtraStyle(.menu)
 

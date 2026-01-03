@@ -7,37 +7,53 @@ actor WhisperEngine {
 
     private var whisperKit: WhisperKit?
     private var isLoaded = false
+    private var currentModel: String?
 
     private init() {}
 
+    // MARK: - Model Names
+
+    /// Map our model enum to WhisperKit model names
+    private func whisperKitModelName(for model: AppState.WhisperModel) -> String {
+        switch model {
+        case .tiny: return "openai_whisper-tiny.en"
+        case .base: return "openai_whisper-base.en"
+        case .small: return "openai_whisper-small.en"
+        }
+    }
+
     // MARK: - Public API
 
-    /// Load the Whisper model
+    /// Load the Whisper model (downloads if needed)
     func loadModel(_ model: AppState.WhisperModel = .base) async throws {
-        guard !isLoaded else { return }
+        let modelName = whisperKitModelName(for: model)
 
-        let modelPath = await ModelManager.shared.modelPath(for: model.rawValue)
-
-        guard FileManager.default.fileExists(atPath: modelPath.path) else {
-            throw WhisperError.modelNotFound(model.rawValue)
+        // Skip if already loaded with same model
+        if isLoaded && currentModel == modelName {
+            return
         }
 
-        print("WhisperEngine: Loading model from \(modelPath.path)")
+        print("WhisperEngine: Loading model \(modelName)...")
 
-        // Initialize WhisperKit with the model
-        whisperKit = try await WhisperKit(
-            modelFolder: modelPath.deletingLastPathComponent().path,
-            computeOptions: .init(audioEncoderCompute: .cpuAndGPU, textDecoderCompute: .cpuAndGPU)
-        )
+        do {
+            // WhisperKit automatically downloads the model if not present
+            let config = WhisperKitConfig(model: modelName)
+            whisperKit = try await WhisperKit(config)
 
-        isLoaded = true
-        print("WhisperEngine: Model loaded successfully")
+            isLoaded = true
+            currentModel = modelName
+            print("WhisperEngine: Model loaded successfully")
+        } catch {
+            print("WhisperEngine: Failed to load model: \(error)")
+            throw WhisperError.loadFailed(error.localizedDescription)
+        }
     }
 
     /// Unload the current model
     func unloadModel() {
         whisperKit = nil
         isLoaded = false
+        currentModel = nil
         print("WhisperEngine: Model unloaded")
     }
 
@@ -66,7 +82,9 @@ actor WhisperEngine {
         let results = try await whisper.transcribe(audioArray: floatArray)
 
         // Combine all segments
-        let text = results.compactMap { $0.text }.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = results.compactMap { $0.text }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
         print("WhisperEngine: Transcription complete: \(text)")
         return text
@@ -92,19 +110,19 @@ actor WhisperEngine {
 // MARK: - Errors
 
 enum WhisperError: LocalizedError {
-    case modelNotFound(String)
     case notInitialized
     case emptyAudio
+    case loadFailed(String)
     case transcriptionFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .modelNotFound(let model):
-            return "Whisper model not found: \(model). Please download it in Settings."
         case .notInitialized:
             return "Whisper engine not initialized"
         case .emptyAudio:
             return "No audio data to transcribe"
+        case .loadFailed(let reason):
+            return "Failed to load Whisper model: \(reason)"
         case .transcriptionFailed(let reason):
             return "Transcription failed: \(reason)"
         }

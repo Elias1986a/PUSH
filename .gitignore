@@ -39,3 +39,6 @@ Carthage/Checkouts/
 *.swp
 *.swo
 *~
+/tmp/push_debug.log
+PUSH.app/
+.DS_Store
