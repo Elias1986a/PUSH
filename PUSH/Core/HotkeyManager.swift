@@ -112,8 +112,9 @@ final class HotkeyManager: @unchecked Sendable {
         if let source = runLoopSource {
             CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
             CGEvent.tapEnable(tap: tap, enable: true)
-            logToFile("HotkeyManager: ✅ Started listening for Right Option key")
-            print("HotkeyManager: ✅ Started listening for Right Option key")
+            let hotkeyName = AppState.shared.selectedHotkey.displayName
+            logToFile("HotkeyManager: ✅ Started listening for \(hotkeyName) key")
+            print("HotkeyManager: ✅ Started listening for \(hotkeyName) key")
         }
     }
 
@@ -161,25 +162,35 @@ final class HotkeyManager: @unchecked Sendable {
 
     private func handleEvent(_ event: CGEvent) {
         let flags = event.flags
-
-        // Check if Right Option is pressed
         let rawFlags = flags.rawValue
-        let rightOptionMask: UInt64 = 0x40
 
-        let isRightOptionDown = flags.contains(.maskAlternate) &&
-                                (rawFlags & rightOptionMask) != 0
+        // Get the selected hotkey from AppState
+        let hotkey = AppState.shared.selectedHotkey
 
-        logToFile("HotkeyManager: handleEvent - maskAlternate=\(flags.contains(.maskAlternate)), rawFlags=0x\(String(rawFlags, radix: 16)), isRightOptionDown=\(isRightOptionDown), currentlyPressed=\(isRightOptionPressed)")
+        // Check if the selected hotkey is pressed
+        let isHotkeyDown: Bool
 
-        if isRightOptionDown && !isRightOptionPressed {
+        if hotkey.requiresAlternate {
+            isHotkeyDown = flags.contains(.maskAlternate) && (rawFlags & hotkey.flagMask) != 0
+        } else if hotkey.requiresCommand {
+            isHotkeyDown = flags.contains(.maskCommand) && (rawFlags & hotkey.flagMask) != 0
+        } else if hotkey.requiresControl {
+            isHotkeyDown = flags.contains(.maskControl) && (rawFlags & hotkey.flagMask) != 0
+        } else {
+            isHotkeyDown = false
+        }
+
+        logToFile("HotkeyManager: handleEvent - hotkey=\(hotkey.displayName), rawFlags=0x\(String(rawFlags, radix: 16)), isHotkeyDown=\(isHotkeyDown), currentlyPressed=\(isRightOptionPressed)")
+
+        if isHotkeyDown && !isRightOptionPressed {
             isRightOptionPressed = true
-            logToFile("HotkeyManager: Detected RIGHT OPTION KEY DOWN")
+            logToFile("HotkeyManager: Detected \(hotkey.displayName) KEY DOWN")
             DispatchQueue.main.async { [weak self] in
                 self?.onKeyDown?()
             }
-        } else if !isRightOptionDown && isRightOptionPressed {
+        } else if !isHotkeyDown && isRightOptionPressed {
             isRightOptionPressed = false
-            logToFile("HotkeyManager: Detected RIGHT OPTION KEY UP")
+            logToFile("HotkeyManager: Detected \(hotkey.displayName) KEY UP")
             DispatchQueue.main.async { [weak self] in
                 self?.onKeyUp?()
             }
@@ -198,8 +209,9 @@ final class HotkeyManager: @unchecked Sendable {
             AudioRecorder.shared.startRecording()
         }
 
-        logToFile("HotkeyManager: Right Option pressed - started listening")
-        print("HotkeyManager: Right Option pressed - started listening")
+        let hotkeyName = AppState.shared.selectedHotkey.displayName
+        logToFile("HotkeyManager: \(hotkeyName) pressed - started listening")
+        print("HotkeyManager: \(hotkeyName) pressed - started listening")
     }
 
     private func handleKeyUp() {
@@ -228,7 +240,8 @@ final class HotkeyManager: @unchecked Sendable {
             AppState.shared.statusMessage = "Ready"
         }
 
-        logToFile("HotkeyManager: Right Option released - processing")
-        print("HotkeyManager: Right Option released - processing")
+        let hotkeyName = AppState.shared.selectedHotkey.displayName
+        logToFile("HotkeyManager: \(hotkeyName) released - processing")
+        print("HotkeyManager: \(hotkeyName) released - processing")
     }
 }

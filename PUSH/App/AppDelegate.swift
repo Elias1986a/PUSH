@@ -108,11 +108,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func preloadModels() {
         Task {
             do {
-                // Pre-load Whisper (provides excellent formatting on its own)
-                print("AppDelegate: Pre-loading Whisper model...")
+                // Pre-load the user's selected Whisper model
+                let selectedModel = AppState.shared.selectedWhisperModel
+                print("AppDelegate: Pre-loading Whisper model: \(selectedModel)...")
                 AppState.shared.statusMessage = "Loading Whisper model..."
-                try await WhisperEngine.shared.loadModel()
-                print("AppDelegate: Whisper model loaded successfully")
+                try await WhisperEngine.shared.loadModel(selectedModel)
+                print("AppDelegate: Whisper model \(selectedModel) loaded successfully")
 
                 AppState.shared.statusMessage = "Ready"
             } catch {

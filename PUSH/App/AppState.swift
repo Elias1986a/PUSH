@@ -10,6 +10,7 @@ class AppState: ObservableObject {
 
     private enum UserDefaultsKeys {
         static let selectedWhisperModel = "selectedWhisperModel"
+        static let selectedHotkey = "selectedHotkey"
     }
 
     // MARK: - Published State
@@ -32,6 +33,59 @@ class AppState: ObservableObject {
 
     @Published var startAtLogin: Bool = false
     @Published var hotkeyEnabled: Bool = true
+
+    @Published var selectedHotkey: Hotkey = .rightOption {
+        didSet {
+            UserDefaults.standard.set(selectedHotkey.rawValue, forKey: UserDefaultsKeys.selectedHotkey)
+        }
+    }
+
+    // MARK: - Hotkey Configuration
+
+    enum Hotkey: String, CaseIterable, Identifiable {
+        case rightOption = "rightOption"
+        case leftOption = "leftOption"
+        case rightCommand = "rightCommand"
+        case leftCommand = "leftCommand"
+        case rightControl = "rightControl"
+        case leftControl = "leftControl"
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .rightOption: return "⌥ Right Option"
+            case .leftOption: return "⌥ Left Option"
+            case .rightCommand: return "⌘ Right Command"
+            case .leftCommand: return "⌘ Left Command"
+            case .rightControl: return "⌃ Right Control"
+            case .leftControl: return "⌃ Left Control"
+            }
+        }
+
+        var flagMask: UInt64 {
+            switch self {
+            case .rightOption: return 0x40
+            case .leftOption: return 0x20
+            case .rightCommand: return 0x10
+            case .leftCommand: return 0x08
+            case .rightControl: return 0x2000
+            case .leftControl: return 0x1
+            }
+        }
+
+        var requiresAlternate: Bool {
+            self == .rightOption || self == .leftOption
+        }
+
+        var requiresCommand: Bool {
+            self == .rightCommand || self == .leftCommand
+        }
+
+        var requiresControl: Bool {
+            self == .rightControl || self == .leftControl
+        }
+    }
 
     // MARK: - Model Enums
 
@@ -71,6 +125,12 @@ class AppState: ObservableObject {
         if let savedModel = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedWhisperModel),
            let model = WhisperModel(rawValue: savedModel) {
             self.selectedWhisperModel = model
+        }
+
+        // Load saved hotkey from UserDefaults
+        if let savedHotkey = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedHotkey),
+           let hotkey = Hotkey(rawValue: savedHotkey) {
+            self.selectedHotkey = hotkey
         }
     }
 

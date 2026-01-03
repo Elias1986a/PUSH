@@ -11,6 +11,23 @@ actor WhisperEngine {
 
     private init() {}
 
+    private func logToFile(_ message: String) {
+        let logPath = "/tmp/push_debug.log"
+        let timestamp = Date().ISO8601Format()
+        let logMessage = "\(timestamp): \(message)\n"
+        if let data = logMessage.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: logPath) {
+                if let fileHandle = FileHandle(forWritingAtPath: logPath) {
+                    fileHandle.seekToEndOfFile()
+                    fileHandle.write(data)
+                    fileHandle.closeFile()
+                }
+            } else {
+                try? data.write(to: URL(fileURLWithPath: logPath))
+            }
+        }
+    }
+
     // MARK: - Model Names
 
     /// Map our model enum to WhisperKit model names
@@ -33,6 +50,7 @@ actor WhisperEngine {
             return
         }
 
+        logToFile("WhisperEngine: Loading model \(modelName)...")
         print("WhisperEngine: Loading model \(modelName)...")
 
         do {
@@ -42,8 +60,10 @@ actor WhisperEngine {
 
             isLoaded = true
             currentModel = modelName
+            logToFile("WhisperEngine: ✅ Model loaded successfully: \(modelName)")
             print("WhisperEngine: Model loaded successfully")
         } catch {
+            logToFile("WhisperEngine: ❌ Failed to load model: \(error)")
             print("WhisperEngine: Failed to load model: \(error)")
             throw WhisperError.loadFailed(error.localizedDescription)
         }
@@ -62,7 +82,12 @@ actor WhisperEngine {
         // Load default model if not loaded
         if !isLoaded {
             let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
+            logToFile("WhisperEngine: Not loaded, loading selected model: \(selectedModel)")
+            print("WhisperEngine: Not loaded, loading selected model: \(selectedModel)")
             try await loadModel(selectedModel)
+        } else {
+            logToFile("WhisperEngine: Using already loaded model: \(currentModel ?? "unknown")")
+            print("WhisperEngine: Using already loaded model: \(currentModel ?? "unknown")")
         }
 
         guard let whisper = whisperKit else {

@@ -19,6 +19,7 @@ struct SettingsView: View {
                 }
 
             AboutView()
+                .environmentObject(appState)
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
@@ -39,15 +40,10 @@ struct GeneralSettingsView: View {
             }
 
             Section("Hotkey") {
-                HStack {
-                    Text("Push-to-talk:")
-                    Spacer()
-                    Text("⌥ Right Option (hold)")
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.1))
-                        .cornerRadius(6)
+                Picker("Push-to-talk key", selection: $appState.selectedHotkey) {
+                    ForEach(AppState.Hotkey.allCases) { hotkey in
+                        Text(hotkey.displayName).tag(hotkey)
+                    }
                 }
 
                 Toggle("Enable hotkey", isOn: $appState.hotkeyEnabled)
@@ -121,6 +117,8 @@ struct ModelStatusRow: View {
 // MARK: - About View
 
 struct AboutView: View {
+    @EnvironmentObject var appState: AppState
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "mic.fill")
@@ -140,7 +138,7 @@ struct AboutView: View {
 
             Spacer()
 
-            Text("Hold Right Option to speak")
+            Text("Hold \(appState.selectedHotkey.displayName) to speak")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
