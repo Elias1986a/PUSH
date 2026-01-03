@@ -1,0 +1,69 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.1)'
+        required: true
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Import Code Signing Certificate
+      env:
+        CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+        CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      run: |
+        # Create temporary keychain
+        security create-keychain -p actions temp.keychain
+        security default-keychain -s temp.keychain
+        security unlock-keychain -p actions temp.keychain
+        security set-keychain-settings -t 3600 -u temp.keychain
+
+        # Import certificate
+        echo "$CERTIFICATE_BASE64" | base64 --decode > certificate.p12
+        security import certificate.p12 -k temp.keychain -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple: -s -k actions temp.keychain
+
+        rm certificate.p12
+
+    - name: Set up Notarization Credentials
+      env:
+        NOTARIZATION_APPLE_ID: ${{ secrets.NOTARIZATION_APPLE_ID }}
+        NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+        NOTARIZATION_TEAM_ID: ${{ secrets.NOTARIZATION_TEAM_ID }}
+      run: |
+        xcrun notarytool store-credentials "notarytool-profile" \
+          --apple-id "$NOTARIZATION_APPLE_ID" \
+          --team-id "$NOTARIZATION_TEAM_ID" \
+          --password "$NOTARIZATION_PASSWORD"
+
+    - name: Build and Sign
+      run: |
+        chmod +x build_distribution.sh
+        echo "" | ./build_distribution.sh
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="${{ github.event.inputs.version || github.ref_name }}"
+
+        gh release create "$VERSION" \
+          --title "PUSH $VERSION" \
+          --notes "Release $VERSION with permissions fixes" \
+          PUSH-$VERSION.dmg \
+          PUSH-$VERSION.zip
+
+    - name: Cleanup
+      if: always()
+      run: |
+        security delete-keychain temp.keychain || true

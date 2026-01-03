@@ -70,8 +70,15 @@ done
 echo "   Cleaning macOS metadata..."
 find "$APP_DIR" -name ".DS_Store" -delete 2>/dev/null || true
 chmod -R u+w "$APP_DIR"
-# Remove extended attributes from EVERY file (xattr -cr doesn't work reliably)
-find "$APP_DIR" -exec xattr -c {} \;
+# Aggressive attribute removal - try multiple methods
+echo "   Removing extended attributes (attempt 1)..."
+find "$APP_DIR" -type f -print0 2>/dev/null | xargs -0 xattr -c 2>/dev/null || true
+echo "   Removing extended attributes (attempt 2)..."
+find "$APP_DIR" -type f -exec xattr -d com.apple.provenance {} \; 2>/dev/null || true
+find "$APP_DIR" -type f -exec xattr -d com.apple.quarantine {} \; 2>/dev/null || true
+find "$APP_DIR" -type f -exec xattr -d com.apple.metadata:kMDItemWhereFroms {} \; 2>/dev/null || true
+echo "   Removing extended attributes (attempt 3)..."
+find "$APP_DIR" -type f -exec xattr -c {} \; 2>/dev/null || true
 
 # Step 3: Code sign with hardened runtime
 echo "✍️  Step 3/6: Code signing with Developer ID..."
