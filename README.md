@@ -67,13 +67,6 @@ PUSH uses two AI models:
 | Whisper Base | 150 MB | **Default** |
 | Whisper Small | 500 MB | Most accurate |
 
-### Text Formatting (Qwen)
-| Model | Size | Speed |
-|-------|------|-------|
-| Qwen 0.6B | 400 MB | Fastest |
-| Qwen 1.7B | 1.2 GB | **Default** |
-| Qwen 4B | 2.5 GB | Best quality |
-
 Models are downloaded from Hugging Face and stored in:
 ```
 ~/Library/Application Support/PUSH/models/
@@ -89,7 +82,6 @@ PUSH requires:
 
 - Swift + SwiftUI
 - [WhisperKit](https://github.com/argmaxinc/WhisperKit) - Speech-to-text
-- [llama.cpp](https://github.com/ggerganov/llama.cpp) - Qwen inference
 - Metal acceleration for fast inference
 
 ## License
