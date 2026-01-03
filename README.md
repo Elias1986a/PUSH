@@ -19,8 +19,16 @@ Push-to-talk voice to text for macOS with offline AI.
 
 ## Installation
 
-### Option 1: Download Pre-built App (Coming Soon)
-Download the latest release from the [Releases](https://github.com/yourusername/PUSH/releases) page.
+### Option 1: Download Pre-built App ⭐ Recommended
+
+**[Download the latest version](https://github.com/Elias1986a/PUSH/releases/latest)**
+
+1. Download `PUSH-vX.X.X.dmg` from the latest release
+2. Open the downloaded DMG file
+3. Drag PUSH.app to your Applications folder
+4. Done! Launch PUSH from Applications
+
+The app is properly signed and notarized - no security warnings!
 
 ### Option 2: Build from Source
 
@@ -137,6 +145,16 @@ Built with:
 - **[WhisperKit](https://github.com/argmaxinc/WhisperKit)** - High-quality speech recognition
 - **Metal acceleration** - Uses your Mac's GPU for fast processing
 
+## Contributing
+
+PUSH is open source and free! Contributions are welcome:
+
+- 🐛 **Report bugs** - [Open an issue](https://github.com/Elias1986a/PUSH/issues)
+- 💡 **Suggest features** - [Start a discussion](https://github.com/Elias1986a/PUSH/discussions)
+- 🔧 **Submit pull requests** - Fork and improve!
+
 ## License
 
-MIT
+MIT - See [LICENSE](LICENSE) file for details.
+
+Free to use, modify, and distribute!
