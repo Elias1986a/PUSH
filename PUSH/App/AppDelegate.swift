@@ -108,14 +108,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func preloadModels() {
         Task {
             do {
+                // Pre-load Whisper (provides excellent formatting on its own)
                 print("AppDelegate: Pre-loading Whisper model...")
-                AppState.shared.statusMessage = "Downloading model..."
+                AppState.shared.statusMessage = "Loading Whisper model..."
                 try await WhisperEngine.shared.loadModel()
+                print("AppDelegate: Whisper model loaded successfully")
+
                 AppState.shared.statusMessage = "Ready"
-                print("AppDelegate: Model pre-loaded successfully")
             } catch {
-                print("AppDelegate: Failed to pre-load model: \(error)")
-                AppState.shared.statusMessage = "Model download failed"
+                print("AppDelegate: Failed to load Whisper model: \(error)")
+                AppState.shared.statusMessage = "Error: \(error.localizedDescription)"
             }
         }
     }

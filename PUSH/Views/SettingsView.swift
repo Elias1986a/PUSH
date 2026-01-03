@@ -66,7 +66,7 @@ struct ModelsSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Speech Recognition (Whisper)") {
+            Section("Whisper Model") {
                 Picker("Model", selection: $appState.selectedWhisperModel) {
                     ForEach(AppState.WhisperModel.allCases) { model in
                         Text(model.displayName).tag(model)
@@ -80,25 +80,6 @@ struct ModelsSettingsView: View {
                     onDownload: {
                         Task {
                             await modelManager.downloadWhisperModel(appState.selectedWhisperModel)
-                        }
-                    }
-                )
-            }
-
-            Section("Text Formatting (Qwen)") {
-                Picker("Model", selection: $appState.selectedQwenModel) {
-                    ForEach(AppState.QwenModel.allCases) { model in
-                        Text(model.displayName).tag(model)
-                    }
-                }
-
-                ModelStatusRow(
-                    model: appState.selectedQwenModel.rawValue,
-                    isDownloaded: modelManager.isModelDownloaded(appState.selectedQwenModel.rawValue),
-                    downloadProgress: modelManager.downloadProgress[appState.selectedQwenModel.rawValue],
-                    onDownload: {
-                        Task {
-                            await modelManager.downloadQwenModel(appState.selectedQwenModel)
                         }
                     }
                 )

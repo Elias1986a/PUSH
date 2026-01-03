@@ -26,19 +26,9 @@ class ModelManager: ObservableObject {
         modelsDir.appendingPathComponent("whisper")
     }
 
-    var qwenModelsDir: URL {
-        modelsDir.appendingPathComponent("qwen")
-    }
-
     // MARK: - Model URLs
 
     private let whisperBaseURL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
-
-    private let qwenModelURLs: [String: String] = [
-        "qwen3-0.6b-q4_k_m": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf",
-        "qwen3-1.7b-q4_k_m": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf",
-        "qwen3-4b-q4_k_m": "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf"
-    ]
 
     // MARK: - Private
 
@@ -53,10 +43,7 @@ class ModelManager: ObservableObject {
     /// Check if required models are downloaded
     func hasRequiredModels() -> Bool {
         let whisperModel = AppState.shared.selectedWhisperModel
-        let qwenModel = AppState.shared.selectedQwenModel
-
-        return isModelDownloaded(whisperModel.rawValue + ".bin") &&
-               isModelDownloaded(qwenModel.rawValue + ".gguf")
+        return isModelDownloaded(whisperModel.rawValue + ".bin")
     }
 
     /// Check if a specific model is downloaded
@@ -67,11 +54,7 @@ class ModelManager: ObservableObject {
 
     /// Get the path for a model file
     func modelPath(for modelName: String) -> URL {
-        if modelName.contains("ggml") || modelName.contains("whisper") {
-            return whisperModelsDir.appendingPathComponent(modelName.hasSuffix(".bin") ? modelName : modelName + ".bin")
-        } else {
-            return qwenModelsDir.appendingPathComponent(modelName.hasSuffix(".gguf") ? modelName : modelName + ".gguf")
-        }
+        return whisperModelsDir.appendingPathComponent(modelName.hasSuffix(".bin") ? modelName : modelName + ".bin")
     }
 
     /// Download a Whisper model
@@ -79,20 +62,6 @@ class ModelManager: ObservableObject {
         let filename = model.rawValue + ".bin"
         let url = URL(string: "\(whisperBaseURL)/\(filename)")!
         let destination = whisperModelsDir.appendingPathComponent(filename)
-
-        await download(url: url, to: destination, modelName: model.rawValue)
-    }
-
-    /// Download a Qwen model
-    func downloadQwenModel(_ model: AppState.QwenModel) async {
-        guard let urlString = qwenModelURLs[model.rawValue],
-              let url = URL(string: urlString) else {
-            downloadErrors[model.rawValue] = "Invalid model URL"
-            return
-        }
-
-        let filename = model.rawValue + ".gguf"
-        let destination = qwenModelsDir.appendingPathComponent(filename)
 
         await download(url: url, to: destination, modelName: model.rawValue)
     }
@@ -129,7 +98,6 @@ class ModelManager: ObservableObject {
 
     private func createDirectories() {
         try? FileManager.default.createDirectory(at: whisperModelsDir, withIntermediateDirectories: true)
-        try? FileManager.default.createDirectory(at: qwenModelsDir, withIntermediateDirectories: true)
     }
 
     private func download(url: URL, to destination: URL, modelName: String) async {

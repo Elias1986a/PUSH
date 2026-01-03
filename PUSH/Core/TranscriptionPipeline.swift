@@ -47,19 +47,13 @@ actor TranscriptionPipeline {
                 return
             }
 
-            log("TranscriptionPipeline: Raw text from Whisper: '\(rawText)'")
-            print("TranscriptionPipeline: Raw text: \(rawText)")
+            log("TranscriptionPipeline: Raw text from Whisper: '\(filteredText)'")
+            print("TranscriptionPipeline: Raw text: \(filteredText)")
 
-            // Step 2: Format with Qwen (TEMPORARILY DISABLED - Qwen model not loading)
-            log("TranscriptionPipeline: Skipping Qwen formatting (using raw Whisper text)")
-            let formattedText = rawText
-            // TODO: Fix Qwen model loading
-            // let formattedText = try await QwenEngine.shared.format(text: rawText)
+            // Whisper Small provides excellent formatting, no need for additional processing
+            let formattedText = filteredText
 
-            log("TranscriptionPipeline: Text to inject: '\(formattedText)'")
-            print("TranscriptionPipeline: Text to inject: \(formattedText)")
-
-            // Step 3: Inject into active text field
+            // Step 2: Inject into active text field
             log("TranscriptionPipeline: Injecting text...")
             await MainActor.run {
                 TextInjector.shared.insertText(formattedText)
