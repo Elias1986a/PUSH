@@ -42,3 +42,12 @@ Carthage/Checkouts/
 /tmp/push_debug.log
 PUSH.app/
 .DS_Store
+
+# Build artifacts
+PUSH-Xcode/
+*.dmg
+*.zip
+
+# Icon work-in-progress
+ICON/
+PUSH/Resources/Assets.xcassets/AppIcon.appiconset/*.png
