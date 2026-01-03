@@ -4,7 +4,8 @@ import Cocoa
 
 /// Manages global hotkey detection for push-to-talk functionality
 /// Listens for Right Option key press/release events
-class HotkeyManager {
+@MainActor
+final class HotkeyManager: @unchecked Sendable {
     static let shared = HotkeyManager()
 
     private var eventTap: CFMachPort?
@@ -116,7 +117,7 @@ class HotkeyManager {
     private func handleKeyDown() {
         guard AppState.shared.hotkeyEnabled else { return }
 
-        Task { @MainActor in
+        Task {
             AppState.shared.isListening = true
             AppState.shared.statusMessage = "Listening..."
 
@@ -130,7 +131,7 @@ class HotkeyManager {
     private func handleKeyUp() {
         guard AppState.shared.hotkeyEnabled else { return }
 
-        Task { @MainActor in
+        Task {
             AppState.shared.isListening = false
             AppState.shared.isProcessing = true
             AppState.shared.statusMessage = "Processing..."

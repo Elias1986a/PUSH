@@ -189,7 +189,7 @@ extension URLSession {
     }
 }
 
-private class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
+private final class DownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
     let progressHandler: (Int64, Int64, Int64) -> Void
     let completionHandler: (Result<(URL, URLResponse), Error>) -> Void
 

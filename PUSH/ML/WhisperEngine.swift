@@ -16,7 +16,7 @@ actor WhisperEngine {
     func loadModel(_ model: AppState.WhisperModel = .base) async throws {
         guard !isLoaded else { return }
 
-        let modelPath = ModelManager.shared.modelPath(for: model.rawValue)
+        let modelPath = await ModelManager.shared.modelPath(for: model.rawValue)
 
         guard FileManager.default.fileExists(atPath: modelPath.path) else {
             throw WhisperError.modelNotFound(model.rawValue)

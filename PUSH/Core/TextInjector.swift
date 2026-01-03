@@ -3,7 +3,8 @@ import AppKit
 import ApplicationServices
 
 /// Injects text into the currently focused text field using Accessibility API
-class TextInjector {
+@MainActor
+final class TextInjector: @unchecked Sendable {
     static let shared = TextInjector()
 
     private init() {}

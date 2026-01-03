@@ -2,7 +2,8 @@ import Foundation
 import AVFoundation
 
 /// Captures audio from the microphone into a buffer
-class AudioRecorder {
+@MainActor
+final class AudioRecorder: @unchecked Sendable {
     static let shared = AudioRecorder()
 
     private var audioEngine: AVAudioEngine?

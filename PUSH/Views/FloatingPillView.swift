@@ -5,48 +5,57 @@ struct FloatingPillView: View {
     @State private var animationPhase: CGFloat = 0
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Animated indicator
-            ZStack {
-                if appState.isListening {
-                    // Pulsing circles for listening
-                    ForEach(0..<3, id: \.self) { index in
-                        Circle()
-                            .stroke(Color.red.opacity(0.5), lineWidth: 2)
-                            .frame(width: 12, height: 12)
-                            .scaleEffect(1 + animationPhase * CGFloat(index + 1) * 0.3)
-                            .opacity(1 - animationPhase * 0.3)
-                    }
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 8, height: 8)
-                } else if appState.isProcessing {
-                    // Spinning indicator for processing
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .orange))
-                }
+        pillContent
+            .opacity(shouldShow ? 1 : 0)
+            .scaleEffect(shouldShow ? 1 : 0.8)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: shouldShow)
+            .onAppear {
+                startAnimation()
             }
-            .frame(width: 20, height: 20)
+    }
 
-            // Status text
+    private var pillContent: some View {
+        HStack(spacing: 8) {
+            indicatorView
+                .frame(width: 20, height: 20)
+
             Text(statusText)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.primary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-        )
-        .opacity(shouldShow ? 1 : 0)
-        .scaleEffect(shouldShow ? 1 : 0.8)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: shouldShow)
-        .onAppear {
-            startAnimation()
+        .background(pillBackground)
+    }
+
+    @ViewBuilder
+    private var indicatorView: some View {
+        if appState.isListening {
+            listeningIndicator
+        } else if appState.isProcessing {
+            processingIndicator
+        } else {
+            Color.clear
         }
+    }
+
+    private var listeningIndicator: some View {
+        Circle()
+            .fill(Color.red)
+            .frame(width: 12, height: 12)
+            .scaleEffect(1 + animationPhase * 0.2)
+    }
+
+    private var processingIndicator: some View {
+        ProgressView()
+            .scaleEffect(0.6)
+            .progressViewStyle(CircularProgressViewStyle(tint: .orange))
+    }
+
+    private var pillBackground: some View {
+        Capsule()
+            .fill(.ultraThinMaterial)
+            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
     }
 
     private var shouldShow: Bool {
@@ -72,13 +81,7 @@ struct FloatingPillView: View {
 
 #Preview {
     FloatingPillView()
-        .environmentObject({
-            let state = AppState.shared
-            Task { @MainActor in
-                state.isListening = true
-            }
-            return state
-        }())
+        .environmentObject(AppState.shared)
         .padding(50)
         .background(Color.gray.opacity(0.3))
 }
