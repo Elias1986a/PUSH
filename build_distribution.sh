@@ -31,19 +31,24 @@ cp .build/release/PUSH "$APP_DIR/Contents/MacOS/"
 # Copy Info.plist
 cp PUSH/Info.plist "$APP_DIR/Contents/"
 
-# Copy resource bundles
+# Copy resource bundles (using ditto without resource forks)
 echo "   Copying resource bundles..."
 for bundle in .build/release/*.bundle; do
     if [ -e "$bundle" ]; then
-        cp -R "$bundle" "$APP_DIR/Contents/Resources/"
+        ditto --norsrc --noextattr "$bundle" "$APP_DIR/Contents/Resources/$(basename "$bundle")"
     fi
 done
 
-# Copy frameworks
+# Copy frameworks (using ditto without resource forks)
 echo "   Copying frameworks..."
-for framework in .build/release/*.framework .build/release/*.dylib; do
+for framework in .build/release/*.framework; do
     if [ -e "$framework" ]; then
-        cp -R "$framework" "$APP_DIR/Contents/Frameworks/"
+        ditto --norsrc --noextattr "$framework" "$APP_DIR/Contents/Frameworks/$(basename "$framework")"
+    fi
+done
+for dylib in .build/release/*.dylib; do
+    if [ -e "$dylib" ]; then
+        ditto --norsrc --noextattr "$dylib" "$APP_DIR/Contents/Frameworks/$(basename "$dylib")"
     fi
 done
 
@@ -61,6 +66,13 @@ for lib in "$APP_DIR"/Contents/Frameworks/*.dylib; do
     fi
 done
 
+# Clean up macOS metadata that interferes with code signing
+echo "   Cleaning macOS metadata..."
+find "$APP_DIR" -name ".DS_Store" -delete 2>/dev/null || true
+chmod -R u+w "$APP_DIR"
+# Remove extended attributes from EVERY file (xattr -cr doesn't work reliably)
+find "$APP_DIR" -exec xattr -c {} \;
+
 # Step 3: Code sign with hardened runtime
 echo "✍️  Step 3/6: Code signing with Developer ID..."
 echo "   Signing frameworks..."
@@ -77,7 +89,7 @@ for dylib in "$APP_DIR"/Contents/Frameworks/*.dylib; do
 done
 
 echo "   Signing main app..."
-codesign --force --deep --options runtime --entitlements PUSH/PUSH.entitlements \
+codesign --force --options runtime --entitlements PUSH/PUSH.entitlements \
     --sign "$DEVELOPER_ID" "$APP_DIR"
 
 echo "   Verifying signature..."
