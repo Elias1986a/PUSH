@@ -138,6 +138,29 @@ PUSH needs two permissions to work:
 
 **Your privacy is protected:** All voice processing happens on your Mac. Nothing is sent to the internet.
 
+## Troubleshooting
+
+### Upgrading from v1.0.0: Permissions Not Working
+
+If you upgraded from v1.0.0 and the hotkey doesn't work:
+
+1. Open System Settings → Privacy & Security
+2. Remove PUSH from:
+   - Accessibility
+   - Microphone
+   - Full Disk Access (if present)
+3. Quit PUSH completely
+4. Relaunch PUSH from Applications
+5. Accept permission prompts when they appear
+
+This is only needed when upgrading from v1.0.0 due to signature changes. Fresh installs work normally.
+
+### Other Issues
+
+- **No permission prompts appear:** Open System Settings manually and add PUSH to Accessibility and Microphone
+- **Hotkey not responding:** Make sure PUSH is enabled in Accessibility settings
+- **No transcription:** Check that a Whisper model is downloaded in Settings → Models
+
 ## Tech Stack
 
 Built with:
