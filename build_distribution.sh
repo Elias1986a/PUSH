@@ -8,8 +8,8 @@ APP_NAME="PUSH"
 APP_DIR="PUSH-Xcode/PUSH.app"
 BUNDLE_ID="com.push.voicetotext"
 DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
-ZIP_NAME="PUSH-v1.0.0.zip"
-DMG_NAME="PUSH-v1.0.0.dmg"
+ZIP_NAME="PUSH-v1.0.1.zip"
+DMG_NAME="PUSH-v1.0.1.dmg"
 
 echo "🚀 Building PUSH for distribution..."
 echo ""
@@ -25,11 +25,11 @@ mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
 mkdir -p "$APP_DIR/Contents/Frameworks"
 
-# Copy executable
-cp .build/release/PUSH "$APP_DIR/Contents/MacOS/"
+# Copy executable (using ditto to strip extended attributes)
+ditto --norsrc --noextattr .build/release/PUSH "$APP_DIR/Contents/MacOS/PUSH"
 
-# Copy Info.plist
-cp PUSH/Info.plist "$APP_DIR/Contents/"
+# Copy Info.plist (using ditto to strip extended attributes)
+ditto --norsrc --noextattr PUSH/Info.plist "$APP_DIR/Contents/Info.plist"
 
 # Copy resource bundles (using ditto without resource forks)
 echo "   Copying resource bundles..."

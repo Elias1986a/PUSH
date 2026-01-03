@@ -18,12 +18,14 @@
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
 
-    <!-- App Sandbox -->
+    <!-- App Sandbox DISABLED - Required for global hotkeys and text injection -->
+    <!-- Menu bar apps with accessibility features cannot be sandboxed -->
+    <!--
     <key>com.apple.security.app-sandbox</key>
     <true/>
+    -->
 
     <!-- Temporary exception for accessibility (needed for text injection) -->
-    <!-- Note: For distribution, you may need to disable sandbox or use a helper app -->
     <key>com.apple.security.temporary-exception.apple-events</key>
     <array>
         <string>com.apple.systemevents</string>
