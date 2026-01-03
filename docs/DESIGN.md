@@ -1,33 +1,30 @@
 # PUSH - Voice to Text for macOS
 
 ## Overview
-Native macOS menu bar app for push-to-talk voice transcription with offline AI formatting.
+Native macOS menu bar app for push-to-talk voice transcription with offline AI.
 
 ## Core Requirements
 - **Hotkey:** Hold Right Option (⌥) to record, release to process and insert
-- **Transcription:** Whisper.cpp (offline)
-- **Formatting:** Qwen 3 via llama.cpp (offline) - adds punctuation, capitalization, list formatting
+- **Transcription:** Whisper via WhisperKit (offline, high-quality speech recognition)
 - **Text injection:** Accessibility API into any active text field
 - **UI:** Menu bar icon + minimal floating pill when listening
 
 ## Tech Stack
 - Swift + SwiftUI
-- whisper.cpp (via WhisperKit or direct bindings)
-- llama.cpp (Swift bindings for Qwen inference)
+- WhisperKit (OpenAI Whisper models)
 - macOS Accessibility API
 
 ## Models (Curated List)
 
-| Model | Size | Default |
-|-------|------|---------|
-| Whisper tiny.en | ~75MB | |
-| Whisper base.en | ~150MB | ✓ |
-| Whisper small.en | ~500MB | |
-| Qwen 3 0.6B | ~400MB | |
-| Qwen 3 1.7B | ~1.2GB | ✓ |
-| Qwen 3 4B | ~2.5GB | |
+| Model | Size | Default | Notes |
+|-------|------|---------|-------|
+| Whisper Tiny | ~75MB | | Fastest, good for older Macs |
+| Whisper Base | ~150MB | | Balanced speed/quality |
+| Whisper Small | ~500MB | ✓ | Best quality (recommended) |
 
 Storage: `~/Library/Application Support/PUSH/models/`
+
+**Note:** Whisper Small provides excellent transcription quality with proper punctuation and capitalization built-in, eliminating the need for a separate formatting model.
 
 ## Required Permissions
 - Microphone access
@@ -51,75 +48,60 @@ PUSH/
 │   │   ├── TextInjector.swift          # Accessibility API injection
 │   │   └── TranscriptionPipeline.swift # Orchestrates the flow
 │   ├── ML/
-│   │   ├── WhisperEngine.swift         # whisper.cpp wrapper
-│   │   ├── QwenEngine.swift            # llama.cpp wrapper
+│   │   ├── WhisperEngine.swift         # WhisperKit wrapper
 │   │   └── ModelManager.swift          # Download, storage, loading
 │   ├── Resources/
 │   │   └── Assets.xcassets
 │   └── Info.plist
-└── Libraries/                           # whisper.cpp, llama.cpp
+└── Libraries/                           # WhisperKit dependency
 ```
 
 ## Implementation Phases
 
-### Phase 1: Project Setup
+### Phase 1: Project Setup ✓
 - Create Xcode project with SwiftUI lifecycle
 - Configure as menu bar app (LSUIElement)
 - Set up Info.plist for microphone and accessibility permissions
-- Integrate whisper.cpp and llama.cpp as Swift packages or local builds
+- Integrate WhisperKit as Swift package
 
-### Phase 2: Core Infrastructure
+### Phase 2: Core Infrastructure ✓
 - `HotkeyManager.swift` - Global hotkey monitoring using CGEvent/NSEvent
 - `AudioRecorder.swift` - AVAudioEngine microphone capture to buffer
 - `TextInjector.swift` - Accessibility API to paste/type into active field
 
-### Phase 3: ML Engines
-- `WhisperEngine.swift` - Load whisper.cpp model, transcribe audio buffer
-- `QwenEngine.swift` - Load llama.cpp model, format text with prompt
-- `ModelManager.swift` - Download models from HuggingFace, track progress, manage storage
+### Phase 3: ML Engine ✓
+- `WhisperEngine.swift` - WhisperKit integration, transcribe audio buffer
+- `ModelManager.swift` - Download Whisper models, track progress, manage storage
 
-### Phase 4: UI
+### Phase 4: UI ✓
 - `MenuBarView.swift` - Status icon, dropdown menu (Settings, Quit)
-- `FloatingPillView.swift` - Minimal overlay showing "Listening..." / "Processing..."
-- `SettingsView.swift` - General (hotkey, start at login), Models (selection + download)
+- `FloatingPillView.swift` - Minimal overlay showing "Listening..." with animated dots
+- `SettingsView.swift` - General (hotkey), Models (Whisper model selection + download)
 
-### Phase 5: Pipeline Integration
-- `TranscriptionPipeline.swift` - Orchestrate: audio → whisper → qwen → inject
+### Phase 5: Pipeline Integration ✓
+- `TranscriptionPipeline.swift` - Orchestrate: audio → whisper → inject
 - Wire up hotkey → pipeline → UI state changes
 - Handle errors gracefully (no model, permission denied, etc.)
+- Audio filtering to skip silence/blank recordings
 
-### Phase 6: Polish
-- Start at login (LaunchAtLogin)
-- First-launch onboarding (download default models)
-- App icon and branding
-
-## Qwen Formatting Prompt
-```
-You are a text formatter. Take the raw speech transcription and output
-properly formatted text with correct punctuation, capitalization, and
-paragraph breaks.
-
-Rules:
-- Fix punctuation (periods, commas, question marks)
-- Capitalize properly (sentences, names, "I")
-- Format numbered lists properly (1. 2. 3.)
-- Use context for homophones (their/there/they're, your/you're, here/hear)
-- Do NOT add, remove, or rephrase words
-- Handle dictation commands: "new line" → newline, "period" → .
-
-Output ONLY the formatted text, nothing else.
-```
+### Phase 6: Polish ✓
+- Optional Nextel chirp sound when recording starts
+- Proper macOS app bundle with code signing
+- Menu bar notifications for errors
+- Build script for development
 
 ## User Flow
-1. App runs in menu bar (icon visible)
-2. User holds Right Option key
-3. Floating pill appears: "Listening..."
-4. User speaks
-5. User releases Right Option key
-6. Pill changes: "Processing..."
-7. Whisper transcribes → Qwen formats
-8. Formatted text inserted at cursor
-9. Pill disappears
+1. App runs in menu bar (microphone icon visible)
+2. User clicks in any text field
+3. User holds Right Option key (or configured hotkey)
+4. Optional Nextel chirp plays (if enabled)
+5. Floating pill appears with animated bouncing dots
+6. User speaks clearly
+7. User releases Right Option key
+8. Pill shows "Processing..."
+9. Whisper transcribes audio (with built-in punctuation/capitalization)
+10. Formatted text inserted at cursor via clipboard
+11. Pill disappears
 
 ## Deferred (v2+)
 - Custom model URLs from Hugging Face
