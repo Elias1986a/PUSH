@@ -8,8 +8,8 @@ APP_NAME="PUSH"
 APP_DIR="PUSH-Xcode/PUSH.app"
 BUNDLE_ID="com.push.voicetotext"
 DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
-ZIP_NAME="PUSH-v1.0.1.zip"
-DMG_NAME="PUSH-v1.0.1.dmg"
+ZIP_NAME="PUSH-v1.0.2.zip"
+DMG_NAME="PUSH-v1.0.2.dmg"
 
 echo "🚀 Building PUSH for distribution..."
 echo ""
@@ -96,6 +96,8 @@ for dylib in "$APP_DIR"/Contents/Frameworks/*.dylib; do
 done
 
 echo "   Signing main app..."
+# Final cleanup of app bundle extended attributes
+xattr -c "$APP_DIR" 2>/dev/null || true
 codesign --force --options runtime --entitlements PUSH/PUSH.entitlements \
     --sign "$DEVELOPER_ID" "$APP_DIR"
 
