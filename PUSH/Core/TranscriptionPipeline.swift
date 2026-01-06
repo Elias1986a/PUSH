@@ -37,9 +37,10 @@ actor TranscriptionPipeline {
             let filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
 
             // Check for empty, [BLANK_AUDIO], bracketed text, or silence markers
+            let lowerText = filteredText.lowercased()
             if filteredText.isEmpty ||
-               filteredText == "[BLANK_AUDIO]" ||
-               filteredText.lowercased().contains("silence") ||
+               lowerText.contains("blank audio") ||
+               lowerText.contains("silence") ||
                filteredText.hasPrefix("(") && filteredText.hasSuffix(")") ||
                filteredText.hasPrefix("[") && filteredText.hasSuffix("]") {
                 log("TranscriptionPipeline: No speech detected (empty or blank audio): '\(filteredText)'")
