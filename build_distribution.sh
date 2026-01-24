@@ -8,8 +8,8 @@ APP_NAME="PUSH"
 APP_DIR="PUSH-Xcode/PUSH.app"
 BUNDLE_ID="com.push.voicetotext"
 DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
-ZIP_NAME="PUSH-v1.0.3.zip"
-DMG_NAME="PUSH-v1.0.3.dmg"
+ZIP_NAME="PUSH-v1.0.4.zip"
+DMG_NAME="PUSH-v1.0.4.dmg"
 
 echo "🚀 Building PUSH for distribution..."
 echo ""
@@ -30,6 +30,10 @@ ditto --norsrc --noextattr .build/release/PUSH "$APP_DIR/Contents/MacOS/PUSH"
 
 # Copy Info.plist (using ditto to strip extended attributes)
 ditto --norsrc --noextattr PUSH/Info.plist "$APP_DIR/Contents/Info.plist"
+
+# Copy app icon
+echo "   Copying app icon..."
+ditto --norsrc --noextattr ICON/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
 
 # Copy resource bundles (using ditto without resource forks)
 echo "   Copying resource bundles..."
