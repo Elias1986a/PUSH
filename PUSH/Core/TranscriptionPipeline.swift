@@ -34,16 +34,33 @@ actor TranscriptionPipeline {
             let rawText = try await WhisperEngine.shared.transcribe(audioData: audioData)
 
             // Filter out empty results and Whisper's blank audio markers
-            let filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+            var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
 
             // Check for empty, [BLANK_AUDIO], bracketed text, or silence markers
-            let lowerText = filteredText.lowercased()
+            var lowerText = filteredText.lowercased()
             if filteredText.isEmpty ||
+               lowerText.contains("blank_audio") ||
                lowerText.contains("blank audio") ||
                lowerText.contains("silence") ||
                filteredText.hasPrefix("(") && filteredText.hasSuffix(")") ||
                filteredText.hasPrefix("[") && filteredText.hasSuffix("]") {
                 log("TranscriptionPipeline: No speech detected (empty or blank audio): '\(filteredText)'")
+                print("TranscriptionPipeline: No speech detected")
+                return
+            }
+
+            // Strip "beep" from the start of transcription (microphone picks up the chirp sound effect)
+            // Handle variations: "Beep", "beep,", "Beep.", "beep " etc.
+            let beepPattern = /^beep[,.\s]*/
+            if let match = try? beepPattern.ignoresCase().prefixMatch(in: filteredText) {
+                filteredText = String(filteredText[match.range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                lowerText = filteredText.lowercased()
+                log("TranscriptionPipeline: Stripped 'beep' prefix from transcription")
+            }
+
+            // If only "beep" was transcribed (nothing left after stripping), treat as no speech
+            if filteredText.isEmpty || lowerText == "beep" {
+                log("TranscriptionPipeline: No speech detected (only beep sound): '\(rawText)'")
                 print("TranscriptionPipeline: No speech detected")
                 return
             }
