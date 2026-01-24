@@ -51,7 +51,7 @@ actor TranscriptionPipeline {
 
             // Strip "beep" from the start of transcription (microphone picks up the chirp sound effect)
             // Handle variations: "Beep", "beep,", "Beep.", "beep " etc.
-            let beepPattern = /^beep[,.\s]*/
+            let beepPattern = #/^beep[,.\s]*/#
             if let match = try? beepPattern.ignoresCase().prefixMatch(in: filteredText) {
                 filteredText = String(filteredText[match.range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
                 lowerText = filteredText.lowercased()
