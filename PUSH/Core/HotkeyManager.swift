@@ -36,6 +36,25 @@ final class HotkeyManager: @unchecked Sendable {
             self?.handleKeyUp()
         }
 
+        // Set up wake word listener callback
+        WakeWordListener.shared.onWakeWordDetected = { [weak self] in
+            Task { @MainActor in
+                self?.handleWakeWordDetected()
+            }
+        }
+
+        // Set up VAD callback for auto-stop
+        AudioRecorder.shared.onSilenceDetected = { [weak self] in
+            Task { @MainActor in
+                self?.handleVADStop()
+            }
+        }
+
+        // Start wake word listener if enabled
+        if AppState.shared.wakeWordEnabled {
+            WakeWordListener.shared.startListening()
+        }
+
         // Try to create event tap - if it fails, we don't have permission
         attemptToCreateEventTap()
     }
@@ -243,10 +262,80 @@ final class HotkeyManager: @unchecked Sendable {
 
             AppState.shared.isProcessing = false
             AppState.shared.statusMessage = "Ready"
+
+            // Resume wake word listener if enabled
+            if AppState.shared.wakeWordEnabled {
+                WakeWordListener.shared.resumeListening()
+            }
         }
 
         let hotkeyName = AppState.shared.selectedHotkey.displayName
         logToFile("HotkeyManager: \(hotkeyName) released - processing")
         print("HotkeyManager: \(hotkeyName) released - processing")
+    }
+
+    // MARK: - Wake Word Mode
+
+    private func handleWakeWordDetected() {
+        logToFile("HotkeyManager: Wake word detected - starting recording with VAD")
+        guard !AppState.shared.isListening, !AppState.shared.isProcessing else {
+            logToFile("HotkeyManager: Already listening or processing, ignoring wake word")
+            return
+        }
+
+        // Pause wake word listener during recording
+        WakeWordListener.shared.pauseListening()
+
+        Task {
+            AppState.shared.isListening = true
+            AppState.shared.statusMessage = "Listening..."
+
+            // Play chirp sound if enabled
+            if AppState.shared.playSoundOnStart {
+                SoundPlayer.shared.playChirp()
+            }
+
+            // Start audio recording WITH VAD enabled
+            AudioRecorder.shared.startRecording(withVAD: true)
+        }
+
+        logToFile("HotkeyManager: Wake word activated - listening with VAD")
+        print("HotkeyManager: Wake word activated - listening with VAD")
+    }
+
+    private func handleVADStop() {
+        logToFile("HotkeyManager: VAD triggered stop - processing")
+        guard AppState.shared.isListening else {
+            logToFile("HotkeyManager: Not listening, ignoring VAD stop")
+            return
+        }
+
+        Task {
+            AppState.shared.isListening = false
+            AppState.shared.isProcessing = true
+            AppState.shared.statusMessage = "Processing..."
+
+            // Stop recording and process
+            let audioData = AudioRecorder.shared.stopRecording()
+            logToFile("HotkeyManager: VAD stop - Got audio data: \(audioData?.count ?? 0) bytes")
+
+            if let data = audioData {
+                logToFile("HotkeyManager: Sending to transcription pipeline")
+                await TranscriptionPipeline.shared.process(audioData: data)
+                logToFile("HotkeyManager: Transcription complete")
+            } else {
+                logToFile("HotkeyManager: No audio data to process")
+            }
+
+            AppState.shared.isProcessing = false
+            AppState.shared.statusMessage = "Ready"
+
+            // Resume wake word listener
+            if AppState.shared.wakeWordEnabled {
+                WakeWordListener.shared.resumeListening()
+            }
+        }
+
+        print("HotkeyManager: VAD triggered stop - processing")
     }
 }

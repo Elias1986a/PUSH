@@ -14,15 +14,46 @@ final class AudioRecorder: @unchecked Sendable {
     private let sampleRate: Double = 16000
     private let channels: AVAudioChannelCount = 1
 
+    // VAD (Voice Activity Detection) properties
+    private var vadEnabled = false
+    private var silenceStartTime: Date?
+    private var vadTimer: Timer?
+    private let silenceThreshold: Float = 0.01 // RMS threshold for silence
+    private let silenceDuration: TimeInterval = 1.0 // 1 second of silence to trigger stop
+    private var recentAudioLevels: [Float] = []
+
+    // Callback for VAD-triggered stop
+    var onSilenceDetected: (() -> Void)?
+
     private init() {}
+
+    private func log(_ message: String) {
+        let logPath = "/tmp/push_debug.log"
+        let timestamp = Date().ISO8601Format()
+        let logMessage = "\(timestamp): \(message)\n"
+        if let data = logMessage.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: logPath) {
+                if let fileHandle = FileHandle(forWritingAtPath: logPath) {
+                    fileHandle.seekToEndOfFile()
+                    fileHandle.write(data)
+                    fileHandle.closeFile()
+                }
+            } else {
+                try? data.write(to: URL(fileURLWithPath: logPath))
+            }
+        }
+    }
 
     // MARK: - Public API
 
-    func startRecording() {
+    func startRecording(withVAD: Bool = false) {
         guard !isRecording else { return }
 
         audioData = Data()
         audioEngine = AVAudioEngine()
+        vadEnabled = withVAD
+        silenceStartTime = nil
+        recentAudioLevels = []
 
         guard let engine = audioEngine else { return }
 
@@ -59,6 +90,17 @@ final class AudioRecorder: @unchecked Sendable {
         do {
             try engine.start()
             isRecording = true
+
+            // Start VAD monitoring if enabled
+            if vadEnabled {
+                log("AudioRecorder: Started recording with VAD enabled")
+                vadTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.checkVAD()
+                    }
+                }
+            }
+
             print("AudioRecorder: Started recording")
         } catch {
             print("AudioRecorder: Failed to start engine: \(error)")
@@ -67,6 +109,11 @@ final class AudioRecorder: @unchecked Sendable {
 
     func stopRecording() -> Data? {
         guard isRecording else { return nil }
+
+        vadTimer?.invalidate()
+        vadTimer = nil
+        vadEnabled = false
+        silenceStartTime = nil
 
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
@@ -119,8 +166,55 @@ final class AudioRecorder: @unchecked Sendable {
         let frameLength = Int(buffer.frameLength)
         let data = Data(bytes: channelData[0], count: frameLength * MemoryLayout<Float>.size)
 
+        // Calculate RMS for VAD
+        if vadEnabled {
+            let rms = calculateRMS(channelData[0], frameCount: frameLength)
+            DispatchQueue.main.async { [weak self] in
+                self?.recentAudioLevels.append(rms)
+                // Keep only recent levels (last ~0.5 seconds worth)
+                if self?.recentAudioLevels.count ?? 0 > 10 {
+                    self?.recentAudioLevels.removeFirst()
+                }
+            }
+        }
+
         DispatchQueue.main.async { [weak self] in
             self?.audioData?.append(data)
+        }
+    }
+
+    private func calculateRMS(_ samples: UnsafePointer<Float>, frameCount: Int) -> Float {
+        var sum: Float = 0
+        for i in 0..<frameCount {
+            sum += samples[i] * samples[i]
+        }
+        return sqrt(sum / Float(frameCount))
+    }
+
+    private func checkVAD() {
+        guard vadEnabled, isRecording else { return }
+
+        // Calculate average of recent audio levels
+        guard !recentAudioLevels.isEmpty else { return }
+        let avgLevel = recentAudioLevels.reduce(0, +) / Float(recentAudioLevels.count)
+
+        if avgLevel < silenceThreshold {
+            // Audio is silent
+            if silenceStartTime == nil {
+                silenceStartTime = Date()
+                log("AudioRecorder: VAD - Silence started")
+            } else if let startTime = silenceStartTime,
+                      Date().timeIntervalSince(startTime) >= silenceDuration {
+                // Silence duration exceeded - trigger stop
+                log("AudioRecorder: VAD - Silence detected for \(silenceDuration)s, triggering stop")
+                onSilenceDetected?()
+            }
+        } else {
+            // Audio detected - reset silence timer
+            if silenceStartTime != nil {
+                log("AudioRecorder: VAD - Audio detected, resetting silence timer")
+            }
+            silenceStartTime = nil
         }
     }
 }

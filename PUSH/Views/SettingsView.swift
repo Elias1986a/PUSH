@@ -50,8 +50,15 @@ struct GeneralSettingsView: View {
                 Toggle("Play sound when recording starts", isOn: $appState.playSoundOnStart)
             }
 
-            Section("Wake Word") {
-                Toggle("Require wake word", isOn: $appState.wakeWordEnabled)
+            Section("Wake Word (Hands-Free Mode)") {
+                Toggle("Enable wake word activation", isOn: $appState.wakeWordEnabled)
+                    .onChange(of: appState.wakeWordEnabled) { _, newValue in
+                        if newValue {
+                            WakeWordListener.shared.startListening()
+                        } else {
+                            WakeWordListener.shared.stopListening()
+                        }
+                    }
 
                 if appState.wakeWordEnabled {
                     HStack {
@@ -61,7 +68,7 @@ struct GeneralSettingsView: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 120)
                     }
-                    Text("Say \"\(appState.wakeWord)\" before your message to filter accidental activations")
+                    Text("Say \"\(appState.wakeWord)\" to start recording. Recording stops automatically after 1 second of silence. Push-to-talk hotkey still works.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
