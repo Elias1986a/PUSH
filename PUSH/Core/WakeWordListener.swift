@@ -22,6 +22,12 @@ final class WakeWordListener: @unchecked Sendable {
     private var recentAudioLevels: [Float] = []
     private var hasSpeechInBuffer = false
 
+    // Prevent concurrent Whisper calls and duplicate detections
+    private var isCheckingWakeWord = false
+    private var isPaused = false
+    private var lastDetectionTime: Date?
+    private let detectionCooldown: TimeInterval = 2.0 // Wait 2 seconds after detection before checking again
+
     // Callback when wake word detected
     var onWakeWordDetected: (() -> Void)?
 
@@ -117,23 +123,33 @@ final class WakeWordListener: @unchecked Sendable {
     }
 
     func pauseListening() {
+        isPaused = true
         checkTimer?.invalidate()
         checkTimer = nil
+        audioBuffer = Data()
+        recentAudioLevels = []
+        hasSpeechInBuffer = false
         log("WakeWordListener: Paused (recording in progress)")
     }
 
     func resumeListening() {
         guard isListening, AppState.shared.wakeWordEnabled else { return }
 
+        isPaused = false
         audioBuffer = Data()
         recentAudioLevels = []
         hasSpeechInBuffer = false
-        checkTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                await self?.checkForWakeWord()
+
+        // Add a small delay before resuming to let audio settle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self, !self.isPaused else { return }
+            self.checkTimer = Timer.scheduledTimer(withTimeInterval: self.checkInterval, repeats: true) { [weak self] _ in
+                Task { @MainActor in
+                    await self?.checkForWakeWord()
+                }
             }
+            self.log("WakeWordListener: Resumed listening")
         }
-        log("WakeWordListener: Resumed listening")
     }
 
     // MARK: - Private
@@ -173,7 +189,7 @@ final class WakeWordListener: @unchecked Sendable {
         let rms = calculateRMS(channelData[0], frameCount: frameLength)
 
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
+            guard let self = self, !self.isPaused else { return }
             self.audioBuffer.append(data)
 
             // Track recent audio levels
@@ -202,11 +218,23 @@ final class WakeWordListener: @unchecked Sendable {
     }
 
     private func checkForWakeWord() async {
-        guard isListening, !AppState.shared.isListening, !AppState.shared.isProcessing else { return }
+        // Guard against concurrent checks, paused state, or active recording
+        guard isListening, !isPaused, !isCheckingWakeWord else { return }
+        guard !AppState.shared.isListening, !AppState.shared.isProcessing else { return }
         guard audioBuffer.count > 0 else { return }
+
+        // Skip if we recently detected wake word (cooldown period)
+        if let lastDetection = lastDetectionTime,
+           Date().timeIntervalSince(lastDetection) < detectionCooldown {
+            return
+        }
 
         // Skip Whisper if no speech detected in buffer (saves CPU)
         guard hasSpeechInBuffer else { return }
+
+        // Prevent concurrent Whisper calls
+        isCheckingWakeWord = true
+        defer { isCheckingWakeWord = false }
 
         let wakeWord = AppState.shared.wakeWord.lowercased()
         let bufferCopy = audioBuffer
@@ -219,10 +247,13 @@ final class WakeWordListener: @unchecked Sendable {
             if lowerTranscription.contains(wakeWord) {
                 log("WakeWordListener: Wake word '\(wakeWord)' detected in: '\(transcription)'")
 
-                // Clear buffer and trigger recording
+                // Set cooldown and clear buffer
+                lastDetectionTime = Date()
                 audioBuffer = Data()
                 recentAudioLevels = []
                 hasSpeechInBuffer = false
+
+                // Trigger callback
                 onWakeWordDetected?()
             }
         } catch {
