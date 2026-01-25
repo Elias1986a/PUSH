@@ -1,6 +1,51 @@
 # PUSH Release Process
 
-This document outlines the complete process for creating a new release of PUSH, including common pitfalls and solutions.
+## TL;DR - Quick Release Script
+
+**BUILD IN /tmp TO AVOID XATTR ISSUES!** The project directory gets FinderInfo xattrs that break codesigning.
+
+```bash
+# 1. Update versions in: Info.plist, SettingsView.swift, build_distribution.sh
+VERSION="2.1.2"  # <-- Change this
+
+# 2. Build
+swift build -c release
+
+# 3. Create bundle in /tmp (avoids xattr issues!)
+TMP="/tmp/push_build_$$"
+APP="$TMP/PUSH.app"
+DEV_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
+mkdir -p "$APP/Contents/"{MacOS,Resources,Frameworks}
+cp .build/release/PUSH "$APP/Contents/MacOS/"
+cp PUSH/Info.plist "$APP/Contents/"
+cp ICON/AppIcon.icns "$APP/Contents/Resources/"
+cp -R .build/release/*.bundle "$APP/Contents/Resources/"
+cp -R .build/release/llama.framework "$APP/Contents/Frameworks/"
+install_name_tool -change "@rpath/llama.framework/Versions/Current/llama" \
+    "@executable_path/../Frameworks/llama.framework/Versions/Current/llama" "$APP/Contents/MacOS/PUSH"
+
+# 4. Sign
+find "$APP" -exec xattr -c {} \; 2>/dev/null
+codesign --force --options runtime --timestamp --sign "$DEV_ID" "$APP/Contents/Frameworks/llama.framework"
+codesign --force --options runtime --timestamp --entitlements PUSH/PUSH.entitlements --sign "$DEV_ID" "$APP"
+
+# 5. Notarize
+ditto -c -k --keepParent "$APP" "$TMP/PUSH-v$VERSION.zip"
+xcrun notarytool submit "$TMP/PUSH-v$VERSION.zip" --keychain-profile "notarytool-profile" --wait
+xcrun stapler staple "$APP"
+
+# 6. Create DMG
+mkdir "$TMP/dmg" && cp -R "$APP" "$TMP/dmg/"
+hdiutil create -volname "PUSH" -srcfolder "$TMP/dmg" -ov -format UDZO "PUSH-v$VERSION.dmg"
+
+# 7. Git & Release
+git add PUSH/Info.plist PUSH/Views/SettingsView.swift build_distribution.sh
+git commit -m "Release v$VERSION"
+git tag "v$VERSION" && git push origin main "v$VERSION"
+gh release create "v$VERSION" --title "PUSH v$VERSION" --generate-notes "PUSH-v$VERSION.dmg" "$TMP/PUSH-v$VERSION.zip"
+```
+
+---
 
 ## Pre-Release Checklist
 
