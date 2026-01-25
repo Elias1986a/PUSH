@@ -107,20 +107,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func preloadModels() {
         Task {
-            do {
-                // Pre-load the user's selected Whisper model
-                let selectedModel = AppState.shared.selectedWhisperModel
-                print("AppDelegate: Pre-loading Whisper model: \(selectedModel)...")
-                AppState.shared.statusMessage = "Loading Whisper model..."
-                try await WhisperEngine.shared.loadModel(selectedModel)
-                print("AppDelegate: Whisper model \(selectedModel) loaded successfully")
+            // Pre-load AND warm up the Whisper model (compiles Metal shaders)
+            let selectedModel = AppState.shared.selectedWhisperModel
+            print("AppDelegate: Warming up Whisper model: \(selectedModel)...")
+            AppState.shared.statusMessage = "Warming up AI model..."
 
-                AppState.shared.statusMessage = "Ready"
-            } catch {
-                print("AppDelegate: Failed to load Whisper model: \(error)")
-                AppState.shared.statusMessage = "Error: \(error.localizedDescription)"
-                NotificationManager.shared.showModelError()
-            }
+            await WhisperEngine.shared.warmup()
+
+            print("AppDelegate: Whisper model ready")
+            AppState.shared.statusMessage = "Ready"
         }
     }
 }

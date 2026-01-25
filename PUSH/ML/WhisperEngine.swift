@@ -77,6 +77,32 @@ actor WhisperEngine {
         print("WhisperEngine: Model unloaded")
     }
 
+    /// Warm up the model by running a dummy inference (compiles Metal shaders)
+    func warmup() async {
+        logToFile("WhisperEngine: Starting warmup...")
+        let startTime = Date()
+
+        do {
+            // Load the model first
+            let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
+            try await loadModel(selectedModel)
+
+            // Run a dummy inference with 1 second of silence to compile shaders
+            let sampleRate = 16000
+            let silentAudio = [Float](repeating: 0.0, count: sampleRate)
+
+            guard let whisper = whisperKit else { return }
+            _ = try await whisper.transcribe(audioArray: silentAudio)
+
+            let elapsed = Date().timeIntervalSince(startTime)
+            logToFile("WhisperEngine: ✅ Warmup complete in \(String(format: "%.2f", elapsed))s")
+            print("WhisperEngine: Warmup complete in \(String(format: "%.2f", elapsed))s")
+        } catch {
+            logToFile("WhisperEngine: Warmup failed: \(error)")
+            print("WhisperEngine: Warmup failed: \(error)")
+        }
+    }
+
     /// Transcribe audio data to text
     func transcribe(audioData: Data) async throws -> String {
         // Load default model if not loaded
