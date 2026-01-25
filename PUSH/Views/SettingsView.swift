@@ -24,7 +24,7 @@ struct SettingsView: View {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 450, height: 300)
+        .frame(width: 450, height: 380)
     }
 }
 
@@ -48,6 +48,23 @@ struct GeneralSettingsView: View {
 
                 Toggle("Enable hotkey", isOn: $appState.hotkeyEnabled)
                 Toggle("Play sound when recording starts", isOn: $appState.playSoundOnStart)
+            }
+
+            Section("Wake Word") {
+                Toggle("Require wake word", isOn: $appState.wakeWordEnabled)
+
+                if appState.wakeWordEnabled {
+                    HStack {
+                        Text("Wake word")
+                        Spacer()
+                        TextField("push", text: $appState.wakeWord)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 120)
+                    }
+                    Text("Say \"\(appState.wakeWord)\" before your message to filter accidental activations")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -130,7 +147,7 @@ struct AboutView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Version 1.0.0")
+            Text("Version 2.0.0")
                 .foregroundColor(.secondary)
 
             Text("Voice to text with offline AI")

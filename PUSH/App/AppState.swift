@@ -12,6 +12,8 @@ class AppState: ObservableObject {
         static let selectedWhisperModel = "selectedWhisperModel"
         static let selectedHotkey = "selectedHotkey"
         static let playSoundOnStart = "playSoundOnStart"
+        static let wakeWordEnabled = "wakeWordEnabled"
+        static let wakeWord = "wakeWord"
     }
 
     // MARK: - Published State
@@ -44,6 +46,18 @@ class AppState: ObservableObject {
     @Published var playSoundOnStart: Bool = false {
         didSet {
             UserDefaults.standard.set(playSoundOnStart, forKey: UserDefaultsKeys.playSoundOnStart)
+        }
+    }
+
+    @Published var wakeWordEnabled: Bool = false {
+        didSet {
+            UserDefaults.standard.set(wakeWordEnabled, forKey: UserDefaultsKeys.wakeWordEnabled)
+        }
+    }
+
+    @Published var wakeWord: String = "push" {
+        didSet {
+            UserDefaults.standard.set(wakeWord, forKey: UserDefaultsKeys.wakeWord)
         }
     }
 
@@ -142,6 +156,12 @@ class AppState: ObservableObject {
 
         // Load sound preference from UserDefaults
         self.playSoundOnStart = UserDefaults.standard.bool(forKey: UserDefaultsKeys.playSoundOnStart)
+
+        // Load wake word settings from UserDefaults
+        self.wakeWordEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.wakeWordEnabled)
+        if let savedWakeWord = UserDefaults.standard.string(forKey: UserDefaultsKeys.wakeWord), !savedWakeWord.isEmpty {
+            self.wakeWord = savedWakeWord
+        }
     }
 
     private func notifyStateChange() {

@@ -50,19 +50,52 @@ actor TranscriptionPipeline {
             }
 
             // Strip "beep" from the start of transcription (microphone picks up the chirp sound effect)
-            // Handle variations: "Beep", "beep,", "Beep.", "beep " etc.
-            let beepPattern = #/^beep[,.\s]*/#
-            if let match = try? beepPattern.ignoresCase().prefixMatch(in: filteredText) {
-                filteredText = String(filteredText[match.range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                lowerText = filteredText.lowercased()
-                log("TranscriptionPipeline: Stripped 'beep' prefix from transcription")
+            // Handle variations: "Beep", "beep,", "Beep.", "beep ", "(beeping)", "[beeping]", etc.
+            let beepPatterns = [
+                #/^\(beep(ing)?\)[,.\s]*/#,      // (beep) or (beeping)
+                #/^\[beep(ing)?\][,.\s]*/#,      // [beep] or [beeping]
+                #/^beep(ing)?[,.\s]*/#           // beep or beeping
+            ]
+            for pattern in beepPatterns {
+                if let match = try? pattern.ignoresCase().prefixMatch(in: filteredText) {
+                    filteredText = String(filteredText[match.range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    lowerText = filteredText.lowercased()
+                    log("TranscriptionPipeline: Stripped beep prefix from transcription")
+                    break
+                }
             }
 
             // If only "beep" was transcribed (nothing left after stripping), treat as no speech
-            if filteredText.isEmpty || lowerText == "beep" {
+            if filteredText.isEmpty || lowerText == "beep" || lowerText == "beeping" {
                 log("TranscriptionPipeline: No speech detected (only beep sound): '\(rawText)'")
                 print("TranscriptionPipeline: No speech detected")
                 return
+            }
+
+            // Strip wake word from the start of transcription if enabled
+            let (wakeWordEnabled, wakeWord) = await MainActor.run {
+                (AppState.shared.wakeWordEnabled, AppState.shared.wakeWord)
+            }
+            if wakeWordEnabled && !wakeWord.isEmpty {
+                // Create pattern to match wake word at start (case insensitive)
+                // Handle variations: "push", "Push,", "push.", "push " etc.
+                let escapedWakeWord = NSRegularExpression.escapedPattern(for: wakeWord)
+                if let regex = try? NSRegularExpression(pattern: "^" + escapedWakeWord + "[,.:!?\\s]*", options: .caseInsensitive) {
+                    let range = NSRange(filteredText.startIndex..., in: filteredText)
+                    if let match = regex.firstMatch(in: filteredText, options: [], range: range) {
+                        let matchRange = Range(match.range, in: filteredText)!
+                        filteredText = String(filteredText[matchRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                        lowerText = filteredText.lowercased()
+                        log("TranscriptionPipeline: Stripped wake word '\(wakeWord)' from transcription")
+                    }
+                }
+
+                // If only wake word was transcribed (nothing left after stripping), treat as no speech
+                if filteredText.isEmpty || lowerText == wakeWord.lowercased() {
+                    log("TranscriptionPipeline: No speech detected (only wake word): '\(rawText)'")
+                    print("TranscriptionPipeline: No speech detected")
+                    return
+                }
             }
 
             log("TranscriptionPipeline: Raw text from Whisper: '\(filteredText)'")
