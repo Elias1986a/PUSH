@@ -14,8 +14,8 @@ final class WakeWordListener: @unchecked Sendable {
     // Configuration
     private let sampleRate: Double = 16000
     private let channels: AVAudioChannelCount = 1
-    private let bufferDuration: TimeInterval = 3.0 // Keep last 3 seconds
-    private let checkInterval: TimeInterval = 0.75 // Check every 0.75 seconds
+    private let bufferDuration: TimeInterval = 1.5 // Keep last 1.5 seconds (faster detection)
+    private let checkInterval: TimeInterval = 0.4 // Check every 0.4 seconds (more responsive)
 
     // Callback when wake word detected
     var onWakeWordDetected: (() -> Void)?

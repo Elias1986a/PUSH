@@ -22,6 +22,11 @@ final class AudioRecorder: @unchecked Sendable {
     private let silenceDuration: TimeInterval = 1.0 // 1 second of silence to trigger stop
     private var recentAudioLevels: [Float] = []
 
+    // Grace period - wait before starting VAD monitoring
+    private var recordingStartTime: Date?
+    private let vadGracePeriod: TimeInterval = 2.0 // Wait 2 seconds before VAD kicks in
+    private var speechDetectedDuringGrace = false
+
     // Callback for VAD-triggered stop
     var onSilenceDetected: (() -> Void)?
 
@@ -54,6 +59,8 @@ final class AudioRecorder: @unchecked Sendable {
         vadEnabled = withVAD
         silenceStartTime = nil
         recentAudioLevels = []
+        recordingStartTime = Date()
+        speechDetectedDuringGrace = false
 
         guard let engine = audioEngine else { return }
 
@@ -193,18 +200,34 @@ final class AudioRecorder: @unchecked Sendable {
 
     private func checkVAD() {
         guard vadEnabled, isRecording else { return }
+        guard let startTime = recordingStartTime else { return }
 
         // Calculate average of recent audio levels
         guard !recentAudioLevels.isEmpty else { return }
         let avgLevel = recentAudioLevels.reduce(0, +) / Float(recentAudioLevels.count)
 
+        let timeSinceStart = Date().timeIntervalSince(startTime)
+        let inGracePeriod = timeSinceStart < vadGracePeriod
+
+        // During grace period, just track if speech is detected
+        if inGracePeriod {
+            if avgLevel >= silenceThreshold {
+                if !speechDetectedDuringGrace {
+                    log("AudioRecorder: VAD - Speech detected during grace period")
+                    speechDetectedDuringGrace = true
+                }
+            }
+            return // Don't check for silence during grace period
+        }
+
+        // After grace period, normal VAD logic
         if avgLevel < silenceThreshold {
             // Audio is silent
             if silenceStartTime == nil {
                 silenceStartTime = Date()
-                log("AudioRecorder: VAD - Silence started")
-            } else if let startTime = silenceStartTime,
-                      Date().timeIntervalSince(startTime) >= silenceDuration {
+                log("AudioRecorder: VAD - Silence started (after grace period)")
+            } else if let silenceStart = silenceStartTime,
+                      Date().timeIntervalSince(silenceStart) >= silenceDuration {
                 // Silence duration exceeded - trigger stop
                 log("AudioRecorder: VAD - Silence detected for \(silenceDuration)s, triggering stop")
                 onSilenceDetected?()
