@@ -15,7 +15,12 @@ final class WakeWordListener: @unchecked Sendable {
     private let sampleRate: Double = 16000
     private let channels: AVAudioChannelCount = 1
     private let bufferDuration: TimeInterval = 1.5 // Keep last 1.5 seconds (faster detection)
-    private let checkInterval: TimeInterval = 0.4 // Check every 0.4 seconds (more responsive)
+    private let checkInterval: TimeInterval = 0.3 // Check every 0.3 seconds (more responsive)
+
+    // Audio level pre-filtering - only run Whisper when speech detected
+    private let speechThreshold: Float = 0.015 // RMS threshold to detect speech
+    private var recentAudioLevels: [Float] = []
+    private var hasSpeechInBuffer = false
 
     // Callback when wake word detected
     var onWakeWordDetected: (() -> Void)?
@@ -48,6 +53,8 @@ final class WakeWordListener: @unchecked Sendable {
         log("WakeWordListener: Starting wake word detection for '\(AppState.shared.wakeWord)'")
 
         audioBuffer = Data()
+        recentAudioLevels = []
+        hasSpeechInBuffer = false
         audioEngine = AVAudioEngine()
 
         guard let engine = audioEngine else { return }
@@ -119,6 +126,8 @@ final class WakeWordListener: @unchecked Sendable {
         guard isListening, AppState.shared.wakeWordEnabled else { return }
 
         audioBuffer = Data()
+        recentAudioLevels = []
+        hasSpeechInBuffer = false
         checkTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.checkForWakeWord()
@@ -160,9 +169,21 @@ final class WakeWordListener: @unchecked Sendable {
         let frameLength = Int(buffer.frameLength)
         let data = Data(bytes: channelData[0], count: frameLength * MemoryLayout<Float>.size)
 
+        // Calculate RMS for this buffer
+        let rms = calculateRMS(channelData[0], frameCount: frameLength)
+
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.audioBuffer.append(data)
+
+            // Track recent audio levels
+            self.recentAudioLevels.append(rms)
+            if self.recentAudioLevels.count > 15 { // ~0.5 seconds of levels
+                self.recentAudioLevels.removeFirst()
+            }
+
+            // Check if any recent audio exceeds speech threshold
+            self.hasSpeechInBuffer = self.recentAudioLevels.contains { $0 > self.speechThreshold }
 
             // Keep only last N seconds of audio
             let maxBytes = Int(self.sampleRate * self.bufferDuration) * MemoryLayout<Float>.size
@@ -172,9 +193,20 @@ final class WakeWordListener: @unchecked Sendable {
         }
     }
 
+    private func calculateRMS(_ samples: UnsafePointer<Float>, frameCount: Int) -> Float {
+        var sum: Float = 0
+        for i in 0..<frameCount {
+            sum += samples[i] * samples[i]
+        }
+        return sqrt(sum / Float(frameCount))
+    }
+
     private func checkForWakeWord() async {
         guard isListening, !AppState.shared.isListening, !AppState.shared.isProcessing else { return }
         guard audioBuffer.count > 0 else { return }
+
+        // Skip Whisper if no speech detected in buffer (saves CPU)
+        guard hasSpeechInBuffer else { return }
 
         let wakeWord = AppState.shared.wakeWord.lowercased()
         let bufferCopy = audioBuffer
@@ -189,6 +221,8 @@ final class WakeWordListener: @unchecked Sendable {
 
                 // Clear buffer and trigger recording
                 audioBuffer = Data()
+                recentAudioLevels = []
+                hasSpeechInBuffer = false
                 onWakeWordDetected?()
             }
         } catch {
