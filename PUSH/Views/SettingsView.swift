@@ -18,13 +18,19 @@ struct SettingsView: View {
                     Label("Models", systemImage: "cpu")
                 }
 
+            AutocompleteSettingsView()
+                .environmentObject(appState)
+                .tabItem {
+                    Label("Autocomplete", systemImage: "text.cursor")
+                }
+
             AboutView()
                 .environmentObject(appState)
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 450, height: 380)
+        .frame(width: 450, height: 480)
     }
 }
 
@@ -136,6 +142,118 @@ struct ModelStatusRow: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Autocomplete Settings
+
+struct AutocompleteSettingsView: View {
+    @EnvironmentObject var appState: AppState
+    @StateObject private var modelManager = ModelManager.shared
+    @State private var enableError: String?
+    @State private var isToggling = false
+
+    private var isModelReady: Bool {
+        modelManager.isTextModelDownloaded(.tinyLlama)
+    }
+
+    var body: some View {
+        Form {
+            Section("Predictive Text") {
+                Toggle("Enable autocomplete", isOn: Binding(
+                    get: { appState.autocompleteEnabled },
+                    set: { newValue in
+                        guard !isToggling else { return }
+                        isToggling = true
+                        enableError = nil
+                        if newValue {
+                            guard isModelReady else {
+                                enableError = "Download the text model first."
+                                isToggling = false
+                                return
+                            }
+                            Task {
+                                do {
+                                    try await AutocompleteManager.shared.enable()
+                                    appState.autocompleteEnabled = true
+                                } catch {
+                                    print("Failed to enable autocomplete: \(error)")
+                                    enableError = error.localizedDescription
+                                }
+                                isToggling = false
+                            }
+                        } else {
+                            AutocompleteManager.shared.disable()
+                            appState.autocompleteEnabled = false
+                            isToggling = false
+                        }
+                    }
+                ))
+                .disabled(!isModelReady)
+
+                if !isModelReady {
+                    Text("Download the text prediction model below to enable autocomplete.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+
+                if let error = enableError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+
+                if appState.autocompleteEnabled {
+                    Text("Tab to accept next word, ` (backtick) to accept full suggestion, Esc to dismiss.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Section("Text Prediction Model") {
+                let model = TextPredictionEngine.TextModel.tinyLlama
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(model.displayName)
+                            .font(.system(size: 13))
+                    }
+                    Spacer()
+                    ModelStatusRow(
+                        model: model.rawValue,
+                        isDownloaded: modelManager.isTextModelDownloaded(model),
+                        downloadProgress: modelManager.downloadProgress[model.rawValue],
+                        onDownload: {
+                            Task {
+                                await modelManager.downloadTextModel(model)
+                            }
+                        }
+                    )
+                }
+            }
+
+            Section("About You") {
+                Text("Describe yourself and your writing style. This helps the AI predict text that sounds like you.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                TextEditor(text: $appState.personalContext)
+                    .font(.system(size: 12))
+                    .frame(height: 100)
+                    .border(Color.secondary.opacity(0.3), width: 1)
+                    .onChange(of: appState.personalContext) { _, newValue in
+                        AutocompleteManager.shared.updatePersonalContext(newValue)
+                    }
+
+                if appState.personalContext.isEmpty {
+                    Text("Example: \"I'm a software developer. I write concise, technical emails. I prefer short sentences and avoid jargon when possible.\"")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .italic()
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
     }
 }
 

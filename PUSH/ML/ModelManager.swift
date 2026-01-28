@@ -26,9 +26,14 @@ class ModelManager: ObservableObject {
         modelsDir.appendingPathComponent("whisper")
     }
 
+    var textModelsDir: URL {
+        modelsDir.appendingPathComponent("text")
+    }
+
     // MARK: - Model URLs
 
     private let whisperBaseURL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
+    private let tinyLlamaURL = "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
 
     // MARK: - Private
 
@@ -46,15 +51,26 @@ class ModelManager: ObservableObject {
         return isModelDownloaded(whisperModel.rawValue + ".bin")
     }
 
-    /// Check if a specific model is downloaded
+    /// Check if a specific whisper model is downloaded
     func isModelDownloaded(_ modelName: String) -> Bool {
         let path = modelPath(for: modelName)
         return FileManager.default.fileExists(atPath: path.path)
     }
 
-    /// Get the path for a model file
+    /// Get the path for a whisper model file
     func modelPath(for modelName: String) -> URL {
         return whisperModelsDir.appendingPathComponent(modelName.hasSuffix(".bin") ? modelName : modelName + ".bin")
+    }
+
+    /// Check if a text prediction model is downloaded
+    func isTextModelDownloaded(_ model: TextPredictionEngine.TextModel) -> Bool {
+        let path = textModelPath(for: model)
+        return FileManager.default.fileExists(atPath: path.path)
+    }
+
+    /// Get the path for a text model file
+    func textModelPath(for model: TextPredictionEngine.TextModel) -> URL {
+        return textModelsDir.appendingPathComponent(model.filename)
     }
 
     /// Download a Whisper model
@@ -63,6 +79,13 @@ class ModelManager: ObservableObject {
         let url = URL(string: "\(whisperBaseURL)/\(filename)")!
         let destination = whisperModelsDir.appendingPathComponent(filename)
 
+        await download(url: url, to: destination, modelName: model.rawValue)
+    }
+
+    /// Download the text prediction model
+    func downloadTextModel(_ model: TextPredictionEngine.TextModel) async {
+        let destination = textModelsDir.appendingPathComponent(model.filename)
+        let url = URL(string: tinyLlamaURL)!
         await download(url: url, to: destination, modelName: model.rawValue)
     }
 
@@ -98,6 +121,7 @@ class ModelManager: ObservableObject {
 
     private func createDirectories() {
         try? FileManager.default.createDirectory(at: whisperModelsDir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: textModelsDir, withIntermediateDirectories: true)
     }
 
     private func download(url: URL, to destination: URL, modelName: String) async {
