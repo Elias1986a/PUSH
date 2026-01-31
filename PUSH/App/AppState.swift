@@ -14,8 +14,6 @@ class AppState: ObservableObject {
         static let playSoundOnStart = "playSoundOnStart"
         static let wakeWordEnabled = "wakeWordEnabled"
         static let wakeWord = "wakeWord"
-        static let autocompleteEnabled = "autocompleteEnabled"
-        static let personalContext = "personalContext"
     }
 
     // MARK: - Published State
@@ -60,18 +58,6 @@ class AppState: ObservableObject {
     @Published var wakeWord: String = "push" {
         didSet {
             UserDefaults.standard.set(wakeWord, forKey: UserDefaultsKeys.wakeWord)
-        }
-    }
-
-    @Published var autocompleteEnabled: Bool = false {
-        didSet {
-            UserDefaults.standard.set(autocompleteEnabled, forKey: UserDefaultsKeys.autocompleteEnabled)
-        }
-    }
-
-    @Published var personalContext: String = "" {
-        didSet {
-            UserDefaults.standard.set(personalContext, forKey: UserDefaultsKeys.personalContext)
         }
     }
 
@@ -175,12 +161,6 @@ class AppState: ObservableObject {
         self.wakeWordEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.wakeWordEnabled)
         if let savedWakeWord = UserDefaults.standard.string(forKey: UserDefaultsKeys.wakeWord), !savedWakeWord.isEmpty {
             self.wakeWord = savedWakeWord
-        }
-
-        // Load autocomplete settings from UserDefaults
-        self.autocompleteEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.autocompleteEnabled)
-        if let savedContext = UserDefaults.standard.string(forKey: UserDefaultsKeys.personalContext) {
-            self.personalContext = savedContext
         }
     }
 

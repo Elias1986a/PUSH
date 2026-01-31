@@ -161,23 +161,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             logToDebug("AppDelegate: Whisper model ready")
             AppState.shared.statusMessage = "Ready"
-
-            // Enable autocomplete if the user has it turned on and the model is downloaded
-            logToDebug("AppDelegate: autocompleteEnabled = \(AppState.shared.autocompleteEnabled)")
-            if AppState.shared.autocompleteEnabled {
-                let modelManager = ModelManager.shared
-                let textModel = TextPredictionEngine.TextModel.tinyLlama
-                let downloaded = modelManager.isTextModelDownloaded(textModel)
-                logToDebug("AppDelegate: Text model downloaded = \(downloaded)")
-                if downloaded {
-                    do {
-                        try await AutocompleteManager.shared.enable()
-                        logToDebug("AppDelegate: Autocomplete enabled successfully")
-                    } catch {
-                        logToDebug("AppDelegate: Failed to enable autocomplete: \(error)")
-                    }
-                }
-            }
         }
     }
 }
