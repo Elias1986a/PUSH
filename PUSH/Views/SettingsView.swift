@@ -1,5 +1,6 @@
 import SwiftUI
 import LaunchAtLogin
+import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
@@ -83,6 +84,16 @@ struct GeneralSettingsView: View {
 
 struct ModelsSettingsView: View {
     @EnvironmentObject var appState: AppState
+    @State private var isDownloading = false
+    @State private var downloadError: String?
+
+    private var isDownloaded: Bool {
+        WhisperEngine.isModelDownloaded(appState.selectedWhisperModel)
+    }
+
+    private var modelPath: URL {
+        WhisperEngine.modelFolderURL(for: appState.selectedWhisperModel)
+    }
 
     var body: some View {
         Form {
@@ -93,13 +104,74 @@ struct ModelsSettingsView: View {
                     }
                 }
 
-                Text("Models are downloaded automatically when needed.")
+                HStack(spacing: 8) {
+                    if isDownloaded {
+                        Label("Downloaded", systemImage: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                    } else {
+                        Label("Not downloaded", systemImage: "icloud.and.arrow.down")
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    if isDownloading {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else if !isDownloaded {
+                        Button("Download") {
+                            downloadSelectedModel()
+                        }
+                    }
+                }
+
+                if let downloadError {
+                    Text(downloadError)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+
+                HStack {
+                    Text("Location")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([modelPath])
+                    }
+                    .disabled(!isDownloaded)
+                }
+                Text(modelPath.path)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .textSelection(.enabled)
+
+                Text("Models are downloaded automatically when needed and stored locally.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
         .formStyle(.grouped)
         .padding()
+    }
+
+    private func downloadSelectedModel() {
+        let model = appState.selectedWhisperModel
+        isDownloading = true
+        downloadError = nil
+        Task {
+            do {
+                try await WhisperEngine.shared.loadModel(model)
+                await MainActor.run {
+                    isDownloading = false
+                }
+            } catch {
+                await MainActor.run {
+                    downloadError = error.localizedDescription
+                    isDownloading = false
+                }
+            }
+        }
     }
 }
 
@@ -118,7 +190,7 @@ struct AboutView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Version 2.1.4")
+            Text("Version 2.2.0")
                 .foregroundColor(.secondary)
 
             Text("Voice to text with offline AI")

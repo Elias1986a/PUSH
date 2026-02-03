@@ -110,7 +110,6 @@ class AppState: ObservableObject {
     // MARK: - Model Enums
 
     enum WhisperModel: String, CaseIterable, Identifiable {
-        case tiny = "ggml-tiny.en"
         case base = "ggml-base.en"
         case small = "ggml-small.en"
 
@@ -118,22 +117,8 @@ class AppState: ObservableObject {
 
         var displayName: String {
             switch self {
-            case .tiny: return "Whisper Tiny (75 MB)"
-            case .base: return "Whisper Base (150 MB)"
-            case .small: return "Whisper Small (500 MB) - Recommended"
-            }
-        }
-
-        var downloadURL: URL {
-            let base = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
-            return URL(string: "\(base)/\(rawValue).bin")!
-        }
-
-        var fileSize: Int64 {
-            switch self {
-            case .tiny: return 75_000_000
-            case .base: return 150_000_000
-            case .small: return 500_000_000
+            case .base: return "Whisper Base"
+            case .small: return "Whisper Small — Recommended"
             }
         }
     }

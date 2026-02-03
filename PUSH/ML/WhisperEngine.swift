@@ -14,19 +14,33 @@ actor WhisperEngine {
     // MARK: - Model Names
 
     /// Map our model enum to WhisperKit model names
-    private func whisperKitModelName(for model: AppState.WhisperModel) -> String {
+    private static func whisperKitModelName(for model: AppState.WhisperModel) -> String {
         switch model {
-        case .tiny: return "openai_whisper-tiny.en"
         case .base: return "openai_whisper-base.en"
         case .small: return "openai_whisper-small.en"
         }
+    }
+
+    nonisolated static func modelFolderURL(for model: AppState.WhisperModel) -> URL {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let modelName = whisperKitModelName(for: model)
+        return documents
+            .appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml", isDirectory: true)
+            .appendingPathComponent(modelName, isDirectory: true)
+    }
+
+    nonisolated static func isModelDownloaded(_ model: AppState.WhisperModel) -> Bool {
+        let folder = modelFolderURL(for: model)
+        guard FileManager.default.fileExists(atPath: folder.path) else { return false }
+        let contents = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return contents.contains { $0.hasSuffix(".mlmodelc") }
     }
 
     // MARK: - Public API
 
     /// Load the Whisper model (downloads if needed)
     func loadModel(_ model: AppState.WhisperModel = .base) async throws {
-        let modelName = whisperKitModelName(for: model)
+        let modelName = Self.whisperKitModelName(for: model)
 
         // Skip if already loaded with same model
         if isLoaded && currentModel == modelName {
