@@ -3,6 +3,7 @@
 ## TL;DR - Quick Release Script
 
 **BUILD IN /tmp TO AVOID XATTR ISSUES!** The project directory gets FinderInfo xattrs that break codesigning.
+If codesigning fails with “resource fork, Finder information, or similar detritus not allowed,” build in `/tmp` and create the app bundle there (see Quick Release Script).
 
 ```bash
 # 1. Update versions in: Info.plist, SettingsView.swift, build_distribution.sh
