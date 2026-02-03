@@ -64,18 +64,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // containing these files so ggml_metal_init can find them.
         if let bundlePath = Bundle.main.path(forResource: "llama_llama", ofType: "bundle") {
             setenv("GGML_METAL_PATH_RESOURCES", bundlePath, 1)
-            logToDebug("AppDelegate: Set GGML_METAL_PATH_RESOURCES = \(bundlePath)")
+            PushLogger.log("AppDelegate: Set GGML_METAL_PATH_RESOURCES = \(bundlePath)")
         } else {
             // Fallback: try to find the bundle relative to app bundle
             let resourcePath = Bundle.main.bundleURL
                 .appendingPathComponent("Contents/Resources/llama_llama.bundle").path
             if FileManager.default.fileExists(atPath: resourcePath) {
                 setenv("GGML_METAL_PATH_RESOURCES", resourcePath, 1)
-                logToDebug("AppDelegate: Set GGML_METAL_PATH_RESOURCES (fallback) = \(resourcePath)")
+                PushLogger.log("AppDelegate: Set GGML_METAL_PATH_RESOURCES (fallback) = \(resourcePath)")
             } else {
-                logToDebug("AppDelegate: WARNING - Could not find llama_llama.bundle for Metal resources")
-                logToDebug("AppDelegate: mainBundle = \(Bundle.main.bundleURL.path)")
-                logToDebug("AppDelegate: Tried: \(resourcePath)")
+                PushLogger.log("AppDelegate: WARNING - Could not find llama_llama.bundle for Metal resources")
+                PushLogger.log("AppDelegate: mainBundle = \(Bundle.main.bundleURL.path)")
+                PushLogger.log("AppDelegate: Tried: \(resourcePath)")
             }
         }
     }
@@ -133,33 +133,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func logToDebug(_ message: String) {
-        let logPath = "/tmp/push_debug.log"
-        let timestamp = Date().ISO8601Format()
-        let logMessage = "\(timestamp): \(message)\n"
-        if let data = logMessage.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: logPath) {
-                if let fh = FileHandle(forWritingAtPath: logPath) {
-                    fh.seekToEndOfFile()
-                    fh.write(data)
-                    fh.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: logPath))
-            }
-        }
-    }
-
     private func preloadModels() {
-        Task {
+        Task { @MainActor in
             // Pre-load AND warm up the Whisper model (compiles Metal shaders)
             let selectedModel = AppState.shared.selectedWhisperModel
-            logToDebug("AppDelegate: Warming up Whisper model: \(selectedModel)...")
+            PushLogger.log("AppDelegate: Warming up Whisper model: \(selectedModel)...")
             AppState.shared.statusMessage = "Warming up AI model..."
 
             await WhisperEngine.shared.warmup()
 
-            logToDebug("AppDelegate: Whisper model ready")
+            PushLogger.log("AppDelegate: Whisper model ready")
             AppState.shared.statusMessage = "Ready"
         }
     }

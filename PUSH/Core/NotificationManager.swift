@@ -14,7 +14,7 @@ class NotificationManager {
     private func requestPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error = error {
-                print("NotificationManager: Failed to request permission: \(error)")
+                PushLogger.log("NotificationManager: Failed to request permission: \(error)")
             }
         }
     }
@@ -34,7 +34,7 @@ class NotificationManager {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("NotificationManager: Failed to show notification: \(error)")
+                PushLogger.log("NotificationManager: Failed to show notification: \(error)")
             }
         }
     }

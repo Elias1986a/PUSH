@@ -1,5 +1,5 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 
 /// Captures audio from the microphone into a buffer
 @MainActor
@@ -32,23 +32,6 @@ final class AudioRecorder: @unchecked Sendable {
 
     private init() {}
 
-    private func log(_ message: String) {
-        let logPath = "/tmp/push_debug.log"
-        let timestamp = Date().ISO8601Format()
-        let logMessage = "\(timestamp): \(message)\n"
-        if let data = logMessage.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: logPath) {
-                if let fileHandle = FileHandle(forWritingAtPath: logPath) {
-                    fileHandle.seekToEndOfFile()
-                    fileHandle.write(data)
-                    fileHandle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: logPath))
-            }
-        }
-    }
-
     // MARK: - Public API
 
     func startRecording(withVAD: Bool = false) {
@@ -74,7 +57,7 @@ final class AudioRecorder: @unchecked Sendable {
             channels: channels,
             interleaved: false
         ) else {
-            print("AudioRecorder: Failed to create output format")
+            PushLogger.log("AudioRecorder: Failed to create output format")
             return
         }
 
@@ -88,9 +71,13 @@ final class AudioRecorder: @unchecked Sendable {
             if let converter = converter {
                 // Convert to 16kHz mono
                 let convertedBuffer = self.convert(buffer: buffer, converter: converter, outputFormat: outputFormat)
-                self.appendBuffer(convertedBuffer ?? buffer)
+                Task { @MainActor in
+                    self.appendBuffer(convertedBuffer ?? buffer)
+                }
             } else {
-                self.appendBuffer(buffer)
+                Task { @MainActor in
+                    self.appendBuffer(buffer)
+                }
             }
         }
 
@@ -100,7 +87,7 @@ final class AudioRecorder: @unchecked Sendable {
 
             // Start VAD monitoring if enabled
             if vadEnabled {
-                log("AudioRecorder: Started recording with VAD enabled")
+                PushLogger.log("AudioRecorder: Started recording with VAD enabled")
                 vadTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
                     Task { @MainActor in
                         self?.checkVAD()
@@ -108,9 +95,9 @@ final class AudioRecorder: @unchecked Sendable {
                 }
             }
 
-            print("AudioRecorder: Started recording")
+            PushLogger.log("AudioRecorder: Started recording")
         } catch {
-            print("AudioRecorder: Failed to start engine: \(error)")
+            PushLogger.log("AudioRecorder: Failed to start engine: \(error)")
         }
     }
 
@@ -130,7 +117,7 @@ final class AudioRecorder: @unchecked Sendable {
         let result = audioData
         audioData = nil
 
-        print("AudioRecorder: Stopped recording, captured \(result?.count ?? 0) bytes")
+        PushLogger.log("AudioRecorder: Stopped recording, captured \(result?.count ?? 0) bytes")
         return result
     }
 
@@ -160,7 +147,7 @@ final class AudioRecorder: @unchecked Sendable {
         converter.convert(to: outputBuffer, error: &error, withInputFrom: inputBlock)
 
         if let error = error {
-            print("AudioRecorder: Conversion error: \(error)")
+            PushLogger.log("AudioRecorder: Conversion error: \(error)")
             return nil
         }
 
@@ -213,7 +200,7 @@ final class AudioRecorder: @unchecked Sendable {
         if inGracePeriod {
             if avgLevel >= silenceThreshold {
                 if !speechDetectedDuringGrace {
-                    log("AudioRecorder: VAD - Speech detected during grace period")
+                    PushLogger.log("AudioRecorder: VAD - Speech detected during grace period")
                     speechDetectedDuringGrace = true
                 }
             }
@@ -225,17 +212,17 @@ final class AudioRecorder: @unchecked Sendable {
             // Audio is silent
             if silenceStartTime == nil {
                 silenceStartTime = Date()
-                log("AudioRecorder: VAD - Silence started (after grace period)")
+                PushLogger.log("AudioRecorder: VAD - Silence started (after grace period)")
             } else if let silenceStart = silenceStartTime,
                       Date().timeIntervalSince(silenceStart) >= silenceDuration {
                 // Silence duration exceeded - trigger stop
-                log("AudioRecorder: VAD - Silence detected for \(silenceDuration)s, triggering stop")
+                PushLogger.log("AudioRecorder: VAD - Silence detected for \(silenceDuration)s, triggering stop")
                 onSilenceDetected?()
             }
         } else {
             // Audio detected - reset silence timer
             if silenceStartTime != nil {
-                log("AudioRecorder: VAD - Audio detected, resetting silence timer")
+                PushLogger.log("AudioRecorder: VAD - Audio detected, resetting silence timer")
             }
             silenceStartTime = nil
         }
@@ -268,6 +255,7 @@ extension AudioRecorder {
 
     /// Save audio data to a WAV file (for debugging)
     static func saveToWAV(_ data: Data, sampleRate: Int = 16000) -> URL? {
+#if DEBUG
         let tempDir = FileManager.default.temporaryDirectory
         let fileURL = tempDir.appendingPathComponent("recording_\(Date().timeIntervalSince1970).wav")
 
@@ -302,8 +290,11 @@ extension AudioRecorder {
             try wavData.write(to: fileURL)
             return fileURL
         } catch {
-            print("AudioRecorder: Failed to save WAV: \(error)")
+            PushLogger.log("AudioRecorder: Failed to save WAV: \(error)")
             return nil
         }
+#else
+        return nil
+#endif
     }
 }

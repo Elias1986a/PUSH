@@ -1,5 +1,5 @@
 import Foundation
-import WhisperKit
+@preconcurrency import WhisperKit
 
 /// Wrapper for WhisperKit speech-to-text engine
 actor WhisperEngine {
@@ -10,23 +10,6 @@ actor WhisperEngine {
     private var currentModel: String?
 
     private init() {}
-
-    private func logToFile(_ message: String) {
-        let logPath = "/tmp/push_debug.log"
-        let timestamp = Date().ISO8601Format()
-        let logMessage = "\(timestamp): \(message)\n"
-        if let data = logMessage.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: logPath) {
-                if let fileHandle = FileHandle(forWritingAtPath: logPath) {
-                    fileHandle.seekToEndOfFile()
-                    fileHandle.write(data)
-                    fileHandle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: logPath))
-            }
-        }
-    }
 
     // MARK: - Model Names
 
@@ -50,8 +33,7 @@ actor WhisperEngine {
             return
         }
 
-        logToFile("WhisperEngine: Loading model \(modelName)...")
-        print("WhisperEngine: Loading model \(modelName)...")
+        PushLogger.log("WhisperEngine: Loading model \(modelName)...")
 
         do {
             // WhisperKit automatically downloads the model if not present
@@ -60,11 +42,9 @@ actor WhisperEngine {
 
             isLoaded = true
             currentModel = modelName
-            logToFile("WhisperEngine: ✅ Model loaded successfully: \(modelName)")
-            print("WhisperEngine: Model loaded successfully")
+            PushLogger.log("WhisperEngine: ✅ Model loaded successfully: \(modelName)")
         } catch {
-            logToFile("WhisperEngine: ❌ Failed to load model: \(error)")
-            print("WhisperEngine: Failed to load model: \(error)")
+            PushLogger.log("WhisperEngine: ❌ Failed to load model: \(error)")
             throw WhisperError.loadFailed(error.localizedDescription)
         }
     }
@@ -74,12 +54,12 @@ actor WhisperEngine {
         whisperKit = nil
         isLoaded = false
         currentModel = nil
-        print("WhisperEngine: Model unloaded")
+        PushLogger.log("WhisperEngine: Model unloaded")
     }
 
     /// Warm up the model by running a dummy inference (compiles Metal shaders)
     func warmup() async {
-        logToFile("WhisperEngine: Starting warmup...")
+        PushLogger.log("WhisperEngine: Starting warmup...")
         let startTime = Date()
 
         do {
@@ -95,11 +75,9 @@ actor WhisperEngine {
             _ = try await whisper.transcribe(audioArray: silentAudio)
 
             let elapsed = Date().timeIntervalSince(startTime)
-            logToFile("WhisperEngine: ✅ Warmup complete in \(String(format: "%.2f", elapsed))s")
-            print("WhisperEngine: Warmup complete in \(String(format: "%.2f", elapsed))s")
+            PushLogger.log("WhisperEngine: ✅ Warmup complete in \(String(format: "%.2f", elapsed))s")
         } catch {
-            logToFile("WhisperEngine: Warmup failed: \(error)")
-            print("WhisperEngine: Warmup failed: \(error)")
+            PushLogger.log("WhisperEngine: Warmup failed: \(error)")
         }
     }
 
@@ -108,12 +86,10 @@ actor WhisperEngine {
         // Load default model if not loaded
         if !isLoaded {
             let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
-            logToFile("WhisperEngine: Not loaded, loading selected model: \(selectedModel)")
-            print("WhisperEngine: Not loaded, loading selected model: \(selectedModel)")
+            PushLogger.log("WhisperEngine: Not loaded, loading selected model: \(selectedModel)")
             try await loadModel(selectedModel)
         } else {
-            logToFile("WhisperEngine: Using already loaded model: \(currentModel ?? "unknown")")
-            print("WhisperEngine: Using already loaded model: \(currentModel ?? "unknown")")
+            PushLogger.log("WhisperEngine: Using already loaded model: \(currentModel ?? "unknown")")
         }
 
         guard let whisper = whisperKit else {
@@ -127,7 +103,7 @@ actor WhisperEngine {
             throw WhisperError.emptyAudio
         }
 
-        print("WhisperEngine: Transcribing \(floatArray.count) samples...")
+        PushLogger.log("WhisperEngine: Transcribing \(floatArray.count) samples...")
 
         // Transcribe
         let results = try await whisper.transcribe(audioArray: floatArray)
@@ -137,7 +113,7 @@ actor WhisperEngine {
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        print("WhisperEngine: Transcription complete: \(text)")
+        PushLogger.log("WhisperEngine: Transcription complete (\(text.count) chars)")
         return text
     }
 

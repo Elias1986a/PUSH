@@ -34,7 +34,6 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var startAtLogin: Bool = false
     @Published var hotkeyEnabled: Bool = true
 
     @Published var selectedHotkey: Hotkey = .rightOption {

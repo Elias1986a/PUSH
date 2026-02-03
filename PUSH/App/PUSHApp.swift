@@ -20,13 +20,5 @@ struct PUSHApp: App {
                 .environmentObject(appState)
         }
 
-        // Invisible window for floating pill
-        Window("PUSH", id: "floating-pill") {
-            FloatingPillView()
-                .environmentObject(appState)
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        .defaultPosition(.bottom)
     }
 }

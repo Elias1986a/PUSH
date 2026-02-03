@@ -28,11 +28,24 @@ let package = Package(
                 .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern")
             ],
             path: "PUSH",
+            exclude: [
+                "PUSH.entitlements",
+                "Info.plist"
+            ],
             resources: [
                 .process("Resources")
             ],
             swiftSettings: [
-                .swiftLanguageMode(.v5)
+                .swiftLanguageMode(.v5),
+                // Concurrency diagnostics (debug-only) to surface actor/thread violations early.
+                .unsafeFlags(
+                    [
+                        "-Xfrontend", "-warn-concurrency",
+                        "-Xfrontend", "-enable-actor-data-race-checks",
+                        "-Xfrontend", "-strict-concurrency=complete"
+                    ],
+                    .when(configuration: .debug)
+                )
             ]
         )
     ]

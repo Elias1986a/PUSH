@@ -1,5 +1,5 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 
 /// Continuously listens for a wake word using Whisper, then triggers recording with VAD
 @MainActor
@@ -33,30 +33,13 @@ final class WakeWordListener: @unchecked Sendable {
 
     private init() {}
 
-    private func log(_ message: String) {
-        let logPath = "/tmp/push_debug.log"
-        let timestamp = Date().ISO8601Format()
-        let logMessage = "\(timestamp): \(message)\n"
-        if let data = logMessage.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: logPath) {
-                if let fileHandle = FileHandle(forWritingAtPath: logPath) {
-                    fileHandle.seekToEndOfFile()
-                    fileHandle.write(data)
-                    fileHandle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: logPath))
-            }
-        }
-    }
-
     // MARK: - Public API
 
     func startListening() {
         guard !isListening else { return }
         guard AppState.shared.wakeWordEnabled else { return }
 
-        log("WakeWordListener: Starting wake word detection for '\(AppState.shared.wakeWord)'")
+        PushLogger.log("WakeWordListener: Starting wake word detection")
 
         audioBuffer = Data()
         recentAudioLevels = []
@@ -74,7 +57,7 @@ final class WakeWordListener: @unchecked Sendable {
             channels: channels,
             interleaved: false
         ) else {
-            log("WakeWordListener: Failed to create output format")
+            PushLogger.log("WakeWordListener: Failed to create output format")
             return
         }
 
@@ -85,7 +68,9 @@ final class WakeWordListener: @unchecked Sendable {
 
             if let converter = converter {
                 if let convertedBuffer = self.convert(buffer: buffer, converter: converter, outputFormat: outputFormat) {
-                    self.appendToBuffer(convertedBuffer)
+                    Task { @MainActor in
+                        self.appendToBuffer(convertedBuffer)
+                    }
                 }
             }
         }
@@ -101,9 +86,9 @@ final class WakeWordListener: @unchecked Sendable {
                 }
             }
 
-            log("WakeWordListener: Started listening for wake word")
+            PushLogger.log("WakeWordListener: Started listening for wake word")
         } catch {
-            log("WakeWordListener: Failed to start: \(error)")
+            PushLogger.log("WakeWordListener: Failed to start: \(error)")
         }
     }
 
@@ -119,7 +104,7 @@ final class WakeWordListener: @unchecked Sendable {
         isListening = false
         audioBuffer = Data()
 
-        log("WakeWordListener: Stopped listening")
+        PushLogger.log("WakeWordListener: Stopped listening")
     }
 
     func pauseListening() {
@@ -129,7 +114,7 @@ final class WakeWordListener: @unchecked Sendable {
         audioBuffer = Data()
         recentAudioLevels = []
         hasSpeechInBuffer = false
-        log("WakeWordListener: Paused (recording in progress)")
+        PushLogger.log("WakeWordListener: Paused (recording in progress)")
     }
 
     func resumeListening() {
@@ -148,7 +133,7 @@ final class WakeWordListener: @unchecked Sendable {
                     await self?.checkForWakeWord()
                 }
             }
-            self.log("WakeWordListener: Resumed listening")
+            PushLogger.log("WakeWordListener: Resumed listening")
         }
     }
 
@@ -245,7 +230,7 @@ final class WakeWordListener: @unchecked Sendable {
 
             // Check if wake word was spoken
             if lowerTranscription.contains(wakeWord) {
-                log("WakeWordListener: Wake word '\(wakeWord)' detected in: '\(transcription)'")
+                PushLogger.log("WakeWordListener: Wake word detected")
 
                 // Set cooldown and clear buffer
                 lastDetectionTime = Date()

@@ -1,6 +1,7 @@
 import Foundation
 import Carbon
 import Cocoa
+@preconcurrency import ApplicationServices
 
 /// Manages global hotkey detection for push-to-talk functionality
 /// Listens for Right Option key press/release events
@@ -26,7 +27,7 @@ final class HotkeyManager: @unchecked Sendable {
     func startListening() {
         guard eventTap == nil else { return }
 
-        logToFile("HotkeyManager: startListening called")
+        PushLogger.log("HotkeyManager: startListening called")
 
         // Set up callbacks
         onKeyDown = { [weak self] in
@@ -59,23 +60,6 @@ final class HotkeyManager: @unchecked Sendable {
         attemptToCreateEventTap()
     }
 
-    private func logToFile(_ message: String) {
-        let logPath = "/tmp/push_debug.log"
-        let timestamp = Date().ISO8601Format()
-        let logMessage = "\(timestamp): \(message)\n"
-        if let data = logMessage.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: logPath) {
-                if let fileHandle = FileHandle(forWritingAtPath: logPath) {
-                    fileHandle.seekToEndOfFile()
-                    fileHandle.write(data)
-                    fileHandle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: logPath))
-            }
-        }
-    }
-
     func stopListening() {
         retryTimer?.invalidate()
         retryTimer = nil
@@ -91,13 +75,13 @@ final class HotkeyManager: @unchecked Sendable {
         eventTap = nil
         runLoopSource = nil
         isRightOptionPressed = false
-        print("HotkeyManager: Stopped listening")
+        PushLogger.log("HotkeyManager: Stopped listening")
     }
 
     // MARK: - Private
 
     private func attemptToCreateEventTap() {
-        logToFile("HotkeyManager: attemptToCreateEventTap called")
+        PushLogger.log("HotkeyManager: attemptToCreateEventTap called")
         let eventMask = (1 << CGEventType.flagsChanged.rawValue)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
 
@@ -109,7 +93,9 @@ final class HotkeyManager: @unchecked Sendable {
             callback: { proxy, type, event, refcon -> Unmanaged<CGEvent>? in
                 guard let refcon = refcon else { return Unmanaged.passRetained(event) }
                 let manager = Unmanaged<HotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
-                manager.handleEvent(event)
+                Task { @MainActor in
+                    manager.handleEvent(event)
+                }
                 return Unmanaged.passRetained(event)
             },
             userInfo: refcon
@@ -117,14 +103,14 @@ final class HotkeyManager: @unchecked Sendable {
 
         // If tap is nil, we don't have permission
         guard let tap = tap else {
-            logToFile("HotkeyManager: Failed to create event tap - requesting accessibility permission")
-            print("HotkeyManager: Failed to create event tap - requesting accessibility permission")
+            PushLogger.log("HotkeyManager: Failed to create event tap - requesting accessibility permission")
+            PushLogger.log("HotkeyManager: Failed to create event tap - requesting accessibility permission")
             requestAccessibilityAndRetry()
             return
         }
 
         // Success! We have permission
-        logToFile("HotkeyManager: ✅ Event tap created successfully!")
+        PushLogger.log("HotkeyManager: ✅ Event tap created successfully!")
         eventTap = tap
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
 
@@ -132,17 +118,16 @@ final class HotkeyManager: @unchecked Sendable {
             CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
             CGEvent.tapEnable(tap: tap, enable: true)
             let hotkeyName = AppState.shared.selectedHotkey.displayName
-            logToFile("HotkeyManager: ✅ Started listening for \(hotkeyName) key")
-            print("HotkeyManager: ✅ Started listening for \(hotkeyName) key")
+            PushLogger.log("HotkeyManager: ✅ Started listening for \(hotkeyName) key")
         }
     }
 
     private func requestAccessibilityAndRetry() {
-        logToFile("HotkeyManager: requestAccessibilityAndRetry called")
+        PushLogger.log("HotkeyManager: requestAccessibilityAndRetry called")
         // Request permission with prompt
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
-        logToFile("HotkeyManager: Requested accessibility permission, starting retry timer")
+        PushLogger.log("HotkeyManager: Requested accessibility permission, starting retry timer")
 
         // Retry every 2 seconds until we can create the event tap
         retryTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
@@ -151,8 +136,7 @@ final class HotkeyManager: @unchecked Sendable {
                 return
             }
 
-            self.logToFile("HotkeyManager: Retrying event tap creation...")
-            print("HotkeyManager: Retrying event tap creation...")
+            PushLogger.log("HotkeyManager: Retrying event tap creation...")
 
             // Try to create the tap again
             let testEventMask = (1 << CGEventType.flagsChanged.rawValue)
@@ -167,8 +151,7 @@ final class HotkeyManager: @unchecked Sendable {
 
             if testTap != nil {
                 // Permission granted! Clean up test tap and do real setup
-                self.logToFile("HotkeyManager: ✅ Permission detected, setting up listener")
-                print("HotkeyManager: ✅ Permission detected, setting up listener")
+                PushLogger.log("HotkeyManager: ✅ Permission detected, setting up listener")
                 timer.invalidate()
 
                 DispatchQueue.main.async {
@@ -199,17 +182,17 @@ final class HotkeyManager: @unchecked Sendable {
             isHotkeyDown = false
         }
 
-        logToFile("HotkeyManager: handleEvent - hotkey=\(hotkey.displayName), rawFlags=0x\(String(rawFlags, radix: 16)), isHotkeyDown=\(isHotkeyDown), currentlyPressed=\(isRightOptionPressed)")
+        PushLogger.log("HotkeyManager: handleEvent - hotkey=\(hotkey.displayName), rawFlags=0x\(String(rawFlags, radix: 16)), isHotkeyDown=\(isHotkeyDown), currentlyPressed=\(isRightOptionPressed)")
 
         if isHotkeyDown && !isRightOptionPressed {
             isRightOptionPressed = true
-            logToFile("HotkeyManager: Detected \(hotkey.displayName) KEY DOWN")
+            PushLogger.log("HotkeyManager: Detected \(hotkey.displayName) KEY DOWN")
             DispatchQueue.main.async { [weak self] in
                 self?.onKeyDown?()
             }
         } else if !isHotkeyDown && isRightOptionPressed {
             isRightOptionPressed = false
-            logToFile("HotkeyManager: Detected \(hotkey.displayName) KEY UP")
+            PushLogger.log("HotkeyManager: Detected \(hotkey.displayName) KEY UP")
             DispatchQueue.main.async { [weak self] in
                 self?.onKeyUp?()
             }
@@ -217,10 +200,10 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     private func handleKeyDown() {
-        logToFile("HotkeyManager: handleKeyDown called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
+        PushLogger.log("HotkeyManager: handleKeyDown called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
         guard AppState.shared.hotkeyEnabled else { return }
 
-        Task {
+        Task { @MainActor in
             AppState.shared.isListening = true
             AppState.shared.statusMessage = "Listening..."
 
@@ -234,30 +217,29 @@ final class HotkeyManager: @unchecked Sendable {
         }
 
         let hotkeyName = AppState.shared.selectedHotkey.displayName
-        logToFile("HotkeyManager: \(hotkeyName) pressed - started listening")
-        print("HotkeyManager: \(hotkeyName) pressed - started listening")
+        PushLogger.log("HotkeyManager: \(hotkeyName) pressed - started listening")
     }
 
     private func handleKeyUp() {
-        logToFile("HotkeyManager: handleKeyUp called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
+        PushLogger.log("HotkeyManager: handleKeyUp called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
         guard AppState.shared.hotkeyEnabled else { return }
 
-        Task {
+        Task { @MainActor in
             AppState.shared.isListening = false
             AppState.shared.isProcessing = true
             AppState.shared.statusMessage = "Processing..."
-            logToFile("HotkeyManager: Set state to processing")
+            PushLogger.log("HotkeyManager: Set state to processing")
 
             // Stop recording and process
             let audioData = AudioRecorder.shared.stopRecording()
-            logToFile("HotkeyManager: Got audio data: \(audioData?.count ?? 0) bytes")
+            PushLogger.log("HotkeyManager: Got audio data: \(audioData?.count ?? 0) bytes")
 
             if let data = audioData {
-                logToFile("HotkeyManager: Sending to transcription pipeline")
+                PushLogger.log("HotkeyManager: Sending to transcription pipeline")
                 await TranscriptionPipeline.shared.process(audioData: data)
-                logToFile("HotkeyManager: Transcription complete")
+                PushLogger.log("HotkeyManager: Transcription complete")
             } else {
-                logToFile("HotkeyManager: No audio data to process")
+                PushLogger.log("HotkeyManager: No audio data to process")
             }
 
             AppState.shared.isProcessing = false
@@ -270,23 +252,22 @@ final class HotkeyManager: @unchecked Sendable {
         }
 
         let hotkeyName = AppState.shared.selectedHotkey.displayName
-        logToFile("HotkeyManager: \(hotkeyName) released - processing")
-        print("HotkeyManager: \(hotkeyName) released - processing")
+        PushLogger.log("HotkeyManager: \(hotkeyName) released - processing")
     }
 
     // MARK: - Wake Word Mode
 
     private func handleWakeWordDetected() {
-        logToFile("HotkeyManager: Wake word detected - starting recording with VAD")
+        PushLogger.log("HotkeyManager: Wake word detected - starting recording with VAD")
         guard !AppState.shared.isListening, !AppState.shared.isProcessing else {
-            logToFile("HotkeyManager: Already listening or processing, ignoring wake word")
+            PushLogger.log("HotkeyManager: Already listening or processing, ignoring wake word")
             return
         }
 
         // Pause wake word listener during recording
         WakeWordListener.shared.pauseListening()
 
-        Task {
+        Task { @MainActor in
             AppState.shared.isListening = true
             AppState.shared.statusMessage = "Listening..."
 
@@ -299,32 +280,31 @@ final class HotkeyManager: @unchecked Sendable {
             AudioRecorder.shared.startRecording(withVAD: true)
         }
 
-        logToFile("HotkeyManager: Wake word activated - listening with VAD")
-        print("HotkeyManager: Wake word activated - listening with VAD")
+        PushLogger.log("HotkeyManager: Wake word activated - listening with VAD")
     }
 
     private func handleVADStop() {
-        logToFile("HotkeyManager: VAD triggered stop - processing")
+        PushLogger.log("HotkeyManager: VAD triggered stop - processing")
         guard AppState.shared.isListening else {
-            logToFile("HotkeyManager: Not listening, ignoring VAD stop")
+            PushLogger.log("HotkeyManager: Not listening, ignoring VAD stop")
             return
         }
 
-        Task {
+        Task { @MainActor in
             AppState.shared.isListening = false
             AppState.shared.isProcessing = true
             AppState.shared.statusMessage = "Processing..."
 
             // Stop recording and process
             let audioData = AudioRecorder.shared.stopRecording()
-            logToFile("HotkeyManager: VAD stop - Got audio data: \(audioData?.count ?? 0) bytes")
+            PushLogger.log("HotkeyManager: VAD stop - Got audio data: \(audioData?.count ?? 0) bytes")
 
             if let data = audioData {
-                logToFile("HotkeyManager: Sending to transcription pipeline")
+                PushLogger.log("HotkeyManager: Sending to transcription pipeline")
                 await TranscriptionPipeline.shared.process(audioData: data)
-                logToFile("HotkeyManager: Transcription complete")
+                PushLogger.log("HotkeyManager: Transcription complete")
             } else {
-                logToFile("HotkeyManager: No audio data to process")
+                PushLogger.log("HotkeyManager: No audio data to process")
             }
 
             AppState.shared.isProcessing = false
@@ -336,6 +316,6 @@ final class HotkeyManager: @unchecked Sendable {
             }
         }
 
-        print("HotkeyManager: VAD triggered stop - processing")
+        PushLogger.log("HotkeyManager: VAD triggered stop - processing")
     }
 }

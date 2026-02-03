@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 
 /// Plays sound effects
+@MainActor
 class SoundPlayer {
     static let shared = SoundPlayer()
 
@@ -12,7 +13,7 @@ class SoundPlayer {
     /// Play the Nextel chirp sound
     func playChirp() {
         guard let url = Bundle.module.url(forResource: "nextel_chirp", withExtension: "mp3") else {
-            print("SoundPlayer: Could not find nextel_chirp.mp3")
+            PushLogger.log("SoundPlayer: Could not find nextel_chirp.mp3")
             return
         }
 
@@ -21,7 +22,7 @@ class SoundPlayer {
             audioPlayer?.volume = 0.5  // 50% volume
             audioPlayer?.play()
         } catch {
-            print("SoundPlayer: Failed to play sound: \(error)")
+            PushLogger.log("SoundPlayer: Failed to play sound: \(error)")
         }
     }
 }

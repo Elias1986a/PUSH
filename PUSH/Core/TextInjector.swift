@@ -13,29 +13,11 @@ final class TextInjector: @unchecked Sendable {
 
     /// Insert text at the current cursor position in any app
     func insertText(_ text: String) {
-        log("TextInjector: Attempting to insert: '\(text)'")
+        PushLogger.log("TextInjector: Attempting to insert text (\(text.count) chars)")
 
         // Use clipboard + paste as primary method (works in all apps)
         insertViaClipboard(text)
-        log("TextInjector: ✅ Inserted via clipboard paste")
-        print("TextInjector: Inserted via clipboard paste")
-    }
-
-    private func log(_ message: String) {
-        let logPath = "/tmp/push_debug.log"
-        let timestamp = Date().ISO8601Format()
-        let logMessage = "\(timestamp): \(message)\n"
-        if let data = logMessage.data(using: .utf8) {
-            if FileManager.default.fileExists(atPath: logPath) {
-                if let fileHandle = FileHandle(forWritingAtPath: logPath) {
-                    fileHandle.seekToEndOfFile()
-                    fileHandle.write(data)
-                    fileHandle.closeFile()
-                }
-            } else {
-                try? data.write(to: URL(fileURLWithPath: logPath))
-            }
-        }
+        PushLogger.log("TextInjector: ✅ Inserted via clipboard paste")
     }
 
     // MARK: - Private Methods
@@ -43,7 +25,7 @@ final class TextInjector: @unchecked Sendable {
     private func insertViaAccessibility(_ text: String) -> Bool {
         // Get the focused element
         guard let focusedElement = getFocusedElement() else {
-            print("TextInjector: No focused element found")
+            PushLogger.log("TextInjector: No focused element found")
             return false
         }
 
@@ -52,7 +34,7 @@ final class TextInjector: @unchecked Sendable {
         let result = AXUIElementIsAttributeSettable(focusedElement, kAXValueAttribute as CFString, &settable)
 
         guard result == .success && settable.boolValue else {
-            print("TextInjector: Element value not settable")
+            PushLogger.log("TextInjector: Element value not settable")
             return false
         }
 
@@ -102,15 +84,21 @@ final class TextInjector: @unchecked Sendable {
     private func insertViaClipboard(_ text: String) {
         // Save current clipboard
         let pasteboard = NSPasteboard.general
-        let savedItems = pasteboard.pasteboardItems?.compactMap { item -> (String, Data)? in
-            guard let type = item.types.first,
-                  let data = item.data(forType: type) else { return nil }
-            return (type.rawValue, data)
-        }
+        let savedItems: [NSPasteboardItem] = pasteboard.pasteboardItems?.compactMap { item in
+            let newItem = NSPasteboardItem()
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    newItem.setData(data, forType: type)
+                }
+            }
+            return newItem
+        } ?? []
+        let originalChangeCount = pasteboard.changeCount
 
         // Set new text
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        let injectedChangeCount = pasteboard.changeCount
 
         // Wait a bit for clipboard to sync, then paste
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -119,12 +107,16 @@ final class TextInjector: @unchecked Sendable {
 
         // Restore clipboard after a longer delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            if let savedItems = savedItems, !savedItems.isEmpty {
-                pasteboard.clearContents()
-                for (type, data) in savedItems {
-                    pasteboard.setData(data, forType: NSPasteboard.PasteboardType(type))
+            // Only restore if user hasn't modified the clipboard since we injected.
+            guard pasteboard.changeCount == injectedChangeCount else { return }
+            guard !savedItems.isEmpty else {
+                if pasteboard.changeCount == injectedChangeCount && originalChangeCount == injectedChangeCount {
+                    pasteboard.clearContents()
                 }
+                return
             }
+            pasteboard.clearContents()
+            pasteboard.writeObjects(savedItems)
         }
     }
 
@@ -148,6 +140,10 @@ final class TextInjector: @unchecked Sendable {
             return nil
         }
 
+        let typeID = CFGetTypeID(focusedElement as CFTypeRef)
+        guard typeID == AXUIElementGetTypeID() else {
+            return nil
+        }
         return (focusedElement as! AXUIElement)
     }
 
