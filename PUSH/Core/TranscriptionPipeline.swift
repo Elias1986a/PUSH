@@ -102,16 +102,25 @@ actor TranscriptionPipeline {
             // Post-processing pipeline (order matters):
             // 1. Remove filler words first (before capitalization fixes them in place)
             // 2. Remove stuttered/duplicate words
-            // 3. Fix question marks (before capitalization)
-            // 4. Capitalize after punctuation
-            // 5. Capitalize standalone "I"
-            // 6. Double space after periods (last, so spacing is clean)
+            // 3. Fix trailing comma
+            // 4. Ensure ending punctuation
+            // 5. Fix question marks (before capitalization)
+            // 6. Smart symbols (%, $, @)
+            // 7. Capitalize after punctuation
+            // 8. Capitalize standalone "I"
+            // 9. Double space after periods (last, so spacing is clean)
             let formattedText = Self.doubleSpaceAfterPeriods(
                 Self.capitalizeI(
                     Self.fixCapitalization(
-                        Self.fixQuestionMarks(
-                            Self.removeStutteredWords(
-                                Self.removeFillerWords(filteredText)
+                        Self.smartSymbols(
+                            Self.fixQuestionMarks(
+                                Self.ensureEndingPunctuation(
+                                    Self.fixTrailingComma(
+                                        Self.removeStutteredWords(
+                                            Self.removeFillerWords(filteredText)
+                                        )
+                                    )
+                                )
                             )
                         )
                     )
@@ -274,6 +283,64 @@ actor TranscriptionPipeline {
         }
         // Append any remaining text (no trailing punctuation)
         result.append(current)
+
+        return result
+    }
+
+    /// Replace trailing comma with a period (model sometimes leaves a dangling comma)
+    private static func fixTrailingComma(_ text: String) -> String {
+        var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if result.hasSuffix(",") {
+            result = String(result.dropLast()) + "."
+        }
+        return result
+    }
+
+    /// Add a period at the end if there's no ending punctuation
+    private static func ensureEndingPunctuation(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return text }
+        let lastChar = trimmed.last!
+        if lastChar == "." || lastChar == "?" || lastChar == "!" {
+            return text
+        }
+        return trimmed + "."
+    }
+
+    /// Smart symbol replacement: "percent" → "%", "dollar" → "$", "at sign" → "@"
+    private static func smartSymbols(_ text: String) -> String {
+        var result = text
+
+        // Number + "percent" → number + "%"  (e.g. "50 percent" → "50%")
+        if let regex = try? NSRegularExpression(pattern: "(\\d)\\s+percent\\b", options: .caseInsensitive) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1%")
+        }
+
+        // "dollar" / "dollars" before or after numbers
+        // "$50" pattern: "50 dollars" → "$50", "50 dollar" → "$50"
+        if let regex = try? NSRegularExpression(pattern: "(\\d+)\\s+dollars?\\b", options: .caseInsensitive) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "\\$$1")
+        }
+
+        // "at sign" or "at symbol" → "@"
+        if let regex = try? NSRegularExpression(pattern: "\\bat\\s+sign\\b", options: .caseInsensitive) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "@")
+        }
+
+        // "hashtag" or "hash sign" → "#"
+        if let regex = try? NSRegularExpression(pattern: "\\bhash\\s*tag\\b", options: .caseInsensitive) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "#")
+        }
+
+        // "ampersand" → "&"
+        if let regex = try? NSRegularExpression(pattern: "\\bampersand\\b", options: .caseInsensitive) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "&")
+        }
 
         return result
     }
