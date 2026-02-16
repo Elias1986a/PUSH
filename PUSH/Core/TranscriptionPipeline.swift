@@ -92,8 +92,8 @@ actor TranscriptionPipeline {
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
 
-            // Whisper Small provides excellent formatting, no need for additional processing
-            let formattedText = filteredText
+            // Fix capitalization: capitalize first letter and first letter after sentence-ending punctuation
+            let formattedText = Self.fixCapitalization(filteredText)
 
             // Step 2: Inject into active text field
             PushLogger.log("TranscriptionPipeline: Injecting text...")
@@ -112,5 +112,31 @@ actor TranscriptionPipeline {
                 NotificationManager.shared.showTranscriptionError()
             }
         }
+    }
+
+    // MARK: - Text Post-Processing
+
+    /// Capitalize the first letter of the text and the first letter after sentence-ending punctuation
+    private static func fixCapitalization(_ text: String) -> String {
+        guard !text.isEmpty else { return text }
+
+        var result = ""
+        var capitalizeNext = true
+
+        for char in text {
+            if capitalizeNext && char.isLetter {
+                result.append(char.uppercased())
+                capitalizeNext = false
+            } else {
+                result.append(char)
+                if char == "." || char == "?" || char == "!" {
+                    capitalizeNext = true
+                } else if char.isLetter {
+                    capitalizeNext = false
+                }
+            }
+        }
+
+        return result
     }
 }

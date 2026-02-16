@@ -19,7 +19,7 @@ actor WhisperEngine {
         case .base: return "openai_whisper-base.en"
         case .small: return "openai_whisper-small.en"
         case .distilLargeV3: return "distil-whisper_distil-large-v3"
-        case .largeTurbo: return "openai_whisper-large-v3_turbo"
+        case .distilLargeV3Turbo: return "distil-whisper_distil-large-v3_turbo"
         case .moonshineTiny, .moonshineBase: return "" // Not WhisperKit models
         }
     }

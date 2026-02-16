@@ -113,7 +113,7 @@ class AppState: ObservableObject {
         case base = "ggml-base.en"
         case small = "ggml-small.en"
         case distilLargeV3 = "distil-large-v3"
-        case largeTurbo = "large-v3-turbo"
+        case distilLargeV3Turbo = "distil-large-v3-turbo"
         case moonshineTiny = "moonshine-tiny"
         case moonshineBase = "moonshine-base"
 
@@ -123,8 +123,8 @@ class AppState: ObservableObject {
             switch self {
             case .base: return "Whisper Base"
             case .small: return "Whisper Small"
-            case .distilLargeV3: return "Distil-Large V3 — Recommended"
-            case .largeTurbo: return "Large V3 Turbo"
+            case .distilLargeV3: return "Distil-Large V3"
+            case .distilLargeV3Turbo: return "Distil-Large V3 Turbo — Recommended"
             case .moonshineTiny: return "Moonshine Tiny"
             case .moonshineBase: return "Moonshine Base"
             }
@@ -135,7 +135,7 @@ class AppState: ObservableObject {
             case .base: return "Fastest, lower accuracy (~150 MB)"
             case .small: return "Good balance of speed and accuracy (~250 MB)"
             case .distilLargeV3: return "Fast and accurate, English-only (~600 MB)"
-            case .largeTurbo: return "Best accuracy, multilingual (~950 MB)"
+            case .distilLargeV3Turbo: return "Best speed and accuracy, English-only (~600 MB)"
             case .moonshineTiny: return "Ultra-fast, optimized for short speech (~45 MB model)"
             case .moonshineBase: return "Fast and accurate, variable-length audio (~134 MB)"
             }
