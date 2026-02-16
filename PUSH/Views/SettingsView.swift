@@ -266,7 +266,7 @@ struct AboutView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Version 3.0.3")
+            Text("Version 3.0.4")
                 .foregroundColor(.secondary)
 
             Text("Voice to text with offline AI")
