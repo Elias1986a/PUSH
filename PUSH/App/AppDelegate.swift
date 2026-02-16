@@ -88,15 +88,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let hostingController = NSHostingController(rootView: pillView)
 
-        let window = NSWindow(contentViewController: hostingController)
-        window.styleMask = [.borderless, .fullSizeContentView]
+        // Use NSPanel with .nonactivatingPanel so showing it doesn't activate the app
+        // or pull the user out of full-screen mode
+        let window = NSPanel(contentViewController: hostingController)
+        window.styleMask = [.borderless, .nonactivatingPanel, .fullSizeContentView]
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.level = .statusBar  // Always visible, even above fullscreen apps
+        window.hidesOnDeactivate = false
+        window.level = .statusBar
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .transient]
         window.isReleasedWhenClosed = false
-        window.ignoresMouseEvents = true  // Click-through
+        window.ignoresMouseEvents = true
+        window.isFloatingPanel = true
 
         // Position at bottom center of main screen
         if let screen = NSScreen.main {

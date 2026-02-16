@@ -17,6 +17,12 @@ final class HotkeyManager: @unchecked Sendable {
     private var onKeyUp: (() -> Void)?
     private var retryTimer: Timer?
 
+    // Tracks whether we're actively recording (hotkey or wake word).
+    // Accessed from event tap callback (main run loop) and @MainActor methods.
+    // nonisolated(unsafe) because the event tap callback isn't formally @MainActor,
+    // but both contexts run on the main thread so there's no actual data race.
+    nonisolated(unsafe) private var isCurrentlyRecording = false
+
     // Right Option key code
     private let rightOptionKeyCode: CGKeyCode = 61
 
@@ -94,6 +100,18 @@ final class HotkeyManager: @unchecked Sendable {
             callback: { proxy, type, event, refcon -> Unmanaged<CGEvent>? in
                 guard let refcon = refcon else { return Unmanaged.passRetained(event) }
                 let manager = Unmanaged<HotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
+
+                // Consume Escape key during recording so full-screen apps (Safari, etc.)
+                // don't also exit full-screen when the user presses Escape to cancel.
+                if type == .keyDown,
+                   event.getIntegerValueField(.keyboardEventKeycode) == 53,
+                   manager.isCurrentlyRecording {
+                    Task { @MainActor in
+                        manager.handleCancelRecording()
+                    }
+                    return nil  // Swallow the event
+                }
+
                 Task { @MainActor in
                     manager.handleEvent(event)
                 }
@@ -165,17 +183,6 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     private func handleEvent(_ event: CGEvent) {
-        // Escape key (keycode 53) cancels recording
-        if event.type == .keyDown &&
-           event.getIntegerValueField(.keyboardEventKeycode) == 53 &&
-           AppState.shared.isListening {
-            PushLogger.log("HotkeyManager: Escape pressed - cancelling recording")
-            DispatchQueue.main.async { [weak self] in
-                self?.handleCancelRecording()
-            }
-            return
-        }
-
         // Only process modifier key changes for hotkey detection
         guard event.type == .flagsChanged else { return }
 
@@ -219,6 +226,8 @@ final class HotkeyManager: @unchecked Sendable {
         PushLogger.log("HotkeyManager: handleKeyDown called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
         guard AppState.shared.hotkeyEnabled else { return }
 
+        isCurrentlyRecording = true
+
         Task { @MainActor in
             AppState.shared.isListening = true
             AppState.shared.statusMessage = "Listening..."
@@ -239,6 +248,8 @@ final class HotkeyManager: @unchecked Sendable {
     private func handleKeyUp() {
         PushLogger.log("HotkeyManager: handleKeyUp called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
         guard AppState.shared.hotkeyEnabled else { return }
+
+        isCurrentlyRecording = false
 
         Task { @MainActor in
             AppState.shared.isListening = false
@@ -276,6 +287,8 @@ final class HotkeyManager: @unchecked Sendable {
     private func handleCancelRecording() {
         PushLogger.log("HotkeyManager: Cancelling recording - discarding audio")
 
+        isCurrentlyRecording = false
+
         Task { @MainActor in
             // Stop recording and discard audio
             _ = AudioRecorder.shared.stopRecording()
@@ -307,6 +320,8 @@ final class HotkeyManager: @unchecked Sendable {
         // Pause wake word listener during recording
         WakeWordListener.shared.pauseListening()
 
+        isCurrentlyRecording = true
+
         Task { @MainActor in
             AppState.shared.isListening = true
             AppState.shared.statusMessage = "Listening..."
@@ -329,6 +344,8 @@ final class HotkeyManager: @unchecked Sendable {
             PushLogger.log("HotkeyManager: Not listening, ignoring VAD stop")
             return
         }
+
+        isCurrentlyRecording = false
 
         Task { @MainActor in
             AppState.shared.isListening = false
