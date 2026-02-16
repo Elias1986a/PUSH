@@ -26,16 +26,23 @@ actor TranscriptionPipeline {
             // Filter out empty results and Whisper's blank audio markers
             var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            // Check for empty, [BLANK_AUDIO], bracketed text, or silence markers
+            // Check for empty, [BLANK_AUDIO], bracketed text, silence markers,
+            // and common Whisper hallucinations on silence/ambient noise
             var lowerText = filteredText.lowercased()
+            let hallucinationPhrases: Set<String> = [
+                "thank you", "thank you.", "thanks for watching",
+                "thanks for watching.", "subscribe", "like and subscribe",
+                "see you next time", "bye", "goodbye",
+                "you", "the end", "the end."
+            ]
             if filteredText.isEmpty ||
                lowerText.contains("blank_audio") ||
                lowerText.contains("blank audio") ||
                lowerText.contains("silence") ||
+               hallucinationPhrases.contains(lowerText) ||
                filteredText.hasPrefix("(") && filteredText.hasSuffix(")") ||
                filteredText.hasPrefix("[") && filteredText.hasSuffix("]") {
-                PushLogger.log("TranscriptionPipeline: No speech detected (empty or blank audio)")
-                PushLogger.log("TranscriptionPipeline: No speech detected")
+                PushLogger.log("TranscriptionPipeline: No speech detected (empty, blank, or hallucination)")
                 return
             }
 
@@ -92,8 +99,12 @@ actor TranscriptionPipeline {
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
 
-            // Fix capitalization: capitalize first letter and first letter after sentence-ending punctuation
-            let formattedText = Self.fixCapitalization(filteredText)
+            // Post-processing: capitalization, "I" pronoun, double space after periods
+            let formattedText = Self.doubleSpaceAfterPeriods(
+                Self.capitalizeI(
+                    Self.fixCapitalization(filteredText)
+                )
+            )
 
             // Step 2: Inject into active text field
             PushLogger.log("TranscriptionPipeline: Injecting text...")
@@ -137,6 +148,31 @@ actor TranscriptionPipeline {
             }
         }
 
+        return result
+    }
+
+    /// Capitalize standalone "i" → "I" (the pronoun, not inside words)
+    private static func capitalizeI(_ text: String) -> String {
+        // Match standalone "i" surrounded by word boundaries
+        guard let regex = try? NSRegularExpression(pattern: "\\bi\\b", options: []) else {
+            return text
+        }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "I")
+    }
+
+    /// Add double space after sentence-ending punctuation (. ? !)
+    private static func doubleSpaceAfterPeriods(_ text: String) -> String {
+        var result = text
+        // Replace single space after sentence-ending punctuation with double space
+        // But don't touch ellipsis (...) or abbreviations like "Dr." followed by a name
+        for punct in [".", "?", "!"] {
+            result = result.replacingOccurrences(of: "\(punct) ", with: "\(punct)  ")
+            // Fix triple+ spaces back to double (in case already double-spaced)
+            while result.contains("\(punct)   ") {
+                result = result.replacingOccurrences(of: "\(punct)   ", with: "\(punct)  ")
+            }
+        }
         return result
     }
 }
