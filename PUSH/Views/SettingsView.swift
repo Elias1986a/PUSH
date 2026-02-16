@@ -215,6 +215,8 @@ struct ModelsSettingsView: View {
         Task {
             do {
                 try await WhisperEngine.shared.loadModel(model)
+                // Run warmup to compile Metal shaders so first transcription is fast
+                await WhisperEngine.shared.warmup()
                 await MainActor.run {
                     isDownloading = false
                 }
@@ -233,6 +235,9 @@ struct ModelsSettingsView: View {
         Task {
             do {
                 try await MoonshineEngine.shared.downloadBaseModel()
+                // Load and warm up so first transcription is fast
+                try await MoonshineEngine.shared.loadModel(.moonshineBase)
+                await MoonshineEngine.shared.warmup()
                 await MainActor.run {
                     isDownloading = false
                 }
