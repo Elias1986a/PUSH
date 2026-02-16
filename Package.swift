@@ -13,6 +13,9 @@ let package = Package(
         // WhisperKit for speech-to-text
         .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.9.0"),
 
+        // Moonshine for speech-to-text (edge-optimized ASR)
+        .package(url: "https://github.com/moonshine-ai/moonshine-swift.git", from: "0.0.48"),
+
         // llama.cpp Swift bindings (Swift-friendly wrapper)
         .package(url: "https://github.com/ShenghaiWang/SwiftLlama.git", branch: "main"),
 
@@ -24,6 +27,7 @@ let package = Package(
             name: "PUSH",
             dependencies: [
                 .product(name: "WhisperKit", package: "WhisperKit"),
+                .product(name: "Moonshine", package: "moonshine-swift"),
                 .product(name: "SwiftLlama", package: "SwiftLlama"),
                 .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern")
             ],
@@ -46,6 +50,13 @@ let package = Package(
                     ],
                     .when(configuration: .debug)
                 )
+            ],
+            linkerSettings: [
+                .linkedLibrary("c++"),
+                .unsafeFlags([
+                    "-Xlinker", "-force_load",
+                    "-Xlinker", ".build/artifacts/moonshine-swift/Moonshine/Moonshine.xcframework/macos-arm64_x86_64/libmoonshine.a"
+                ])
             ]
         )
     ]

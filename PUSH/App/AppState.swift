@@ -112,13 +112,40 @@ class AppState: ObservableObject {
     enum WhisperModel: String, CaseIterable, Identifiable {
         case base = "ggml-base.en"
         case small = "ggml-small.en"
+        case distilLargeV3 = "distil-large-v3"
+        case largeTurbo = "large-v3-turbo"
+        case moonshineTiny = "moonshine-tiny"
+        case moonshineBase = "moonshine-base"
 
         var id: String { rawValue }
 
         var displayName: String {
             switch self {
             case .base: return "Whisper Base"
-            case .small: return "Whisper Small — Recommended"
+            case .small: return "Whisper Small"
+            case .distilLargeV3: return "Distil-Large V3 — Recommended"
+            case .largeTurbo: return "Large V3 Turbo"
+            case .moonshineTiny: return "Moonshine Tiny"
+            case .moonshineBase: return "Moonshine Base"
+            }
+        }
+
+        var modelDescription: String {
+            switch self {
+            case .base: return "Fastest, lower accuracy (~150 MB)"
+            case .small: return "Good balance of speed and accuracy (~250 MB)"
+            case .distilLargeV3: return "Fast and accurate, English-only (~600 MB)"
+            case .largeTurbo: return "Best accuracy, multilingual (~950 MB)"
+            case .moonshineTiny: return "Ultra-fast, optimized for short speech (~45 MB model)"
+            case .moonshineBase: return "Fast and accurate, variable-length audio (~134 MB)"
+            }
+        }
+
+        /// Whether this model uses the Moonshine engine instead of WhisperKit
+        var isMoonshine: Bool {
+            switch self {
+            case .moonshineTiny, .moonshineBase: return true
+            default: return false
             }
         }
     }

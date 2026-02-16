@@ -87,68 +87,121 @@ struct ModelsSettingsView: View {
     @State private var isDownloading = false
     @State private var downloadError: String?
 
-    private var isDownloaded: Bool {
-        WhisperEngine.isModelDownloaded(appState.selectedWhisperModel)
+    private var selectedModel: AppState.WhisperModel {
+        appState.selectedWhisperModel
     }
 
-    private var modelPath: URL {
-        WhisperEngine.modelFolderURL(for: appState.selectedWhisperModel)
+    private var isDownloaded: Bool {
+        if selectedModel == .moonshineTiny {
+            return true // Bundled with the framework
+        }
+        if selectedModel.isMoonshine {
+            return MoonshineEngine.isModelDownloaded(selectedModel)
+        }
+        return WhisperEngine.isModelDownloaded(selectedModel)
     }
 
     var body: some View {
         Form {
-            Section("Whisper Model") {
+            Section("Speech Model") {
                 Picker("Model", selection: $appState.selectedWhisperModel) {
                     ForEach(AppState.WhisperModel.allCases) { model in
                         Text(model.displayName).tag(model)
                     }
                 }
 
-                HStack(spacing: 8) {
-                    if isDownloaded {
-                        Label("Downloaded", systemImage: "checkmark.circle.fill")
+                Text(selectedModel.modelDescription)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if selectedModel == .moonshineTiny {
+                    HStack(spacing: 8) {
+                        Label("Bundled", systemImage: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                    } else {
-                        Label("Not downloaded", systemImage: "icloud.and.arrow.down")
-                            .foregroundColor(.secondary)
+                        Spacer()
                     }
-
-                    Spacer()
-
-                    if isDownloading {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else if !isDownloaded {
-                        Button("Download") {
-                            downloadSelectedModel()
-                        }
-                    }
-                }
-
-                if let downloadError {
-                    Text(downloadError)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
-
-                HStack {
-                    Text("Location")
+                    Text("Moonshine Tiny is included with the app.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Spacer()
-                    Button("Show in Finder") {
-                        NSWorkspace.shared.activateFileViewerSelecting([modelPath])
-                    }
-                    .disabled(!isDownloaded)
-                }
-                Text(modelPath.path)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .textSelection(.enabled)
+                } else if selectedModel == .moonshineBase {
+                    HStack(spacing: 8) {
+                        if isDownloaded {
+                            Label("Downloaded", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                        } else {
+                            Label("Not downloaded", systemImage: "icloud.and.arrow.down")
+                                .foregroundColor(.secondary)
+                        }
 
-                Text("Models are downloaded automatically when needed and stored locally.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                        Spacer()
+
+                        if isDownloading {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else if !isDownloaded {
+                            Button("Download (~134 MB)") {
+                                downloadMoonshineBase()
+                            }
+                        }
+                    }
+
+                    if let downloadError {
+                        Text(downloadError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+
+                    Text("Moonshine Base model will be downloaded on first use.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    HStack(spacing: 8) {
+                        if isDownloaded {
+                            Label("Downloaded", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                        } else {
+                            Label("Not downloaded", systemImage: "icloud.and.arrow.down")
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        if isDownloading {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else if !isDownloaded {
+                            Button("Download") {
+                                downloadSelectedModel()
+                            }
+                        }
+                    }
+
+                    if let downloadError {
+                        Text(downloadError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+
+                    let modelPath = WhisperEngine.modelFolderURL(for: selectedModel)
+                    HStack {
+                        Text("Location")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Show in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([modelPath])
+                        }
+                        .disabled(!isDownloaded)
+                    }
+                    Text(modelPath.path)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .textSelection(.enabled)
+
+                    Text("Models are downloaded automatically when needed and stored locally.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -162,6 +215,24 @@ struct ModelsSettingsView: View {
         Task {
             do {
                 try await WhisperEngine.shared.loadModel(model)
+                await MainActor.run {
+                    isDownloading = false
+                }
+            } catch {
+                await MainActor.run {
+                    downloadError = error.localizedDescription
+                    isDownloading = false
+                }
+            }
+        }
+    }
+
+    private func downloadMoonshineBase() {
+        isDownloading = true
+        downloadError = nil
+        Task {
+            do {
+                try await MoonshineEngine.shared.downloadBaseModel()
                 await MainActor.run {
                     isDownloading = false
                 }
@@ -190,7 +261,7 @@ struct AboutView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Version 2.2.0")
+            Text("Version 3.0.0")
                 .foregroundColor(.secondary)
 
             Text("Voice to text with offline AI")

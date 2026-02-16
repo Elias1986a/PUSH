@@ -13,11 +13,14 @@ actor WhisperEngine {
 
     // MARK: - Model Names
 
-    /// Map our model enum to WhisperKit model names
+    /// Map our model enum to WhisperKit model names (only for WhisperKit models)
     private static func whisperKitModelName(for model: AppState.WhisperModel) -> String {
         switch model {
         case .base: return "openai_whisper-base.en"
         case .small: return "openai_whisper-small.en"
+        case .distilLargeV3: return "distil-whisper_distil-large-v3"
+        case .largeTurbo: return "openai_whisper-large-v3_turbo"
+        case .moonshineTiny, .moonshineBase: return "" // Not WhisperKit models
         }
     }
 
@@ -30,6 +33,7 @@ actor WhisperEngine {
     }
 
     nonisolated static func isModelDownloaded(_ model: AppState.WhisperModel) -> Bool {
+        guard !model.isMoonshine else { return false }
         let folder = modelFolderURL(for: model)
         guard FileManager.default.fileExists(atPath: folder.path) else { return false }
         let contents = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []

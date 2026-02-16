@@ -135,14 +135,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func preloadModels() {
         Task { @MainActor in
-            // Pre-load AND warm up the Whisper model (compiles Metal shaders)
             let selectedModel = AppState.shared.selectedWhisperModel
-            PushLogger.log("AppDelegate: Warming up Whisper model: \(selectedModel)...")
+            PushLogger.log("AppDelegate: Warming up model: \(selectedModel)...")
             AppState.shared.statusMessage = "Warming up AI model..."
 
-            await WhisperEngine.shared.warmup()
+            if selectedModel.isMoonshine {
+                await MoonshineEngine.shared.warmup()
+            } else {
+                await WhisperEngine.shared.warmup()
+            }
 
-            PushLogger.log("AppDelegate: Whisper model ready")
+            PushLogger.log("AppDelegate: Model ready")
             AppState.shared.statusMessage = "Ready"
         }
     }

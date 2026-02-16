@@ -11,10 +11,17 @@ actor TranscriptionPipeline {
     /// Process audio data through the full pipeline
     func process(audioData: Data) async {
         do {
-            PushLogger.log("TranscriptionPipeline: Starting Whisper transcription, audio size: \(audioData.count) bytes")
-            // Step 1: Transcribe with Whisper
-            PushLogger.log("TranscriptionPipeline: Starting Whisper transcription...")
-            let rawText = try await WhisperEngine.shared.transcribe(audioData: audioData)
+            PushLogger.log("TranscriptionPipeline: Starting transcription, audio size: \(audioData.count) bytes")
+            // Step 1: Transcribe with the selected engine
+            let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
+            let rawText: String
+            if selectedModel.isMoonshine {
+                PushLogger.log("TranscriptionPipeline: Using Moonshine engine...")
+                rawText = try await MoonshineEngine.shared.transcribe(audioData: audioData)
+            } else {
+                PushLogger.log("TranscriptionPipeline: Using WhisperKit engine...")
+                rawText = try await WhisperEngine.shared.transcribe(audioData: audioData)
+            }
 
             // Filter out empty results and Whisper's blank audio markers
             var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
