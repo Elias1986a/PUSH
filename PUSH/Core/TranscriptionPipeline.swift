@@ -99,10 +99,22 @@ actor TranscriptionPipeline {
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
 
-            // Post-processing: capitalization, "I" pronoun, double space after periods
+            // Post-processing pipeline (order matters):
+            // 1. Remove filler words first (before capitalization fixes them in place)
+            // 2. Remove stuttered/duplicate words
+            // 3. Fix question marks (before capitalization)
+            // 4. Capitalize after punctuation
+            // 5. Capitalize standalone "I"
+            // 6. Double space after periods (last, so spacing is clean)
             let formattedText = Self.doubleSpaceAfterPeriods(
                 Self.capitalizeI(
-                    Self.fixCapitalization(filteredText)
+                    Self.fixCapitalization(
+                        Self.fixQuestionMarks(
+                            Self.removeStutteredWords(
+                                Self.removeFillerWords(filteredText)
+                            )
+                        )
+                    )
                 )
             )
 
@@ -173,6 +185,96 @@ actor TranscriptionPipeline {
                 result = result.replacingOccurrences(of: "\(punct)   ", with: "\(punct)  ")
             }
         }
+        return result
+    }
+
+    /// Remove filler words: "um", "uh" always; "like" only when comma-bounded filler
+    private static func removeFillerWords(_ text: String) -> String {
+        var result = text
+
+        // Remove ", like," (filler usage, e.g. "I was, like, going")
+        if let likeRegex = try? NSRegularExpression(pattern: ",\\s*like\\s*,", options: .caseInsensitive) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = likeRegex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: ",")
+        }
+
+        // Remove standalone "um" and "uh" (with surrounding commas/spaces)
+        // Patterns: ", um," / ", uh," / "Um, " at start / " um " mid-sentence
+        for filler in ["um", "uh"] {
+            // Mid-sentence with commas: ", um,"
+            if let regex = try? NSRegularExpression(pattern: ",\\s*\(filler)\\s*,", options: .caseInsensitive) {
+                let range = NSRange(result.startIndex..., in: result)
+                result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: ",")
+            }
+            // Start of text: "Um, " or "Uh, "
+            if let regex = try? NSRegularExpression(pattern: "^\\s*\(filler)\\s*,?\\s*", options: .caseInsensitive) {
+                let range = NSRange(result.startIndex..., in: result)
+                result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "")
+            }
+            // Standalone mid-sentence: " um " (no commas)
+            if let regex = try? NSRegularExpression(pattern: "\\s+\(filler)\\s+", options: .caseInsensitive) {
+                let range = NSRange(result.startIndex..., in: result)
+                result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: " ")
+            }
+        }
+
+        // Clean up any double spaces left behind
+        while result.contains("  ") {
+            result = result.replacingOccurrences(of: "  ", with: " ")
+        }
+
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Remove stuttered/duplicate consecutive words: "the the" → "the", "I I" → "I"
+    private static func removeStutteredWords(_ text: String) -> String {
+        guard let regex = try? NSRegularExpression(
+            pattern: "\\b(\\w+)\\s+\\1\\b",
+            options: .caseInsensitive
+        ) else { return text }
+
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1")
+    }
+
+    /// Fix question marks: sentences starting with question words should end with ?
+    private static func fixQuestionMarks(_ text: String) -> String {
+        let questionWords: Set<String> = [
+            "who", "what", "where", "when", "why", "how",
+            "is", "are", "am", "was", "were",
+            "do", "does", "did",
+            "can", "could", "would", "should", "shall", "will",
+            "have", "has", "had",
+            "isn't", "aren't", "don't", "doesn't", "didn't",
+            "won't", "wouldn't", "couldn't", "shouldn't",
+            "isn\u{2019}t", "aren\u{2019}t", "don\u{2019}t", "doesn\u{2019}t", "didn\u{2019}t",
+            "won\u{2019}t", "wouldn\u{2019}t", "couldn\u{2019}t", "shouldn\u{2019}t"
+        ]
+
+        // Split into sentences on . or ? or !
+        // Process each sentence: if it starts with a question word and ends with ., flip to ?
+        var result = ""
+        var current = ""
+
+        for char in text {
+            current.append(char)
+            if char == "." || char == "?" || char == "!" {
+                let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
+                let firstWord = trimmed.split(separator: " ").first.map { String($0).lowercased() } ?? ""
+
+                if char == "." && questionWords.contains(firstWord) {
+                    // Replace trailing period with question mark
+                    let idx = current.lastIndex(of: ".")!
+                    current.replaceSubrange(idx...idx, with: "?")
+                }
+
+                result.append(current)
+                current = ""
+            }
+        }
+        // Append any remaining text (no trailing punctuation)
+        result.append(current)
+
         return result
     }
 }
