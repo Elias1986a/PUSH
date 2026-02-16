@@ -75,7 +75,9 @@ actor MoonshineEngine {
         let dir = Self.downloadedModelDir(name: "base-en")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        let baseURL = "https://media.githubusercontent.com/media/moonshine-ai/moonshine/main/examples/ios/Transcriber/models/base-en"
+        // LFS files use media.githubusercontent.com; small files use raw.githubusercontent.com
+        let lfsBaseURL = "https://media.githubusercontent.com/media/moonshine-ai/moonshine/main/examples/ios/Transcriber/models/base-en"
+        let rawBaseURL = "https://raw.githubusercontent.com/moonshine-ai/moonshine/main/examples/ios/Transcriber/models/base-en"
         let files = ["decoder_model_merged.ort", "encoder_model.ort", "tokenizer.bin"]
 
         for file in files {
@@ -85,7 +87,9 @@ actor MoonshineEngine {
                 continue
             }
 
-            guard let url = URL(string: "\(baseURL)/\(file)") else { continue }
+            // tokenizer.bin is a regular git file, not LFS
+            let base = (file == "tokenizer.bin") ? rawBaseURL : lfsBaseURL
+            guard let url = URL(string: "\(base)/\(file)") else { continue }
 
             PushLogger.log("MoonshineEngine: Downloading \(file)...")
             let (tempURL, response) = try await URLSession.shared.download(from: url)
