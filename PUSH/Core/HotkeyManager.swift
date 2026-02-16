@@ -82,7 +82,8 @@ final class HotkeyManager: @unchecked Sendable {
 
     private func attemptToCreateEventTap() {
         PushLogger.log("HotkeyManager: attemptToCreateEventTap called")
-        let eventMask = (1 << CGEventType.flagsChanged.rawValue)
+        let eventMask = (1 << CGEventType.flagsChanged.rawValue) |
+                        (1 << CGEventType.keyDown.rawValue)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
 
         let tap = CGEvent.tapCreate(
@@ -139,7 +140,8 @@ final class HotkeyManager: @unchecked Sendable {
             PushLogger.log("HotkeyManager: Retrying event tap creation...")
 
             // Try to create the tap again
-            let testEventMask = (1 << CGEventType.flagsChanged.rawValue)
+            let testEventMask = (1 << CGEventType.flagsChanged.rawValue) |
+                                (1 << CGEventType.keyDown.rawValue)
             let testTap = CGEvent.tapCreate(
                 tap: .cgSessionEventTap,
                 place: .headInsertEventTap,
@@ -163,6 +165,20 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     private func handleEvent(_ event: CGEvent) {
+        // Escape key (keycode 53) cancels recording
+        if event.type == .keyDown &&
+           event.getIntegerValueField(.keyboardEventKeycode) == 53 &&
+           AppState.shared.isListening {
+            PushLogger.log("HotkeyManager: Escape pressed - cancelling recording")
+            DispatchQueue.main.async { [weak self] in
+                self?.handleCancelRecording()
+            }
+            return
+        }
+
+        // Only process modifier key changes for hotkey detection
+        guard event.type == .flagsChanged else { return }
+
         let flags = event.flags
         let rawFlags = flags.rawValue
 
@@ -253,6 +269,30 @@ final class HotkeyManager: @unchecked Sendable {
 
         let hotkeyName = AppState.shared.selectedHotkey.displayName
         PushLogger.log("HotkeyManager: \(hotkeyName) released - processing")
+    }
+
+    // MARK: - Cancel Recording
+
+    private func handleCancelRecording() {
+        PushLogger.log("HotkeyManager: Cancelling recording - discarding audio")
+
+        Task { @MainActor in
+            // Stop recording and discard audio
+            _ = AudioRecorder.shared.stopRecording()
+
+            // Reset state
+            isRightOptionPressed = false
+            AppState.shared.isListening = false
+            AppState.shared.isProcessing = false
+            AppState.shared.statusMessage = "Ready"
+
+            // Resume wake word listener if enabled
+            if AppState.shared.wakeWordEnabled {
+                WakeWordListener.shared.resumeListening()
+            }
+
+            PushLogger.log("HotkeyManager: Recording cancelled")
+        }
     }
 
     // MARK: - Wake Word Mode
