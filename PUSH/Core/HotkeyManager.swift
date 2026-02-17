@@ -98,7 +98,7 @@ final class HotkeyManager: @unchecked Sendable {
             options: .defaultTap,
             eventsOfInterest: CGEventMask(eventMask),
             callback: { proxy, type, event, refcon -> Unmanaged<CGEvent>? in
-                guard let refcon = refcon else { return Unmanaged.passRetained(event) }
+                guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
                 let manager = Unmanaged<HotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
 
                 // Consume Escape key during recording so full-screen apps (Safari, etc.)
@@ -115,14 +115,13 @@ final class HotkeyManager: @unchecked Sendable {
                 Task { @MainActor in
                     manager.handleEvent(event)
                 }
-                return Unmanaged.passRetained(event)
+                return Unmanaged.passUnretained(event)
             },
             userInfo: refcon
         )
 
         // If tap is nil, we don't have permission
         guard let tap = tap else {
-            PushLogger.log("HotkeyManager: Failed to create event tap - requesting accessibility permission")
             PushLogger.log("HotkeyManager: Failed to create event tap - requesting accessibility permission")
             requestAccessibilityAndRetry()
             return
@@ -165,7 +164,7 @@ final class HotkeyManager: @unchecked Sendable {
                 place: .headInsertEventTap,
                 options: .defaultTap,
                 eventsOfInterest: CGEventMask(testEventMask),
-                callback: { _, _, event, _ in Unmanaged.passRetained(event) },
+                callback: { _, _, event, _ in Unmanaged.passUnretained(event) },
                 userInfo: nil
             )
 

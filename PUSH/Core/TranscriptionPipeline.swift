@@ -65,7 +65,6 @@ actor TranscriptionPipeline {
             // If only "beep" was transcribed (nothing left after stripping), treat as no speech
             if filteredText.isEmpty || lowerText == "beep" || lowerText == "beeping" {
                 PushLogger.log("TranscriptionPipeline: No speech detected (only beep sound)")
-                PushLogger.log("TranscriptionPipeline: No speech detected")
                 return
             }
 
@@ -90,13 +89,11 @@ actor TranscriptionPipeline {
                 // If only wake word was transcribed (nothing left after stripping), treat as no speech
                 if filteredText.isEmpty || lowerText == wakeWord.lowercased() {
                     PushLogger.log("TranscriptionPipeline: No speech detected (only wake word)")
-                    PushLogger.log("TranscriptionPipeline: No speech detected")
                     return
                 }
             }
 
             // Avoid logging raw transcription text to protect user privacy.
-            PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
 
             // Post-processing pipeline (order matters):
@@ -134,11 +131,9 @@ actor TranscriptionPipeline {
             }
 
             PushLogger.log("TranscriptionPipeline: ✅ Text injected successfully")
-            PushLogger.log("TranscriptionPipeline: Text injected successfully")
 
         } catch {
             PushLogger.log("TranscriptionPipeline: ❌ ERROR - \(error)")
-            PushLogger.log("TranscriptionPipeline: Error - \(error)")
             await MainActor.run {
                 AppState.shared.statusMessage = "Error: \(error.localizedDescription)"
                 NotificationManager.shared.showTranscriptionError()
