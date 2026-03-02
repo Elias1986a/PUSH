@@ -58,8 +58,8 @@ done
 
 # Fix library paths
 echo "   Fixing library paths..."
-install_name_tool -change "@rpath/llama.framework/Versions/Current/llama" \
-    "@executable_path/../Frameworks/llama.framework/Versions/Current/llama" \
+# Add rpath so the binary can find llama.framework in Frameworks/
+install_name_tool -add_rpath "@executable_path/../Frameworks" \
     "$APP_DIR/Contents/MacOS/PUSH" 2>/dev/null || true
 
 for lib in "$APP_DIR"/Contents/Frameworks/*.dylib; do
