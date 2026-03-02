@@ -23,7 +23,8 @@ final class HotkeyManager: @unchecked Sendable {
     // but both contexts run on the main thread so there's no actual data race.
     nonisolated(unsafe) private var isCurrentlyRecording = false
     // Tracks whether we're actively processing (transcribing audio).
-    // Same threading rationale as isCurrentlyRecording above.
+    // Needed separately from AppState.isProcessing because the event tap callback
+    // can't access @MainActor-isolated AppState. Same threading rationale as above.
     nonisolated(unsafe) private var isCurrentlyProcessing = false
 
     // Right Option key code

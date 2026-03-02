@@ -6,6 +6,20 @@ actor TranscriptionPipeline {
 
     private init() {}
 
+    // MARK: - Hallucination Filters
+
+    /// Exact-match hallucination phrases (Whisper outputs these on silence/ambient noise)
+    private static let hallucinationPhrases: Set<String> = [
+        "subscribe", "like and subscribe",
+        "see you next time", "bye", "goodbye",
+        "you", "the end", "the end."
+    ]
+
+    /// Prefix-match hallucinations (catch "thank you", "thank you so much", "thanks for watching", etc.)
+    private static let hallucinationPrefixes = [
+        "thank you", "thanks for"
+    ]
+
     // MARK: - Public API
 
     /// Process audio data through the full pipeline
@@ -29,21 +43,12 @@ actor TranscriptionPipeline {
             // Check for empty, [BLANK_AUDIO], bracketed text, silence markers,
             // and common Whisper hallucinations on silence/ambient noise
             var lowerText = filteredText.lowercased()
-            let hallucinationPhrases: Set<String> = [
-                "thank you", "thank you.", "thanks for watching",
-                "thanks for watching.", "subscribe", "like and subscribe",
-                "see you next time", "bye", "goodbye",
-                "you", "the end", "the end."
-            ]
-            let hallucinationPrefixes = [
-                "thank you", "thanks for"
-            ]
             if filteredText.isEmpty ||
                lowerText.contains("blank_audio") ||
                lowerText.contains("blank audio") ||
                lowerText.contains("silence") ||
-               hallucinationPhrases.contains(lowerText) ||
-               hallucinationPrefixes.contains(where: { lowerText.hasPrefix($0) }) ||
+               Self.hallucinationPhrases.contains(lowerText) ||
+               Self.hallucinationPrefixes.contains(where: { lowerText.hasPrefix($0) }) ||
                filteredText.hasPrefix("(") && filteredText.hasSuffix(")") ||
                filteredText.hasPrefix("[") && filteredText.hasSuffix("]") {
                 PushLogger.log("TranscriptionPipeline: No speech detected (empty, blank, or hallucination)")
