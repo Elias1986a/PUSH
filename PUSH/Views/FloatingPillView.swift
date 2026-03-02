@@ -70,11 +70,13 @@ struct FloatingPillView: View {
     }
 
     private var shouldShow: Bool {
-        appState.isListening || appState.isProcessing
+        appState.isListening || appState.isProcessing || !appState.isModelReady
     }
 
     private var baseStatusText: String {
-        if appState.isProcessing {
+        if !appState.isModelReady {
+            return "Warming up..."
+        } else if appState.isProcessing {
             return "Processing..."
         } else if appState.isListening {
             return "Listening"

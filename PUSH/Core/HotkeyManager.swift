@@ -22,6 +22,9 @@ final class HotkeyManager: @unchecked Sendable {
     // nonisolated(unsafe) because the event tap callback isn't formally @MainActor,
     // but both contexts run on the main thread so there's no actual data race.
     nonisolated(unsafe) private var isCurrentlyRecording = false
+    // Tracks whether we're actively processing (transcribing audio).
+    // Same threading rationale as isCurrentlyRecording above.
+    nonisolated(unsafe) private var isCurrentlyProcessing = false
 
     // Right Option key code
     private let rightOptionKeyCode: CGKeyCode = 61
@@ -101,11 +104,11 @@ final class HotkeyManager: @unchecked Sendable {
                 guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
                 let manager = Unmanaged<HotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
 
-                // Consume Escape key during recording so full-screen apps (Safari, etc.)
+                // Consume Escape key during recording or processing so full-screen apps (Safari, etc.)
                 // don't also exit full-screen when the user presses Escape to cancel.
                 if type == .keyDown,
                    event.getIntegerValueField(.keyboardEventKeycode) == 53,
-                   manager.isCurrentlyRecording {
+                   (manager.isCurrentlyRecording || manager.isCurrentlyProcessing) {
                     Task { @MainActor in
                         manager.handleCancelRecording()
                     }
@@ -222,8 +225,12 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     private func handleKeyDown() {
-        PushLogger.log("HotkeyManager: handleKeyDown called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
+        PushLogger.log("HotkeyManager: handleKeyDown called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled), modelReady=\(AppState.shared.isModelReady)")
         guard AppState.shared.hotkeyEnabled else { return }
+        guard AppState.shared.isModelReady else {
+            PushLogger.log("HotkeyManager: Model not ready yet, ignoring hotkey")
+            return
+        }
 
         isCurrentlyRecording = true
 
@@ -249,6 +256,7 @@ final class HotkeyManager: @unchecked Sendable {
         guard AppState.shared.hotkeyEnabled else { return }
 
         isCurrentlyRecording = false
+        isCurrentlyProcessing = true
 
         Task { @MainActor in
             AppState.shared.isListening = false
@@ -268,6 +276,7 @@ final class HotkeyManager: @unchecked Sendable {
                 PushLogger.log("HotkeyManager: No audio data to process")
             }
 
+            isCurrentlyProcessing = false
             AppState.shared.isProcessing = false
             AppState.shared.statusMessage = "Ready"
 
@@ -284,9 +293,10 @@ final class HotkeyManager: @unchecked Sendable {
     // MARK: - Cancel Recording
 
     private func handleCancelRecording() {
-        PushLogger.log("HotkeyManager: Cancelling recording - discarding audio")
+        PushLogger.log("HotkeyManager: Cancelling recording/processing - discarding audio")
 
         isCurrentlyRecording = false
+        isCurrentlyProcessing = false
 
         Task { @MainActor in
             // Stop recording and discard audio
@@ -311,6 +321,10 @@ final class HotkeyManager: @unchecked Sendable {
 
     private func handleWakeWordDetected() {
         PushLogger.log("HotkeyManager: Wake word detected - starting recording with VAD")
+        guard AppState.shared.isModelReady else {
+            PushLogger.log("HotkeyManager: Model not ready yet, ignoring wake word")
+            return
+        }
         guard !AppState.shared.isListening, !AppState.shared.isProcessing else {
             PushLogger.log("HotkeyManager: Already listening or processing, ignoring wake word")
             return
@@ -345,6 +359,7 @@ final class HotkeyManager: @unchecked Sendable {
         }
 
         isCurrentlyRecording = false
+        isCurrentlyProcessing = true
 
         Task { @MainActor in
             AppState.shared.isListening = false
@@ -363,6 +378,7 @@ final class HotkeyManager: @unchecked Sendable {
                 PushLogger.log("HotkeyManager: No audio data to process")
             }
 
+            isCurrentlyProcessing = false
             AppState.shared.isProcessing = false
             AppState.shared.statusMessage = "Ready"
 

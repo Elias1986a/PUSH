@@ -26,6 +26,10 @@ class AppState: ObservableObject {
         didSet { notifyStateChange() }
     }
 
+    @Published var isModelReady: Bool = false {
+        didSet { notifyStateChange() }
+    }
+
     @Published var statusMessage: String = "Ready"
 
     @Published var selectedWhisperModel: WhisperModel = .small {

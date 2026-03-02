@@ -129,7 +129,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func updatePillVisibility() {
         DispatchQueue.main.async {
             let state = AppState.shared
-            if state.isListening || state.isProcessing {
+            if state.isListening || state.isProcessing || !state.isModelReady {
                 self.pillWindow?.orderFront(nil)
             } else {
                 self.pillWindow?.orderOut(nil)
@@ -150,6 +150,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             PushLogger.log("AppDelegate: Model ready")
+            AppState.shared.isModelReady = true
             AppState.shared.statusMessage = "Ready"
         }
     }
