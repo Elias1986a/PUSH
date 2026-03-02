@@ -35,11 +35,15 @@ actor TranscriptionPipeline {
                 "see you next time", "bye", "goodbye",
                 "you", "the end", "the end."
             ]
+            let hallucinationPrefixes = [
+                "thank you", "thanks for"
+            ]
             if filteredText.isEmpty ||
                lowerText.contains("blank_audio") ||
                lowerText.contains("blank audio") ||
                lowerText.contains("silence") ||
                hallucinationPhrases.contains(lowerText) ||
+               hallucinationPrefixes.contains(where: { lowerText.hasPrefix($0) }) ||
                filteredText.hasPrefix("(") && filteredText.hasSuffix(")") ||
                filteredText.hasPrefix("[") && filteredText.hasSuffix("]") {
                 PushLogger.log("TranscriptionPipeline: No speech detected (empty, blank, or hallucination)")
