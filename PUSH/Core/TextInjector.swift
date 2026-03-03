@@ -15,7 +15,14 @@ final class TextInjector: @unchecked Sendable {
     func insertText(_ text: String) {
         PushLogger.log("TextInjector: Attempting to insert text (\(text.count) chars)")
 
-        // Use clipboard + paste as primary method (works in all apps)
+        // Try accessibility API first (doesn't touch clipboard)
+        if insertViaAccessibility(text) {
+            PushLogger.log("TextInjector: ✅ Inserted via accessibility API")
+            return
+        }
+
+        // Fall back to clipboard + paste (works in all apps)
+        PushLogger.log("TextInjector: Accessibility failed, falling back to clipboard paste")
         insertViaClipboard(text)
         PushLogger.log("TextInjector: ✅ Inserted via clipboard paste")
     }
@@ -105,8 +112,8 @@ final class TextInjector: @unchecked Sendable {
             self.simulatePaste()
         }
 
-        // Restore clipboard after a longer delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        // Restore clipboard after a longer delay (1s to let slow apps finish pasting)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             // Only restore if user hasn't modified the clipboard since we injected.
             guard pasteboard.changeCount == injectedChangeCount else { return }
             guard !savedItems.isEmpty else {
