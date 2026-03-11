@@ -36,65 +36,40 @@ final class TextInjector: @unchecked Sendable {
             return false
         }
 
-        // Check if the element supports text insertion
-        var settable: DarwinBoolean = false
-        let result = AXUIElementIsAttributeSettable(focusedElement, kAXValueAttribute as CFString, &settable)
+        // Best approach: set kAXSelectedTextAttribute to replace current selection with our text.
+        // This inserts at the cursor position without needing to read/manipulate the field's content,
+        // which avoids issues with placeholder text being treated as real content.
+        var selectedTextSettable: DarwinBoolean = false
+        AXUIElementIsAttributeSettable(focusedElement, kAXSelectedTextAttribute as CFString, &selectedTextSettable)
 
-        guard result == .success && settable.boolValue else {
-            PushLogger.log("TextInjector: Element value not settable")
+        if selectedTextSettable.boolValue {
+            let setResult = AXUIElementSetAttributeValue(
+                focusedElement,
+                kAXSelectedTextAttribute as CFString,
+                text as CFTypeRef
+            )
+            if setResult == .success {
+                PushLogger.log("TextInjector: Inserted via kAXSelectedTextAttribute")
+                return true
+            }
+            PushLogger.log("TextInjector: kAXSelectedTextAttribute settable but set failed (\(setResult.rawValue))")
+        }
+
+        // Fallback: set kAXValueAttribute directly (for simple text fields)
+        var valueSettable: DarwinBoolean = false
+        AXUIElementIsAttributeSettable(focusedElement, kAXValueAttribute as CFString, &valueSettable)
+
+        guard valueSettable.boolValue else {
+            PushLogger.log("TextInjector: Neither selected text nor value is settable")
             return false
         }
 
-        // Get current value
-        var currentValue: AnyObject?
-        AXUIElementCopyAttributeValue(focusedElement, kAXValueAttribute as CFString, &currentValue)
-
-        // Get placeholder value to avoid treating it as real content
-        var placeholderValue: AnyObject?
-        AXUIElementCopyAttributeValue(focusedElement, kAXPlaceholderValueAttribute as CFString, &placeholderValue)
-        let placeholder = placeholderValue as? String
-
-        // If the current value matches the placeholder, the field is actually empty
-        let effectiveValue: String? = {
-            guard let current = currentValue as? String else { return nil }
-            if let placeholder = placeholder, current == placeholder { return "" }
-            return current
-        }()
-
-        // Get selected text range to know where to insert
-        var selectedRange: AnyObject?
-        AXUIElementCopyAttributeValue(focusedElement, kAXSelectedTextRangeAttribute as CFString, &selectedRange)
-
-        if let range = selectedRange,
-           let axValue = range as! AXValue?,
-           let currentText = effectiveValue {
-            var cfRange = CFRange()
-            if AXValueGetValue(axValue, .cfRange, &cfRange) {
-                // Insert at selection
-                let nsRange = NSRange(location: cfRange.location, length: cfRange.length)
-                let newText = (currentText as NSString).replacingCharacters(in: nsRange, with: text)
-
-                let setResult = AXUIElementSetAttributeValue(
-                    focusedElement,
-                    kAXValueAttribute as CFString,
-                    newText as CFTypeRef
-                )
-
-                if setResult == .success {
-                    // Move cursor to end of inserted text
-                    let newCursorPosition = cfRange.location + text.count
-                    setSelectedRange(focusedElement, location: newCursorPosition, length: 0)
-                    return true
-                }
-            }
-        }
-
-        // If we can't get the selection, just append
-        let newText = (effectiveValue ?? "") + text
+        // When setting value directly, just set to our text (don't try to read and append,
+        // as the "current value" may contain placeholder text from web inputs)
         let setResult = AXUIElementSetAttributeValue(
             focusedElement,
             kAXValueAttribute as CFString,
-            newText as CFTypeRef
+            text as CFTypeRef
         )
 
         return setResult == .success
