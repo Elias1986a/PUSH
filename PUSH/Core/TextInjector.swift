@@ -13,16 +13,7 @@ final class TextInjector: @unchecked Sendable {
 
     /// Insert text at the current cursor position in any app
     func insertText(_ text: String) {
-        PushLogger.log("TextInjector: Attempting to insert text (\(text.count) chars)")
-
-        // Try accessibility API first (doesn't touch clipboard)
-        if insertViaAccessibility(text) {
-            PushLogger.log("TextInjector: ✅ Inserted via accessibility API")
-            return
-        }
-
-        // Fall back to clipboard + paste (works in all apps)
-        PushLogger.log("TextInjector: Accessibility failed, falling back to clipboard paste")
+        PushLogger.log("TextInjector: Inserting text via clipboard paste (\(text.count) chars)")
         insertViaClipboard(text)
         PushLogger.log("TextInjector: ✅ Inserted via clipboard paste")
     }
