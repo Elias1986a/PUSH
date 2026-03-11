@@ -12,7 +12,19 @@ class SoundPlayer {
 
     /// Play the Nextel chirp sound
     func playChirp() {
-        guard let url = Bundle.module.url(forResource: "nextel_chirp", withExtension: "mp3") else {
+        // Find the sound file — check the PUSH resource bundle first, then main bundle
+        let url: URL? = {
+            // SPM resource bundle in Contents/Resources/
+            if let bundleURL = Bundle.main.url(forResource: "PUSH_PUSH", withExtension: "bundle"),
+               let resourceBundle = Bundle(url: bundleURL),
+               let soundURL = resourceBundle.url(forResource: "nextel_chirp", withExtension: "mp3") {
+                return soundURL
+            }
+            // Fallback: directly in main bundle
+            return Bundle.main.url(forResource: "nextel_chirp", withExtension: "mp3")
+        }()
+
+        guard let url else {
             PushLogger.log("SoundPlayer: Could not find nextel_chirp.mp3")
             return
         }
