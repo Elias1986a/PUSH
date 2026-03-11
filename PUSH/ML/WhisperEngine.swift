@@ -75,7 +75,7 @@ actor WhisperEngine {
         PushLogger.log("WhisperEngine: Model unloaded")
     }
 
-    /// Warm up the model by running a dummy inference (compiles Metal shaders)
+    /// Warm up the model by loading + running a dummy inference (compiles Metal shaders)
     func warmup() async {
         PushLogger.log("WhisperEngine: Starting warmup...")
         let startTime = Date()
@@ -86,16 +86,27 @@ actor WhisperEngine {
             try await loadModel(selectedModel)
 
             // Run a dummy inference with 1 second of silence to compile shaders
-            let sampleRate = 16000
-            let silentAudio = [Float](repeating: 0.0, count: sampleRate)
-
-            guard let whisper = whisperKit else { return }
-            _ = try await whisper.transcribe(audioArray: silentAudio)
+            await warmupInference()
 
             let elapsed = Date().timeIntervalSince(startTime)
-            PushLogger.log("WhisperEngine: ✅ Warmup complete in \(String(format: "%.2f", elapsed))s")
+            PushLogger.log("WhisperEngine: ✅ Full warmup complete in \(String(format: "%.2f", elapsed))s")
         } catch {
             PushLogger.log("WhisperEngine: Warmup failed: \(error)")
+        }
+    }
+
+    /// Run a dummy inference to compile Metal shaders (model must already be loaded)
+    func warmupInference() async {
+        guard let whisper = whisperKit else { return }
+        let startTime = Date()
+        do {
+            let sampleRate = 16000
+            let silentAudio = [Float](repeating: 0.0, count: sampleRate)
+            _ = try await whisper.transcribe(audioArray: silentAudio)
+            let elapsed = Date().timeIntervalSince(startTime)
+            PushLogger.log("WhisperEngine: ✅ Shader warmup complete in \(String(format: "%.2f", elapsed))s")
+        } catch {
+            PushLogger.log("WhisperEngine: Shader warmup failed: \(error)")
         }
     }
 

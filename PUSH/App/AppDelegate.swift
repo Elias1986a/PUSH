@@ -140,18 +140,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func preloadModels() {
         Task { @MainActor in
             let selectedModel = AppState.shared.selectedWhisperModel
-            PushLogger.log("AppDelegate: Warming up model: \(selectedModel)...")
-            AppState.shared.statusMessage = "Warming up AI model..."
+            PushLogger.log("AppDelegate: Loading model: \(selectedModel)...")
+            AppState.shared.statusMessage = "Loading AI model..."
 
+            let loadStart = Date()
+
+            // Phase 1: Load the model (blocking) — makes the app usable
             if selectedModel.isMoonshine {
-                await MoonshineEngine.shared.warmup()
+                try? await MoonshineEngine.shared.loadModel(selectedModel)
             } else {
-                await WhisperEngine.shared.warmup()
+                try? await WhisperEngine.shared.loadModel(selectedModel)
             }
 
-            PushLogger.log("AppDelegate: Model ready")
+            let loadElapsed = Date().timeIntervalSince(loadStart)
+            PushLogger.log("AppDelegate: Model loaded in \(String(format: "%.2f", loadElapsed))s")
             AppState.shared.isModelReady = true
             AppState.shared.statusMessage = "Ready"
+
+            // Phase 2: Warm shaders in background (non-blocking)
+            // First real transcription may be slightly slower if this hasn't finished
+            PushLogger.log("AppDelegate: Starting background shader warmup...")
+            if selectedModel.isMoonshine {
+                await MoonshineEngine.shared.warmupInference()
+            } else {
+                await WhisperEngine.shared.warmupInference()
+            }
+            PushLogger.log("AppDelegate: Background shader warmup complete")
         }
     }
 }

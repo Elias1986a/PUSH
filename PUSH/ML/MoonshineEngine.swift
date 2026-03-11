@@ -157,7 +157,7 @@ actor MoonshineEngine {
         PushLogger.log("MoonshineEngine: Model unloaded")
     }
 
-    /// Warm up the model by running a short inference
+    /// Warm up the model by loading + running a short inference
     func warmup() async {
         PushLogger.log("MoonshineEngine: Starting warmup...")
         let startTime = Date()
@@ -166,21 +166,31 @@ actor MoonshineEngine {
             let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
             try await loadModel(selectedModel)
 
-            // Run a dummy inference with 0.5 seconds of silence
+            await warmupInference()
+
+            let elapsed = Date().timeIntervalSince(startTime)
+            PushLogger.log("MoonshineEngine: ✅ Full warmup complete in \(String(format: "%.2f", elapsed))s")
+        } catch {
+            PushLogger.log("MoonshineEngine: Warmup failed: \(error)")
+        }
+    }
+
+    /// Run a dummy inference to warm up the engine (model must already be loaded)
+    func warmupInference() async {
+        guard let engine = transcriber else { return }
+        let startTime = Date()
+        do {
             let sampleRate: Int32 = 16000
             let silentAudio = [Float](repeating: 0.0, count: Int(sampleRate / 2))
-
-            guard let engine = transcriber else { return }
             _ = try engine.transcribeWithoutStreaming(
                 audioData: silentAudio,
                 sampleRate: sampleRate,
                 flags: 0
             )
-
             let elapsed = Date().timeIntervalSince(startTime)
-            PushLogger.log("MoonshineEngine: ✅ Warmup complete in \(String(format: "%.2f", elapsed))s")
+            PushLogger.log("MoonshineEngine: ✅ Inference warmup complete in \(String(format: "%.2f", elapsed))s")
         } catch {
-            PushLogger.log("MoonshineEngine: Warmup failed: \(error)")
+            PushLogger.log("MoonshineEngine: Inference warmup failed: \(error)")
         }
     }
 
