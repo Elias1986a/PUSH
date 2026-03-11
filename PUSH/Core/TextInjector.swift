@@ -49,13 +49,25 @@ final class TextInjector: @unchecked Sendable {
         var currentValue: AnyObject?
         AXUIElementCopyAttributeValue(focusedElement, kAXValueAttribute as CFString, &currentValue)
 
+        // Get placeholder value to avoid treating it as real content
+        var placeholderValue: AnyObject?
+        AXUIElementCopyAttributeValue(focusedElement, kAXPlaceholderValueAttribute as CFString, &placeholderValue)
+        let placeholder = placeholderValue as? String
+
+        // If the current value matches the placeholder, the field is actually empty
+        let effectiveValue: String? = {
+            guard let current = currentValue as? String else { return nil }
+            if let placeholder = placeholder, current == placeholder { return "" }
+            return current
+        }()
+
         // Get selected text range to know where to insert
         var selectedRange: AnyObject?
         AXUIElementCopyAttributeValue(focusedElement, kAXSelectedTextRangeAttribute as CFString, &selectedRange)
 
         if let range = selectedRange,
            let axValue = range as! AXValue?,
-           let currentText = currentValue as? String {
+           let currentText = effectiveValue {
             var cfRange = CFRange()
             if AXValueGetValue(axValue, .cfRange, &cfRange) {
                 // Insert at selection
@@ -78,7 +90,7 @@ final class TextInjector: @unchecked Sendable {
         }
 
         // If we can't get the selection, just append
-        let newText = (currentValue as? String ?? "") + text
+        let newText = (effectiveValue ?? "") + text
         let setResult = AXUIElementSetAttributeValue(
             focusedElement,
             kAXValueAttribute as CFString,
