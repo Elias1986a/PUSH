@@ -118,8 +118,11 @@ class AppState: ObservableObject {
         case small = "ggml-small.en"
         case distilLargeV3 = "distil-large-v3"
         case distilLargeV3Turbo = "distil-large-v3-turbo"
+        case whisperLargeV3Turbo = "whisper-large-v3-turbo"
         case moonshineTiny = "moonshine-tiny"
         case moonshineBase = "moonshine-base"
+        case parakeetV2 = "parakeet-tdt-v2"
+        case qwen3ASR = "qwen3-asr"
 
         var id: String { rawValue }
 
@@ -128,30 +131,61 @@ class AppState: ObservableObject {
             case .base: return "Whisper Base"
             case .small: return "Whisper Small"
             case .distilLargeV3: return "Distil-Large V3"
-            case .distilLargeV3Turbo: return "Distil-Large V3 Turbo — Recommended"
+            case .distilLargeV3Turbo: return "Distil-Large V3 Turbo"
+            case .whisperLargeV3Turbo: return "Whisper Large V3 Turbo"
             case .moonshineTiny: return "Moonshine Tiny"
             case .moonshineBase: return "Moonshine Base"
+            case .parakeetV2: return "Parakeet TDT v2 — Fastest"
+            case .qwen3ASR: return "Qwen3-ASR — Best Grammar"
             }
         }
 
         var modelDescription: String {
             switch self {
-            case .base: return "Fastest, lower accuracy (~150 MB)"
+            case .base: return "Fastest WhisperKit model, lower accuracy (~150 MB)"
             case .small: return "Good balance of speed and accuracy (~250 MB)"
             case .distilLargeV3: return "Fast and accurate, English-only (~600 MB)"
-            case .distilLargeV3Turbo: return "Best speed and accuracy, English-only (~600 MB)"
-            case .moonshineTiny: return "Ultra-fast, optimized for short speech (~45 MB model)"
+            case .distilLargeV3Turbo: return "Great speed and accuracy, English-only (~600 MB)"
+            case .whisperLargeV3Turbo: return "High accuracy, 99+ languages (~632 MB)"
+            case .moonshineTiny: return "Ultra-fast, optimized for short speech (~45 MB)"
             case .moonshineBase: return "Fast and accurate, variable-length audio (~134 MB)"
+            case .parakeetV2: return "Best English accuracy, native punctuation (~400 MB). 16 GB+ recommended."
+            case .qwen3ASR: return "Best grammar quality, 52 languages (~680 MB). 16 GB+ recommended."
+            }
+        }
+
+        /// The engine type used by this model
+        var engineType: EngineType {
+            switch self {
+            case .base, .small, .distilLargeV3, .distilLargeV3Turbo, .whisperLargeV3Turbo:
+                return .whisperKit
+            case .moonshineTiny, .moonshineBase:
+                return .moonshine
+            case .parakeetV2:
+                return .parakeet
+            case .qwen3ASR:
+                return .qwen3
             }
         }
 
         /// Whether this model uses the Moonshine engine instead of WhisperKit
-        var isMoonshine: Bool {
+        var isMoonshine: Bool { engineType == .moonshine }
+
+        /// Whether this model produces high-quality native punctuation (skip punctuation post-processing)
+        var hasNativePunctuation: Bool {
             switch self {
-            case .moonshineTiny, .moonshineBase: return true
+            case .parakeetV2, .qwen3ASR: return true
             default: return false
             }
         }
+    }
+
+    /// Engine types for model routing
+    enum EngineType {
+        case whisperKit
+        case moonshine
+        case parakeet
+        case qwen3
     }
 
     // MARK: - Private

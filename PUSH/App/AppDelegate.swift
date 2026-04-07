@@ -146,9 +146,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let loadStart = Date()
 
             // Phase 1: Load the model (blocking) — makes the app usable
-            if selectedModel.isMoonshine {
+            switch selectedModel.engineType {
+            case .moonshine:
                 try? await MoonshineEngine.shared.loadModel(selectedModel)
-            } else {
+            case .parakeet:
+                try? await ParakeetEngine.shared.loadModel()
+            case .qwen3:
+                try? await Qwen3Engine.shared.loadModel()
+            case .whisperKit:
                 try? await WhisperEngine.shared.loadModel(selectedModel)
             }
 
@@ -160,9 +165,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Phase 2: Warm shaders in background (non-blocking)
             // First real transcription may be slightly slower if this hasn't finished
             PushLogger.log("AppDelegate: Starting background shader warmup...")
-            if selectedModel.isMoonshine {
+            switch selectedModel.engineType {
+            case .moonshine:
                 await MoonshineEngine.shared.warmupInference()
-            } else {
+            case .parakeet:
+                await ParakeetEngine.shared.warmup()
+            case .qwen3:
+                await Qwen3Engine.shared.warmup()
+            case .whisperKit:
                 await WhisperEngine.shared.warmupInference()
             }
             PushLogger.log("AppDelegate: Background shader warmup complete")

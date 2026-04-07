@@ -29,10 +29,17 @@ actor TranscriptionPipeline {
             // Step 1: Transcribe with the selected engine
             let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
             let rawText: String
-            if selectedModel.isMoonshine {
+            switch selectedModel.engineType {
+            case .moonshine:
                 PushLogger.log("TranscriptionPipeline: Using Moonshine engine...")
                 rawText = try await MoonshineEngine.shared.transcribe(audioData: audioData)
-            } else {
+            case .parakeet:
+                PushLogger.log("TranscriptionPipeline: Using Parakeet engine...")
+                rawText = try await ParakeetEngine.shared.transcribe(audioData: audioData)
+            case .qwen3:
+                PushLogger.log("TranscriptionPipeline: Using Qwen3-ASR engine...")
+                rawText = try await Qwen3Engine.shared.transcribe(audioData: audioData)
+            case .whisperKit:
                 PushLogger.log("TranscriptionPipeline: Using WhisperKit engine...")
                 rawText = try await WhisperEngine.shared.transcribe(audioData: audioData)
             }
@@ -105,25 +112,31 @@ actor TranscriptionPipeline {
             // Avoid logging raw transcription text to protect user privacy.
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
 
-            // Post-processing pipeline (order matters):
-            // 1. Remove filler words first (before capitalization fixes them in place)
-            // 2. Remove stuttered/duplicate words
-            // 3. Fix trailing comma
-            // 4. Ensure ending punctuation
-            // 5. Fix question marks (before capitalization)
-            // 6. Smart symbols (%, $, @)
-            // 7. Capitalize after punctuation
-            // 8. Capitalize standalone "I"
-            // 9. Double space after periods (last, so spacing is clean)
-            let formattedText = Self.doubleSpaceAfterPeriods(
-                Self.capitalizeI(
-                    Self.fixCapitalization(
-                        Self.smartSymbols(
-                            Self.fixQuestionMarks(
-                                Self.ensureEndingPunctuation(
-                                    Self.fixTrailingComma(
-                                        Self.removeStutteredWords(
-                                            Self.removeFillerWords(filteredText)
+            // Post-processing pipeline varies by model capability:
+            // Models with native punctuation (Parakeet, Qwen3) get a reduced pipeline
+            // to avoid overriding their higher-quality formatting.
+            let formattedText: String
+            if selectedModel.hasNativePunctuation {
+                // Reduced pipeline: only filler/stutter removal and smart symbols
+                formattedText = Self.doubleSpaceAfterPeriods(
+                    Self.smartSymbols(
+                        Self.removeStutteredWords(
+                            Self.removeFillerWords(filteredText)
+                        )
+                    )
+                )
+            } else {
+                // Full pipeline for Whisper/Moonshine models
+                formattedText = Self.doubleSpaceAfterPeriods(
+                    Self.capitalizeI(
+                        Self.fixCapitalization(
+                            Self.smartSymbols(
+                                Self.fixQuestionMarks(
+                                    Self.ensureEndingPunctuation(
+                                        Self.fixTrailingComma(
+                                            Self.removeStutteredWords(
+                                                Self.removeFillerWords(filteredText)
+                                            )
                                         )
                                     )
                                 )
@@ -131,7 +144,7 @@ actor TranscriptionPipeline {
                         )
                     )
                 )
-            )
+            }
 
             // Step 2: Inject into active text field
             PushLogger.log("TranscriptionPipeline: Injecting text...")

@@ -16,6 +16,12 @@ let package = Package(
         // Moonshine for speech-to-text (edge-optimized ASR)
         .package(url: "https://github.com/moonshine-ai/moonshine-swift.git", from: "0.0.48"),
 
+        // FluidAudio for Parakeet TDT v2 speech-to-text (CoreML/ANE)
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.13.6"),
+
+        // Qwen3-ASR speech-to-text (MLX + CoreML hybrid)
+        .package(url: "https://github.com/soniqo/speech-swift.git", from: "0.0.8"),
+
         // llama.cpp Swift bindings (Swift-friendly wrapper)
         .package(url: "https://github.com/ShenghaiWang/SwiftLlama.git", branch: "main"),
 
@@ -28,6 +34,8 @@ let package = Package(
             dependencies: [
                 .product(name: "WhisperKit", package: "WhisperKit"),
                 .product(name: "Moonshine", package: "moonshine-swift"),
+                .product(name: "FluidAudio", package: "FluidAudio"),
+                .product(name: "Qwen3ASR", package: "speech-swift"),
                 .product(name: "SwiftLlama", package: "SwiftLlama"),
                 .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern")
             ],

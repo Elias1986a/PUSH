@@ -95,10 +95,16 @@ struct ModelsSettingsView: View {
         if selectedModel == .moonshineTiny {
             return true // Bundled with the framework
         }
-        if selectedModel.isMoonshine {
+        switch selectedModel.engineType {
+        case .moonshine:
             return MoonshineEngine.isModelDownloaded(selectedModel)
+        case .parakeet:
+            return ParakeetEngine.isModelDownloaded()
+        case .qwen3:
+            return Qwen3Engine.isModelDownloaded()
+        case .whisperKit:
+            return WhisperEngine.isModelDownloaded(selectedModel)
         }
-        return WhisperEngine.isModelDownloaded(selectedModel)
     }
 
     var body: some View {
@@ -123,37 +129,6 @@ struct ModelsSettingsView: View {
                     Text("Moonshine Tiny is included with the app.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                } else if selectedModel == .moonshineBase {
-                    HStack(spacing: 8) {
-                        if isDownloaded {
-                            Label("Downloaded", systemImage: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        } else {
-                            Label("Not downloaded", systemImage: "icloud.and.arrow.down")
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-
-                        if isDownloading {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else if !isDownloaded {
-                            Button("Download (~134 MB)") {
-                                downloadMoonshineBase()
-                            }
-                        }
-                    }
-
-                    if let downloadError {
-                        Text(downloadError)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
-
-                    Text("Moonshine Base model will be downloaded on first use.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 } else {
                     HStack(spacing: 8) {
                         if isDownloaded {
@@ -171,7 +146,7 @@ struct ModelsSettingsView: View {
                                 .controlSize(.small)
                         } else if !isDownloaded {
                             Button("Download") {
-                                downloadSelectedModel()
+                                downloadModel()
                             }
                         }
                     }
@@ -181,22 +156,6 @@ struct ModelsSettingsView: View {
                             .font(.caption)
                             .foregroundColor(.red)
                     }
-
-                    let modelPath = WhisperEngine.modelFolderURL(for: selectedModel)
-                    HStack {
-                        Text("Location")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Button("Show in Finder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([modelPath])
-                        }
-                        .disabled(!isDownloaded)
-                    }
-                    Text(modelPath.path)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .textSelection(.enabled)
 
                     Text("Models are downloaded automatically when needed and stored locally.")
                         .font(.caption)
@@ -208,36 +167,27 @@ struct ModelsSettingsView: View {
         .padding()
     }
 
-    private func downloadSelectedModel() {
+    private func downloadModel() {
         let model = appState.selectedWhisperModel
         isDownloading = true
         downloadError = nil
         Task {
             do {
-                try await WhisperEngine.shared.loadModel(model)
-                // Run warmup to compile Metal shaders so first transcription is fast
-                await WhisperEngine.shared.warmup()
-                await MainActor.run {
-                    isDownloading = false
+                switch model.engineType {
+                case .moonshine:
+                    try await MoonshineEngine.shared.downloadBaseModel()
+                    try await MoonshineEngine.shared.loadModel(model)
+                    await MoonshineEngine.shared.warmup()
+                case .parakeet:
+                    try await ParakeetEngine.shared.loadModel()
+                    await ParakeetEngine.shared.warmup()
+                case .qwen3:
+                    try await Qwen3Engine.shared.loadModel()
+                    await Qwen3Engine.shared.warmup()
+                case .whisperKit:
+                    try await WhisperEngine.shared.loadModel(model)
+                    await WhisperEngine.shared.warmup()
                 }
-            } catch {
-                await MainActor.run {
-                    downloadError = error.localizedDescription
-                    isDownloading = false
-                }
-            }
-        }
-    }
-
-    private func downloadMoonshineBase() {
-        isDownloading = true
-        downloadError = nil
-        Task {
-            do {
-                try await MoonshineEngine.shared.downloadBaseModel()
-                // Load and warm up so first transcription is fast
-                try await MoonshineEngine.shared.loadModel(.moonshineBase)
-                await MoonshineEngine.shared.warmup()
                 await MainActor.run {
                     isDownloading = false
                 }
@@ -266,7 +216,7 @@ struct AboutView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Version 3.2.0")
+            Text("Version 4.0.0")
                 .foregroundColor(.secondary)
 
             Text("Voice to text with offline AI")

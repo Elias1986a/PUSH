@@ -111,7 +111,20 @@ PUSH supports multiple speech recognition engines. Choose the model that fits yo
 | Whisper Base | ~150 MB | Fast | Good | Balanced speed and accuracy |
 | Whisper Small | ~250 MB | Moderate | Better | Good quality on any Mac |
 | Distil-Large V3 | ~600 MB | Fast | Great | Fast and accurate, English-only |
-| **Distil-Large V3 Turbo** | **~600 MB** | **Fastest** | **Best** | **⭐ Recommended — best speed and accuracy, English-only** |
+| Distil-Large V3 Turbo | ~600 MB | Very Fast | Great | Speed and accuracy, English-only |
+| Whisper Large V3 Turbo | ~632 MB | Fast | Excellent | High accuracy, 99+ languages |
+
+### Parakeet (NEW in v4.0)
+
+| Model | Size | Speed | Accuracy | Best For |
+|-------|------|-------|----------|----------|
+| **Parakeet TDT v2** | **~400 MB** | **Fastest** | **Best English** | **⭐ Best English accuracy + native punctuation** |
+
+### Qwen3-ASR (NEW in v4.0)
+
+| Model | Size | Speed | Accuracy | Best For |
+|-------|------|-------|----------|----------|
+| **Qwen3-ASR** | **~680 MB** | **Fast** | **Excellent** | **⭐ Best grammar quality, 52 languages** |
 
 ### Moonshine Models
 
@@ -120,10 +133,12 @@ PUSH supports multiple speech recognition engines. Choose the model that fits yo
 | Moonshine Tiny | ~45 MB | Ultra-fast | Good | Quick transcription, short speech |
 | Moonshine Base | ~134 MB | Fast | Better | Accurate, variable-length audio |
 
-> **Tip:** The Distil-Large models produce noticeably cleaner output — better grammar, punctuation, and sentence structure — compared to the smaller models. All models benefit from automatic post-processing (filler word removal, capitalization, punctuation cleanup), but the Distil models give you the best starting quality.
+> **Tip:** Parakeet and Qwen3-ASR produce text with native punctuation and grammar — no post-processing needed. Other models benefit from automatic cleanup (filler word removal, capitalization, punctuation).
 
 **Which should I choose?**
-- **Distil-Large V3 Turbo** — Recommended if you have 16 GB+ unified memory (GPU). Best combination of speed, accuracy, and output quality.
+- **Parakeet TDT v2** — Best choice for English. Fastest inference, highest accuracy (1.69% WER), and native punctuation. Requires 16 GB+ unified memory.
+- **Qwen3-ASR** — Best grammar and punctuation quality. Supports 52 languages. Requires 16 GB+ unified memory.
+- **Whisper Large V3 Turbo** — Best multilingual model (99+ languages) with good accuracy on 8 GB+ Macs.
 - **Whisper Small** — Great all-rounder for Macs with 8 GB memory.
 - **Moonshine Tiny** — Ultra-lightweight, good for older Macs or when you need instant results.
 
@@ -178,6 +193,8 @@ This is only needed when upgrading from v1.0.0 due to signature changes. Fresh i
 Built with:
 - **Swift + SwiftUI** — Native macOS app
 - **[WhisperKit](https://github.com/argmaxinc/WhisperKit)** — Whisper and Distil-Whisper speech recognition
+- **[FluidAudio](https://github.com/FluidInference/FluidAudio)** — NVIDIA Parakeet TDT v2 on CoreML/ANE
+- **[speech-swift](https://github.com/soniqo/speech-swift)** — Qwen3-ASR with MLX + CoreML hybrid inference
 - **[Moonshine](https://github.com/usefulsensors/moonshine)** — Ultra-lightweight speech recognition
 - **Metal acceleration** — Uses your Mac's GPU for fast processing
 
