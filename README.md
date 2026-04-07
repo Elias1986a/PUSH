@@ -100,20 +100,30 @@ When you run PUSH for the first time:
 - Go to Settings → Models
 - Select and download the model you prefer
 
-## Whisper Models
+## Models
 
-PUSH uses OpenAI's Whisper for speech recognition. Choose the model that fits your needs:
+PUSH supports multiple speech recognition engines. Choose the model that fits your hardware:
+
+### WhisperKit Models
 
 | Model | Size | Speed | Accuracy | Best For |
 |-------|------|-------|----------|----------|
-| Whisper Tiny | 75 MB | Very Fast | Good | Quick transcription, slower computers |
-| Whisper Base | 150 MB | Fast | Better | Balanced speed and accuracy |
-| Whisper Small | 500 MB | Slower | **Best** | **Highest quality (Recommended)** |
+| Whisper Base | ~150 MB | Fast | Good | Balanced speed and accuracy |
+| Whisper Small | ~250 MB | Moderate | Better | Good quality on any Mac |
+| Distil-Large V3 | ~600 MB | Fast | Great | Fast and accurate, English-only |
+| **Distil-Large V3 Turbo** | **~600 MB** | **Fastest** | **Best** | **⭐ Recommended — best speed and accuracy, English-only** |
+
+### Moonshine Models
+
+| Model | Size | Speed | Accuracy | Best For |
+|-------|------|-------|----------|----------|
+| Moonshine Tiny | ~45 MB | Ultra-fast | Good | Quick transcription, short speech |
+| Moonshine Base | ~134 MB | Fast | Better | Accurate, variable-length audio |
 
 **Which should I choose?**
-- **Whisper Small** - Recommended for most users. Best transcription quality.
-- **Whisper Base** - Good balance if you want faster processing
-- **Whisper Tiny** - Choose if you have an older Mac or need very fast results
+- **Distil-Large V3 Turbo** — Recommended if you have 16 GB+ unified memory (GPU). Best combination of speed and accuracy.
+- **Whisper Small** — Great all-rounder for Macs with 8 GB memory.
+- **Moonshine Tiny** — Ultra-lightweight, good for older Macs or when you need instant results.
 
 **Where are models stored?**
 ```
@@ -164,9 +174,10 @@ This is only needed when upgrading from v1.0.0 due to signature changes. Fresh i
 ## Tech Stack
 
 Built with:
-- **Swift + SwiftUI** - Native macOS app
-- **[WhisperKit](https://github.com/argmaxinc/WhisperKit)** - High-quality speech recognition
-- **Metal acceleration** - Uses your Mac's GPU for fast processing
+- **Swift + SwiftUI** — Native macOS app
+- **[WhisperKit](https://github.com/argmaxinc/WhisperKit)** — Whisper and Distil-Whisper speech recognition
+- **[Moonshine](https://github.com/usefulsensors/moonshine)** — Ultra-lightweight speech recognition
+- **Metal acceleration** — Uses your Mac's GPU for fast processing
 
 ## Contributing
 
