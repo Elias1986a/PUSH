@@ -33,12 +33,8 @@ actor Qwen3Engine {
         PushLogger.log("Qwen3Engine: Loading Qwen3-ASR 0.6B...")
 
         do {
-            let dir = Self.modelDirectory
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-
             let loadedModel = try await Qwen3ASRModel.fromPretrained(
-                modelId: "aufklarer/Qwen3-ASR-0.6B-MLX-4bit",
-                cacheDir: dir
+                modelId: "aufklarer/Qwen3-ASR-0.6B-MLX-4bit"
             )
             self.model = loadedModel
 
