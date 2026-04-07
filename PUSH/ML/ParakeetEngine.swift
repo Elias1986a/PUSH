@@ -40,8 +40,9 @@ actor ParakeetEngine {
             )
             self.models = loadedModels
 
-            let config = ASRConfig.default
-            self.asrManager = AsrManager(config: config)
+            let manager = AsrManager(config: .default)
+            try await manager.loadModels(loadedModels)
+            self.asrManager = manager
 
             isLoaded = true
             PushLogger.log("ParakeetEngine: ✅ Model loaded successfully")
@@ -85,7 +86,7 @@ actor ParakeetEngine {
             try await loadModel()
         }
 
-        guard let manager = asrManager, let loadedModels = models else {
+        guard asrManager != nil else {
             throw ParakeetEngineError.notInitialized
         }
 
@@ -105,11 +106,11 @@ actor ParakeetEngine {
     // MARK: - Private
 
     private func transcribeFloats(_ floatArray: [Float]) async throws -> String {
-        guard let manager = asrManager, let loadedModels = models else {
+        guard let manager = asrManager else {
             throw ParakeetEngineError.notInitialized
         }
 
-        let result = try await manager.transcribe(audio: floatArray, models: loadedModels)
+        let result = try await manager.transcribe(floatArray, source: .system)
         return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

@@ -37,8 +37,8 @@ actor Qwen3Engine {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
             let loadedModel = try await Qwen3ASRModel.fromPretrained(
-                modelId: "Qwen/Qwen3-ASR-0.6B",
-                cacheDirectory: dir
+                modelId: "aufklarer/Qwen3-ASR-0.6B-MLX-4bit",
+                cacheDir: dir
             )
             self.model = loadedModel
 
@@ -67,7 +67,7 @@ actor Qwen3Engine {
 
             // Run a short silent audio to warm up
             let silentAudio = [Float](repeating: 0.0, count: 16000)
-            _ = try await transcribeFloats(silentAudio)
+            _ = try transcribeFloats(silentAudio)
 
             let elapsed = Date().timeIntervalSince(startTime)
             PushLogger.log("Qwen3Engine: ✅ Warmup complete in \(String(format: "%.2f", elapsed))s")
@@ -94,7 +94,7 @@ actor Qwen3Engine {
 
         PushLogger.log("Qwen3Engine: Transcribing \(floatArray.count) samples...")
 
-        let text = try await transcribeFloats(floatArray)
+        let text = try transcribeFloats(floatArray)
 
         PushLogger.log("Qwen3Engine: Transcription complete (\(text.count) chars)")
         return text
@@ -102,13 +102,14 @@ actor Qwen3Engine {
 
     // MARK: - Private
 
-    private func transcribeFloats(_ floatArray: [Float]) async throws -> String {
+    private func transcribeFloats(_ floatArray: [Float]) throws -> String {
         guard let loadedModel = model else {
             throw Qwen3EngineError.notInitialized
         }
 
-        let result = try await loadedModel.transcribe(audioArray: floatArray, sampleRate: 16000)
-        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Qwen3ASRModel.transcribe is synchronous (MLX inference)
+        let text = loadedModel.transcribe(audio: floatArray, sampleRate: 16000)
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func audioDataToFloatArray(_ data: Data) -> [Float] {
