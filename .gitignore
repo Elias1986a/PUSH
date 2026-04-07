@@ -16,7 +16,7 @@ build/
 .build/
 .swiftpm/
 Packages/
-Package.resolved
+# Package.resolved — tracked for CI reproducibility
 
 # CocoaPods
 Pods/
