@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
     - uses: actions/checkout@v4
@@ -51,15 +51,20 @@ jobs:
         chmod +x build_distribution.sh
         echo "" | ./build_distribution.sh
 
-    - name: Create GitHub Release
+    - name: Upload Release Assets
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         VERSION="${{ github.event.inputs.version || github.ref_name }}"
 
+        # Create release if it doesn't exist, or upload to existing one
+        gh release upload "$VERSION" \
+          PUSH-$VERSION.dmg \
+          PUSH-$VERSION.zip \
+          --clobber 2>/dev/null || \
         gh release create "$VERSION" \
           --title "PUSH $VERSION" \
-          --notes "Release $VERSION with permissions fixes" \
+          --generate-notes \
           PUSH-$VERSION.dmg \
           PUSH-$VERSION.zip
 
