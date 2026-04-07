@@ -120,8 +120,10 @@ PUSH supports multiple speech recognition engines. Choose the model that fits yo
 | Moonshine Tiny | ~45 MB | Ultra-fast | Good | Quick transcription, short speech |
 | Moonshine Base | ~134 MB | Fast | Better | Accurate, variable-length audio |
 
+> **Tip:** The Distil-Large models produce noticeably cleaner output — better grammar, punctuation, and sentence structure — compared to the smaller models. All models benefit from automatic post-processing (filler word removal, capitalization, punctuation cleanup), but the Distil models give you the best starting quality.
+
 **Which should I choose?**
-- **Distil-Large V3 Turbo** — Recommended if you have 16 GB+ unified memory (GPU). Best combination of speed and accuracy.
+- **Distil-Large V3 Turbo** — Recommended if you have 16 GB+ unified memory (GPU). Best combination of speed, accuracy, and output quality.
 - **Whisper Small** — Great all-rounder for Macs with 8 GB memory.
 - **Moonshine Tiny** — Ultra-lightweight, good for older Macs or when you need instant results.
 
