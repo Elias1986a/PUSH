@@ -51,3 +51,11 @@ PUSH-Xcode/
 # Icon work-in-progress
 ICON/
 PUSH/Resources/Assets.xcassets/AppIcon.appiconset/*.png
+
+# Firebase
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Claude Code
+.claude/
