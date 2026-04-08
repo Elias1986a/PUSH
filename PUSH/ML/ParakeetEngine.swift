@@ -6,39 +6,36 @@ actor ParakeetEngine {
     static let shared = ParakeetEngine()
 
     private var asrManager: AsrManager?
-    private var models: AsrModels?
     private var isLoaded = false
 
     private init() {}
 
-    // MARK: - Model Storage
+    // MARK: - Model Check
 
-    private static var modelDirectory: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("PUSH/parakeet-models", isDirectory: true)
-    }
-
+    /// Check if the Parakeet model has been downloaded
+    /// FluidAudio stores models in ~/Library/Application Support/FluidAudio/Models/
     nonisolated static func isModelDownloaded() -> Bool {
-        return AsrModels.modelsExist(at: modelDirectory)
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let v2Dir = appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2-coreml", isDirectory: true)
+        if AsrModels.modelsExist(at: v2Dir) { return true }
+        // Also check v3 since user may have it from other FluidAudio usage
+        let v3Dir = appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v3-coreml", isDirectory: true)
+        return AsrModels.modelsExist(at: v3Dir)
     }
 
     // MARK: - Public API
 
-    /// Load the Parakeet TDT v2 model (downloads if needed)
+    /// Load the Parakeet TDT v2 model (downloads to FluidAudio's default location if needed)
     func loadModel() async throws {
         if isLoaded { return }
 
         PushLogger.log("ParakeetEngine: Loading Parakeet TDT v2...")
 
         do {
-            let dir = Self.modelDirectory
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-
+            // Use FluidAudio's default download directory (nil = default)
             let loadedModels = try await AsrModels.downloadAndLoad(
-                to: dir,
                 version: .v2
             )
-            self.models = loadedModels
 
             let manager = AsrManager(config: .default)
             try await manager.loadModels(loadedModels)
@@ -55,7 +52,6 @@ actor ParakeetEngine {
     /// Unload the current model
     func unloadModel() {
         asrManager = nil
-        models = nil
         isLoaded = false
         PushLogger.log("ParakeetEngine: Model unloaded")
     }
