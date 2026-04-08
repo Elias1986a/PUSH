@@ -48,8 +48,9 @@ PUSH-Xcode/
 *.dmg
 *.zip
 
-# Icon work-in-progress
-ICON/
+# Icon work-in-progress (keep .icns for CI builds)
+ICON/*
+!ICON/AppIcon.icns
 PUSH/Resources/Assets.xcassets/AppIcon.appiconset/*.png
 
 # Firebase
