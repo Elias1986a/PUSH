@@ -1,7 +1,7 @@
 import Foundation
 import FluidAudio
 
-/// Wrapper for FluidAudio/Parakeet TDT v2 speech-to-text engine
+/// Wrapper for FluidAudio/Parakeet TDT v2 speech-to-text engine (English-only)
 actor ParakeetEngine {
     static let shared = ParakeetEngine()
 
@@ -10,17 +10,30 @@ actor ParakeetEngine {
 
     private init() {}
 
-    // MARK: - Model Check
+    // MARK: - Model Storage
 
-    /// Check if the Parakeet model has been downloaded
-    /// FluidAudio stores models in ~/Library/Application Support/FluidAudio/Models/
-    nonisolated static func isModelDownloaded() -> Bool {
+    /// FluidAudio's default model directory
+    nonisolated static var modelDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let v2Dir = appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2-coreml", isDirectory: true)
-        if AsrModels.modelsExist(at: v2Dir) { return true }
-        // Also check v3 since user may have it from other FluidAudio usage
-        let v3Dir = appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v3-coreml", isDirectory: true)
-        return AsrModels.modelsExist(at: v3Dir)
+        return appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2-coreml", isDirectory: true)
+    }
+
+    /// Check if the Parakeet v2 model has been downloaded
+    nonisolated static func isModelDownloaded() -> Bool {
+        let dir = modelDirectory
+        guard FileManager.default.fileExists(atPath: dir.path) else { return false }
+        // Check for key model files
+        let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        return contents.contains { $0.hasSuffix(".mlmodelc") || $0.hasSuffix(".json") }
+    }
+
+    /// Delete the downloaded Parakeet model to free disk space
+    nonisolated static func deleteModel() throws {
+        let dir = modelDirectory
+        if FileManager.default.fileExists(atPath: dir.path) {
+            try FileManager.default.removeItem(at: dir)
+            PushLogger.log("ParakeetEngine: Model deleted from \(dir.path)")
+        }
     }
 
     // MARK: - Public API
@@ -29,10 +42,9 @@ actor ParakeetEngine {
     func loadModel() async throws {
         if isLoaded { return }
 
-        PushLogger.log("ParakeetEngine: Loading Parakeet TDT v2...")
+        PushLogger.log("ParakeetEngine: Loading Parakeet TDT v2 (English-only)...")
 
         do {
-            // Use FluidAudio's default download directory (nil = default)
             let loadedModels = try await AsrModels.downloadAndLoad(
                 version: .v2
             )
@@ -64,7 +76,6 @@ actor ParakeetEngine {
         do {
             try await loadModel()
 
-            // Run a short silent audio to warm up
             let silentAudio = [Float](repeating: 0.0, count: 16000)
             _ = try await transcribeFloats(silentAudio)
 

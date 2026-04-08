@@ -143,7 +143,12 @@ struct ModelsSettingsView: View {
 
                         if isDownloading {
                             // No button while downloading
-                        } else if !isDownloaded {
+                        } else if isDownloaded {
+                            Button("Delete") {
+                                deleteModel()
+                            }
+                            .foregroundColor(.red)
+                        } else {
                             Button("Download") {
                                 downloadModel()
                             }
@@ -233,6 +238,26 @@ struct ModelsSettingsView: View {
                     isDownloading = false
                 }
             }
+        }
+    }
+
+    private func deleteModel() {
+        let model = appState.selectedWhisperModel
+        downloadError = nil
+        do {
+            switch model.engineType {
+            case .moonshine:
+                let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                    .appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
+                try FileManager.default.removeItem(at: dir)
+            case .parakeet:
+                try ParakeetEngine.deleteModel()
+            case .whisperKit:
+                let folder = WhisperEngine.modelFolderURL(for: model)
+                try FileManager.default.removeItem(at: folder)
+            }
+        } catch {
+            downloadError = "Failed to delete: \(error.localizedDescription)"
         }
     }
 }
