@@ -36,9 +36,6 @@ actor TranscriptionPipeline {
             case .parakeet:
                 PushLogger.log("TranscriptionPipeline: Using Parakeet engine...")
                 rawText = try await ParakeetEngine.shared.transcribe(audioData: audioData)
-            case .qwen3:
-                PushLogger.log("TranscriptionPipeline: Using Qwen3-ASR engine...")
-                rawText = try await Qwen3Engine.shared.transcribe(audioData: audioData)
             case .whisperKit:
                 PushLogger.log("TranscriptionPipeline: Using WhisperKit engine...")
                 rawText = try await WhisperEngine.shared.transcribe(audioData: audioData)
@@ -113,7 +110,7 @@ actor TranscriptionPipeline {
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
 
             // Post-processing pipeline varies by model capability:
-            // Models with native punctuation (Parakeet, Qwen3) get a reduced pipeline
+            // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.
             let formattedText: String
             if selectedModel.hasNativePunctuation {

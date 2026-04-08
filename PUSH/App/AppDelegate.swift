@@ -151,8 +151,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 try? await MoonshineEngine.shared.loadModel(selectedModel)
             case .parakeet:
                 try? await ParakeetEngine.shared.loadModel()
-            case .qwen3:
-                try? await Qwen3Engine.shared.loadModel()
             case .whisperKit:
                 try? await WhisperEngine.shared.loadModel(selectedModel)
             }
@@ -170,8 +168,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 await MoonshineEngine.shared.warmupInference()
             case .parakeet:
                 await ParakeetEngine.shared.warmup()
-            case .qwen3:
-                await Qwen3Engine.shared.warmup()
             case .whisperKit:
                 await WhisperEngine.shared.warmupInference()
             }

@@ -100,8 +100,6 @@ struct ModelsSettingsView: View {
             return MoonshineEngine.isModelDownloaded(selectedModel)
         case .parakeet:
             return ParakeetEngine.isModelDownloaded()
-        case .qwen3:
-            return Qwen3Engine.isModelDownloaded()
         case .whisperKit:
             return WhisperEngine.isModelDownloaded(selectedModel)
         }
@@ -181,9 +179,6 @@ struct ModelsSettingsView: View {
                 case .parakeet:
                     try await ParakeetEngine.shared.loadModel()
                     await ParakeetEngine.shared.warmup()
-                case .qwen3:
-                    try await Qwen3Engine.shared.loadModel()
-                    await Qwen3Engine.shared.warmup()
                 case .whisperKit:
                     try await WhisperEngine.shared.loadModel(model)
                     await WhisperEngine.shared.warmup()

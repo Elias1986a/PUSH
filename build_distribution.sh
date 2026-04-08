@@ -43,6 +43,14 @@ for bundle in .build/release/*.bundle; do
     fi
 done
 
+# Copy MLX Metal shader libraries (required for Qwen3-ASR/MLX inference)
+echo "   Copying Metal shader libraries..."
+find .build/release -name "*.metallib" -exec ditto --norsrc --noextattr {} "$APP_DIR/Contents/Resources/{}" \; 2>/dev/null
+# Also check in bundle subdirectories
+for metallib in $(find .build/release -name "*.metallib" 2>/dev/null); do
+    ditto --norsrc --noextattr "$metallib" "$APP_DIR/Contents/Resources/$(basename "$metallib")"
+done
+
 # Copy frameworks (using ditto without resource forks)
 echo "   Copying frameworks..."
 for framework in .build/release/*.framework; do
