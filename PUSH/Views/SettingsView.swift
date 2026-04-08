@@ -93,6 +93,18 @@ struct ModelsSettingsView: View {
         appState.selectedWhisperModel
     }
 
+    private var modelFolderPath: URL {
+        switch selectedModel.engineType {
+        case .moonshine:
+            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            return appSupport.appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
+        case .parakeet:
+            return ParakeetEngine.modelDirectory
+        case .whisperKit:
+            return WhisperEngine.modelFolderURL(for: selectedModel)
+        }
+    }
+
     private var isDownloaded: Bool {
         if selectedModel == .moonshineTiny {
             return true // Bundled with the framework
@@ -176,7 +188,18 @@ struct ModelsSettingsView: View {
                             .foregroundColor(.red)
                     }
 
-                    if !isDownloading {
+                    if !isDownloading && isDownloaded {
+                        Button {
+                            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: modelFolderPath.path)
+                        } label: {
+                            Label("Show in Finder", systemImage: "folder")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.secondary)
+                    }
+
+                    if !isDownloading && !isDownloaded {
                         Text("Models are downloaded automatically when needed and stored locally.")
                             .font(.caption)
                             .foregroundColor(.secondary)
