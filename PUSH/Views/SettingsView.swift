@@ -211,8 +211,25 @@ struct ModelsSettingsView: View {
                     }
                     await MoonshineEngine.shared.warmup()
                 case .parakeet:
-                    await MainActor.run { downloadStatus = "Downloading Parakeet model..." }
+                    await MainActor.run { downloadStatus = "Downloading Parakeet model (~400 MB)..." }
+                    // Poll download directory for progress
+                    let pollTask = Task {
+                        let expectedSize: Double = 400_000_000 // ~400 MB
+                        while !Task.isCancelled {
+                            try? await Task.sleep(for: .seconds(1))
+                            let dir = ParakeetEngine.modelDirectory
+                            let size = Self.directorySize(at: dir)
+                            let progress = min(size / expectedSize, 0.95)
+                            await MainActor.run {
+                                downloadProgress = progress
+                                if progress > 0.01 {
+                                    downloadStatus = "Downloading... \(Int(progress * 100))%"
+                                }
+                            }
+                        }
+                    }
                     try await ParakeetEngine.shared.loadModel()
+                    pollTask.cancel()
                     await MainActor.run {
                         downloadProgress = 0.9
                         downloadStatus = "Warming up..."
@@ -220,7 +237,24 @@ struct ModelsSettingsView: View {
                     await ParakeetEngine.shared.warmup()
                 case .whisperKit:
                     await MainActor.run { downloadStatus = "Downloading model..." }
+                    // Poll download directory for progress
+                    let whisperPollTask = Task {
+                        let expectedSize: Double = Double(model == .whisperLargeV3Turbo ? 632_000_000 : 600_000_000)
+                        while !Task.isCancelled {
+                            try? await Task.sleep(for: .seconds(1))
+                            let dir = WhisperEngine.modelFolderURL(for: model)
+                            let size = Self.directorySize(at: dir)
+                            let progress = min(size / expectedSize, 0.95)
+                            await MainActor.run {
+                                downloadProgress = progress
+                                if progress > 0.01 {
+                                    downloadStatus = "Downloading... \(Int(progress * 100))%"
+                                }
+                            }
+                        }
+                    }
                     try await WhisperEngine.shared.loadModel(model)
+                    whisperPollTask.cancel()
                     await MainActor.run {
                         downloadProgress = 0.9
                         downloadStatus = "Warming up..."
@@ -241,21 +275,35 @@ struct ModelsSettingsView: View {
         }
     }
 
+    private static func directorySize(at url: URL) -> Double {
+        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey]) else {
+            return 0
+        }
+        var total: Double = 0
+        for case let fileURL as URL in enumerator {
+            if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                total += Double(size)
+            }
+        }
+        return total
+    }
+
     private func deleteModel() {
         let model = appState.selectedWhisperModel
         downloadError = nil
         do {
+            let urlToDelete: URL
             switch model.engineType {
             case .moonshine:
-                let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                urlToDelete = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
                     .appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
-                try FileManager.default.removeItem(at: dir)
             case .parakeet:
-                try ParakeetEngine.deleteModel()
+                urlToDelete = ParakeetEngine.modelDirectory
             case .whisperKit:
-                let folder = WhisperEngine.modelFolderURL(for: model)
-                try FileManager.default.removeItem(at: folder)
+                urlToDelete = WhisperEngine.modelFolderURL(for: model)
             }
+            // Move to Trash so user can recover if needed
+            try FileManager.default.trashItem(at: urlToDelete, resultingItemURL: nil)
         } catch {
             downloadError = "Failed to delete: \(error.localizedDescription)"
         }

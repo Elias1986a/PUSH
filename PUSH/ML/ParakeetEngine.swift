@@ -12,19 +12,18 @@ actor ParakeetEngine {
 
     // MARK: - Model Storage
 
-    /// FluidAudio's default model directory
+    /// FluidAudio's default model directory for Parakeet v2
     nonisolated static var modelDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2-coreml", isDirectory: true)
+        return appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2", isDirectory: true)
     }
 
     /// Check if the Parakeet v2 model has been downloaded
     nonisolated static func isModelDownloaded() -> Bool {
         let dir = modelDirectory
         guard FileManager.default.fileExists(atPath: dir.path) else { return false }
-        // Check for key model files
         let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
-        return contents.contains { $0.hasSuffix(".mlmodelc") || $0.hasSuffix(".json") }
+        return contents.contains { $0.hasSuffix(".mlmodelc") }
     }
 
     /// Delete the downloaded Parakeet model to free disk space
