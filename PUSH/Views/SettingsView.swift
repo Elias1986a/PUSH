@@ -291,23 +291,22 @@ struct ModelsSettingsView: View {
     private func deleteModel() {
         let model = appState.selectedWhisperModel
         downloadError = nil
+
+        let urlToDelete: URL
+        switch model.engineType {
+        case .moonshine:
+            urlToDelete = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                .appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
+        case .parakeet:
+            urlToDelete = ParakeetEngine.modelDirectory
+        case .whisperKit:
+            urlToDelete = WhisperEngine.modelFolderURL(for: model)
+        }
+
+        guard FileManager.default.fileExists(atPath: urlToDelete.path) else { return }
+
         do {
-            let urlToDelete: URL
-            switch model.engineType {
-            case .moonshine:
-                urlToDelete = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                    .appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
-            case .parakeet:
-                urlToDelete = ParakeetEngine.modelDirectory
-            case .whisperKit:
-                urlToDelete = WhisperEngine.modelFolderURL(for: model)
-            }
-            // Try Trash first, fall back to direct delete
-            do {
-                try FileManager.default.trashItem(at: urlToDelete, resultingItemURL: nil)
-            } catch {
-                try FileManager.default.removeItem(at: urlToDelete)
-            }
+            try FileManager.default.removeItem(at: urlToDelete)
         } catch {
             downloadError = "Failed to delete: \(error.localizedDescription)"
         }
