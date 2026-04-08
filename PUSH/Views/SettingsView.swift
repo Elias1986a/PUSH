@@ -302,8 +302,12 @@ struct ModelsSettingsView: View {
             case .whisperKit:
                 urlToDelete = WhisperEngine.modelFolderURL(for: model)
             }
-            // Move to Trash so user can recover if needed
-            try FileManager.default.trashItem(at: urlToDelete, resultingItemURL: nil)
+            // Try Trash first, fall back to direct delete
+            do {
+                try FileManager.default.trashItem(at: urlToDelete, resultingItemURL: nil)
+            } catch {
+                try FileManager.default.removeItem(at: urlToDelete)
+            }
         } catch {
             downloadError = "Failed to delete: \(error.localizedDescription)"
         }
