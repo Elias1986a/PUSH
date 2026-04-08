@@ -85,6 +85,8 @@ struct GeneralSettingsView: View {
 struct ModelsSettingsView: View {
     @EnvironmentObject var appState: AppState
     @State private var isDownloading = false
+    @State private var downloadProgress: Double = 0
+    @State private var downloadStatus: String = ""
     @State private var downloadError: String?
 
     private var selectedModel: AppState.WhisperModel {
@@ -140,12 +142,26 @@ struct ModelsSettingsView: View {
                         Spacer()
 
                         if isDownloading {
-                            ProgressView()
-                                .controlSize(.small)
+                            // No button while downloading
                         } else if !isDownloaded {
                             Button("Download") {
                                 downloadModel()
                             }
+                        }
+                    }
+
+                    if isDownloading {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if downloadProgress > 0 {
+                                ProgressView(value: downloadProgress, total: 1.0)
+                                    .progressViewStyle(.linear)
+                            } else {
+                                ProgressView()
+                                    .progressViewStyle(.linear)
+                            }
+                            Text(downloadStatus.isEmpty ? "Downloading..." : downloadStatus)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
 
@@ -155,9 +171,11 @@ struct ModelsSettingsView: View {
                             .foregroundColor(.red)
                     }
 
-                    Text("Models are downloaded automatically when needed and stored locally.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    if !isDownloading {
+                        Text("Models are downloaded automatically when needed and stored locally.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }
@@ -168,22 +186,45 @@ struct ModelsSettingsView: View {
     private func downloadModel() {
         let model = appState.selectedWhisperModel
         isDownloading = true
+        downloadProgress = 0
+        downloadStatus = "Preparing download..."
         downloadError = nil
         Task {
             do {
                 switch model.engineType {
                 case .moonshine:
+                    await MainActor.run { downloadStatus = "Downloading Moonshine model..." }
                     try await MoonshineEngine.shared.downloadBaseModel()
+                    await MainActor.run {
+                        downloadProgress = 0.8
+                        downloadStatus = "Loading model..."
+                    }
                     try await MoonshineEngine.shared.loadModel(model)
+                    await MainActor.run {
+                        downloadProgress = 0.9
+                        downloadStatus = "Warming up..."
+                    }
                     await MoonshineEngine.shared.warmup()
                 case .parakeet:
+                    await MainActor.run { downloadStatus = "Downloading Parakeet model..." }
                     try await ParakeetEngine.shared.loadModel()
+                    await MainActor.run {
+                        downloadProgress = 0.9
+                        downloadStatus = "Warming up..."
+                    }
                     await ParakeetEngine.shared.warmup()
                 case .whisperKit:
+                    await MainActor.run { downloadStatus = "Downloading model..." }
                     try await WhisperEngine.shared.loadModel(model)
+                    await MainActor.run {
+                        downloadProgress = 0.9
+                        downloadStatus = "Warming up..."
+                    }
                     await WhisperEngine.shared.warmup()
                 }
                 await MainActor.run {
+                    downloadProgress = 1.0
+                    downloadStatus = "Complete!"
                     isDownloading = false
                 }
             } catch {
