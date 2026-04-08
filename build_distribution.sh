@@ -160,6 +160,9 @@ mkdir -p "$DMG_TEMP"
 # Copy app to temp directory
 cp -R "$APP_DIR" "$DMG_TEMP/"
 
+# Add Applications symlink for drag-and-drop install
+ln -s /Applications "$DMG_TEMP/Applications"
+
 # Create DMG
 hdiutil create -volname "PUSH" -srcfolder "$DMG_TEMP" -ov -format UDZO "$DMG_NAME"
 
