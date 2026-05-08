@@ -14,18 +14,9 @@ final class AudioRecorder: @unchecked Sendable {
     private let sampleRate: Double = 16000
     private let channels: AVAudioChannelCount = 1
 
-    // VAD (Voice Activity Detection) properties
+    // VAD state
     private var vadEnabled = false
-    private var silenceStartTime: Date?
-    private var vadTimer: Timer?
-    private let silenceThreshold: Float = 0.01 // RMS threshold for silence
-    private let silenceDuration: TimeInterval = 1.0 // 1 second of silence to trigger stop
-    private var recentAudioLevels: [Float] = []
-
-    // Grace period - wait before starting VAD monitoring
-    private var recordingStartTime: Date?
-    private let vadGracePeriod: TimeInterval = 2.0 // Wait 2 seconds before VAD kicks in
-    private var speechDetectedDuringGrace = false
+    private let sileroVAD = SileroVAD.shared
 
     // Callback for VAD-triggered stop
     var onSilenceDetected: (() -> Void)?
@@ -40,17 +31,12 @@ final class AudioRecorder: @unchecked Sendable {
         audioData = Data()
         audioEngine = AVAudioEngine()
         vadEnabled = withVAD
-        silenceStartTime = nil
-        recentAudioLevels = []
-        recordingStartTime = Date()
-        speechDetectedDuringGrace = false
 
         guard let engine = audioEngine else { return }
 
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
-        // Create output format for Whisper (16kHz mono)
         guard let outputFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: sampleRate,
@@ -61,15 +47,12 @@ final class AudioRecorder: @unchecked Sendable {
             return
         }
 
-        // Create converter if sample rates differ
         let converter = AVAudioConverter(from: inputFormat, to: outputFormat)
 
-        // Install tap on input node
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, time in
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
             guard let self = self else { return }
 
             if let converter = converter {
-                // Convert to 16kHz mono
                 let convertedBuffer = self.convert(buffer: buffer, converter: converter, outputFormat: outputFormat)
                 Task { @MainActor in
                     self.appendBuffer(convertedBuffer ?? buffer)
@@ -85,12 +68,15 @@ final class AudioRecorder: @unchecked Sendable {
             try engine.start()
             isRecording = true
 
-            // Start VAD monitoring if enabled
             if vadEnabled {
-                PushLogger.log("AudioRecorder: Started recording with VAD enabled")
-                vadTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-                    Task { @MainActor in
-                        self?.checkVAD()
+                PushLogger.log("AudioRecorder: Started recording with Silero VAD")
+                Task {
+                    await sileroVAD.setup()
+                    await sileroVAD.reset()
+                    await sileroVAD.configure { [weak self] in
+                        Task { @MainActor in
+                            self?.onSilenceDetected?()
+                        }
                     }
                 }
             }
@@ -104,10 +90,7 @@ final class AudioRecorder: @unchecked Sendable {
     func stopRecording() -> Data? {
         guard isRecording else { return nil }
 
-        vadTimer?.invalidate()
-        vadTimer = nil
         vadEnabled = false
-        silenceStartTime = nil
 
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
@@ -160,72 +143,12 @@ final class AudioRecorder: @unchecked Sendable {
         let frameLength = Int(buffer.frameLength)
         let data = Data(bytes: channelData[0], count: frameLength * MemoryLayout<Float>.size)
 
-        // Calculate RMS for VAD
         if vadEnabled {
-            let rms = calculateRMS(channelData[0], frameCount: frameLength)
-            DispatchQueue.main.async { [weak self] in
-                self?.recentAudioLevels.append(rms)
-                // Keep only recent levels (last ~0.5 seconds worth)
-                if self?.recentAudioLevels.count ?? 0 > 10 {
-                    self?.recentAudioLevels.removeFirst()
-                }
-            }
+            let floats = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+            Task { await sileroVAD.processSamples(floats) }
         }
 
-        DispatchQueue.main.async { [weak self] in
-            self?.audioData?.append(data)
-        }
-    }
-
-    private func calculateRMS(_ samples: UnsafePointer<Float>, frameCount: Int) -> Float {
-        var sum: Float = 0
-        for i in 0..<frameCount {
-            sum += samples[i] * samples[i]
-        }
-        return sqrt(sum / Float(frameCount))
-    }
-
-    private func checkVAD() {
-        guard vadEnabled, isRecording else { return }
-        guard let startTime = recordingStartTime else { return }
-
-        // Calculate average of recent audio levels
-        guard !recentAudioLevels.isEmpty else { return }
-        let avgLevel = recentAudioLevels.reduce(0, +) / Float(recentAudioLevels.count)
-
-        let timeSinceStart = Date().timeIntervalSince(startTime)
-        let inGracePeriod = timeSinceStart < vadGracePeriod
-
-        // During grace period, just track if speech is detected
-        if inGracePeriod {
-            if avgLevel >= silenceThreshold {
-                if !speechDetectedDuringGrace {
-                    PushLogger.log("AudioRecorder: VAD - Speech detected during grace period")
-                    speechDetectedDuringGrace = true
-                }
-            }
-            return // Don't check for silence during grace period
-        }
-
-        // After grace period, normal VAD logic
-        if avgLevel < silenceThreshold {
-            // Audio is silent
-            if silenceStartTime == nil {
-                silenceStartTime = Date()
-                PushLogger.log("AudioRecorder: VAD - Silence started (after grace period)")
-            } else if let silenceStart = silenceStartTime,
-                      Date().timeIntervalSince(silenceStart) >= silenceDuration {
-                // Silence duration exceeded - trigger stop
-                PushLogger.log("AudioRecorder: VAD - Silence detected for \(silenceDuration)s, triggering stop")
-                onSilenceDetected?()
-            }
-        } else {
-            // Audio detected - reset silence timer
-            if silenceStartTime != nil {
-                PushLogger.log("AudioRecorder: VAD - Audio detected, resetting silence timer")
-            }
-            silenceStartTime = nil
-        }
+        audioData?.append(data)
     }
 }
 
@@ -243,7 +166,6 @@ extension AudioRecorder {
                 let int16s = int16Buffer.bindMemory(to: Int16.self)
 
                 for i in 0..<floatCount {
-                    // Clamp and convert
                     let clamped = max(-1.0, min(1.0, floats[i]))
                     int16s[i] = Int16(clamped * Float(Int16.max))
                 }
@@ -259,27 +181,23 @@ extension AudioRecorder {
         let tempDir = FileManager.default.temporaryDirectory
         let fileURL = tempDir.appendingPathComponent("recording_\(Date().timeIntervalSince1970).wav")
 
-        // WAV header
         var header = Data()
         let dataSize = UInt32(data.count)
         let fileSize = dataSize + 36
 
-        // RIFF header
         header.append(contentsOf: "RIFF".utf8)
         header.append(contentsOf: withUnsafeBytes(of: fileSize.littleEndian) { Array($0) })
         header.append(contentsOf: "WAVE".utf8)
 
-        // fmt chunk
         header.append(contentsOf: "fmt ".utf8)
-        header.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Array($0) }) // chunk size
-        header.append(contentsOf: withUnsafeBytes(of: UInt16(3).littleEndian) { Array($0) }) // format (3 = float)
-        header.append(contentsOf: withUnsafeBytes(of: UInt16(1).littleEndian) { Array($0) }) // channels
-        header.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate).littleEndian) { Array($0) }) // sample rate
-        header.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate * 4).littleEndian) { Array($0) }) // byte rate
-        header.append(contentsOf: withUnsafeBytes(of: UInt16(4).littleEndian) { Array($0) }) // block align
-        header.append(contentsOf: withUnsafeBytes(of: UInt16(32).littleEndian) { Array($0) }) // bits per sample
+        header.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Array($0) })
+        header.append(contentsOf: withUnsafeBytes(of: UInt16(3).littleEndian) { Array($0) })
+        header.append(contentsOf: withUnsafeBytes(of: UInt16(1).littleEndian) { Array($0) })
+        header.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate).littleEndian) { Array($0) })
+        header.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate * 4).littleEndian) { Array($0) })
+        header.append(contentsOf: withUnsafeBytes(of: UInt16(4).littleEndian) { Array($0) })
+        header.append(contentsOf: withUnsafeBytes(of: UInt16(32).littleEndian) { Array($0) })
 
-        // data chunk
         header.append(contentsOf: "data".utf8)
         header.append(contentsOf: withUnsafeBytes(of: dataSize.littleEndian) { Array($0) })
 
