@@ -267,12 +267,16 @@ final class HotkeyManager: @unchecked Sendable {
 
             // Stop recording and process
             let audioData = AudioRecorder.shared.stopRecording()
-            PushLogger.log("HotkeyManager: Got audio data: \(audioData?.count ?? 0) bytes")
 
-            if let data = audioData {
+            // Skip transcription if Silero VAD detected no speech — prevents
+            // ambient noise and accidental key presses from producing random words.
+            let hadSpeech = await SileroVAD.shared.speechWasDetected()
+            if let data = audioData, hadSpeech {
                 PushLogger.log("HotkeyManager: Sending to transcription pipeline")
                 await TranscriptionPipeline.shared.process(audioData: data)
                 PushLogger.log("HotkeyManager: Transcription complete")
+            } else if !hadSpeech {
+                PushLogger.log("HotkeyManager: No speech detected, skipping transcription")
             } else {
                 PushLogger.log("HotkeyManager: No audio data to process")
             }
