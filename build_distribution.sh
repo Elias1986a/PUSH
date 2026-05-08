@@ -5,7 +5,12 @@ set -e  # Exit on error
 
 # Configuration
 APP_NAME="PUSH"
-APP_DIR="PUSH-Xcode/PUSH.app"
+# Build the app bundle OUTSIDE iCloud-managed ~/Documents/. iCloud re-plants
+# com.apple.fileprovider.fpfs#P and com.apple.FinderInfo on directories faster
+# than codesign can run, breaking signing with "detritus not allowed".
+DIST_ROOT="${HOME}/Library/Developer/SwiftPackages/PUSH-dist"
+mkdir -p "$DIST_ROOT"
+APP_DIR="${DIST_ROOT}/PUSH.app"
 BUNDLE_ID="com.push.voicetotext"
 DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
 ZIP_NAME="PUSH-v4.0.1.zip"
@@ -91,6 +96,10 @@ find "$APP_DIR" -type f -exec xattr -d com.apple.quarantine {} \; 2>/dev/null ||
 find "$APP_DIR" -type f -exec xattr -d com.apple.metadata:kMDItemWhereFroms {} \; 2>/dev/null || true
 echo "   Removing extended attributes (attempt 3)..."
 find "$APP_DIR" -type f -exec xattr -c {} \; 2>/dev/null || true
+# iCloud (com.apple.fileprovider.*) and FinderInfo can land on directories too,
+# which codesign rejects. Recursive clear handles files + dirs.
+echo "   Removing extended attributes (attempt 4 — recursive incl. dirs)..."
+xattr -cr "$APP_DIR" 2>/dev/null || true
 
 # Step 3: Code sign with hardened runtime
 echo "✍️  Step 3/6: Code signing with Developer ID..."
@@ -160,8 +169,8 @@ fi
 echo "💿 Step 6/6: Creating DMG..."
 rm -f "$DMG_NAME"
 
-# Create temporary directory for DMG contents
-DMG_TEMP="dmg_temp"
+# Create temporary directory for DMG contents (outside iCloud — same reason as APP_DIR)
+DMG_TEMP="${DIST_ROOT}/dmg_temp"
 rm -rf "$DMG_TEMP"
 mkdir -p "$DMG_TEMP"
 
