@@ -14,8 +14,6 @@ final class AudioRecorder: @unchecked Sendable {
     private let sampleRate: Double = 16000
     private let channels: AVAudioChannelCount = 1
 
-    // VAD state
-    private var vadEnabled = false
     private let sileroVAD = SileroVAD.shared
 
     // Callback for VAD-triggered stop
@@ -30,7 +28,6 @@ final class AudioRecorder: @unchecked Sendable {
 
         audioData = Data()
         audioEngine = AVAudioEngine()
-        vadEnabled = withVAD
 
         guard let engine = audioEngine else { return }
 
@@ -68,20 +65,19 @@ final class AudioRecorder: @unchecked Sendable {
             try engine.start()
             isRecording = true
 
-            if vadEnabled {
-                PushLogger.log("AudioRecorder: Started recording with Silero VAD")
-                Task {
-                    await sileroVAD.setup()
-                    await sileroVAD.reset()
+            // Always run Silero VAD: gates transcription in hotkey mode,
+            // auto-stops recording in wake word mode.
+            Task {
+                await sileroVAD.setup()
+                await sileroVAD.reset()
+                if withVAD {
                     await sileroVAD.configure { [weak self] in
-                        Task { @MainActor in
-                            self?.onSilenceDetected?()
-                        }
+                        Task { @MainActor in self?.onSilenceDetected?() }
                     }
                 }
             }
 
-            PushLogger.log("AudioRecorder: Started recording")
+            PushLogger.log("AudioRecorder: Started recording\(withVAD ? " with auto-stop VAD" : "")")
         } catch {
             PushLogger.log("AudioRecorder: Failed to start engine: \(error)")
         }
@@ -89,8 +85,6 @@ final class AudioRecorder: @unchecked Sendable {
 
     func stopRecording() -> Data? {
         guard isRecording else { return nil }
-
-        vadEnabled = false
 
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
@@ -143,10 +137,8 @@ final class AudioRecorder: @unchecked Sendable {
         let frameLength = Int(buffer.frameLength)
         let data = Data(bytes: channelData[0], count: frameLength * MemoryLayout<Float>.size)
 
-        if vadEnabled {
-            let floats = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
-            Task { await sileroVAD.processSamples(floats) }
-        }
+        let floats = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+        Task { await sileroVAD.processSamples(floats) }
 
         audioData?.append(data)
     }

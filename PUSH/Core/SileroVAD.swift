@@ -41,10 +41,14 @@ actor SileroVAD {
         silenceCallback = onSilenceDetected
     }
 
+    /// Whether any speech was detected since the last reset. Used to gate hotkey transcription.
+    func speechWasDetected() -> Bool { speechDetected }
+
     func reset(gracePeriod: TimeInterval = 2.0) {
         pendingSamples = []
         if let m = manager { streamState = m.makeStreamState() }
         speechDetected = false
+        silenceCallback = nil
         gracePeriodEnds = Date().addingTimeInterval(gracePeriod)
     }
 
