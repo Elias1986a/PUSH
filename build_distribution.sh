@@ -9,8 +9,10 @@ APP_NAME="PUSH"
 # com.apple.fileprovider.fpfs#P and com.apple.FinderInfo on directories faster
 # than codesign can run, breaking signing with "detritus not allowed".
 DIST_ROOT="${HOME}/Library/Developer/SwiftPackages/PUSH-dist"
-mkdir -p "$DIST_ROOT"
+SCRATCH_PATH="${HOME}/Library/Developer/SwiftPackages/PUSH-build"
+mkdir -p "$DIST_ROOT" "$SCRATCH_PATH"
 APP_DIR="${DIST_ROOT}/PUSH.app"
+BUILD_DIR="${SCRATCH_PATH}"
 BUNDLE_ID="com.push.voicetotext"
 DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
 ZIP_NAME="PUSH-v4.0.1.zip"
@@ -20,8 +22,11 @@ echo "🚀 Building PUSH for distribution..."
 echo ""
 
 # Step 1: Build the app
+# --scratch-path keeps SPM's build dir outside iCloud-synced ~/Documents/.
+# A symlink would be simpler, but iCloud's file provider materializes
+# cross-domain symlinks and we'd build inside iCloud anyway.
 echo "📦 Step 1/6: Building release binary..."
-swift build -c release
+swift build -c release --scratch-path "$BUILD_DIR"
 
 # Step 2: Create app bundle
 echo "📦 Step 2/6: Creating app bundle..."
@@ -31,7 +36,7 @@ mkdir -p "$APP_DIR/Contents/Resources"
 mkdir -p "$APP_DIR/Contents/Frameworks"
 
 # Copy executable (using ditto to strip extended attributes)
-ditto --norsrc --noextattr .build/release/PUSH "$APP_DIR/Contents/MacOS/PUSH"
+ditto --norsrc --noextattr $BUILD_DIR/release/PUSH "$APP_DIR/Contents/MacOS/PUSH"
 
 # Copy Info.plist (using ditto to strip extended attributes)
 ditto --norsrc --noextattr PUSH/Info.plist "$APP_DIR/Contents/Info.plist"
@@ -42,7 +47,7 @@ ditto --norsrc --noextattr ICON/AppIcon.icns "$APP_DIR/Contents/Resources/AppIco
 
 # Copy resource bundles (using ditto without resource forks)
 echo "   Copying resource bundles..."
-for bundle in .build/release/*.bundle; do
+for bundle in $BUILD_DIR/release/*.bundle; do
     if [ -e "$bundle" ]; then
         ditto --norsrc --noextattr "$bundle" "$APP_DIR/Contents/Resources/$(basename "$bundle")"
     fi
@@ -50,20 +55,20 @@ done
 
 # Copy MLX Metal shader libraries (required for Qwen3-ASR/MLX inference)
 echo "   Copying Metal shader libraries..."
-find .build/release -name "*.metallib" -exec ditto --norsrc --noextattr {} "$APP_DIR/Contents/Resources/{}" \; 2>/dev/null
+find $BUILD_DIR/release -name "*.metallib" -exec ditto --norsrc --noextattr {} "$APP_DIR/Contents/Resources/{}" \; 2>/dev/null
 # Also check in bundle subdirectories
-for metallib in $(find .build/release -name "*.metallib" 2>/dev/null); do
+for metallib in $(find $BUILD_DIR/release -name "*.metallib" 2>/dev/null); do
     ditto --norsrc --noextattr "$metallib" "$APP_DIR/Contents/Resources/$(basename "$metallib")"
 done
 
 # Copy frameworks (using ditto without resource forks)
 echo "   Copying frameworks..."
-for framework in .build/release/*.framework; do
+for framework in $BUILD_DIR/release/*.framework; do
     if [ -e "$framework" ]; then
         ditto --norsrc --noextattr "$framework" "$APP_DIR/Contents/Frameworks/$(basename "$framework")"
     fi
 done
-for dylib in .build/release/*.dylib; do
+for dylib in $BUILD_DIR/release/*.dylib; do
     if [ -e "$dylib" ]; then
         ditto --norsrc --noextattr "$dylib" "$APP_DIR/Contents/Frameworks/$(basename "$dylib")"
     fi
