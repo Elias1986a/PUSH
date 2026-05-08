@@ -29,7 +29,7 @@ actor SileroVAD {
         do {
             let m = try await VadManager(config: VadConfig(defaultThreshold: 0.5))
             manager = m
-            streamState = m.makeStreamState()
+            streamState = await m.makeStreamState()
             isReady = true
             PushLogger.log("SileroVAD: ✅ Ready (Silero VAD via CoreML/ANE)")
         } catch {
@@ -44,9 +44,9 @@ actor SileroVAD {
     /// Whether any speech was detected since the last reset. Used to gate hotkey transcription.
     func speechWasDetected() -> Bool { speechDetected }
 
-    func reset(gracePeriod: TimeInterval = 2.0) {
+    func reset(gracePeriod: TimeInterval = 2.0) async {
         pendingSamples = []
-        if let m = manager { streamState = m.makeStreamState() }
+        if let m = manager { streamState = await m.makeStreamState() }
         speechDetected = false
         silenceCallback = nil
         gracePeriodEnds = Date().addingTimeInterval(gracePeriod)
