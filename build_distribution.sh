@@ -149,7 +149,12 @@ echo "     --apple-id \"your-apple-id@email.com\" \\"
 echo "     --team-id \"B8R5B24PMP\" \\"
 echo "     --password \"app-specific-password\""
 echo ""
-read -p "Have you stored credentials? Press Enter to continue or Ctrl+C to cancel..."
+# Only prompt when running interactively. CI / automated runs skip this
+# and proceed straight to notarytool, which fails informatively if the
+# keychain profile is missing.
+if [ -t 0 ]; then
+    read -p "Have you stored credentials? Press Enter to continue or Ctrl+C to cancel..."
+fi
 
 # Submit for notarization
 echo "   Uploading to Apple..."
