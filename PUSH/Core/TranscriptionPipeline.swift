@@ -114,11 +114,15 @@ actor TranscriptionPipeline {
             // to avoid overriding their higher-quality formatting.
             let formattedText: String
             if selectedModel.hasNativePunctuation {
-                // Reduced pipeline: only filler/stutter removal and smart symbols
+                // Reduced pipeline: filler/stutter removal, number normalization, smart symbols
                 formattedText = Self.doubleSpaceAfterPeriods(
                     Self.smartSymbols(
-                        Self.removeStutteredWords(
-                            Self.removeFillerWords(filteredText)
+                        Self.normalizeNumberWords(
+                            Self.normalizeDecimalDictation(
+                                Self.removeStutteredWords(
+                                    Self.removeFillerWords(filteredText)
+                                )
+                            )
                         )
                     )
                 )
@@ -131,8 +135,12 @@ actor TranscriptionPipeline {
                                 Self.fixQuestionMarks(
                                     Self.ensureEndingPunctuation(
                                         Self.fixTrailingComma(
-                                            Self.removeStutteredWords(
-                                                Self.removeFillerWords(filteredText)
+                                            Self.normalizeNumberWords(
+                                                Self.normalizeDecimalDictation(
+                                                    Self.removeStutteredWords(
+                                                        Self.removeFillerWords(filteredText)
+                                                    )
+                                                )
                                             )
                                         )
                                     )
@@ -356,6 +364,130 @@ actor TranscriptionPipeline {
             result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "&")
         }
 
+        return result
+    }
+
+    // MARK: - Number Normalization (AP style + decimal dictation)
+
+    /// Spelled-out number words and their integer values.
+    private static let baseNumberWords: [String: Int] = [
+        "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4,
+        "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
+        "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+        "fourteen": 14, "fifteen": 15, "sixteen": 16,
+        "seventeen": 17, "eighteen": 18, "nineteen": 19,
+        "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+        "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+        "hundred": 100, "thousand": 1000, "million": 1_000_000
+    ]
+
+    // Sorted longest-first so e.g. "seventeen" wins over "seven" in alternation.
+    private static let numberWordPattern: String =
+        baseNumberWords.keys.sorted { $0.count > $1.count }.joined(separator: "|")
+    private static let decimalWordPattern: String =
+        (Array(baseNumberWords.keys) + ["oh"]).sorted { $0.count > $1.count }.joined(separator: "|")
+
+    /// Parse a contiguous run of number words ("twenty five", "one hundred five") into an Int.
+    /// Returns nil if any token isn't recognized. `allowOh` enables "oh" → 0 for decimal contexts.
+    private static func parseNumberRun(_ run: String, allowOh: Bool = false) -> Int? {
+        let words = run.lowercased()
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .map(String.init)
+        guard !words.isEmpty else { return nil }
+
+        var total = 0
+        var current = 0
+        for word in words {
+            let value: Int
+            if let v = baseNumberWords[word] {
+                value = v
+            } else if allowOh && word == "oh" {
+                value = 0
+            } else {
+                return nil
+            }
+
+            if value == 100 {
+                current = (current == 0 ? 1 : current) * 100
+            } else if value >= 1000 {
+                total += (current == 0 ? 1 : current) * value
+                current = 0
+            } else {
+                current += value
+            }
+        }
+        return total + current
+    }
+
+    /// Rewrite "X point Y [point Z]" dictation as "X.Y[.Z]" (versions, decimals).
+    /// "four point zero point two" → "4.0.2"; "ten point five" → "10.5".
+    private static func normalizeDecimalDictation(_ text: String) -> String {
+        let word = decimalWordPattern
+        let chunk = "(?:\(word))(?:[\\s-]+(?:\(word)))*"
+        let pattern = "\\b\(chunk)(?:\\s+point\\s+\(chunk))+\\b"
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+              let splitter = try? NSRegularExpression(pattern: "\\s+point\\s+", options: .caseInsensitive) else {
+            return text
+        }
+
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, options: [],
+                                    range: NSRange(location: 0, length: nsText.length))
+
+        var result = text
+        for match in matches.reversed() {
+            guard let range = Range(match.range, in: result) else { continue }
+            let runText = String(result[range])
+
+            var pieces: [String] = []
+            var lastEnd = runText.startIndex
+            let nsRun = runText as NSString
+            for m in splitter.matches(in: runText, options: [],
+                                      range: NSRange(location: 0, length: nsRun.length)) {
+                guard let r = Range(m.range, in: runText) else { continue }
+                pieces.append(String(runText[lastEnd..<r.lowerBound]))
+                lastEnd = r.upperBound
+            }
+            pieces.append(String(runText[lastEnd...]))
+
+            var digits: [String] = []
+            var ok = true
+            for piece in pieces {
+                if let v = parseNumberRun(piece, allowOh: true) {
+                    digits.append(String(v))
+                } else { ok = false; break }
+            }
+            if ok && digits.count >= 2 {
+                result.replaceSubrange(range, with: digits.joined(separator: "."))
+            }
+        }
+        return result
+    }
+
+    /// AP style: spelled numbers ≥10 → digits, 1–9 stay spelled. Existing digits untouched.
+    /// "twenty-five years" → "25 years"; "five apples" stays; "one hundred five" → "105".
+    private static func normalizeNumberWords(_ text: String) -> String {
+        let word = numberWordPattern
+        let pattern = "\\b(?:\(word))(?:[\\s-]+(?:\(word)))*\\b"
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return text
+        }
+
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, options: [],
+                                    range: NSRange(location: 0, length: nsText.length))
+
+        var result = text
+        for match in matches.reversed() {
+            guard let range = Range(match.range, in: result) else { continue }
+            let runText = String(result[range])
+            if let value = parseNumberRun(runText), value >= 10 {
+                result.replaceSubrange(range, with: String(value))
+            }
+        }
         return result
     }
 }

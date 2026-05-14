@@ -15,17 +15,21 @@ APP_DIR="${DIST_ROOT}/PUSH.app"
 BUILD_DIR="${SCRATCH_PATH}"
 BUNDLE_ID="com.push.voicetotext"
 DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
-ZIP_NAME="PUSH-v4.0.1.zip"
-DMG_NAME="PUSH-v4.0.1.dmg"
+ZIP_NAME="PUSH-v4.0.2.zip"
+DMG_NAME="PUSH-v4.0.2.dmg"
 
 echo "🚀 Building PUSH for distribution..."
 echo ""
 
 # Step 1: Build the app
 # --scratch-path keeps SPM's build dir outside iCloud-synced ~/Documents/.
-# A symlink would be simpler, but iCloud's file provider materializes
-# cross-domain symlinks and we'd build inside iCloud anyway.
+# But: SPM emits the Moonshine xcframework link path as the literal
+# ".build/artifacts/...", which the linker resolves relative to CWD —
+# regardless of --scratch-path. So we also create a transient symlink
+# .build → $BUILD_DIR for the linker step. iCloud may eventually
+# materialize the symlink, but it survives long enough for one build.
 echo "📦 Step 1/6: Building release binary..."
+ln -sfn "$BUILD_DIR" .build
 swift build -c release --scratch-path "$BUILD_DIR"
 
 # Step 2: Create app bundle

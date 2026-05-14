@@ -341,6 +341,10 @@ struct ModelsSettingsView: View {
 struct AboutView: View {
     @EnvironmentObject var appState: AppState
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "mic.fill")
@@ -351,7 +355,7 @@ struct AboutView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Version 4.0.0")
+            Text("Version \(appVersion)")
                 .foregroundColor(.secondary)
 
             Text("Voice to text with offline AI")
