@@ -25,12 +25,46 @@ actor WhisperEngine {
         }
     }
 
+    /// Root cache directory passed to WhisperKit as `downloadBase`.
+    /// HubApi appends `models/<repo>/<variant>` underneath this.
+    /// Lives in Application Support so it's hidden from Finder and not iCloud-synced.
+    nonisolated static var downloadBaseURL: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        return appSupport
+            .appendingPathComponent("PUSH", isDirectory: true)
+            .appendingPathComponent("whisperkit", isDirectory: true)
+    }
+
     nonisolated static func modelFolderURL(for model: AppState.WhisperModel) -> URL {
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let modelName = whisperKitModelName(for: model)
-        return documents
-            .appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml", isDirectory: true)
+        return downloadBaseURL
+            .appendingPathComponent("models/argmaxinc/whisperkit-coreml", isDirectory: true)
             .appendingPathComponent(modelName, isDirectory: true)
+    }
+
+    /// One-time migration: move any previously downloaded WhisperKit cache from
+    /// `~/Documents/huggingface/` (default HubApi location, user-visible + iCloud-synced)
+    /// into `downloadBaseURL` under Application Support.
+    nonisolated static func migrateLegacyCacheIfNeeded() {
+        let fm = FileManager.default
+        let documents = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let legacyRoot = documents.appendingPathComponent("huggingface", isDirectory: true)
+        guard fm.fileExists(atPath: legacyRoot.path) else { return }
+
+        do {
+            try fm.createDirectory(at: downloadBaseURL, withIntermediateDirectories: true)
+            let entries = try fm.contentsOfDirectory(at: legacyRoot, includingPropertiesForKeys: nil)
+            for entry in entries {
+                let dest = downloadBaseURL.appendingPathComponent(entry.lastPathComponent)
+                if fm.fileExists(atPath: dest.path) { continue } // don't overwrite newer cache
+                try fm.moveItem(at: entry, to: dest)
+            }
+            // Remove the now-empty legacy dir (ignore if non-empty).
+            try? fm.removeItem(at: legacyRoot)
+            PushLogger.log("WhisperEngine: ✅ Migrated legacy WhisperKit cache to \(downloadBaseURL.path)")
+        } catch {
+            PushLogger.log("WhisperEngine: Cache migration skipped: \(error)")
+        }
     }
 
     nonisolated static func isModelDownloaded(_ model: AppState.WhisperModel) -> Bool {
@@ -54,9 +88,15 @@ actor WhisperEngine {
 
         PushLogger.log("WhisperEngine: Loading model \(modelName)...")
 
+        // Move any pre-4.1 cache out of ~/Documents/ before WhisperKit looks for it.
+        Self.migrateLegacyCacheIfNeeded()
+        try? FileManager.default.createDirectory(at: Self.downloadBaseURL, withIntermediateDirectories: true)
+
         do {
-            // WhisperKit automatically downloads the model if not present
-            let config = WhisperKitConfig(model: modelName)
+            // WhisperKit automatically downloads the model if not present.
+            // downloadBase keeps the HuggingFace cache in Application Support
+            // (hidden from Finder, not iCloud-synced) instead of ~/Documents/huggingface/.
+            let config = WhisperKitConfig(model: modelName, downloadBase: Self.downloadBaseURL)
             whisperKit = try await WhisperKit(config)
 
             isLoaded = true
