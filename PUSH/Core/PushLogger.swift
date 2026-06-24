@@ -9,8 +9,12 @@ enum PushLogger {
     private static let queue = DispatchQueue(label: "push.logger")
 
     static func log(_ message: String) {
+        // Emit to the unified log in ALL builds so `log show` can surface
+        // diagnostics from release builds. These are operational events only
+        // (no transcription text), so .public keeps them readable.
+        logger.notice("\(message, privacy: .public)")
+
         #if DEBUG
-        logger.debug("\(message, privacy: .private)")
         queue.async {
             guard let url = logFileURL else { return }
             let formatter = ISO8601DateFormatter()

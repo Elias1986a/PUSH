@@ -105,6 +105,13 @@ final class HotkeyManager: @unchecked Sendable {
                 guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
                 let manager = Unmanaged<HotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
 
+                // The system disables the tap on timeout or heavy input; if we don't
+                // re-enable it the hotkey silently goes dead.
+                if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                    Task { @MainActor in manager.reEnableTap() }
+                    return Unmanaged.passUnretained(event)
+                }
+
                 // Consume Escape key during recording or processing so full-screen apps (Safari, etc.)
                 // don't also exit full-screen when the user presses Escape to cancel.
                 if type == .keyDown,
@@ -124,10 +131,18 @@ final class HotkeyManager: @unchecked Sendable {
             userInfo: refcon
         )
 
-        // If tap is nil, we don't have permission
+        // If tap is nil, either we lack permission, or we HAVE permission but the
+        // tap still won't form — the classic state after a Sparkle auto-update
+        // relaunch, where macOS doesn't re-establish the event tap for the
+        // relaunched process. A clean relaunch fixes it (same as a manual reopen).
         guard let tap = tap else {
-            PushLogger.log("HotkeyManager: Failed to create event tap - requesting accessibility permission")
-            requestAccessibilityAndRetry()
+            if AXIsProcessTrusted() {
+                PushLogger.log("HotkeyManager: accessibility trusted but tapCreate failed — likely post-update relaunch; attempting one-time clean relaunch")
+                relaunchCleanlyOnce()
+            } else {
+                PushLogger.log("HotkeyManager: Failed to create event tap - requesting accessibility permission")
+                requestAccessibilityAndRetry()
+            }
             return
         }
 
@@ -139,9 +154,45 @@ final class HotkeyManager: @unchecked Sendable {
         if let source = runLoopSource {
             CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
             CGEvent.tapEnable(tap: tap, enable: true)
+            // Clear any prior auto-relaunch marker now that the tap is healthy.
+            UserDefaults.standard.removeObject(forKey: Self.autoRelaunchKey)
             let hotkeyName = AppState.shared.selectedHotkey.displayName
             PushLogger.log("HotkeyManager: ✅ Started listening for \(hotkeyName) key")
         }
+    }
+
+    /// Re-enable the tap after the system disabled it (timeout / heavy input).
+    private func reEnableTap() {
+        guard let tap = eventTap else { return }
+        CGEvent.tapEnable(tap: tap, enable: true)
+        PushLogger.log("HotkeyManager: re-enabled event tap after system disabled it")
+    }
+
+    // Marker timestamp so the recovery relaunch can never loop.
+    private static let autoRelaunchKey = "hotkeyAutoRelaunchAt"
+
+    /// Recover from the "trusted but tap won't create" state (typically right after
+    /// a Sparkle update relaunch) by relaunching the app cleanly via a detached
+    /// process — equivalent to the user quitting and reopening. Guarded so it runs
+    /// at most once per 2-minute window; if a relaunch didn't help, fall back to the
+    /// normal permission/retry path instead of relaunching forever.
+    private func relaunchCleanlyOnce() {
+        let now = Date().timeIntervalSince1970
+        let last = UserDefaults.standard.double(forKey: Self.autoRelaunchKey)
+        guard now - last > 120 else {
+            PushLogger.log("HotkeyManager: auto-relaunch skipped (one happened recently); falling back to retry")
+            requestAccessibilityAndRetry()
+            return
+        }
+        UserDefaults.standard.set(now, forKey: Self.autoRelaunchKey)
+        PushLogger.log("HotkeyManager: relaunching to recover hotkey after update")
+
+        let path = Bundle.main.bundlePath
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "sleep 1; open \"\(path)\""]
+        try? task.run()
+        NSApp.terminate(nil)
     }
 
     private func requestAccessibilityAndRetry() {
