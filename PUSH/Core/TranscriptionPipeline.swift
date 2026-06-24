@@ -119,8 +119,12 @@ actor TranscriptionPipeline {
                     Self.smartSymbols(
                         Self.normalizeNumberWords(
                             Self.normalizeDecimalDictation(
-                                Self.removeStutteredWords(
-                                    Self.removeFillerWords(filteredText)
+                                Self.normalizeOrdinals(
+                                    Self.stripConnectingAnd(
+                                        Self.removeStutteredWords(
+                                            Self.removeFillerWords(filteredText)
+                                        )
+                                    )
                                 )
                             )
                         )
@@ -137,8 +141,12 @@ actor TranscriptionPipeline {
                                         Self.fixTrailingComma(
                                             Self.normalizeNumberWords(
                                                 Self.normalizeDecimalDictation(
-                                                    Self.removeStutteredWords(
-                                                        Self.removeFillerWords(filteredText)
+                                                    Self.normalizeOrdinals(
+                                                        Self.stripConnectingAnd(
+                                                            Self.removeStutteredWords(
+                                                                Self.removeFillerWords(filteredText)
+                                                            )
+                                                        )
                                                     )
                                                 )
                                             )
@@ -387,6 +395,20 @@ actor TranscriptionPipeline {
     private static let decimalWordPattern: String =
         (Array(baseNumberWords.keys) + ["oh"]).sorted { $0.count > $1.count }.joined(separator: "|")
 
+    /// Spelled-out ordinal words mapped to their cardinal value.
+    /// Suffix (st/nd/rd/th) is derived from the final combined value, not stored here.
+    private static let ordinalWords: [String: Int] = [
+        "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5,
+        "sixth": 6, "seventh": 7, "eighth": 8, "ninth": 9, "tenth": 10,
+        "eleventh": 11, "twelfth": 12, "thirteenth": 13, "fourteenth": 14,
+        "fifteenth": 15, "sixteenth": 16, "seventeenth": 17, "eighteenth": 18,
+        "nineteenth": 19, "twentieth": 20, "thirtieth": 30, "fortieth": 40,
+        "fiftieth": 50, "sixtieth": 60, "seventieth": 70, "eightieth": 80,
+        "ninetieth": 90, "hundredth": 100, "thousandth": 1000, "millionth": 1_000_000
+    ]
+    private static let ordinalWordPattern: String =
+        ordinalWords.keys.sorted { $0.count > $1.count }.joined(separator: "|")
+
     /// Parse a contiguous run of number words ("twenty five", "one hundred five") into an Int.
     /// Returns nil if any token isn't recognized. `allowOh` enables "oh" → 0 for decimal contexts.
     private static func parseNumberRun(_ run: String, allowOh: Bool = false) -> Int? {
@@ -489,5 +511,102 @@ actor TranscriptionPipeline {
             }
         }
         return result
+    }
+
+    /// "st"/"nd"/"rd"/"th" suffix for an ordinal value (11–13 are always "th").
+    private static func ordinalSuffix(_ n: Int) -> String {
+        if (11...13).contains(n % 100) { return "th" }
+        switch n % 10 {
+        case 1: return "st"
+        case 2: return "nd"
+        case 3: return "rd"
+        default: return "th"
+        }
+    }
+
+    /// Parse a run whose final token is an ordinal word into (value, suffix).
+    /// Prefix tokens may be number words, digits, or "and": "twenty fifth" → (25, "th"),
+    /// "one hundred and fifth" → (105, "th"), "20 fifth" → (25, "th").
+    private static func parseOrdinalRun(_ run: String) -> (value: Int, suffix: String)? {
+        let tokens = run.lowercased()
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .map(String.init)
+        guard let last = tokens.last, let ordVal = ordinalWords[last] else { return nil }
+        // Bare "first"/"second" double as everyday words ("first of all", "wait a second");
+        // only convert them when part of a compound ordinal ("twenty second" → "22nd").
+        if tokens.count == 1, last == "first" || last == "second" { return nil }
+
+        var total = 0
+        var current = 0
+        for (i, tok) in tokens.enumerated() {
+            let value: Int
+            if i == tokens.count - 1 {
+                value = ordVal
+            } else if tok == "and" {
+                continue
+            } else if let v = baseNumberWords[tok] {
+                value = v
+            } else if let d = Int(tok) {
+                value = d
+            } else {
+                return nil
+            }
+
+            if value == 100 {
+                current = (current == 0 ? 1 : current) * 100
+            } else if value >= 1000 {
+                total += (current == 0 ? 1 : current) * value
+                current = 0
+            } else {
+                current += value
+            }
+        }
+        let n = total + current
+        return (n, ordinalSuffix(n))
+    }
+
+    /// Spelled-out ordinals → figures: "fifth" → "5th", "twenty fifth" → "25th".
+    /// Plurals ("two fifths", "ten seconds") are skipped via word boundaries.
+    private static func normalizeOrdinals(_ text: String) -> String {
+        let numTok = "(?:\(numberWordPattern)|and|\\d+)"
+        let pattern = "\\b(?:\(numTok)[\\s-]+)*(?:\(ordinalWordPattern))\\b"
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return text
+        }
+
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, options: [],
+                                    range: NSRange(location: 0, length: nsText.length))
+
+        var result = text
+        for match in matches.reversed() {
+            guard let range = Range(match.range, in: result) else { continue }
+            let runText = String(result[range])
+            if let (value, suffix) = parseOrdinalRun(runText) {
+                result.replaceSubrange(range, with: "\(value)\(suffix)")
+            }
+        }
+        return result
+    }
+
+    /// Standard-English connector: drop "and" between hundred/thousand/million and a
+    /// following number/ordinal word so the run parses as one number.
+    /// "one hundred and forty two" → "one hundred forty two" (→ 142).
+    /// Leaves "five and ten" and already-digit text ("1100 and 42") untouched.
+    private static func stripConnectingAnd(_ text: String) -> String {
+        let lookahead = "(?:\(numberWordPattern)|\(ordinalWordPattern))"
+        let pattern = "\\b(hundred|thousand|million)\\s+and\\s+(?=\(lookahead)\\b)"
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return text
+        }
+
+        let nsText = text as NSString
+        return regex.stringByReplacingMatches(
+            in: text, options: [],
+            range: NSRange(location: 0, length: nsText.length),
+            withTemplate: "$1 ")
     }
 }
