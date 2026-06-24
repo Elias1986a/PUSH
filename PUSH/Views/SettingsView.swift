@@ -373,7 +373,9 @@ struct AboutView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     SettingsView()
         .environmentObject(AppState.shared)
 }
+#endif

@@ -112,9 +112,11 @@ struct FloatingPillView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     FloatingPillView()
         .environmentObject(AppState.shared)
         .padding(50)
         .background(Color.gray.opacity(0.3))
 }
+#endif

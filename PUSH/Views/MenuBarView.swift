@@ -97,7 +97,9 @@ struct MenuBarView: View {
     }
 }
 
+#if DEBUG
 #Preview {
     MenuBarView()
         .environmentObject(AppState.shared)
 }
+#endif
