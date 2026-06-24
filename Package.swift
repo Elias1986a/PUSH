@@ -27,7 +27,10 @@ let package = Package(
         .package(url: "https://github.com/ShenghaiWang/SwiftLlama.git", branch: "main"),
 
         // Launch at login
-        .package(url: "https://github.com/sindresorhus/LaunchAtLogin-Modern.git", from: "1.1.0")
+        .package(url: "https://github.com/sindresorhus/LaunchAtLogin-Modern.git", from: "1.1.0"),
+
+        // Sparkle for in-app auto-updates (Developer ID + notarized builds)
+        .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.6.0")
     ],
     targets: [
         .executableTarget(
@@ -38,7 +41,8 @@ let package = Package(
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 // .product(name: "Qwen3ASR", package: "speech-swift"),
                 .product(name: "SwiftLlama", package: "SwiftLlama"),
-                .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern")
+                .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern"),
+                .product(name: "Sparkle", package: "Sparkle")
             ],
             path: "PUSH",
             exclude: [

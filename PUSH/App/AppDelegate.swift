@@ -21,6 +21,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup floating pill window
         setupFloatingPillWindow()
 
+        // Start Sparkle auto-updater so scheduled checks run even before the
+        // menu bar item is first opened.
+        _ = UpdaterManager.shared
+
         // Pre-load Whisper model in background (will download if needed)
         preloadModels()
     }

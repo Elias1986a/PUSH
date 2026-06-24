@@ -15,8 +15,20 @@ APP_DIR="${DIST_ROOT}/PUSH.app"
 BUILD_DIR="${SCRATCH_PATH}"
 BUNDLE_ID="com.push.voicetotext"
 DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
-ZIP_NAME="PUSH-v4.1.0.zip"
-DMG_NAME="PUSH-v4.1.0.dmg"
+
+# Version is read from Info.plist so it never drifts from the app bundle.
+VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" PUSH/Info.plist)
+BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" PUSH/Info.plist)
+MIN_OS=$(/usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" PUSH/Info.plist)
+ZIP_NAME="PUSH-v${VERSION}.zip"
+DMG_NAME="PUSH-v${VERSION}.dmg"
+
+# Sparkle: framework + CLI tools live in the resolved SPM artifacts.
+SPARKLE_DIR="${SCRATCH_PATH}/artifacts/sparkle/Sparkle"
+SPARKLE_BIN="${SPARKLE_DIR}/bin"
+SPARKLE_FRAMEWORK="${SPARKLE_DIR}/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+APPCAST="appcast.xml"
+DOWNLOAD_URL="https://github.com/Elias1986a/PUSH/releases/download/v${VERSION}/${ZIP_NAME}"
 
 echo "🚀 Building PUSH for distribution..."
 echo ""
@@ -78,6 +90,17 @@ for dylib in $BUILD_DIR/release/*.dylib; do
     fi
 done
 
+# Sparkle ships as a binary xcframework in the SPM artifacts (not release/),
+# so copy it into Frameworks/ explicitly. The app already adds an
+# @executable_path/../Frameworks rpath, which resolves @rpath/Sparkle.framework.
+echo "   Copying Sparkle.framework..."
+if [ -d "$SPARKLE_FRAMEWORK" ]; then
+    ditto --norsrc --noextattr "$SPARKLE_FRAMEWORK" "$APP_DIR/Contents/Frameworks/Sparkle.framework"
+else
+    echo "   ❌ Sparkle.framework not found at $SPARKLE_FRAMEWORK — run 'swift package resolve' first."
+    exit 1
+fi
+
 # Fix library paths
 echo "   Fixing library paths..."
 # Add rpath so the binary can find llama.framework in Frameworks/
@@ -112,9 +135,26 @@ xattr -cr "$APP_DIR" 2>/dev/null || true
 
 # Step 3: Code sign with hardened runtime
 echo "✍️  Step 3/6: Code signing with Developer ID..."
+
+# Sparkle must be signed inside-out: its XPC services and helper apps first,
+# then the framework wrapper. Signing the outer framework before the nested
+# helpers leaves them ad-hoc/unsigned and notarization rejects the bundle.
+SPK="$APP_DIR/Contents/Frameworks/Sparkle.framework"
+if [ -d "$SPK" ]; then
+    echo "   Deep-signing Sparkle.framework (XPC services, Autoupdate, Updater.app)..."
+    codesign --force --options runtime --sign "$DEVELOPER_ID" "$SPK/Versions/B/XPCServices/Downloader.xpc"
+    codesign --force --options runtime --sign "$DEVELOPER_ID" "$SPK/Versions/B/XPCServices/Installer.xpc"
+    codesign --force --options runtime --sign "$DEVELOPER_ID" "$SPK/Versions/B/Autoupdate"
+    codesign --force --options runtime --sign "$DEVELOPER_ID" "$SPK/Versions/B/Updater.app"
+    codesign --force --options runtime --sign "$DEVELOPER_ID" "$SPK"
+fi
+
 echo "   Signing frameworks..."
 for framework in "$APP_DIR"/Contents/Frameworks/*.framework; do
     if [ -d "$framework" ]; then
+        # Sparkle is already deep-signed above; re-signing the wrapper here would
+        # not re-sign its nested helpers, so skip it.
+        [ "$(basename "$framework")" = "Sparkle.framework" ] && continue
         codesign --force --options runtime --sign "$DEVELOPER_ID" "$framework"
     fi
 done
@@ -200,14 +240,47 @@ hdiutil create -volname "PUSH" -srcfolder "$DMG_TEMP" -ov -format UDZO "$DMG_NAM
 # Cleanup
 rm -rf "$DMG_TEMP"
 
+# Step 7: Generate the Sparkle appcast for the stapled ZIP.
+# sign_update emits  sparkle:edSignature="..." length="..."  using the EdDSA
+# private key in the login Keychain (created once via Sparkle's generate_keys).
+echo "🔏 Generating Sparkle appcast..."
+SIG_AND_LENGTH=$("$SPARKLE_BIN/sign_update" "$ZIP_NAME")
+PUBDATE=$(LC_ALL=en_US.UTF-8 date "+%a, %d %b %Y %H:%M:%S %z")
+
+cat > "$APPCAST" <<XML
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>PUSH</title>
+        <description>Updates for PUSH voice-to-text</description>
+        <language>en</language>
+        <item>
+            <title>Version ${VERSION}</title>
+            <pubDate>${PUBDATE}</pubDate>
+            <sparkle:version>${BUILD_NUMBER}</sparkle:version>
+            <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>${MIN_OS}</sparkle:minimumSystemVersion>
+            <enclosure url="${DOWNLOAD_URL}" type="application/octet-stream" ${SIG_AND_LENGTH} />
+        </item>
+    </channel>
+</rss>
+XML
+echo "   Wrote $APPCAST (enclosure → $DOWNLOAD_URL)"
+
 echo ""
 echo "✅ Distribution build complete!"
 echo ""
 echo "📦 Files created:"
 echo "   - $APP_DIR (signed and notarized)"
-echo "   - $ZIP_NAME (for direct download)"
+echo "   - $ZIP_NAME (for direct download + Sparkle update)"
 echo "   - $DMG_NAME (for drag-and-drop install)"
+echo "   - $APPCAST (Sparkle update feed)"
 echo ""
-echo "🚀 Ready to distribute!"
-echo "   Upload $ZIP_NAME or $DMG_NAME to GitHub Releases"
+echo "🚀 Ready to distribute! To publish this update:"
+echo "   1. Create the GitHub release (the tag must match the appcast URL):"
+echo "        gh release create v${VERSION} --title \"PUSH v${VERSION}\" --generate-notes \"$ZIP_NAME\" \"$DMG_NAME\""
+echo "   2. Commit & push the appcast so existing users get the update:"
+echo "        git add $APPCAST && git commit -m \"Release v${VERSION}\" && git push"
+echo ""
+echo "   Existing users will be offered v${VERSION} via Check for Updates / the daily check."
 echo ""

@@ -19,9 +19,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>4.1.0</string>
+    <string>4.1.1</string>
     <key>CFBundleVersion</key>
-    <string>28</string>
+    <string>29</string>
 
     <!-- Menu bar app (no dock icon) -->
     <key>LSUIElement</key>
@@ -60,5 +60,18 @@
 
     <!-- Hardened runtime entitlements note -->
     <!-- See PUSH.entitlements for accessibility and audio permissions -->
+
+    <!-- Sparkle auto-update -->
+    <!-- Appcast feed (served from the repo's main branch). -->
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/Elias1986a/PUSH/main/appcast.xml</string>
+    <!-- EdDSA public key; private key lives in the login Keychain (generate_keys). -->
+    <key>SUPublicEDKey</key>
+    <string>mZgb4K+4aV6djmFAUuIl2WKw2ou7iuzdr8Ey35A6mgQ=</string>
+    <!-- Check automatically; user is prompted on first launch. Daily interval. -->
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
 </dict>
 </plist>

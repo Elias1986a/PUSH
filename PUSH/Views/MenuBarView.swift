@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject private var updater = UpdaterManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -48,6 +49,20 @@ struct MenuBarView: View {
                 }
             }
             .buttonStyle(.plain)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            // Check for updates (Sparkle)
+            Button(action: updater.checkForUpdates) {
+                HStack {
+                    Image(systemName: "arrow.down.circle")
+                    Text("Check for Updates...")
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(!updater.canCheckForUpdates)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
 

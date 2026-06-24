@@ -1,5 +1,30 @@
 # PUSH Release Process
 
+## Auto-updates (Sparkle)
+
+PUSH ships in-app updates via [Sparkle](https://sparkle-project.org). The menu bar
+has a **Check for Updates…** item, and the app checks daily in the background.
+
+**One-time setup (already done):** an EdDSA key pair lives in the login Keychain
+(service `https://sparkle-project.org`, created via Sparkle's `generate_keys`). The
+matching `SUPublicEDKey` is in `PUSH/Info.plist`. **Do not lose this key** — without
+it you cannot sign updates existing users will accept. Back it up with
+`Sparkle/bin/generate_keys -x sparkle_private_key.txt` and store it somewhere safe.
+
+**Per release:**
+1. Bump `CFBundleShortVersionString` + `CFBundleVersion` in `PUSH/Info.plist`.
+2. Run `./build_distribution.sh` — it builds, signs (incl. deep-signing Sparkle's
+   helpers), notarizes, staples, makes the DMG, and **regenerates `appcast.xml`**
+   with a fresh EdDSA signature for the stapled zip.
+3. Follow the two commands it prints at the end:
+   - `gh release create v<VERSION> … PUSH-v<VERSION>.zip PUSH-v<VERSION>.dmg`
+     (the tag **must** be `v<VERSION>` so it matches the appcast enclosure URL)
+   - commit & push `appcast.xml` (the feed is served from
+     `raw.githubusercontent.com/Elias1986a/PUSH/main/appcast.xml`)
+
+Existing users are then offered the new version automatically. The version is read
+from `Info.plist`, so you no longer hand-edit `ZIP_NAME`/`DMG_NAME` in the script.
+
 ## TL;DR - Quick Release Script
 
 **BUILD IN /tmp TO AVOID XATTR ISSUES!** The project directory gets FinderInfo xattrs that break codesigning.

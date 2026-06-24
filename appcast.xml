@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>PUSH</title>
+        <description>Updates for PUSH voice-to-text</description>
+        <language>en</language>
+        <item>
+            <title>Version 4.1.0</title>
+            <pubDate>Wed, 24 Jun 2026 08:02:52 -0700</pubDate>
+            <sparkle:version>28</sparkle:version>
+            <sparkle:shortVersionString>4.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v4.1.0/PUSH-v4.1.0.zip" type="application/octet-stream" sparkle:edSignature="nPdGbClQ6N35Ue/RWUmApw/C6mSgBagrXrtZehO8Azfr2y3J+FoJjpzbGkto77HvvU7NnEXg9giMAbVFuWj2Cw==" length="36567089" />
+        </item>
+    </channel>
+</rss>
