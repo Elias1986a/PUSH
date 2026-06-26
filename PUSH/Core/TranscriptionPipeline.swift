@@ -122,7 +122,7 @@ actor TranscriptionPipeline {
                                 Self.normalizeOrdinals(
                                     Self.stripConnectingAnd(
                                         Self.removeStutteredWords(
-                                            Self.removeFillerWords(filteredText)
+                                            Self.removeFillerWords(Self.normalizeCause(filteredText))
                                         )
                                     )
                                 )
@@ -144,7 +144,7 @@ actor TranscriptionPipeline {
                                                     Self.normalizeOrdinals(
                                                         Self.stripConnectingAnd(
                                                             Self.removeStutteredWords(
-                                                                Self.removeFillerWords(filteredText)
+                                                                Self.removeFillerWords(Self.normalizeCause(filteredText))
                                                             )
                                                         )
                                                     )
@@ -373,6 +373,20 @@ actor TranscriptionPipeline {
         }
 
         return result
+    }
+
+    /// Strip the leading apostrophe Whisper adds to the contraction of "because":
+    /// "'cause" → "cause" (handles straight and curly apostrophes, preserves casing).
+    private static func normalizeCause(_ text: String) -> String {
+        // (^|non-word) + apostrophe + "cause" word → drop the apostrophe, keep the boundary and word.
+        guard let regex = try? NSRegularExpression(
+            pattern: "(^|[^A-Za-z'\u{2019}])['\u{2019}](causes?)\\b",
+            options: .caseInsensitive
+        ) else {
+            return text
+        }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1$2")
     }
 
     // MARK: - Number Normalization (AP style + decimal dictation)
