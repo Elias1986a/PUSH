@@ -1,0 +1,65 @@
+name: Monthly model-update check
+
+# Opens a tracking issue once a month reminding us to review docs/MODELS.md
+# for newer/updated on-device models (Parakeet, WhisperKit, Moonshine, Gemma,
+# Apple SpeechAnalyzer, the SwiftLlama/LLM step, etc.).
+#
+# Note: GitHub only runs `schedule` triggers from the default branch, so this
+# starts firing once merged to main. Use the "Run workflow" button
+# (workflow_dispatch) to test it manually beforehand.
+
+on:
+  schedule:
+    - cron: '17 9 3 * *'   # 09:17 UTC on the 3rd of each month
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+            const title = `Monthly model-update check (${month})`;
+
+            // Skip if an issue for this month already exists.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'model-check',
+              per_page: 100,
+            });
+            if (existing.data.some(i => i.title === title)) {
+              core.info(`Issue "${title}" already exists — skipping.`);
+              return;
+            }
+
+            const body = [
+              `Time for the monthly model-update review. See [\`docs/MODELS.md\`](../blob/main/docs/MODELS.md) for current pinned versions and prior findings.`,
+              ``,
+              `Check whether newer or updated models / SDKs could improve quality, preferring on-device + MLX/CoreML-ANE variants for Apple Silicon:`,
+              ``,
+              `- [ ] **FluidAudio / Parakeet TDT** — new versions past what's logged?`,
+              `- [ ] **WhisperKit / argmax-oss-swift** — new release?`,
+              `- [ ] **Moonshine** — new ASR generation?`,
+              `- [ ] **LLM post-processing** (SwiftLlama/Qwen) — better on-device/MLX option (e.g. Gemma)?`,
+              `- [ ] **New engines** — Apple SpeechAnalyzer, Qwen3-ASR, Gemma 3n/4, etc.`,
+              ``,
+              `Then update \`docs/MODELS.md\` (bump "Last reviewed", refresh the findings table, add a Review log entry) and open a PR for any worthwhile upgrades.`,
+              ``,
+              `_Opened automatically by \`.github/workflows/monthly-model-check.yml\`._`,
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['model-check'],
+            });
+            core.info(`Created issue "${title}".`);

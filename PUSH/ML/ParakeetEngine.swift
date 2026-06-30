@@ -1,7 +1,7 @@
 import Foundation
 import FluidAudio
 
-/// Wrapper for FluidAudio/Parakeet TDT v2 speech-to-text engine (English-only)
+/// Wrapper for FluidAudio/Parakeet TDT v3 speech-to-text engine (multilingual, 25 languages)
 actor ParakeetEngine {
     static let shared = ParakeetEngine()
 
@@ -12,13 +12,13 @@ actor ParakeetEngine {
 
     // MARK: - Model Storage
 
-    /// FluidAudio's default model directory for Parakeet v2
+    /// FluidAudio's default model directory for Parakeet v3
     nonisolated static var modelDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2", isDirectory: true)
+        return appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v3", isDirectory: true)
     }
 
-    /// Check if the Parakeet v2 model has been downloaded
+    /// Check if the Parakeet v3 model has been downloaded
     nonisolated static func isModelDownloaded() -> Bool {
         let dir = modelDirectory
         guard FileManager.default.fileExists(atPath: dir.path) else { return false }
@@ -37,15 +37,15 @@ actor ParakeetEngine {
 
     // MARK: - Public API
 
-    /// Load the Parakeet TDT v2 model (downloads to FluidAudio's default location if needed)
+    /// Load the Parakeet TDT v3 model (downloads to FluidAudio's default location if needed)
     func loadModel() async throws {
         if isLoaded { return }
 
-        PushLogger.log("ParakeetEngine: Loading Parakeet TDT v2 (English-only)...")
+        PushLogger.log("ParakeetEngine: Loading Parakeet TDT v3 (multilingual)...")
 
         do {
             let loadedModels = try await AsrModels.downloadAndLoad(
-                version: .v2
+                version: .v3
             )
 
             let manager = AsrManager(config: .default)

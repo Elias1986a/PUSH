@@ -20,9 +20,9 @@ findings table whenever a check is run** (a monthly reminder is scheduled).
 
 | Component | SDK / package | Pinned | Model in use | Engine |
 |-----------|---------------|--------|--------------|--------|
-| ASR (Whisper) | WhisperKit | `from: 0.9.0` | Base / Small / Distil-Large V3(+Turbo) / Large V3 Turbo | CoreML/ANE |
+| ASR (Whisper) | WhisperKit | `from: 1.0.0` | Base / Small / Distil-Large V3(+Turbo) / Large V3 Turbo | CoreML/ANE |
 | ASR (edge) | moonshine-swift | `from: 0.0.48` | Moonshine Tiny / Base | ONNX |
-| ASR (fastest) | FluidAudio | `from: 0.13.6` | **Parakeet TDT 0.6b v2** (English-only) | CoreML/ANE |
+| ASR (fastest) | FluidAudio | `from: 0.15.4` | **Parakeet TDT 0.6b v3** (multilingual, 25 langs) | CoreML/ANE |
 | ASR (MLX) | speech-swift (Qwen3-ASR) | **disabled** | — | MLX+CoreML |
 | LLM post-proc | SwiftLlama (llama.cpp) | branch `main` | Qwen (GGUF) | llama.cpp (Metal) |
 
@@ -103,6 +103,14 @@ considering, found by looking beyond what PUSH already ships.
 ## Review log
 - **2026-06-29** — Initial sweep. Found Parakeet v3 (multilingual), FluidAudio
   0.15.4, WhisperKit 1.0.0. No code changes made yet — opportunities logged above.
+- **2026-06-30** — Applied upgrades to existing models: Parakeet **v2 → v3**
+  (multilingual; `ParakeetEngine` + display strings + model dir), FluidAudio
+  `0.13.6 → 0.15.4`, WhisperKit `0.9.0 → 1.0.0` (Package.swift floors). Needs a
+  Mac build + `swift package update` to regenerate Package.resolved and verify
+  the WhisperKit 1.0 API — not compile-checked on Linux. Also added a GitHub
+  Actions workflow (`monthly-model-check.yml`) that opens a tracking issue
+  monthly. WhisperModel enum case `parakeetV2` kept (rawValue is a persistence
+  key) but now loads v3.
 - **2026-06-30** — Broadened beyond existing deps. Added Apple SpeechAnalyzer
   (native on-device, macOS 26), Qwen3-ASR (MLX path, already half-wired),
   Google Gemma 3n/4 open-weight on-device audio (MLX; could unify ASR + LLM

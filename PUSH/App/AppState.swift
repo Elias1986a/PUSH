@@ -121,7 +121,7 @@ class AppState: ObservableObject {
         case whisperLargeV3Turbo = "whisper-large-v3-turbo"
         case moonshineTiny = "moonshine-tiny"
         case moonshineBase = "moonshine-base"
-        case parakeetV2 = "parakeet-tdt-v2"
+        case parakeetV2 = "parakeet-tdt-v2" // loads Parakeet TDT v3 (multilingual); rawValue kept stable for saved prefs
         // case qwen3ASR = "qwen3-asr" // TODO: Re-enable once MLX metallib bundling is resolved
 
         var id: String { rawValue }
@@ -135,7 +135,7 @@ class AppState: ObservableObject {
             case .whisperLargeV3Turbo: return "Whisper Large V3 Turbo"
             case .moonshineTiny: return "Moonshine Tiny"
             case .moonshineBase: return "Moonshine Base"
-            case .parakeetV2: return "Parakeet TDT v2 — Fastest"
+            case .parakeetV2: return "Parakeet TDT v3 — Fastest"
             }
         }
 
@@ -148,7 +148,7 @@ class AppState: ObservableObject {
             case .whisperLargeV3Turbo: return "High accuracy, 99+ languages (~632 MB)"
             case .moonshineTiny: return "Ultra-fast, optimized for short speech (~45 MB)"
             case .moonshineBase: return "Fast and accurate, variable-length audio (~134 MB)"
-            case .parakeetV2: return "Best English accuracy, native punctuation (~400 MB). 16 GB+ recommended."
+            case .parakeetV2: return "Multilingual (25 languages), native punctuation (~400 MB). 16 GB+ recommended."
             }
         }
 

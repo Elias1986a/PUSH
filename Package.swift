@@ -10,14 +10,14 @@ let package = Package(
         .executable(name: "PUSH", targets: ["PUSH"])
     ],
     dependencies: [
-        // WhisperKit for speech-to-text
-        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.9.0"),
+        // WhisperKit for speech-to-text (now part of argmax-oss-swift; "WhisperKit" product retained)
+        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "1.0.0"),
 
         // Moonshine for speech-to-text (edge-optimized ASR)
         .package(url: "https://github.com/moonshine-ai/moonshine-swift.git", from: "0.0.48"),
 
-        // FluidAudio for Parakeet TDT v2 speech-to-text (CoreML/ANE)
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.13.6"),
+        // FluidAudio for Parakeet TDT v3 speech-to-text (CoreML/ANE, multilingual)
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.15.4"),
 
         // Qwen3-ASR speech-to-text (MLX + CoreML hybrid)
         // TODO: Re-enable once MLX metallib bundling is resolved
