@@ -66,24 +66,24 @@ considering, found by looking beyond what PUSH already ships.
    `qwen3ASR` enum case). Directly aligns with the "prefer MLX on Mac" goal —
    revisit once the metallib bundling blocker is resolved.
 
-3. **NVIDIA Canary-Qwen / Canary-1B-v2.** Multilingual ASR + speech translation
+3. **Google Gemma 3n / Gemma 4 (E2B, E4B) — open weights.** Multimodal models
+   with a USM-based audio encoder that do **on-device ASR + speech translation**,
+   with first-class **MLX** support on Apple Silicon (mlx-vlm). Open-weight,
+   commercial-use licensed. Notable angle: a single Gemma could potentially
+   cover **both** transcription *and* the LLM cleanup/formatting step — i.e.
+   replace Whisper-or-Parakeet **and** the SwiftLlama/Qwen post-processor with
+   one model. Trade-off: heavier (~2–4B effective) than dedicated Parakeet
+   (0.6B), so for pure dictation latency a specialized ASR likely still wins;
+   Gemma's value is consolidation + multilingual + the MLX direction. Worth a
+   prototype, not an obvious default.
+
+4. **NVIDIA Canary-Qwen / Canary-1B-v2.** Multilingual ASR + speech translation
    (paired with Parakeet v3 in the same Sept-2025 NVIDIA paper). Heavier than
    Parakeet; consider only if translation/AST becomes a goal.
 
-## Different architecture: cloud realtime voice agents (noted, not on-roadmap)
-
-Ref: Vercel "Build realtime voice agents on AI Gateway" — a **single
-speech-to-speech model** (e.g. OpenAI Realtime, xAI `grok-voice` / `grok-stt` /
-`grok-tts`) over bidirectional WebSockets, routed through a cloud gateway with
-API keys. This collapses the STT → LLM → TTS pipeline and enables barge-in /
-natural conversation.
-
-**Assessment for PUSH:** this is the *opposite* of PUSH's design axis — it's
-cloud, latency-bound on the network, requires API keys, and sends audio off
-device, whereas PUSH is offline / on-device / privacy-first push-to-talk
-dictation. Not a drop-in model swap. Only relevant if PUSH ever adds an
-*optional* online "voice agent / conversation" mode as a separate feature; the
-core dictation path should stay on-device.
+> Excluded — cloud / paid: Google Chirp 3 (Cloud Speech-to-Text API) and
+> gateway speech-to-speech offerings (Vercel AI Gateway / OpenAI Realtime /
+> xAI Grok voice). Off-axis for PUSH's offline, on-device, privacy-first design.
 
 ## Sources
 - Parakeet v3: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3 ·
@@ -97,12 +97,14 @@ core dictation path should stay on-device.
 - Apple SpeechAnalyzer: https://www.forasoft.com/blog/article/speech-recognition-with-neural-networks-on-ios-1621
 - Qwen3-ASR / engine comparison: https://dicta.to/blog/speech-to-text-engine-comparison-mac-2026/ ·
   https://www.gladia.io/blog/best-open-source-speech-to-text-models
-- Cloud realtime voice agents: https://vercel.com/blog/realtime-voice-agents-on-ai-gateway
+- Google Gemma audio (3n/4, MLX, on-device ASR): https://ai.google.dev/gemma/docs/capabilities/audio ·
+  https://ai.google.dev/gemma/docs/integrations/mlx · https://deepmind.google/models/gemma/gemma-3n/
 
 ## Review log
 - **2026-06-29** — Initial sweep. Found Parakeet v3 (multilingual), FluidAudio
   0.15.4, WhisperKit 1.0.0. No code changes made yet — opportunities logged above.
 - **2026-06-30** — Broadened beyond existing deps. Added Apple SpeechAnalyzer
   (native on-device, macOS 26), Qwen3-ASR (MLX path, already half-wired),
-  Canary-Qwen. Noted cloud realtime voice-agent architecture (Vercel AI
+  Google Gemma 3n/4 open-weight on-device audio (MLX; could unify ASR + LLM
+  post-proc), and Canary-Qwen. Excluded cloud/paid options (Chirp 3, Vercel AI
   Gateway / speech-to-speech) as off-axis vs PUSH's offline design.
