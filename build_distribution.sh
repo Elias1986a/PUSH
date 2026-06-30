@@ -165,6 +165,19 @@ for dylib in "$APP_DIR"/Contents/Frameworks/*.dylib; do
     fi
 done
 
+# MLX (Gemma engine) ships its Metal shaders as default.metallib inside
+# mlx-swift_Cmlx.bundle/Contents/Resources/. Under hardened runtime + notarization
+# these Mach-O resources must be code-signed, nested-first (metallib, then the
+# bundle that contains it), BEFORE the outer app — otherwise the app is rejected
+# or fails to load the metallib at runtime. Validated by mlx-spike (Test B).
+echo "   Signing resource bundles + Metal libraries (MLX)..."
+find "$APP_DIR/Contents/Resources" -name "*.metallib" -print0 | while IFS= read -r -d '' metallib; do
+    codesign --force --options runtime --sign "$DEVELOPER_ID" "$metallib"
+done
+find "$APP_DIR/Contents/Resources" -name "*.bundle" -print0 | while IFS= read -r -d '' resbundle; do
+    codesign --force --options runtime --sign "$DEVELOPER_ID" "$resbundle"
+done
+
 echo "   Signing main app..."
 # Final cleanup of app bundle extended attributes
 xattr -c "$APP_DIR" 2>/dev/null || true
