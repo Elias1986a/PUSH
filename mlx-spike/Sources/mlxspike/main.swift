@@ -23,10 +23,13 @@ for base in searchBases {
     let cmlx = base.appendingPathComponent("mlx-swift_Cmlx.bundle")
     if FileManager.default.fileExists(atPath: cmlx.path) {
         foundBundle = true
-        let lib = cmlx.appendingPathComponent("default.metallib")
-        let hasLib = FileManager.default.fileExists(atPath: lib.path)
+        // mlx-swift_Cmlx.bundle is a *structured* macOS bundle, so the metallib
+        // lives at Contents/Resources/default.metallib — resolve it the way MLX
+        // does (via the bundle), not by assuming a flat top-level layout.
+        let libURL = Bundle(url: cmlx)?.url(forResource: "default", withExtension: "metallib")
+        let hasLib = (libURL.map { FileManager.default.fileExists(atPath: $0.path) }) ?? false
         print("found Cmlx bundle  : \(cmlx.path)")
-        print("  default.metallib : \(hasLib ? "present ✅" : "MISSING ❌")")
+        print("  default.metallib : \(hasLib ? "present ✅ (\(libURL!.path))" : "MISSING ❌")")
     }
 }
 if !foundBundle {
