@@ -100,6 +100,8 @@ struct ModelsSettingsView: View {
             return appSupport.appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
         case .parakeet:
             return ParakeetEngine.modelDirectory
+        case .gemma:
+            return GemmaEngine.modelDirectory
         case .whisperKit:
             return WhisperEngine.modelFolderURL(for: selectedModel)
         }
@@ -114,6 +116,8 @@ struct ModelsSettingsView: View {
             return MoonshineEngine.isModelDownloaded(selectedModel)
         case .parakeet:
             return ParakeetEngine.isModelDownloaded()
+        case .gemma:
+            return GemmaEngine.isModelDownloaded()
         case .whisperKit:
             return WhisperEngine.isModelDownloaded(selectedModel)
         }
@@ -258,6 +262,21 @@ struct ModelsSettingsView: View {
                         downloadStatus = "Warming up..."
                     }
                     await ParakeetEngine.shared.warmup()
+                case .gemma:
+                    await MainActor.run { downloadStatus = "Downloading Gemma model (~3.6 GB)..." }
+                    try await GemmaEngine.shared.loadModel { fraction in
+                        Task { @MainActor in
+                            downloadProgress = min(fraction, 0.95)
+                            if fraction > 0.01 {
+                                downloadStatus = "Downloading... \(Int(fraction * 100))%"
+                            }
+                        }
+                    }
+                    await MainActor.run {
+                        downloadProgress = 0.9
+                        downloadStatus = "Warming up..."
+                    }
+                    await GemmaEngine.shared.warmup()
                 case .whisperKit:
                     await MainActor.run { downloadStatus = "Downloading model..." }
                     // Poll download directory for progress
@@ -322,6 +341,8 @@ struct ModelsSettingsView: View {
                 .appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
         case .parakeet:
             urlToDelete = ParakeetEngine.modelDirectory
+        case .gemma:
+            urlToDelete = GemmaEngine.modelDirectory
         case .whisperKit:
             urlToDelete = WhisperEngine.modelFolderURL(for: model)
         }

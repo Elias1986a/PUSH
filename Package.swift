@@ -23,6 +23,11 @@ let package = Package(
         // TODO: Re-enable once MLX metallib bundling is resolved
         // .package(url: "https://github.com/soniqo/speech-swift.git", from: "0.0.8"),
 
+        // Gemma 4 E2B multimodal (audio ASR) via MLX Swift — experimental engine.
+        // Pulls mlx-swift; bundling validated by the mlx-spike. The distribution
+        // signer must sign the nested mlx-swift_Cmlx.bundle (see mlx-spike/README).
+        .package(url: "https://github.com/VincentGourbin/gemma-4-swift-mlx.git", branch: "main"),
+
         // llama.cpp Swift bindings (Swift-friendly wrapper)
         .package(url: "https://github.com/ShenghaiWang/SwiftLlama.git", branch: "main"),
 
@@ -40,6 +45,7 @@ let package = Package(
                 .product(name: "Moonshine", package: "moonshine-swift"),
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 // .product(name: "Qwen3ASR", package: "speech-swift"),
+                .product(name: "Gemma4Swift", package: "gemma-4-swift-mlx"),
                 .product(name: "SwiftLlama", package: "SwiftLlama"),
                 .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern"),
                 .product(name: "Sparkle", package: "Sparkle")

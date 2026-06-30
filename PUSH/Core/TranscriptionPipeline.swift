@@ -36,6 +36,9 @@ actor TranscriptionPipeline {
             case .parakeet:
                 PushLogger.log("TranscriptionPipeline: Using Parakeet engine...")
                 rawText = try await ParakeetEngine.shared.transcribe(audioData: audioData)
+            case .gemma:
+                PushLogger.log("TranscriptionPipeline: Using Gemma engine...")
+                rawText = try await GemmaEngine.shared.transcribe(audioData: audioData)
             case .whisperKit:
                 PushLogger.log("TranscriptionPipeline: Using WhisperKit engine...")
                 rawText = try await WhisperEngine.shared.transcribe(audioData: audioData)

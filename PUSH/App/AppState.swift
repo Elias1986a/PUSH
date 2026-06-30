@@ -122,6 +122,7 @@ class AppState: ObservableObject {
         case moonshineTiny = "moonshine-tiny"
         case moonshineBase = "moonshine-base"
         case parakeetV2 = "parakeet-tdt-v2"
+        case gemmaE2B = "gemma-4-e2b-audio"
         // case qwen3ASR = "qwen3-asr" // TODO: Re-enable once MLX metallib bundling is resolved
 
         var id: String { rawValue }
@@ -136,6 +137,7 @@ class AppState: ObservableObject {
             case .moonshineTiny: return "Moonshine Tiny"
             case .moonshineBase: return "Moonshine Base"
             case .parakeetV2: return "Parakeet TDT v2 — Fastest"
+            case .gemmaE2B: return "Gemma 4 E2B — Multilingual (beta)"
             }
         }
 
@@ -149,6 +151,7 @@ class AppState: ObservableObject {
             case .moonshineTiny: return "Ultra-fast, optimized for short speech (~45 MB)"
             case .moonshineBase: return "Fast and accurate, variable-length audio (~134 MB)"
             case .parakeetV2: return "Best English accuracy, native punctuation (~400 MB). 16 GB+ recommended."
+            case .gemmaE2B: return "On-device multimodal ASR via MLX. Multilingual, clean punctuation, 30s max per clip (~3.6 GB). Beta."
             }
         }
 
@@ -161,6 +164,8 @@ class AppState: ObservableObject {
                 return .moonshine
             case .parakeetV2:
                 return .parakeet
+            case .gemmaE2B:
+                return .gemma
             }
         }
 
@@ -170,7 +175,7 @@ class AppState: ObservableObject {
         /// Whether this model produces high-quality native punctuation (skip punctuation post-processing)
         var hasNativePunctuation: Bool {
             switch self {
-            case .parakeetV2: return true
+            case .parakeetV2, .gemmaE2B: return true
             default: return false
             }
         }
@@ -181,6 +186,7 @@ class AppState: ObservableObject {
         case whisperKit
         case moonshine
         case parakeet
+        case gemma
     }
 
     // MARK: - Private
