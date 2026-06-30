@@ -1,5 +1,5 @@
 {
-  "originHash" : "a04367af7ae045cc5c82d438c161e00e9958d86203133f12bc7f87ae1c23b5dd",
+  "originHash" : "3c6d0cb5207a4e7b8d2d0189c703374b9bde016fb1974ca571a67e6af406daa0",
   "pins" : [
     {
       "identity" : "fluidaudio",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "57551cd90e0bbec342766244358bcf08afb05290",
         "version" : "0.13.6"
+      }
+    },
+    {
+      "identity" : "gemma-4-swift-mlx",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/VincentGourbin/gemma-4-swift-mlx.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "eadeb3799e74a96004e77415399ca2cb24f380d8"
       }
     },
     {
@@ -25,6 +34,24 @@
       "location" : "https://github.com/ggerganov/llama.cpp.git",
       "state" : {
         "revision" : "b6d6c5289f1c9c677657c380591201ddb210b649"
+      }
+    },
+    {
+      "identity" : "mlx-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ml-explore/mlx-swift",
+      "state" : {
+        "revision" : "dc43e62d7055353c7f99fa071a4e71d29dfddc44",
+        "version" : "0.31.4"
+      }
+    },
+    {
+      "identity" : "mlx-swift-lm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ml-explore/mlx-swift-lm",
+      "state" : {
+        "branch" : "main",
+        "revision" : "bd4b7434e6bdb588c7ef55706ff8904cb7fd4c57"
       }
     },
     {
@@ -70,6 +97,33 @@
       "state" : {
         "revision" : "ba2364165002abe8f4f3992d74a7b547c635638e",
         "version" : "2.2.1"
+      }
+    },
+    {
+      "identity" : "swift-mlx-profiler",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/VincentGourbin/swift-mlx-profiler",
+      "state" : {
+        "revision" : "b2a83b36a24b2e252573369644259a648fbaf18a",
+        "version" : "1.4.0"
+      }
+    },
+    {
+      "identity" : "swift-numerics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-numerics",
+      "state" : {
+        "revision" : "0c0290ff6b24942dadb83a929ffaaa1481df04a2",
+        "version" : "1.1.1"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax.git",
+      "state" : {
+        "revision" : "79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1",
+        "version" : "603.0.2"
       }
     },
     {

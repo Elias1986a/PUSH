@@ -28,6 +28,13 @@ let package = Package(
         // signer must sign the nested mlx-swift_Cmlx.bundle (see mlx-spike/README).
         .package(url: "https://github.com/VincentGourbin/gemma-4-swift-mlx.git", branch: "main"),
 
+        // MLX runtime + LM container — needed directly by GemmaEngine to drive
+        // audio inference (Gemma4Swift exposes no one-shot audio API, so we load
+        // a ModelContainer and run the generate loop ourselves). Versions pinned
+        // to match gemma-4-swift-mlx's own requirements to keep resolution clean.
+        .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.31.3"),
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm", branch: "main"),
+
         // llama.cpp Swift bindings (Swift-friendly wrapper)
         .package(url: "https://github.com/ShenghaiWang/SwiftLlama.git", branch: "main"),
 
@@ -46,6 +53,8 @@ let package = Package(
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 // .product(name: "Qwen3ASR", package: "speech-swift"),
                 .product(name: "Gemma4Swift", package: "gemma-4-swift-mlx"),
+                .product(name: "MLX", package: "mlx-swift"),
+                .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
                 .product(name: "SwiftLlama", package: "SwiftLlama"),
                 .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern"),
                 .product(name: "Sparkle", package: "Sparkle")
