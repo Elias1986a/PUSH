@@ -381,19 +381,29 @@ struct DictionarySettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 } else {
-                    ForEach(store.corrections) { correction in
+                    ForEach($store.corrections) { $correction in
                         HStack {
-                            Text(correction.wrong)
+                            TextField("Heard as", text: $correction.wrong)
+                                .textFieldStyle(.roundedBorder)
                             Image(systemName: "arrow.right")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(correction.right)
-                                .fontWeight(.medium)
+                            TextField("Should be", text: $correction.right)
+                                .textFieldStyle(.roundedBorder)
+                            Button {
+                                store.remove(correction)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Remove this correction")
                         }
                     }
-                    .onDelete { offsets in
-                        store.removeCorrection(at: offsets)
-                    }
+
+                    Text("Edit an entry inline, or use the trash icon to remove it.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
         }

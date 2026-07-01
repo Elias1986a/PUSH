@@ -29,8 +29,8 @@ final class CorrectionsStore: ObservableObject {
         corrections.append(Correction(wrong: wrong, right: right))
     }
 
-    func removeCorrection(at offsets: IndexSet) {
-        corrections.remove(atOffsets: offsets)
+    func remove(_ correction: Correction) {
+        corrections.removeAll { $0.id == correction.id }
     }
 
     /// Case-insensitive, whole-word replacement of every "wrong" with its "right" spelling.
