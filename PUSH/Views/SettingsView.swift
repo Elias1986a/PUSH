@@ -347,10 +347,18 @@ struct DictionarySettingsView: View {
     @ObservedObject private var store = CorrectionsStore.shared
     @State private var newWrong: String = ""
     @State private var newRight: String = ""
+    @State private var newContextual: Bool = false
+    @State private var newEntity: String = ""
 
     private var canAdd: Bool {
         !newWrong.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !newRight.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Nudge the user toward context mode when the "heard as" word is a real word
+    /// (and therefore ambiguous, like "Hammer").
+    private var suggestContextual: Bool {
+        !newContextual && WordChecker.isCommonWord(newWrong)
     }
 
     var body: some View {
@@ -364,13 +372,36 @@ struct DictionarySettingsView: View {
                     TextField("Should be (e.g. Hamer)", text: $newRight)
                         .textFieldStyle(.roundedBorder)
                     Button("Add") {
-                        store.addCorrection(wrong: newWrong, right: newRight)
+                        store.addCorrection(
+                            wrong: newWrong,
+                            right: newRight,
+                            kind: newContextual ? .contextual : .always,
+                            entity: newContextual ? newEntity : nil
+                        )
                         newWrong = ""
                         newRight = ""
+                        newEntity = ""
+                        newContextual = false
                     }
                     .disabled(!canAdd)
                 }
-                Text("PUSH will replace \"Heard as\" with \"Should be\" in future transcriptions.")
+
+                Toggle("This word has other meanings — decide by context", isOn: $newContextual)
+
+                if newContextual {
+                    TextField("What is it? (e.g. a person named Hamer)", text: $newEntity)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                if suggestContextual {
+                    Text("“\(newWrong)” is also a common word — consider context mode so the ordinary word isn't over-corrected.")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+
+                Text(newContextual
+                     ? "PUSH will replace “Heard as” only when the surrounding context suggests the entity is meant."
+                     : "PUSH will always replace “Heard as” with “Should be”.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -382,26 +413,47 @@ struct DictionarySettingsView: View {
                         .foregroundColor(.secondary)
                 } else {
                     ForEach($store.corrections) { $correction in
-                        HStack {
-                            TextField("Heard as", text: $correction.wrong)
-                                .textFieldStyle(.roundedBorder)
-                            Image(systemName: "arrow.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            TextField("Should be", text: $correction.right)
-                                .textFieldStyle(.roundedBorder)
-                            Button {
-                                store.remove(correction)
-                            } label: {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
+                        let entityText = Binding<String>(
+                            get: { correction.entity ?? "" },
+                            set: { $correction.entity.wrappedValue = $0.isEmpty ? nil : $0 }
+                        )
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                TextField("Heard as", text: $correction.wrong)
+                                    .textFieldStyle(.roundedBorder)
+                                Image(systemName: "arrow.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                TextField("Should be", text: $correction.right)
+                                    .textFieldStyle(.roundedBorder)
+                                Picker("", selection: $correction.kind) {
+                                    Image(systemName: "bolt.fill")
+                                        .tag(CorrectionsStore.Correction.Kind.always)
+                                    Image(systemName: "brain")
+                                        .tag(CorrectionsStore.Correction.Kind.contextual)
+                                }
+                                .pickerStyle(.segmented)
+                                .labelsHidden()
+                                .frame(width: 84)
+                                .help("Always replace, or decide by context")
+                                Button {
+                                    store.remove(correction)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                }
+                                .buttonStyle(.borderless)
+                                .help("Remove this correction")
                             }
-                            .buttonStyle(.borderless)
-                            .help("Remove this correction")
+                            if correction.kind == .contextual {
+                                TextField("What is it? (e.g. a person named Hamer)", text: entityText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.caption)
+                            }
                         }
                     }
 
-                    Text("Edit an entry inline, or use the trash icon to remove it.")
+                    Text("Edit inline, switch a row between ⚡︎ always / 🧠 context, or use the trash icon to remove it.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

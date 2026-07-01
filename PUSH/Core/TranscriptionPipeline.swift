@@ -109,9 +109,11 @@ actor TranscriptionPipeline {
             // Avoid logging raw transcription text to protect user privacy.
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
 
-            // Apply user-defined dictionary corrections (e.g. names Whisper consistently mishears)
+            // Apply user-defined dictionary corrections (e.g. names Whisper consistently mishears).
+            // `.always` entries replace unconditionally; `.contextual` entries are gated so
+            // homophones (the tool "hammer" vs. the person "Hamer") aren't corrupted.
             let corrections = await MainActor.run { CorrectionsStore.shared.corrections }
-            filteredText = CorrectionsStore.apply(corrections, to: filteredText)
+            filteredText = await CorrectionsStore.applyContextAware(corrections, to: filteredText)
 
             // Post-processing pipeline varies by model capability:
             // Models with native punctuation (Parakeet) get a reduced pipeline
