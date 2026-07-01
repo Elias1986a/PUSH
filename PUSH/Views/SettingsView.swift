@@ -19,6 +19,11 @@ struct SettingsView: View {
                     Label("Models", systemImage: "cpu")
                 }
 
+            DictionarySettingsView()
+                .tabItem {
+                    Label("Dictionary", systemImage: "text.book.closed")
+                }
+
             AboutView()
                 .environmentObject(appState)
                 .tabItem {
@@ -333,6 +338,67 @@ struct ModelsSettingsView: View {
         } catch {
             downloadError = "Failed to delete: \(error.localizedDescription)"
         }
+    }
+}
+
+// MARK: - Dictionary Settings
+
+struct DictionarySettingsView: View {
+    @ObservedObject private var store = CorrectionsStore.shared
+    @State private var newWrong: String = ""
+    @State private var newRight: String = ""
+
+    private var canAdd: Bool {
+        !newWrong.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !newRight.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        Form {
+            Section("Add a Correction") {
+                HStack {
+                    TextField("Heard as (e.g. Hammer)", text: $newWrong)
+                        .textFieldStyle(.roundedBorder)
+                    Image(systemName: "arrow.right")
+                        .foregroundColor(.secondary)
+                    TextField("Should be (e.g. Hamer)", text: $newRight)
+                        .textFieldStyle(.roundedBorder)
+                    Button("Add") {
+                        store.addCorrection(wrong: newWrong, right: newRight)
+                        newWrong = ""
+                        newRight = ""
+                    }
+                    .disabled(!canAdd)
+                }
+                Text("PUSH will replace \"Heard as\" with \"Should be\" in future transcriptions.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section("Your Dictionary") {
+                if store.corrections.isEmpty {
+                    Text("No corrections yet.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(store.corrections) { correction in
+                        HStack {
+                            Text(correction.wrong)
+                            Image(systemName: "arrow.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(correction.right)
+                                .fontWeight(.medium)
+                        }
+                    }
+                    .onDelete { offsets in
+                        store.removeCorrection(at: offsets)
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
     }
 }
 
