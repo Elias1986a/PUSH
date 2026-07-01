@@ -30,6 +30,13 @@ class AppState: ObservableObject {
         didSet { notifyStateChange() }
     }
 
+    /// True while background shader warmup runs after the model is loaded. The
+    /// app is already usable (isModelReady == true); this only drives the
+    /// "Warming up…" indicator so the user knows first-use may be slightly slower.
+    @Published var isWarmingUp: Bool = false {
+        didSet { notifyStateChange() }
+    }
+
     @Published var statusMessage: String = "Ready"
 
     @Published var selectedWhisperModel: WhisperModel = .small {

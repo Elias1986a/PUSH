@@ -70,7 +70,7 @@ struct FloatingPillView: View {
     }
 
     private var shouldShow: Bool {
-        appState.isListening || appState.isProcessing || !appState.isModelReady
+        appState.isListening || appState.isProcessing || !appState.isModelReady || appState.isWarmingUp
     }
 
     private var baseStatusText: String {
@@ -80,6 +80,9 @@ struct FloatingPillView: View {
             return "Processing..."
         } else if appState.isListening {
             return "Listening"
+        } else if appState.isWarmingUp {
+            // Model is usable; shaders are still warming in the background.
+            return "Warming up..."
         } else {
             return ""
         }

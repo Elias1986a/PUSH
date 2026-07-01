@@ -133,7 +133,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func updatePillVisibility() {
         DispatchQueue.main.async {
             let state = AppState.shared
-            if state.isListening || state.isProcessing || !state.isModelReady {
+            if state.isListening || state.isProcessing || !state.isModelReady || state.isWarmingUp {
                 self.pillWindow?.orderFront(nil)
             } else {
                 self.pillWindow?.orderOut(nil)
@@ -164,9 +164,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             AppState.shared.isModelReady = true
             AppState.shared.statusMessage = "Ready"
 
-            // Phase 2: Warm shaders in background (non-blocking)
-            // First real transcription may be slightly slower if this hasn't finished
+            // Phase 2: Warm shaders in background (non-blocking).
+            // The app is already usable; surface a "Warming up…" indicator so the
+            // user knows why the very first transcription may be slightly slower.
             PushLogger.log("AppDelegate: Starting background shader warmup...")
+            AppState.shared.isWarmingUp = true
+            AppState.shared.statusMessage = "Warming up AI model…"
             switch selectedModel.engineType {
             case .moonshine:
                 await MoonshineEngine.shared.warmupInference()
@@ -174,6 +177,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 await ParakeetEngine.shared.warmup()
             case .whisperKit:
                 await WhisperEngine.shared.warmupInference()
+            }
+            AppState.shared.isWarmingUp = false
+            if AppState.shared.statusMessage == "Warming up AI model…" {
+                AppState.shared.statusMessage = "Ready"
             }
             PushLogger.log("AppDelegate: Background shader warmup complete")
         }
