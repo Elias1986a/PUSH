@@ -69,6 +69,18 @@ for bundle in $BUILD_DIR/release/*.bundle; do
     fi
 done
 
+# Copy the context-aware dictionary gate model (Qwen2.5-0.5B GGUF).
+# It lives outside the repo (kept out of iCloud/git — too large); the app finds
+# it via Bundle.main at Contents/Resources/. If absent, the contextual gate
+# falls back to heuristics, so this is a soft dependency.
+GATE_MODEL="${HOME}/Library/Developer/SwiftPackages/PUSH-models/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+if [ -f "$GATE_MODEL" ]; then
+    echo "   Copying dictionary gate model ($(du -h "$GATE_MODEL" | cut -f1))..."
+    ditto --norsrc --noextattr "$GATE_MODEL" "$APP_DIR/Contents/Resources/$(basename "$GATE_MODEL")"
+else
+    echo "   ⚠️  Gate model not found at $GATE_MODEL — shipping without on-device gate (heuristics only)."
+fi
+
 # Copy MLX Metal shader libraries (required for Qwen3-ASR/MLX inference)
 echo "   Copying Metal shader libraries..."
 find $BUILD_DIR/release -name "*.metallib" -exec ditto --norsrc --noextattr {} "$APP_DIR/Contents/Resources/{}" \; 2>/dev/null

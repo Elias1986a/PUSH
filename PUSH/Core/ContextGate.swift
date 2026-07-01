@@ -94,20 +94,40 @@ struct HeuristicVerdictSource: VerdictSource {
 /// (see docs/plans/2026-07-01-context-aware-dictionary-design.md) without
 /// touching the pipeline.
 enum ContextGatePrompt {
-    /// One prompt for the whole batch — every candidate numbered, one line each.
-    static func build(sentence: String, candidates: [CorrectionCandidate]) -> String {
-        var lines = ["Sentence: \"\(sentence)\"", "Candidates:"]
+    /// System instruction. Validated in the 5.1.0 POC: without the "names sound
+    /// like common words" framing + few-shot below, a 0.5B model defaults every
+    /// candidate to ORDINARY.
+    static let systemPrompt = """
+    You decide, from sentence context, whether an ambiguous word is being used as \
+    the SPECIFIC ENTITY described, or as its ordinary everyday meaning. Names often \
+    sound like common words. Reply one line per candidate: "<number> ENTITY" or \
+    "<number> ORDINARY". Output only those lines.
+    """
+
+    /// Few-shot (user, assistant) turns that teach both the judgement and the
+    /// output format. These lifted 0.5B accuracy from 5/12 to 10–11/12.
+    static let fewShot: [(user: String, assistant: String)] = [
+        ("Sentence: \"Please forward the email to Hammer.\"\nCandidate 1: \"Hammer\" (entity: a person named Hamer)",
+         "1 ENTITY"),
+        ("Sentence: \"He grabbed a hammer from the shed.\"\nCandidate 1: \"hammer\" (entity: a person named Hamer)",
+         "1 ORDINARY"),
+        ("Sentence: \"Ask Hammer and bring the hammer.\"\nCandidate 1: \"Hammer\" (entity: a person named Hamer)\nCandidate 2: \"hammer\" (entity: a person named Hamer)",
+         "1 ENTITY\n2 ORDINARY"),
+    ]
+
+    /// The user message for one batch — the sentence plus every numbered candidate
+    /// with its entity hint.
+    static func userMessage(sentence: String, candidates: [CorrectionCandidate]) -> String {
+        var lines = ["Sentence: \"\(sentence)\""]
         for (i, c) in candidates.enumerated() {
-            let what = c.entity ?? "the entity \"\(c.replacement)\""
-            lines.append("  \(i + 1). \"\(c.matchedText)\" — is this \(what), or the ordinary word?")
+            let hint = c.entity ?? "the entity \"\(c.replacement)\""
+            lines.append("Candidate \(i + 1): \"\(c.matchedText)\" (entity: \(hint))")
         }
-        lines.append("For each item reply on its own line: \"<number> APPLY\" if it is the entity, else \"<number> KEEP\".")
-        lines.append("Answer:")
         return lines.joined(separator: "\n")
     }
 
-    /// Parse "<n> APPLY|KEEP" lines into an ordered verdict array. Any missing or
-    /// garbled line defaults to `.keep` (fail-safe).
+    /// Parse "<n> ENTITY|ORDINARY" lines into an ordered verdict array. Any missing
+    /// or garbled line defaults to `.keep` (fail-safe toward not correcting).
     static func parse(_ output: String, count: Int) -> [CorrectionVerdict] {
         guard count > 0 else { return [] }
         var verdicts = Array(repeating: CorrectionVerdict.keep, count: count)
@@ -116,7 +136,8 @@ enum ContextGatePrompt {
             let leading = line.drop(while: { !$0.isNumber })
             let digits = leading.prefix(while: { $0.isNumber })
             guard let n = Int(digits), n >= 1, n <= count else { continue }
-            if line.uppercased().contains("APPLY") { verdicts[n - 1] = .apply }
+            // "ENTITY" → apply; "ORDINARY" (or anything else) stays keep.
+            if line.uppercased().contains("ENTITY") { verdicts[n - 1] = .apply }
         }
         return verdicts
     }

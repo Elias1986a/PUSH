@@ -52,9 +52,10 @@ final class CorrectionsStore: ObservableObject {
 
     private static let userDefaultsKey = "customDictionaryCorrections"
 
-    /// Verdict source for the contextual lane. Heuristic-only until a warm
-    /// on-device model is wired in behind `VerdictSource` (5.0.0 Phase 2).
-    nonisolated static let defaultVerdictSource: VerdictSource = HeuristicVerdictSource()
+    /// Verdict source for the contextual lane: the warm on-device model when
+    /// ready, otherwise zero-latency heuristics (both fail-safe). See
+    /// GateVerdictSource / LlamaGateEngine.
+    nonisolated static let defaultVerdictSource: VerdictSource = GateVerdictSource()
 
     private init() {
         load()
