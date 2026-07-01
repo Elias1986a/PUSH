@@ -109,6 +109,10 @@ actor TranscriptionPipeline {
             // Avoid logging raw transcription text to protect user privacy.
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
 
+            // Apply user-defined dictionary corrections (e.g. names Whisper consistently mishears)
+            let corrections = await MainActor.run { CorrectionsStore.shared.corrections }
+            filteredText = CorrectionsStore.apply(corrections, to: filteredText)
+
             // Post-processing pipeline varies by model capability:
             // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.
