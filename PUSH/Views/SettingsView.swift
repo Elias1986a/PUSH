@@ -349,28 +349,35 @@ struct DictionarySettingsView: View {
     @State private var newRight: String = ""
     @State private var newContextual: Bool = false
     @State private var newEntity: String = ""
+    /// True once the user changes the mode control by hand, so auto-defaulting
+    /// (Context for common words) stops overriding their choice.
+    @State private var modeManuallySet: Bool = false
 
     private var canAdd: Bool {
         !newWrong.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !newRight.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    /// Nudge the user toward context mode when the "heard as" word is a real word
-    /// (and therefore ambiguous, like "Hammer").
-    private var suggestContextual: Bool {
-        !newContextual && WordChecker.isCommonWord(newWrong)
-    }
+    private var wrongIsCommonWord: Bool { WordChecker.isCommonWord(newWrong) }
 
     var body: some View {
         Form {
             Section("Add a Correction") {
-                HStack {
+                HStack(spacing: 8) {
                     TextField("Heard as (e.g. Hammer)", text: $newWrong)
                         .textFieldStyle(.roundedBorder)
-                    Image(systemName: "arrow.right")
-                        .foregroundColor(.secondary)
+                        .labelsHidden()
+                        .onChange(of: newWrong) { _, value in
+                            // Default new common-word entries to Context (safer),
+                            // unless the user already picked a mode themselves.
+                            if !modeManuallySet {
+                                newContextual = WordChecker.isCommonWord(value)
+                            }
+                        }
+                    Image(systemName: "arrow.right").foregroundColor(.secondary)
                     TextField("Should be (e.g. Hamer)", text: $newRight)
                         .textFieldStyle(.roundedBorder)
+                        .labelsHidden()
                     Button("Add") {
                         store.addCorrection(
                             wrong: newWrong,
@@ -382,26 +389,36 @@ struct DictionarySettingsView: View {
                         newRight = ""
                         newEntity = ""
                         newContextual = false
+                        modeManuallySet = false
                     }
                     .disabled(!canAdd)
                 }
 
-                Toggle("This word has other meanings — decide by context", isOn: $newContextual)
+                Picker("Replace", selection: Binding(
+                    get: { newContextual },
+                    set: { newContextual = $0; modeManuallySet = true }
+                )) {
+                    Text("Always").tag(false)
+                    Text("Only in context").tag(true)
+                }
+                .pickerStyle(.segmented)
 
                 if newContextual {
                     TextField("What is it? (e.g. a person named Hamer)", text: $newEntity)
                         .textFieldStyle(.roundedBorder)
+                        .labelsHidden()
                 }
 
-                if suggestContextual {
-                    Text("“\(newWrong)” is also a common word — consider context mode so the ordinary word isn't over-corrected.")
+                if wrongIsCommonWord && !newContextual {
+                    Label("“\(newWrong)” is also a common word — “Only in context” avoids over-correcting it.",
+                          systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
                         .foregroundColor(.orange)
                 }
 
                 Text(newContextual
-                     ? "PUSH will replace “Heard as” only when the surrounding context suggests the entity is meant."
-                     : "PUSH will always replace “Heard as” with “Should be”.")
+                     ? "Replaced only when the surrounding words suggest the entity is meant."
+                     : "Replaced every time it’s heard.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -418,24 +435,24 @@ struct DictionarySettingsView: View {
                             set: { $correction.entity.wrappedValue = $0.isEmpty ? nil : $0 }
                         )
                         VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                TextField("Heard as", text: $correction.wrong)
+                            HStack(spacing: 8) {
+                                TextField("", text: $correction.wrong)
                                     .textFieldStyle(.roundedBorder)
+                                    .labelsHidden()
                                 Image(systemName: "arrow.right")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                TextField("Should be", text: $correction.right)
+                                TextField("", text: $correction.right)
                                     .textFieldStyle(.roundedBorder)
+                                    .labelsHidden()
                                 Picker("", selection: $correction.kind) {
-                                    Image(systemName: "bolt.fill")
-                                        .tag(CorrectionsStore.Correction.Kind.always)
-                                    Image(systemName: "brain")
-                                        .tag(CorrectionsStore.Correction.Kind.contextual)
+                                    Text("Always").tag(CorrectionsStore.Correction.Kind.always)
+                                    Text("Context").tag(CorrectionsStore.Correction.Kind.contextual)
                                 }
                                 .pickerStyle(.segmented)
                                 .labelsHidden()
-                                .frame(width: 84)
-                                .help("Always replace, or decide by context")
+                                .fixedSize()
+                                .help("Always replace, or only when the context fits")
                                 Button {
                                     store.remove(correction)
                                 } label: {
@@ -446,14 +463,21 @@ struct DictionarySettingsView: View {
                                 .help("Remove this correction")
                             }
                             if correction.kind == .contextual {
-                                TextField("What is it? (e.g. a person named Hamer)", text: entityText)
-                                    .textFieldStyle(.roundedBorder)
-                                    .font(.caption)
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.turn.down.right")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    TextField("what is it? (e.g. a person named Hamer)", text: entityText)
+                                        .textFieldStyle(.roundedBorder)
+                                        .labelsHidden()
+                                        .font(.caption)
+                                }
                             }
                         }
+                        .padding(.vertical, 2)
                     }
 
-                    Text("Edit inline, switch a row between ⚡︎ always / 🧠 context, or use the trash icon to remove it.")
+                    Text("Switch any row between Always and Context, edit inline, or remove with the trash icon.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
