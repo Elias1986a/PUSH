@@ -9,11 +9,17 @@ class LlamaModel {
     private var batch: Batch
     private var tokens: [Token]
     private var generatedTokenAccount: Int32 = 0
+    private var promptTokenCount: Int32 = 0
     private var ended = false
     private let n_len: Int32 = 1024
 
     var shouldContinue: Bool {
-        generatedTokenAccount < configuration.maxTokenCount && !ended
+        // PATCH: maxTokenCount limits GENERATED tokens, not prompt+generated.
+        // generatedTokenAccount doubles as the sequence position (starts at the
+        // prompt length), so subtract the prompt length here. The old check
+        // (generatedTokenAccount < maxTokenCount) never generated anything when
+        // the prompt was longer than maxTokenCount.
+        (generatedTokenAccount - promptTokenCount) < configuration.maxTokenCount && !ended
     }
 
     init(path: String, configuration: Configuration = .init()) throws {
@@ -39,10 +45,20 @@ class LlamaModel {
         self.tokens = []
         self.batch = llama_batch_init(Int32(configuration.batchSize * Configuration.historySize * 2), 0, 1)
 
+        // PATCH: the stock chain was temp→softmax→dist (stochastic, and it
+        // ignored topK/topP). For a deterministic classification gate we want
+        // greedy (argmax) when temperature <= 0 — matching llama-server's temp-0
+        // behavior that the POC validated — else a proper top-k/top-p/temp/dist
+        // chain.
         self.sampler = llama_sampler_chain_init(llama_sampler_chain_default_params())
-        llama_sampler_chain_add(sampler, llama_sampler_init_temp(configuration.temperature))
-        llama_sampler_chain_add(sampler, llama_sampler_init_softmax())
-        llama_sampler_chain_add(sampler, llama_sampler_init_dist(1234))
+        if configuration.temperature <= 0 {
+            llama_sampler_chain_add(sampler, llama_sampler_init_greedy())
+        } else {
+            llama_sampler_chain_add(sampler, llama_sampler_init_top_k(Int32(configuration.topK)))
+            llama_sampler_chain_add(sampler, llama_sampler_init_top_p(configuration.topP, 1))
+            llama_sampler_chain_add(sampler, llama_sampler_init_temp(configuration.temperature))
+            llama_sampler_chain_add(sampler, llama_sampler_init_dist(1234))
+        }
 
         try checkContextLength(context: context, model: model)
     }
@@ -69,6 +85,7 @@ class LlamaModel {
             throw SwiftLlamaError.decodeError
         }
         generatedTokenAccount = batch.n_tokens
+        promptTokenCount = batch.n_tokens
     }
 
     func `continue`() throws -> String {
@@ -121,6 +138,31 @@ class LlamaModel {
         // Decode exact byte count (no trailing NUL included)
         let bytes: [UInt8] = buf.prefix(count).map { UInt8(bitPattern: $0) }
         return String(decoding: bytes, as: UTF8.self)
+    }
+
+    /// PATCH: format a chat using the model's OWN built-in template (tmpl = nil),
+    /// so the prompt is byte-identical to what llama.cpp/llama-server produce.
+    /// Avoids the buggy hand-rolled ChatML encoders in Prompt.swift.
+    func applyChatTemplate(messages: [(role: String, content: String)], addAssistant: Bool) -> String {
+        var cMessages: [llama_chat_message] = []
+        var allocated: [UnsafeMutablePointer<CChar>] = []
+        for m in messages {
+            guard let r = strdup(m.role), let c = strdup(m.content) else { continue }
+            allocated.append(r); allocated.append(c)
+            cMessages.append(llama_chat_message(role: r, content: c))
+        }
+        defer { allocated.forEach { free($0) } }
+
+        var size = 8192
+        var buf = [CChar](repeating: 0, count: size)
+        var n = llama_chat_apply_template(model, nil, cMessages, cMessages.count, addAssistant, &buf, Int32(size))
+        if n > Int32(size) {
+            size = Int(n) + 1
+            buf = [CChar](repeating: 0, count: size)
+            n = llama_chat_apply_template(model, nil, cMessages, cMessages.count, addAssistant, &buf, Int32(size))
+        }
+        guard n >= 0 else { return "" }
+        return String(cString: buf)
     }
 
     private func tokenize(text: String, addBos: Bool) -> [Token] {
