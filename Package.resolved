@@ -1,5 +1,5 @@
 {
-  "originHash" : "a04367af7ae045cc5c82d438c161e00e9958d86203133f12bc7f87ae1c23b5dd",
+  "originHash" : "f1ebd4190318a5cc9d3befdd5db21b9f397ae03ed5f399b537fa2f5eb437f830",
   "pins" : [
     {
       "identity" : "fluidaudio",
@@ -17,14 +17,6 @@
       "state" : {
         "revision" : "a04ec1c363be3627734f6dad757d82f5d4fa8fcc",
         "version" : "1.1.0"
-      }
-    },
-    {
-      "identity" : "llama.cpp",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ggerganov/llama.cpp.git",
-      "state" : {
-        "revision" : "b6d6c5289f1c9c677657c380591201ddb210b649"
       }
     },
     {
@@ -79,15 +71,6 @@
       "state" : {
         "revision" : "573e5c9036c2f136b3a8a071da8e8907322403d0",
         "version" : "1.1.6"
-      }
-    },
-    {
-      "identity" : "swiftllama",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ShenghaiWang/SwiftLlama.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "792181492beff9edba52314a040032cefb19edd6"
       }
     },
     {

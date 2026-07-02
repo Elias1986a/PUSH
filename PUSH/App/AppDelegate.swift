@@ -7,10 +7,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var pillWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Set Metal shader resource path for llama.cpp
-        // This must happen before any model loading to ensure Metal can find ggml-metal.metal + ggml-common.h
-        setupMetalResources()
-
         // Request permissions
         requestMicrophonePermission()
 
@@ -56,30 +52,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if alert.runModal() == .alertFirstButtonReturn {
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy") {
                 NSWorkspace.shared.open(url)
-            }
-        }
-    }
-
-    // MARK: - Metal Resources
-
-    private func setupMetalResources() {
-        // llama.cpp's Metal backend needs to find ggml-metal.metal and ggml-common.h
-        // at runtime to compile shaders. Set GGML_METAL_PATH_RESOURCES to the bundle
-        // containing these files so ggml_metal_init can find them.
-        if let bundlePath = Bundle.main.path(forResource: "llama_llama", ofType: "bundle") {
-            setenv("GGML_METAL_PATH_RESOURCES", bundlePath, 1)
-            PushLogger.log("AppDelegate: Set GGML_METAL_PATH_RESOURCES = \(bundlePath)")
-        } else {
-            // Fallback: try to find the bundle relative to app bundle
-            let resourcePath = Bundle.main.bundleURL
-                .appendingPathComponent("Contents/Resources/llama_llama.bundle").path
-            if FileManager.default.fileExists(atPath: resourcePath) {
-                setenv("GGML_METAL_PATH_RESOURCES", resourcePath, 1)
-                PushLogger.log("AppDelegate: Set GGML_METAL_PATH_RESOURCES (fallback) = \(resourcePath)")
-            } else {
-                PushLogger.log("AppDelegate: WARNING - Could not find llama_llama.bundle for Metal resources")
-                PushLogger.log("AppDelegate: mainBundle = \(Bundle.main.bundleURL.path)")
-                PushLogger.log("AppDelegate: Tried: \(resourcePath)")
             }
         }
     }

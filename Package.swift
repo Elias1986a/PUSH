@@ -23,9 +23,6 @@ let package = Package(
         // TODO: Re-enable once MLX metallib bundling is resolved
         // .package(url: "https://github.com/soniqo/speech-swift.git", from: "0.0.8"),
 
-        // llama.cpp Swift bindings (Swift-friendly wrapper)
-        .package(url: "https://github.com/ShenghaiWang/SwiftLlama.git", branch: "main"),
-
         // Launch at login
         .package(url: "https://github.com/sindresorhus/LaunchAtLogin-Modern.git", from: "1.1.0"),
 
@@ -40,7 +37,6 @@ let package = Package(
                 .product(name: "Moonshine", package: "moonshine-swift"),
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 // .product(name: "Qwen3ASR", package: "speech-swift"),
-                .product(name: "SwiftLlama", package: "SwiftLlama"),
                 .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern"),
                 .product(name: "Sparkle", package: "Sparkle")
             ],
