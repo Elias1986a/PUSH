@@ -13,7 +13,7 @@ build/
 *.moved-aside
 
 # Swift Package Manager
-.build/
+.build
 .swiftpm/
 Packages/
 # Package.resolved — tracked for CI reproducibility
