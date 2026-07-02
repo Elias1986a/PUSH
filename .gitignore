@@ -60,3 +60,4 @@ ui-debug.log
 
 # Claude Code
 .claude/
+build.log

@@ -1,27 +1,36 @@
 # CLAUDE.md — PUSH
 
 ## Project Overview
-macOS Swift app — push notification management or local AI/LLM integration tool. Swift Package Manager project.
+PUSH is a macOS menu bar app for offline voice-to-text dictation. Hold a hotkey
+(or say a wake word), speak, and the transcription is pasted into the focused
+text field of any app. All speech recognition runs on-device.
 
 ## Tech Stack
-- Swift (Package.swift, not Xcode project)
-- SPM Dependencies: SwiftLlama, WhisperKit, Moonshine, LaunchAtLogin
-- Firebase integration
-- LLM inference via llama.cpp bindings
+- Swift, Swift Package Manager executable target (no Xcode project)
+- ASR engines: WhisperKit (CoreML), Moonshine, FluidAudio Parakeet TDT v2
+- Silero VAD via FluidAudio; Sparkle auto-updates; LaunchAtLogin
 
 ## Commands
-- `swift build` — build the project
+- `swift build` — build
+- `swift test` — unit tests (Tests/PUSHTests; text post-processing + context gate)
 - `swift run` — run the app
-- Build scripts: `build_distribution.sh`, `build_xcode_project.sh`
+- `./build_distribution.sh` — signed/notarized release ZIP + DMG + Sparkle appcast
+  (requires the Xcode-beta toolchain; CLT's Foundation breaks FluidAudio)
 
 ## Project Structure
-- `Sources/` — Swift source code
-- `docs/` — Documentation
-- `ICON/` — App icon assets
-- `dist-build/` — Distribution build output
+- `PUSH/App` — entry point, AppDelegate, shared AppState
+- `PUSH/Core` — TranscriptionPipeline, HotkeyManager, AudioRecorder, SileroVAD,
+  WakeWordListener, ModelLoader, CorrectionsStore/ContextGate, TextInjector
+- `PUSH/ML` — engine wrappers (WhisperEngine, MoonshineEngine, ParakeetEngine)
+- `PUSH/Views` — MenuBarView, SettingsView, FloatingPillView
+- `docs/` — design docs and plans
 
 ## Key Notes
-- Uses local LLM inference (SwiftLlama + llama.cpp)
-- Uses WhisperKit for speech-to-text
-- LaunchAtLogin for startup behavior
-- Has distribution/signing scripts for macOS distribution
+- `.build` is a symlink to `~/Library/Developer/SwiftPackages/PUSH-build` —
+  iCloud evicts files under ~/Documents and hangs builds; keep the symlink.
+- `AppState.activeModel` is the model actually serving transcription;
+  `selectedWhisperModel` is the persisted preference. Only `ModelLoader`
+  activates/deactivates models — don't load engines directly.
+- Text injection is clipboard-paste only (AX APIs are unreliable across apps).
+- Never log transcript text (privacy); PushLogger events are operational only.
+- Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.
