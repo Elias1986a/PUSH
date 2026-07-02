@@ -42,7 +42,9 @@ actor SileroVAD {
     }
 
     /// Whether any speech was detected since the last reset. Used to gate hotkey transcription.
-    func speechWasDetected() -> Bool { speechDetected }
+    /// Fail-safe: if the VAD never became ready (model failed to load), report speech
+    /// so recordings are transcribed rather than silently dropped.
+    func speechWasDetected() -> Bool { isReady ? speechDetected : true }
 
     func reset(gracePeriod: TimeInterval = 2.0) async {
         pendingSamples = []
