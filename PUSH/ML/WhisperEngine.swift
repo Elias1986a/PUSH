@@ -119,26 +119,6 @@ actor WhisperEngine {
         PushLogger.log("WhisperEngine: Model unloaded")
     }
 
-    /// Warm up the model by loading + running a dummy inference (compiles Metal shaders)
-    func warmup() async {
-        PushLogger.log("WhisperEngine: Starting warmup...")
-        let startTime = Date()
-
-        do {
-            // Load the model first
-            let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
-            try await loadModel(selectedModel)
-
-            // Run a dummy inference with 1 second of silence to compile shaders
-            await warmupInference()
-
-            let elapsed = Date().timeIntervalSince(startTime)
-            PushLogger.log("WhisperEngine: ✅ Full warmup complete in \(String(format: "%.2f", elapsed))s")
-        } catch {
-            PushLogger.log("WhisperEngine: Warmup failed: \(error)")
-        }
-    }
-
     /// Run a dummy inference to compile Metal shaders (model must already be loaded)
     func warmupInference() async {
         guard let whisper = whisperKit else { return }
@@ -156,11 +136,11 @@ actor WhisperEngine {
 
     /// Transcribe audio data to text
     func transcribe(audioData: Data) async throws -> String {
-        // Load default model if not loaded
+        // Load the active model if not loaded (normally ModelLoader has done this)
         if !isLoaded {
-            let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
-            PushLogger.log("WhisperEngine: Not loaded, loading selected model: \(selectedModel)")
-            try await loadModel(selectedModel)
+            let activeModel = await MainActor.run { AppState.shared.activeModel }
+            PushLogger.log("WhisperEngine: Not loaded, loading active model: \(activeModel)")
+            try await loadModel(activeModel)
         } else {
             PushLogger.log("WhisperEngine: Using already loaded model: \(currentModel ?? "unknown")")
         }

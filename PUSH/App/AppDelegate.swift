@@ -115,46 +115,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func preloadModels() {
         Task { @MainActor in
-            let selectedModel = AppState.shared.selectedWhisperModel
-            PushLogger.log("AppDelegate: Loading model: \(selectedModel)...")
-            AppState.shared.statusMessage = "Loading AI model..."
-
-            let loadStart = Date()
-
-            // Phase 1: Load the model (blocking) — makes the app usable
-            switch selectedModel.engineType {
-            case .moonshine:
-                try? await MoonshineEngine.shared.loadModel(selectedModel)
-            case .parakeet:
-                try? await ParakeetEngine.shared.loadModel()
-            case .whisperKit:
-                try? await WhisperEngine.shared.loadModel(selectedModel)
-            }
-
-            let loadElapsed = Date().timeIntervalSince(loadStart)
-            PushLogger.log("AppDelegate: Model loaded in \(String(format: "%.2f", loadElapsed))s")
-            AppState.shared.isModelReady = true
-            AppState.shared.statusMessage = "Ready"
-
-            // Phase 2: Warm shaders in background (non-blocking).
-            // The app is already usable; surface a "Warming up…" indicator so the
-            // user knows why the very first transcription may be slightly slower.
-            PushLogger.log("AppDelegate: Starting background shader warmup...")
-            AppState.shared.isWarmingUp = true
-            AppState.shared.statusMessage = "Warming up AI model…"
-            switch selectedModel.engineType {
-            case .moonshine:
-                await MoonshineEngine.shared.warmupInference()
-            case .parakeet:
-                await ParakeetEngine.shared.warmup()
-            case .whisperKit:
-                await WhisperEngine.shared.warmupInference()
-            }
-            AppState.shared.isWarmingUp = false
-            if AppState.shared.statusMessage == "Warming up AI model…" {
-                AppState.shared.statusMessage = "Ready"
-            }
-            PushLogger.log("AppDelegate: Background shader warmup complete")
+            // ModelLoader handles status, warmup, and failure surfacing.
+            try? await ModelLoader.activate(AppState.shared.selectedWhisperModel)
         }
     }
 }

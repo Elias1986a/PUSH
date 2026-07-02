@@ -37,6 +37,17 @@ class AppState: ObservableObject {
         didSet { notifyStateChange() }
     }
 
+    /// True when no model is serving at all (launch load failed, or the active
+    /// model's files were deleted). Drives the pill's "Model unavailable" state.
+    @Published var modelUnavailable: Bool = false {
+        didSet { notifyStateChange() }
+    }
+
+    /// The model actually loaded and serving transcriptions. Differs from
+    /// `selectedWhisperModel` (the persisted preference) while a newly selected
+    /// model downloads/loads — dictation keeps using this one until the swap.
+    @Published var activeModel: WhisperModel = .small
+
     @Published var statusMessage: String = "Ready"
 
     @Published var selectedWhisperModel: WhisperModel = .small {
@@ -198,6 +209,7 @@ class AppState: ObservableObject {
            let model = WhisperModel(rawValue: savedModel) {
             self.selectedWhisperModel = model
         }
+        self.activeModel = self.selectedWhisperModel
 
         // Load saved hotkey from UserDefaults
         if let savedHotkey = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedHotkey),

@@ -74,8 +74,10 @@ struct FloatingPillView: View {
     }
 
     private var baseStatusText: String {
-        if !appState.isModelReady {
-            return "Warming up..."
+        if appState.modelUnavailable {
+            return "Model unavailable"
+        } else if !appState.isModelReady {
+            return "Loading model..."
         } else if appState.isProcessing {
             return "Processing..."
         } else if appState.isListening {

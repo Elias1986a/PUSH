@@ -93,6 +93,9 @@ struct ModelsSettingsView: View {
     @State private var downloadProgress: Double = 0
     @State private var downloadStatus: String = ""
     @State private var downloadError: String?
+    /// Snapshot of the filesystem check — kept in @State so delete/download
+    /// actually refresh the view (a computed property wouldn't re-render).
+    @State private var isDownloaded = false
 
     private var selectedModel: AppState.WhisperModel {
         appState.selectedWhisperModel
@@ -110,17 +113,25 @@ struct ModelsSettingsView: View {
         }
     }
 
-    private var isDownloaded: Bool {
-        if selectedModel == .moonshineTiny {
-            return true // Bundled with the framework
-        }
-        switch selectedModel.engineType {
+    private static func checkDownloaded(_ model: AppState.WhisperModel) -> Bool {
+        switch model.engineType {
         case .moonshine:
-            return MoonshineEngine.isModelDownloaded(selectedModel)
+            return MoonshineEngine.isModelDownloaded(model) // Tiny is bundled → true
         case .parakeet:
             return ParakeetEngine.isModelDownloaded()
         case .whisperKit:
-            return WhisperEngine.isModelDownloaded(selectedModel)
+            return WhisperEngine.isModelDownloaded(model)
+        }
+    }
+
+    /// Load the model and swap it in as the active one, surfacing errors inline.
+    private func activate(_ model: AppState.WhisperModel) {
+        Task {
+            do {
+                try await ModelLoader.activate(model)
+            } catch {
+                downloadError = error.localizedDescription
+            }
         }
     }
 
@@ -205,7 +216,7 @@ struct ModelsSettingsView: View {
                     }
 
                     if !isDownloading && !isDownloaded {
-                        Text("Models are downloaded automatically when needed and stored locally.")
+                        Text("PUSH keeps using \(appState.activeModel.displayName) until this model is downloaded.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -214,92 +225,67 @@ struct ModelsSettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear {
+            isDownloaded = Self.checkDownloaded(selectedModel)
+        }
+        .onChange(of: appState.selectedWhisperModel) { _, newModel in
+            downloadError = nil
+            isDownloaded = Self.checkDownloaded(newModel)
+            // Swap immediately when the model is already on disk; otherwise the
+            // user downloads explicitly and the swap happens after that.
+            if isDownloaded {
+                activate(newModel)
+            }
+        }
+    }
+
+    /// Rough on-disk sizes used to derive download progress (engines don't report it).
+    private static func expectedSize(of model: AppState.WhisperModel) -> Double {
+        switch model {
+        case .base: return 150_000_000
+        case .small: return 250_000_000
+        case .distilLargeV3, .distilLargeV3Turbo: return 600_000_000
+        case .whisperLargeV3Turbo: return 632_000_000
+        case .moonshineTiny: return 45_000_000
+        case .moonshineBase: return 134_000_000
+        case .parakeetV2: return 400_000_000
+        }
     }
 
     private func downloadModel() {
         let model = appState.selectedWhisperModel
+        let folder = modelFolderPath
         isDownloading = true
         downloadProgress = 0
-        downloadStatus = "Preparing download..."
+        downloadStatus = "Downloading..."
         downloadError = nil
         Task {
-            do {
-                switch model.engineType {
-                case .moonshine:
-                    await MainActor.run { downloadStatus = "Downloading Moonshine model..." }
-                    try await MoonshineEngine.shared.downloadBaseModel()
+            // Poll the download directory for coarse progress.
+            let expected = Self.expectedSize(of: model)
+            let pollTask = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(1))
+                    let progress = min(Self.directorySize(at: folder) / expected, 0.95)
                     await MainActor.run {
-                        downloadProgress = 0.8
-                        downloadStatus = "Loading model..."
-                    }
-                    try await MoonshineEngine.shared.loadModel(model)
-                    await MainActor.run {
-                        downloadProgress = 0.9
-                        downloadStatus = "Warming up..."
-                    }
-                    await MoonshineEngine.shared.warmup()
-                case .parakeet:
-                    await MainActor.run { downloadStatus = "Downloading Parakeet model (~400 MB)..." }
-                    // Poll download directory for progress
-                    let pollTask = Task {
-                        let expectedSize: Double = 400_000_000 // ~400 MB
-                        while !Task.isCancelled {
-                            try? await Task.sleep(for: .seconds(1))
-                            let dir = ParakeetEngine.modelDirectory
-                            let size = Self.directorySize(at: dir)
-                            let progress = min(size / expectedSize, 0.95)
-                            await MainActor.run {
-                                downloadProgress = progress
-                                if progress > 0.01 {
-                                    downloadStatus = "Downloading... \(Int(progress * 100))%"
-                                }
-                            }
+                        downloadProgress = progress
+                        if progress > 0.01 {
+                            downloadStatus = "Downloading... \(Int(progress * 100))%"
                         }
                     }
-                    try await ParakeetEngine.shared.loadModel()
-                    pollTask.cancel()
-                    await MainActor.run {
-                        downloadProgress = 0.9
-                        downloadStatus = "Warming up..."
-                    }
-                    await ParakeetEngine.shared.warmup()
-                case .whisperKit:
-                    await MainActor.run { downloadStatus = "Downloading model..." }
-                    // Poll download directory for progress
-                    let whisperPollTask = Task {
-                        let expectedSize: Double = Double(model == .whisperLargeV3Turbo ? 632_000_000 : 600_000_000)
-                        while !Task.isCancelled {
-                            try? await Task.sleep(for: .seconds(1))
-                            let dir = WhisperEngine.modelFolderURL(for: model)
-                            let size = Self.directorySize(at: dir)
-                            let progress = min(size / expectedSize, 0.95)
-                            await MainActor.run {
-                                downloadProgress = progress
-                                if progress > 0.01 {
-                                    downloadStatus = "Downloading... \(Int(progress * 100))%"
-                                }
-                            }
-                        }
-                    }
-                    try await WhisperEngine.shared.loadModel(model)
-                    whisperPollTask.cancel()
-                    await MainActor.run {
-                        downloadProgress = 0.9
-                        downloadStatus = "Warming up..."
-                    }
-                    await WhisperEngine.shared.warmup()
-                }
-                await MainActor.run {
-                    downloadProgress = 1.0
-                    downloadStatus = "Complete!"
-                    isDownloading = false
-                }
-            } catch {
-                await MainActor.run {
-                    downloadError = error.localizedDescription
-                    isDownloading = false
                 }
             }
+            do {
+                // Engines download on load; activate also swaps it in and warms up.
+                try await ModelLoader.activate(model)
+                pollTask.cancel()
+                downloadProgress = 1.0
+                downloadStatus = "Complete!"
+            } catch {
+                pollTask.cancel()
+                downloadError = error.localizedDescription
+            }
+            isDownloading = false
+            isDownloaded = Self.checkDownloaded(model)
         }
     }
 
@@ -319,25 +305,21 @@ struct ModelsSettingsView: View {
     private func deleteModel() {
         let model = appState.selectedWhisperModel
         downloadError = nil
-
-        let urlToDelete: URL
-        switch model.engineType {
-        case .moonshine:
-            urlToDelete = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                .appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
-        case .parakeet:
-            urlToDelete = ParakeetEngine.modelDirectory
-        case .whisperKit:
-            urlToDelete = WhisperEngine.modelFolderURL(for: model)
-        }
-
-        guard FileManager.default.fileExists(atPath: urlToDelete.path) else { return }
+        let urlToDelete = modelFolderPath
 
         do {
-            try FileManager.default.removeItem(at: urlToDelete)
+            if FileManager.default.fileExists(atPath: urlToDelete.path) {
+                try FileManager.default.removeItem(at: urlToDelete)
+            }
+            // Deleting the model that's currently serving: unload it too, so the
+            // UI doesn't claim a model that no longer exists on disk.
+            if model == appState.activeModel {
+                Task { await ModelLoader.deactivate() }
+            }
         } catch {
             downloadError = "Failed to delete: \(error.localizedDescription)"
         }
+        isDownloaded = Self.checkDownloaded(model)
     }
 }
 

@@ -39,10 +39,12 @@ actor TranscriptionPipeline {
     func process(audioData: Data) async {
         do {
             PushLogger.log("TranscriptionPipeline: Starting transcription, audio size: \(audioData.count) bytes")
-            // Step 1: Transcribe with the selected engine
-            let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
-            PushLogger.log("TranscriptionPipeline: Using \(selectedModel.engineType) engine...")
-            let rawText = try await Self.transcribe(audioData: audioData, using: selectedModel)
+            // Step 1: Transcribe with the active (loaded) engine — the selected
+            // preference may still be downloading; ModelLoader swaps activeModel
+            // only once the new model is ready.
+            let activeModel = await MainActor.run { AppState.shared.activeModel }
+            PushLogger.log("TranscriptionPipeline: Using \(activeModel.engineType) engine...")
+            let rawText = try await Self.transcribe(audioData: audioData, using: activeModel)
 
             // Filter out empty results and Whisper's blank audio markers
             var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -122,7 +124,7 @@ actor TranscriptionPipeline {
             // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.
             let formattedText: String
-            if selectedModel.hasNativePunctuation {
+            if activeModel.hasNativePunctuation {
                 // Reduced pipeline: filler/stutter removal, number normalization, smart symbols
                 formattedText = Self.doubleSpaceAfterPeriods(
                     Self.smartSymbols(
