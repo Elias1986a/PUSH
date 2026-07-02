@@ -24,9 +24,7 @@ let package = Package(
         // .package(url: "https://github.com/soniqo/speech-swift.git", from: "0.0.8"),
 
         // llama.cpp Swift bindings (Swift-friendly wrapper)
-        // Vendored/patched fork (see Vendor/SwiftLlama): raw-prompt type +
-        // special-token tokenization for the context-aware dictionary gate.
-        .package(path: "Vendor/SwiftLlama"),
+        .package(url: "https://github.com/ShenghaiWang/SwiftLlama.git", branch: "main"),
 
         // Launch at login
         .package(url: "https://github.com/sindresorhus/LaunchAtLogin-Modern.git", from: "1.1.0"),
@@ -73,13 +71,6 @@ let package = Package(
                     "-Xlinker", ".build/artifacts/moonshine-swift/Moonshine/Moonshine.xcframework/macos-arm64_x86_64/libmoonshine.a"
                 ])
             ]
-        ),
-        // TEMPORARY verification harness for the Phase 2 LLM gate — validates the
-        // SwiftLlama prompt path against the real model. Remove before release.
-        .executableTarget(
-            name: "GateCheck",
-            dependencies: [.product(name: "SwiftLlama", package: "SwiftLlama")],
-            path: "Tools/GateCheck"
         )
     ]
 )

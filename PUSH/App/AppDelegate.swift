@@ -178,11 +178,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             case .whisperKit:
                 await WhisperEngine.shared.warmupInference()
             }
-
-            // Warm the on-device dictionary gate model (5.1.0). Non-blocking and
-            // fail-safe: if it can't load, contextual corrections use heuristics.
-            await LlamaGateEngine.shared.warmup()
-
             AppState.shared.isWarmingUp = false
             if AppState.shared.statusMessage == "Warming up AI model…" {
                 AppState.shared.statusMessage = "Ready"
