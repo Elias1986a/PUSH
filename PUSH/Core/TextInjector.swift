@@ -1,8 +1,8 @@
 import Foundation
 import AppKit
-import ApplicationServices
 
-/// Injects text into the currently focused text field using Accessibility API
+/// Injects text into the currently focused text field via clipboard paste
+/// (the most compatible path across native apps, Electron, and web inputs)
 @MainActor
 final class TextInjector: @unchecked Sendable {
     static let shared = TextInjector()
@@ -19,52 +19,6 @@ final class TextInjector: @unchecked Sendable {
     }
 
     // MARK: - Private Methods
-
-    private func insertViaAccessibility(_ text: String) -> Bool {
-        // Get the focused element
-        guard let focusedElement = getFocusedElement() else {
-            PushLogger.log("TextInjector: No focused element found")
-            return false
-        }
-
-        // Best approach: set kAXSelectedTextAttribute to replace current selection with our text.
-        // This inserts at the cursor position without needing to read/manipulate the field's content,
-        // which avoids issues with placeholder text being treated as real content.
-        var selectedTextSettable: DarwinBoolean = false
-        AXUIElementIsAttributeSettable(focusedElement, kAXSelectedTextAttribute as CFString, &selectedTextSettable)
-
-        if selectedTextSettable.boolValue {
-            let setResult = AXUIElementSetAttributeValue(
-                focusedElement,
-                kAXSelectedTextAttribute as CFString,
-                text as CFTypeRef
-            )
-            if setResult == .success {
-                PushLogger.log("TextInjector: Inserted via kAXSelectedTextAttribute")
-                return true
-            }
-            PushLogger.log("TextInjector: kAXSelectedTextAttribute settable but set failed (\(setResult.rawValue))")
-        }
-
-        // Fallback: set kAXValueAttribute directly (for simple text fields)
-        var valueSettable: DarwinBoolean = false
-        AXUIElementIsAttributeSettable(focusedElement, kAXValueAttribute as CFString, &valueSettable)
-
-        guard valueSettable.boolValue else {
-            PushLogger.log("TextInjector: Neither selected text nor value is settable")
-            return false
-        }
-
-        // When setting value directly, just set to our text (don't try to read and append,
-        // as the "current value" may contain placeholder text from web inputs)
-        let setResult = AXUIElementSetAttributeValue(
-            focusedElement,
-            kAXValueAttribute as CFString,
-            text as CFTypeRef
-        )
-
-        return setResult == .success
-    }
 
     private func insertViaClipboard(_ text: String) {
         // Save current clipboard
@@ -102,44 +56,6 @@ final class TextInjector: @unchecked Sendable {
             }
             pasteboard.clearContents()
             pasteboard.writeObjects(savedItems)
-        }
-    }
-
-    private func getFocusedElement() -> AXUIElement? {
-        // Get the frontmost application
-        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-            return nil
-        }
-
-        let appElement = AXUIElementCreateApplication(frontApp.processIdentifier)
-
-        // Get the focused UI element
-        var focusedElement: AnyObject?
-        let result = AXUIElementCopyAttributeValue(
-            appElement,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedElement
-        )
-
-        guard result == .success else {
-            return nil
-        }
-
-        let typeID = CFGetTypeID(focusedElement as CFTypeRef)
-        guard typeID == AXUIElementGetTypeID() else {
-            return nil
-        }
-        return (focusedElement as! AXUIElement)
-    }
-
-    private func setSelectedRange(_ element: AXUIElement, location: Int, length: Int) {
-        var range = CFRange(location: location, length: length)
-        if let axValue = AXValueCreate(.cfRange, &range) {
-            AXUIElementSetAttributeValue(
-                element,
-                kAXSelectedTextRangeAttribute as CFString,
-                axValue
-            )
         }
     }
 
