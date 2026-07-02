@@ -223,9 +223,12 @@ final class WakeWordListener: @unchecked Sendable {
 
         let wakeWord = AppState.shared.wakeWord.lowercased()
         let bufferCopy = audioBuffer
+        // Use the selected engine — WhisperEngine can't serve non-WhisperKit
+        // models (Moonshine/Parakeet), and the selected engine is already loaded.
+        let selectedModel = AppState.shared.selectedWhisperModel
 
         do {
-            let transcription = try await WhisperEngine.shared.transcribe(audioData: bufferCopy)
+            let transcription = try await TranscriptionPipeline.transcribe(audioData: bufferCopy, using: selectedModel)
             let lowerTranscription = transcription.lowercased()
 
             // Check if wake word was spoken

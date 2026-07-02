@@ -80,6 +80,9 @@ actor WhisperEngine {
     /// Load the Whisper model (downloads if needed)
     func loadModel(_ model: AppState.WhisperModel = .base) async throws {
         let modelName = Self.whisperKitModelName(for: model)
+        guard !modelName.isEmpty else {
+            throw WhisperError.loadFailed("\(model.rawValue) is not a WhisperKit model")
+        }
 
         // Skip if already loaded with same model
         if isLoaded && currentModel == modelName {

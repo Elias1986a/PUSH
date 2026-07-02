@@ -22,24 +22,27 @@ actor TranscriptionPipeline {
 
     // MARK: - Public API
 
+    /// Route audio to the engine backing `model`. Shared by the main pipeline
+    /// and the wake word listener so both always use the loaded engine.
+    static func transcribe(audioData: Data, using model: AppState.WhisperModel) async throws -> String {
+        switch model.engineType {
+        case .moonshine:
+            return try await MoonshineEngine.shared.transcribe(audioData: audioData)
+        case .parakeet:
+            return try await ParakeetEngine.shared.transcribe(audioData: audioData)
+        case .whisperKit:
+            return try await WhisperEngine.shared.transcribe(audioData: audioData)
+        }
+    }
+
     /// Process audio data through the full pipeline
     func process(audioData: Data) async {
         do {
             PushLogger.log("TranscriptionPipeline: Starting transcription, audio size: \(audioData.count) bytes")
             // Step 1: Transcribe with the selected engine
             let selectedModel = await MainActor.run { AppState.shared.selectedWhisperModel }
-            let rawText: String
-            switch selectedModel.engineType {
-            case .moonshine:
-                PushLogger.log("TranscriptionPipeline: Using Moonshine engine...")
-                rawText = try await MoonshineEngine.shared.transcribe(audioData: audioData)
-            case .parakeet:
-                PushLogger.log("TranscriptionPipeline: Using Parakeet engine...")
-                rawText = try await ParakeetEngine.shared.transcribe(audioData: audioData)
-            case .whisperKit:
-                PushLogger.log("TranscriptionPipeline: Using WhisperKit engine...")
-                rawText = try await WhisperEngine.shared.transcribe(audioData: audioData)
-            }
+            PushLogger.log("TranscriptionPipeline: Using \(selectedModel.engineType) engine...")
+            let rawText = try await Self.transcribe(audioData: audioData, using: selectedModel)
 
             // Filter out empty results and Whisper's blank audio markers
             var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
