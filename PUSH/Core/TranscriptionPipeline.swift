@@ -188,7 +188,7 @@ actor TranscriptionPipeline {
     // MARK: - Text Post-Processing
 
     /// Capitalize the first letter of the text and the first letter after sentence-ending punctuation
-    private static func fixCapitalization(_ text: String) -> String {
+    static func fixCapitalization(_ text: String) -> String {
         guard !text.isEmpty else { return text }
 
         var result = ""
@@ -212,7 +212,7 @@ actor TranscriptionPipeline {
     }
 
     /// Capitalize standalone "i" → "I" (the pronoun, not inside words)
-    private static func capitalizeI(_ text: String) -> String {
+    static func capitalizeI(_ text: String) -> String {
         // Match standalone "i" surrounded by word boundaries
         guard let regex = try? NSRegularExpression(pattern: "\\bi\\b", options: []) else {
             return text
@@ -222,7 +222,7 @@ actor TranscriptionPipeline {
     }
 
     /// Add double space after sentence-ending punctuation (. ? !)
-    private static func doubleSpaceAfterPeriods(_ text: String) -> String {
+    static func doubleSpaceAfterPeriods(_ text: String) -> String {
         var result = text
         // Replace single space after sentence-ending punctuation with double space
         // But don't touch ellipsis (...) or abbreviations like "Dr." followed by a name
@@ -237,7 +237,7 @@ actor TranscriptionPipeline {
     }
 
     /// Remove filler words: "um", "uh" always; "like" only when comma-bounded filler
-    private static func removeFillerWords(_ text: String) -> String {
+    static func removeFillerWords(_ text: String) -> String {
         var result = text
 
         // Remove ", like," (filler usage, e.g. "I was, like, going")
@@ -275,7 +275,7 @@ actor TranscriptionPipeline {
     }
 
     /// Remove stuttered/duplicate consecutive words: "the the" → "the", "I I" → "I"
-    private static func removeStutteredWords(_ text: String) -> String {
+    static func removeStutteredWords(_ text: String) -> String {
         guard let regex = try? NSRegularExpression(
             pattern: "\\b(\\w+)\\s+\\1\\b",
             options: .caseInsensitive
@@ -286,7 +286,7 @@ actor TranscriptionPipeline {
     }
 
     /// Fix question marks: sentences starting with question words should end with ?
-    private static func fixQuestionMarks(_ text: String) -> String {
+    static func fixQuestionMarks(_ text: String) -> String {
         let questionWords: Set<String> = [
             "who", "what", "where", "when", "why", "how",
             "is", "are", "am", "was", "were",
@@ -327,7 +327,7 @@ actor TranscriptionPipeline {
     }
 
     /// Replace trailing comma with a period (model sometimes leaves a dangling comma)
-    private static func fixTrailingComma(_ text: String) -> String {
+    static func fixTrailingComma(_ text: String) -> String {
         var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if result.hasSuffix(",") {
             result = String(result.dropLast()) + "."
@@ -336,7 +336,7 @@ actor TranscriptionPipeline {
     }
 
     /// Add a period at the end if there's no ending punctuation
-    private static func ensureEndingPunctuation(_ text: String) -> String {
+    static func ensureEndingPunctuation(_ text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return text }
         let lastChar = trimmed.last!
@@ -347,7 +347,7 @@ actor TranscriptionPipeline {
     }
 
     /// Smart symbol replacement: "percent" → "%", "dollar" → "$", "at sign" → "@"
-    private static func smartSymbols(_ text: String) -> String {
+    static func smartSymbols(_ text: String) -> String {
         var result = text
 
         // Number + "percent" → number + "%"  (e.g. "50 percent" → "50%")
@@ -386,7 +386,7 @@ actor TranscriptionPipeline {
 
     /// Strip the leading apostrophe Whisper adds to the contraction of "because":
     /// "'cause" → "cause" (handles straight and curly apostrophes, preserves casing).
-    private static func normalizeCause(_ text: String) -> String {
+    static func normalizeCause(_ text: String) -> String {
         // (^|non-word) + apostrophe + "cause" word → drop the apostrophe, keep the boundary and word.
         guard let regex = try? NSRegularExpression(
             pattern: "(^|[^A-Za-z'\u{2019}])['\u{2019}](causes?)\\b",
@@ -434,7 +434,7 @@ actor TranscriptionPipeline {
 
     /// Parse a contiguous run of number words ("twenty five", "one hundred five") into an Int.
     /// Returns nil if any token isn't recognized. `allowOh` enables "oh" → 0 for decimal contexts.
-    private static func parseNumberRun(_ run: String, allowOh: Bool = false) -> Int? {
+    static func parseNumberRun(_ run: String, allowOh: Bool = false) -> Int? {
         let words = run.lowercased()
             .replacingOccurrences(of: "-", with: " ")
             .split(separator: " ")
@@ -467,7 +467,7 @@ actor TranscriptionPipeline {
 
     /// Rewrite "X point Y [point Z]" dictation as "X.Y[.Z]" (versions, decimals).
     /// "four point zero point two" → "4.0.2"; "ten point five" → "10.5".
-    private static func normalizeDecimalDictation(_ text: String) -> String {
+    static func normalizeDecimalDictation(_ text: String) -> String {
         let word = decimalWordPattern
         let chunk = "(?:\(word))(?:[\\s-]+(?:\(word)))*"
         let pattern = "\\b\(chunk)(?:\\s+point\\s+\(chunk))+\\b"
@@ -513,7 +513,7 @@ actor TranscriptionPipeline {
 
     /// AP style: spelled numbers ≥10 → digits, 1–9 stay spelled. Existing digits untouched.
     /// "twenty-five years" → "25 years"; "five apples" stays; "one hundred five" → "105".
-    private static func normalizeNumberWords(_ text: String) -> String {
+    static func normalizeNumberWords(_ text: String) -> String {
         let word = numberWordPattern
         let pattern = "\\b(?:\(word))(?:[\\s-]+(?:\(word)))*\\b"
 
@@ -537,7 +537,7 @@ actor TranscriptionPipeline {
     }
 
     /// "st"/"nd"/"rd"/"th" suffix for an ordinal value (11–13 are always "th").
-    private static func ordinalSuffix(_ n: Int) -> String {
+    static func ordinalSuffix(_ n: Int) -> String {
         if (11...13).contains(n % 100) { return "th" }
         switch n % 10 {
         case 1: return "st"
@@ -550,7 +550,7 @@ actor TranscriptionPipeline {
     /// Parse a run whose final token is an ordinal word into (value, suffix).
     /// Prefix tokens may be number words, digits, or "and": "twenty fifth" → (25, "th"),
     /// "one hundred and fifth" → (105, "th"), "20 fifth" → (25, "th").
-    private static func parseOrdinalRun(_ run: String) -> (value: Int, suffix: String)? {
+    static func parseOrdinalRun(_ run: String) -> (value: Int, suffix: String)? {
         let tokens = run.lowercased()
             .replacingOccurrences(of: "-", with: " ")
             .split(separator: " ")
@@ -591,7 +591,7 @@ actor TranscriptionPipeline {
 
     /// Spelled-out ordinals → figures: "fifth" → "5th", "twenty fifth" → "25th".
     /// Plurals ("two fifths", "ten seconds") are skipped via word boundaries.
-    private static func normalizeOrdinals(_ text: String) -> String {
+    static func normalizeOrdinals(_ text: String) -> String {
         let numTok = "(?:\(numberWordPattern)|and|\\d+)"
         let pattern = "\\b(?:\(numTok)[\\s-]+)*(?:\(ordinalWordPattern))\\b"
 
@@ -618,7 +618,7 @@ actor TranscriptionPipeline {
     /// following number/ordinal word so the run parses as one number.
     /// "one hundred and forty two" → "one hundred forty two" (→ 142).
     /// Leaves "five and ten" and already-digit text ("1100 and 42") untouched.
-    private static func stripConnectingAnd(_ text: String) -> String {
+    static func stripConnectingAnd(_ text: String) -> String {
         let lookahead = "(?:\(numberWordPattern)|\(ordinalWordPattern))"
         let pattern = "\\b(hundred|thousand|million)\\s+and\\s+(?=\(lookahead)\\b)"
 

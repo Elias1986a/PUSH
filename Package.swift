@@ -1,5 +1,13 @@
 // swift-tools-version: 6.0
+import Foundation
 import PackageDescription
+
+// Sparkle is a binary xcframework; SPM links it via @rpath but doesn't embed it
+// in the test bundle, so `swift test` needs an rpath to the resolved artifact.
+let sparkleArtifactPath = URL(fileURLWithPath: #filePath)
+    .deletingLastPathComponent()
+    .appendingPathComponent(".build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64")
+    .path
 
 let package = Package(
     name: "PUSH",
@@ -66,6 +74,17 @@ let package = Package(
                     "-Xlinker", "-force_load",
                     "-Xlinker", ".build/artifacts/moonshine-swift/Moonshine/Moonshine.xcframework/macos-arm64_x86_64/libmoonshine.a"
                 ])
+            ]
+        ),
+        .testTarget(
+            name: "PUSHTests",
+            dependencies: ["PUSH"],
+            path: "Tests/PUSHTests",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ],
+            linkerSettings: [
+                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", sparkleArtifactPath])
             ]
         )
     ]
