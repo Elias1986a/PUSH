@@ -22,18 +22,23 @@ struct MenuBarView: View {
             }
 
             // Hotkey info - dynamically show selected hotkey
-            HStack {
-                Text("Hold")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                Text(appState.selectedHotkey.displayName)
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.secondary.opacity(0.2))
-                    .cornerRadius(4)
-                Text("to speak")
-                    .font(.system(size: 11))
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Hold")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    Text(appState.selectedHotkey.displayName)
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.secondary.opacity(0.2))
+                        .cornerRadius(4)
+                    Text("to speak")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                Text("Press ⎋ Esc to cancel a recording")
+                    .font(.system(size: 10))
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 12)

@@ -54,6 +54,14 @@ struct GeneralSettingsView: View {
 
                 Toggle("Enable hotkey", isOn: $appState.hotkeyEnabled)
                 Toggle("Play sound when recording starts", isOn: $appState.playSoundOnStart)
+
+                Text("Press Esc while recording to cancel without inserting text.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section("Formatting") {
+                Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
             }
 
             Section("Wake Word (Hands-Free Mode)") {
@@ -498,7 +506,7 @@ struct AboutView: View {
 
             Spacer()
 
-            Text("Hold \(appState.selectedHotkey.displayName) to speak")
+            Text("Hold \(appState.selectedHotkey.displayName) to speak · Esc to cancel")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

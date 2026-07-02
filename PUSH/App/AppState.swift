@@ -14,6 +14,7 @@ class AppState: ObservableObject {
         static let playSoundOnStart = "playSoundOnStart"
         static let wakeWordEnabled = "wakeWordEnabled"
         static let wakeWord = "wakeWord"
+        static let doubleSpaceAfterSentence = "doubleSpaceAfterSentence"
     }
 
     // MARK: - Published State
@@ -79,6 +80,14 @@ class AppState: ObservableObject {
     @Published var wakeWord: String = "push" {
         didSet {
             UserDefaults.standard.set(wakeWord, forKey: UserDefaultsKeys.wakeWord)
+        }
+    }
+
+    /// Typographic preference: two spaces after sentence-ending punctuation.
+    /// Defaults to true to preserve the app's historical behavior.
+    @Published var doubleSpaceAfterSentence: Bool = true {
+        didSet {
+            UserDefaults.standard.set(doubleSpaceAfterSentence, forKey: UserDefaultsKeys.doubleSpaceAfterSentence)
         }
     }
 
@@ -219,6 +228,11 @@ class AppState: ObservableObject {
 
         // Load sound preference from UserDefaults
         self.playSoundOnStart = UserDefaults.standard.bool(forKey: UserDefaultsKeys.playSoundOnStart)
+
+        // Load formatting preference (default true when never set)
+        if UserDefaults.standard.object(forKey: UserDefaultsKeys.doubleSpaceAfterSentence) != nil {
+            self.doubleSpaceAfterSentence = UserDefaults.standard.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence)
+        }
 
         // Load wake word settings from UserDefaults
         self.wakeWordEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.wakeWordEnabled)

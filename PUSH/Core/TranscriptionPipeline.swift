@@ -123,18 +123,16 @@ actor TranscriptionPipeline {
             // Post-processing pipeline varies by model capability:
             // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.
-            let formattedText: String
+            var formattedText: String
             if activeModel.hasNativePunctuation {
                 // Reduced pipeline: filler/stutter removal, number normalization, smart symbols
-                formattedText = Self.doubleSpaceAfterPeriods(
-                    Self.smartSymbols(
-                        Self.normalizeNumberWords(
-                            Self.normalizeDecimalDictation(
-                                Self.normalizeOrdinals(
-                                    Self.stripConnectingAnd(
-                                        Self.removeStutteredWords(
-                                            Self.removeFillerWords(Self.normalizeCause(filteredText))
-                                        )
+                formattedText = Self.smartSymbols(
+                    Self.normalizeNumberWords(
+                        Self.normalizeDecimalDictation(
+                            Self.normalizeOrdinals(
+                                Self.stripConnectingAnd(
+                                    Self.removeStutteredWords(
+                                        Self.removeFillerWords(Self.normalizeCause(filteredText))
                                     )
                                 )
                             )
@@ -143,20 +141,18 @@ actor TranscriptionPipeline {
                 )
             } else {
                 // Full pipeline for Whisper/Moonshine models
-                formattedText = Self.doubleSpaceAfterPeriods(
-                    Self.capitalizeI(
-                        Self.fixCapitalization(
-                            Self.smartSymbols(
-                                Self.fixQuestionMarks(
-                                    Self.ensureEndingPunctuation(
-                                        Self.fixTrailingComma(
-                                            Self.normalizeNumberWords(
-                                                Self.normalizeDecimalDictation(
-                                                    Self.normalizeOrdinals(
-                                                        Self.stripConnectingAnd(
-                                                            Self.removeStutteredWords(
-                                                                Self.removeFillerWords(Self.normalizeCause(filteredText))
-                                                            )
+                formattedText = Self.capitalizeI(
+                    Self.fixCapitalization(
+                        Self.smartSymbols(
+                            Self.fixQuestionMarks(
+                                Self.ensureEndingPunctuation(
+                                    Self.fixTrailingComma(
+                                        Self.normalizeNumberWords(
+                                            Self.normalizeDecimalDictation(
+                                                Self.normalizeOrdinals(
+                                                    Self.stripConnectingAnd(
+                                                        Self.removeStutteredWords(
+                                                            Self.removeFillerWords(Self.normalizeCause(filteredText))
                                                         )
                                                     )
                                                 )
@@ -170,10 +166,16 @@ actor TranscriptionPipeline {
                 )
             }
 
+            // Typographic preference — off by request via Settings → General.
+            if await MainActor.run(body: { AppState.shared.doubleSpaceAfterSentence }) {
+                formattedText = Self.doubleSpaceAfterPeriods(formattedText)
+            }
+
             // Step 2: Inject into active text field
             PushLogger.log("TranscriptionPipeline: Injecting text...")
+            let textToInject = formattedText
             await MainActor.run {
-                TextInjector.shared.insertText(formattedText)
+                TextInjector.shared.insertText(textToInject)
             }
 
             PushLogger.log("TranscriptionPipeline: ✅ Text injected successfully")
@@ -223,11 +225,12 @@ actor TranscriptionPipeline {
         return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "I")
     }
 
-    /// Add double space after sentence-ending punctuation (. ? !)
+    /// Add double space after sentence-ending punctuation (. ? !).
+    /// Note: this can't distinguish abbreviations ("Dr. Smith" also gets two
+    /// spaces), which is part of why it's user-toggleable.
     static func doubleSpaceAfterPeriods(_ text: String) -> String {
         var result = text
         // Replace single space after sentence-ending punctuation with double space
-        // But don't touch ellipsis (...) or abbreviations like "Dr." followed by a name
         for punct in [".", "?", "!"] {
             result = result.replacingOccurrences(of: "\(punct) ", with: "\(punct)  ")
             // Fix triple+ spaces back to double (in case already double-spaced)
