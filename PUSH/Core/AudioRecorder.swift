@@ -16,6 +16,12 @@ final class AudioRecorder: @unchecked Sendable {
 
     private let sileroVAD = SileroVAD.shared
 
+    // Ordered hand-off from the realtime tap thread to the main actor. An
+    // AsyncStream preserves FIFO order; spawning one Task per buffer does not,
+    // which could interleave chunks and garble the recording.
+    private var sampleContinuation: AsyncStream<[Float]>.Continuation?
+    private var drainTask: Task<Void, Never>?
+
     // Callback for VAD-triggered stop
     var onSilenceDetected: (() -> Void)?
 
@@ -46,19 +52,23 @@ final class AudioRecorder: @unchecked Sendable {
 
         let converter = AVAudioConverter(from: inputFormat, to: outputFormat)
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
-            guard let self = self else { return }
-
-            if let converter = converter {
-                let convertedBuffer = self.convert(buffer: buffer, converter: converter, outputFormat: outputFormat)
-                Task { @MainActor in
-                    self.appendBuffer(convertedBuffer ?? buffer)
-                }
-            } else {
-                Task { @MainActor in
-                    self.appendBuffer(buffer)
-                }
+        let (stream, continuation) = AsyncStream.makeStream(of: [Float].self)
+        sampleContinuation = continuation
+        drainTask = Task { [weak self] in
+            for await samples in stream {
+                guard let self else { return }
+                self.audioData?.append(samples.withUnsafeBufferPointer { Data(buffer: $0) })
+                await self.sileroVAD.processSamples(samples)
             }
+        }
+
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { buffer, _ in
+            let source = converter.flatMap {
+                Self.convert(buffer: buffer, converter: $0, outputFormat: outputFormat)
+            } ?? buffer
+            guard let channelData = source.floatChannelData else { return }
+            let samples = Array(UnsafeBufferPointer(start: channelData[0], count: Int(source.frameLength)))
+            continuation.yield(samples)
         }
 
         do {
@@ -80,16 +90,25 @@ final class AudioRecorder: @unchecked Sendable {
             PushLogger.log("AudioRecorder: Started recording\(withVAD ? " with auto-stop VAD" : "")")
         } catch {
             PushLogger.log("AudioRecorder: Failed to start engine: \(error)")
+            continuation.finish()
+            sampleContinuation = nil
+            drainTask = nil
         }
     }
 
-    func stopRecording() -> Data? {
+    func stopRecording() async -> Data? {
         guard isRecording else { return nil }
 
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
         audioEngine = nil
         isRecording = false
+
+        // Drain buffered samples so the tail of speech isn't dropped.
+        sampleContinuation?.finish()
+        sampleContinuation = nil
+        await drainTask?.value
+        drainTask = nil
 
         let result = audioData
         audioData = nil
@@ -100,7 +119,7 @@ final class AudioRecorder: @unchecked Sendable {
 
     // MARK: - Private
 
-    private func convert(
+    private nonisolated static func convert(
         buffer: AVAudioPCMBuffer,
         converter: AVAudioConverter,
         outputFormat: AVAudioFormat
@@ -129,82 +148,5 @@ final class AudioRecorder: @unchecked Sendable {
         }
 
         return outputBuffer
-    }
-
-    private func appendBuffer(_ buffer: AVAudioPCMBuffer) {
-        guard let channelData = buffer.floatChannelData else { return }
-
-        let frameLength = Int(buffer.frameLength)
-        let data = Data(bytes: channelData[0], count: frameLength * MemoryLayout<Float>.size)
-
-        let floats = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
-        Task { await sileroVAD.processSamples(floats) }
-
-        audioData?.append(data)
-    }
-}
-
-// MARK: - Audio Data Conversion Helpers
-
-extension AudioRecorder {
-    /// Convert Float32 audio data to Int16 for Whisper
-    static func convertToInt16(_ floatData: Data) -> Data {
-        let floatCount = floatData.count / MemoryLayout<Float>.size
-        var int16Data = Data(count: floatCount * MemoryLayout<Int16>.size)
-
-        floatData.withUnsafeBytes { floatBuffer in
-            int16Data.withUnsafeMutableBytes { int16Buffer in
-                let floats = floatBuffer.bindMemory(to: Float.self)
-                let int16s = int16Buffer.bindMemory(to: Int16.self)
-
-                for i in 0..<floatCount {
-                    let clamped = max(-1.0, min(1.0, floats[i]))
-                    int16s[i] = Int16(clamped * Float(Int16.max))
-                }
-            }
-        }
-
-        return int16Data
-    }
-
-    /// Save audio data to a WAV file (for debugging)
-    static func saveToWAV(_ data: Data, sampleRate: Int = 16000) -> URL? {
-#if DEBUG
-        let tempDir = FileManager.default.temporaryDirectory
-        let fileURL = tempDir.appendingPathComponent("recording_\(Date().timeIntervalSince1970).wav")
-
-        var header = Data()
-        let dataSize = UInt32(data.count)
-        let fileSize = dataSize + 36
-
-        header.append(contentsOf: "RIFF".utf8)
-        header.append(contentsOf: withUnsafeBytes(of: fileSize.littleEndian) { Array($0) })
-        header.append(contentsOf: "WAVE".utf8)
-
-        header.append(contentsOf: "fmt ".utf8)
-        header.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Array($0) })
-        header.append(contentsOf: withUnsafeBytes(of: UInt16(3).littleEndian) { Array($0) })
-        header.append(contentsOf: withUnsafeBytes(of: UInt16(1).littleEndian) { Array($0) })
-        header.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate).littleEndian) { Array($0) })
-        header.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate * 4).littleEndian) { Array($0) })
-        header.append(contentsOf: withUnsafeBytes(of: UInt16(4).littleEndian) { Array($0) })
-        header.append(contentsOf: withUnsafeBytes(of: UInt16(32).littleEndian) { Array($0) })
-
-        header.append(contentsOf: "data".utf8)
-        header.append(contentsOf: withUnsafeBytes(of: dataSize.littleEndian) { Array($0) })
-
-        var wavData = header
-        wavData.append(data)
-
-        do {
-            try wavData.write(to: fileURL)
-            return fileURL
-        } catch {
-            PushLogger.log("AudioRecorder: Failed to save WAV: \(error)")
-            return nil
-        }
-#else
-        return nil
-#endif
     }
 }

@@ -317,7 +317,7 @@ final class HotkeyManager: @unchecked Sendable {
             PushLogger.log("HotkeyManager: Set state to processing")
 
             // Stop recording and process
-            let audioData = AudioRecorder.shared.stopRecording()
+            let audioData = await AudioRecorder.shared.stopRecording()
 
             // Skip transcription if Silero VAD detected no speech — prevents
             // ambient noise and accidental key presses from producing random words.
@@ -356,7 +356,7 @@ final class HotkeyManager: @unchecked Sendable {
 
         Task { @MainActor in
             // Stop recording and discard audio
-            _ = AudioRecorder.shared.stopRecording()
+            _ = await AudioRecorder.shared.stopRecording()
 
             // Reset state
             isRightOptionPressed = false
@@ -423,7 +423,7 @@ final class HotkeyManager: @unchecked Sendable {
             AppState.shared.statusMessage = "Processing..."
 
             // Stop recording and process
-            let audioData = AudioRecorder.shared.stopRecording()
+            let audioData = await AudioRecorder.shared.stopRecording()
             PushLogger.log("HotkeyManager: VAD stop - Got audio data: \(audioData?.count ?? 0) bytes")
 
             if let data = audioData {
