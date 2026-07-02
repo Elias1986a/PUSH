@@ -78,20 +78,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.ignoresMouseEvents = true
         window.isFloatingPanel = true
 
-        // Position at bottom center of main screen
-        if let screen = NSScreen.main {
-            let screenFrame = screen.visibleFrame
-            // Force a layout to get the actual window size
-            hostingController.view.layoutSubtreeIfNeeded()
-            let windowSize = hostingController.view.fittingSize
-            window.setContentSize(windowSize)
-
-            let x = screenFrame.midX - windowSize.width / 2
-            let y = screenFrame.minY + 10  // 10px from bottom
-            window.setFrameOrigin(NSPoint(x: x, y: y))
-        }
+        // Force a layout to get the actual window size
+        hostingController.view.layoutSubtreeIfNeeded()
+        window.setContentSize(hostingController.view.fittingSize)
 
         self.pillWindow = window
+        positionPillWindow()
 
         // Observe app state to show/hide pill
         NotificationCenter.default.addObserver(
@@ -100,12 +92,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: .appStateDidChange,
             object: nil
         )
+        // Reposition when displays are added/removed/rearranged
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenLayoutChanged),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+    }
+
+    /// Bottom-center of the screen the pointer is on — dictation happens where
+    /// the user is working, which isn't necessarily the launch-time main screen.
+    private func positionPillWindow() {
+        guard let window = pillWindow else { return }
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
+            ?? NSScreen.main ?? NSScreen.screens.first
+        guard let screenFrame = screen?.visibleFrame else { return }
+        let windowSize = window.frame.size
+        let x = screenFrame.midX - windowSize.width / 2
+        let y = screenFrame.minY + 10  // 10px from bottom
+        window.setFrameOrigin(NSPoint(x: x, y: y))
+    }
+
+    @objc private func screenLayoutChanged() {
+        DispatchQueue.main.async {
+            self.positionPillWindow()
+        }
     }
 
     @objc private func updatePillVisibility() {
         DispatchQueue.main.async {
             let state = AppState.shared
             if state.isListening || state.isProcessing || !state.isModelReady || state.isWarmingUp {
+                // Re-anchor only when appearing, so the pill doesn't jump
+                // screens mid-dictation if the pointer moves.
+                if !(self.pillWindow?.isVisible ?? false) {
+                    self.positionPillWindow()
+                }
                 self.pillWindow?.orderFront(nil)
             } else {
                 self.pillWindow?.orderOut(nil)
