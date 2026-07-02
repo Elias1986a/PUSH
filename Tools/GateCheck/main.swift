@@ -26,11 +26,13 @@ func userMsg(_ sentence: String, _ cands: [String]) -> String {
     return l.joined(separator: "\n")
 }
 
-func messages(_ sentence: String, _ cands: [String]) -> [(role: String, content: String)] {
-    var m: [(role: String, content: String)] = [("system", system)]
-    for (u, a) in fewShot { m.append(("user", u)); m.append(("assistant", a)) }
-    m.append(("user", userMsg(sentence, cands)))
-    return m
+func rawChatML(_ userQ: String) -> String {
+    var s = "<|im_start|>system\n\(system)<|im_end|>\n"
+    for (u, a) in fewShot {
+        s += "<|im_start|>user\n\(u)<|im_end|>\n<|im_start|>assistant\n\(a)<|im_end|>\n"
+    }
+    s += "<|im_start|>user\n\(userQ)<|im_end|>\n<|im_start|>assistant\n"
+    return s
 }
 
 let cases: [(String, String, [String])] = [
@@ -59,24 +61,16 @@ func parse(_ out: String, _ n: Int) -> String {
     return v.joined(separator: ",")
 }
 
-let config = Configuration(topK: 5, topP: 0.9, nCTX: 2048, temperature: 0.0, maxTokenCount: 24, stopTokens: ["<|im_end|>"])
+let config = Configuration(topK: 5, topP: 0.9, nCTX: 2048, temperature: 0.15, maxTokenCount: 24, stopTokens: ["<|im_end|>"])
 guard let llama = try? SwiftLlama(modelPath: modelPath, modelConfiguration: config) else {
     print("FAILED to load model"); exit(1)
 }
 
 func judge(_ sentence: String, _ cands: [String]) async -> (String, String) {
-    let prompt = await llama.formatChat(messages(sentence, cands), addAssistant: true)
-    do {
-        let out = try await llama.start(for: Prompt(type: .raw, userMessage: prompt))
-        return (parse(out, cands.count), out)
-    } catch {
-        return (parse("", cands.count), "<ERR: \(error)>")
-    }
+    let out = (try? await llama.start(for: Prompt(type: .raw, userMessage: rawChatML(userMsg(sentence, cands))))) ?? ""
+    return (parse(out, cands.count), out)
 }
 
-// Show the exact templated prompt once, to confirm it matches llama-server.
-let samplePrompt = await llama.formatChat(messages("I emailed Hammer today.", ["Hammer"]), addAssistant: true)
-print("=== templated prompt ===\n\(samplePrompt)\n=== end ===")
 _ = await judge("warm up", ["x"])
 
 var pass = 0

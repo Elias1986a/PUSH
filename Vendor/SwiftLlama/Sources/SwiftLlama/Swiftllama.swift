@@ -30,13 +30,6 @@ public class SwiftLlama {
         self.configuration = modelConfiguration
     }
 
-    /// PATCH: format chat messages with the model's built-in template, then feed
-    /// the result via `Prompt(type: .raw, ...)`.
-    @SwiftLlamaActor
-    public func formatChat(_ messages: [(role: String, content: String)], addAssistant: Bool = true) -> String {
-        model.applyChatTemplate(messages: messages, addAssistant: addAssistant)
-    }
-
     private func prepare(sessionSupport: Bool, for prompt: Prompt) -> Prompt {
         contentStarted = false
         generatedTokenCache = ""
