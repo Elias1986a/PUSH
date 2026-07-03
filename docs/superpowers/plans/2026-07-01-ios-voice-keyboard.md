@@ -861,6 +861,12 @@ Expected: transcribed text appears at the cursor in Notes.
 
 ---
 
+## Watch item — iOS 27 "Core AI" (not part of this plan)
+
+At WWDC 2026 Apple introduced **Core AI** (iOS/macOS 27, beta), the successor to CoreML for generative/transformer workloads. The community zoo at [john-rocky/coreai-model-zoo](https://github.com/john-rocky/coreai-model-zoo) already lists **Parakeet-TDT-0.6B (iPhone, 47.9× real-time)** and **Nemotron 3.5 streaming ASR (320 ms chunks)** on the stock runtime. Do **not** retarget this plan at it — iOS 27 ships ~Sept 2026 and requiring it would gut the install base, and Core AI changes nothing about the keyboard-extension mic block or ~48 MB jetsam limit. Revisit after Milestone 4: (a) stock-runtime Parakeet could replace the FluidAudio dependency in `PushTranscription`; (b) streaming ASR would enable live-as-you-speak insertion instead of record-then-transcribe; (c) Core AI's on-device LLM API is a candidate replacement for vendored SwiftLlama (Phase 2 gate).
+
+---
+
 ## Known failure modes (call these out during execution)
 
 - **`openURL:` responder-chain hack breaks or gets flagged (Task 4.2):** the extension→app launch relies on an undocumented responder-walk that has broken and un-broken across iOS versions and lives in App-Review-tolerated (not sanctioned) territory. Treat the fallback as a first-class design path, not an afterthought: the keyboard shows "Open PUSH to speak" guidance and relies on the warm Flow session (Milestone 5) so the user's manual app-hop is cheap. Verify the hack on the current iOS beta at execution time before building UX on top of it.
