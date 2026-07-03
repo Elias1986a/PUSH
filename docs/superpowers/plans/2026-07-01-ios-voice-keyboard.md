@@ -541,8 +541,9 @@ final class DictationController: ObservableObject {
             var err: NSError?
             converter.convert(to: out, error: &err) { _, s in s.pointee = .haveData; return pcm }
             if let ch = out.floatChannelData {
-                self?.buffer.append(UnsafeBufferPointer(start: ch[0], count: Int(out.frameLength)))
-                    // append raw Float bytes:
+                ch[0].withMemoryRebound(to: UInt8.self, capacity: Int(out.frameLength) * 4) { p in
+                    self?.buffer.append(p, count: Int(out.frameLength) * 4)
+                }
             }
         }
         try engine.start()
@@ -560,15 +561,6 @@ final class DictationController: ObservableObject {
     }
 }
 ```
-> Note for the implementer: the tap closure must append the Float32 bytes correctly. Replace the `buffer.append(UnsafeBufferPointer…)` line with:
-```swift
-if let ch = out.floatChannelData {
-    ch[0].withMemoryRebound(to: UInt8.self, capacity: Int(out.frameLength) * 4) { p in
-        self?.buffer.append(p, count: Int(out.frameLength) * 4)
-    }
-}
-```
-
 - [ ] **Step 2:** Wire a press-and-hold button in `ContentView` to `start()` / `stopAndTranscribe(...)` and display `transcript`.
 - [ ] **Step 3:** Run on device; hold, say "hello world, twenty five percent"; release.
 Expected: `Hello world, 25%.` shown (Parakeet has native punctuation ⇒ pass `hasNativePunctuation: true`).
@@ -757,8 +749,9 @@ class KeyboardViewController: UIInputViewController {
 
     @objc private func startDictation() {
         guard hasFullAccess else { micButton.setTitle("Enable Full Access", for: .normal); return }
+        // The URL open is the real trigger (Darwin notifications cannot wake a
+        // suspended app); requestDictation() only hints an already-running app.
         bridge.requestDictation()
-        // Foreground the containing app so it can access the mic.
         openContainingApp()
         micButton.setTitle("Listening… (return here)", for: .normal)
     }
@@ -870,6 +863,7 @@ Expected: transcribed text appears at the cursor in Notes.
 
 ## Known failure modes (call these out during execution)
 
+- **`openURL:` responder-chain hack breaks or gets flagged (Task 4.2):** the extension→app launch relies on an undocumented responder-walk that has broken and un-broken across iOS versions and lives in App-Review-tolerated (not sanctioned) territory. Treat the fallback as a first-class design path, not an afterthought: the keyboard shows "Open PUSH to speak" guidance and relies on the warm Flow session (Milestone 5) so the user's manual app-hop is cheap. Verify the hack on the current iOS beta at execution time before building UX on top of it.
 - **Extension jetsam:** if `PushKeyboard` ever links FluidAudio/Parakeet, it dies at ~48 MB. Keep it on `PushShared` only.
 - **Darwin notifications don't wake a suspended extension:** while the user is in the app dictating, the keyboard extension is backgrounded/suspended, so `onResult` will usually NOT fire in real time. The `viewWillAppear` → `insertPending()` check is the path that actually inserts in practice — treat the Darwin observer as a nice-to-have for the rare still-alive case, and never rely on it in tests.
 - **Dictionary-corrections regression (Task 0.4):** `CorrectionsStore.applyContextAware` runs between clean and format; deleting it compiles fine but silently kills the v5.0.0 dictionary feature. The Task 0.4 smoke test includes a correction specifically to catch this.
