@@ -127,12 +127,14 @@ actor TranscriptionPipeline {
             if activeModel.hasNativePunctuation {
                 // Reduced pipeline: filler/stutter removal, number normalization, smart symbols
                 formattedText = Self.smartSymbols(
-                    Self.normalizeNumberWords(
-                        Self.normalizeDecimalDictation(
-                            Self.normalizeOrdinals(
-                                Self.stripConnectingAnd(
-                                    Self.removeStutteredWords(
-                                        Self.removeFillerWords(Self.normalizeCause(filteredText))
+                    Self.groupThousands(
+                        Self.normalizeNumberWords(
+                            Self.normalizeDecimalDictation(
+                                Self.normalizeOrdinals(
+                                    Self.stripConnectingAnd(
+                                        Self.removeStutteredWords(
+                                            Self.removeFillerWords(Self.normalizeCause(filteredText))
+                                        )
                                     )
                                 )
                             )
@@ -147,12 +149,14 @@ actor TranscriptionPipeline {
                             Self.fixQuestionMarks(
                                 Self.ensureEndingPunctuation(
                                     Self.fixTrailingComma(
-                                        Self.normalizeNumberWords(
-                                            Self.normalizeDecimalDictation(
-                                                Self.normalizeOrdinals(
-                                                    Self.stripConnectingAnd(
-                                                        Self.removeStutteredWords(
-                                                            Self.removeFillerWords(Self.normalizeCause(filteredText))
+                                        Self.groupThousands(
+                                            Self.normalizeNumberWords(
+                                                Self.normalizeDecimalDictation(
+                                                    Self.normalizeOrdinals(
+                                                        Self.stripConnectingAnd(
+                                                            Self.removeStutteredWords(
+                                                                Self.removeFillerWords(Self.normalizeCause(filteredText))
+                                                            )
                                                         )
                                                     )
                                                 )
@@ -537,6 +541,32 @@ actor TranscriptionPipeline {
             if let value = parseNumberRun(runText), value >= 10 {
                 result.replaceSubrange(range, with: String(value))
             }
+        }
+        return result
+    }
+
+    /// Insert thousands separators into large integer runs: "30000000" → "30,000,000".
+    /// Only 5+ digit runs are grouped — 4-digit values (years, ports) are ambiguous
+    /// and stay as-is. Runs adjacent to a dot, comma, or digit (decimal fractions,
+    /// already-grouped numbers) are left untouched.
+    static func groupThousands(_ text: String) -> String {
+        let pattern = "(?<![\\d.,])\\d{5,}(?!\\d)"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
+
+        let nsText = text as NSString
+        let matches = regex.matches(in: text, options: [],
+                                    range: NSRange(location: 0, length: nsText.length))
+
+        var result = text
+        for match in matches.reversed() {
+            guard let range = Range(match.range, in: result) else { continue }
+            let digits = String(result[range])
+            var grouped = ""
+            for (i, ch) in digits.enumerated() {
+                if i > 0 && (digits.count - i) % 3 == 0 { grouped.append(",") }
+                grouped.append(ch)
+            }
+            result.replaceSubrange(range, with: grouped)
         }
         return result
     }

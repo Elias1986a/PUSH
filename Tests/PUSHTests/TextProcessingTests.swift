@@ -22,6 +22,38 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("I have 42 things"), "I have 42 things")
     }
 
+    // MARK: - Thousands grouping
+
+    func testGroupThousandsAddsCommasToLargeNumbers() {
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("30000000"), "30,000,000")
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("I owe 12345 dollars"), "I owe 12,345 dollars")
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("10000 and 250000"), "10,000 and 250,000")
+    }
+
+    func testGroupThousandsLeavesFourDigitNumbersAlone() {
+        // Years and other 4-digit values are ambiguous — don't group them.
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("in 2024 we shipped"), "in 2024 we shipped")
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("port 8080"), "port 8080")
+    }
+
+    func testGroupThousandsLeavesDecimalsAndVersionsAlone() {
+        // Fractional digits must never be grouped.
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("pi is 3.141592"), "pi is 3.141592")
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("version 4.0.2"), "version 4.0.2")
+        // But a large integer part before a decimal still groups.
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("12345.67"), "12,345.67")
+    }
+
+    func testGroupThousandsLeavesAlreadyGroupedNumbersAlone() {
+        XCTAssertEqual(TranscriptionPipeline.groupThousands("30,000,000"), "30,000,000")
+    }
+
+    func testSpokenLargeNumbersEndUpGrouped() {
+        // The full path the bug report hits: "thirty million" → digits → commas.
+        let digits = TranscriptionPipeline.normalizeNumberWords("thirty million")
+        XCTAssertEqual(TranscriptionPipeline.groupThousands(digits), "30,000,000")
+    }
+
     func testStripConnectingAnd() {
         XCTAssertEqual(
             TranscriptionPipeline.normalizeNumberWords(
