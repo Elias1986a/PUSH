@@ -53,8 +53,9 @@ final class MediaPauseController {
         guard didPauseMedia else { return }
         didPauseMedia = false
         _ = sendCommand(Self.kMRPlay)
-        // Give any work the command triggered a chance to run before we
-        // return control to the caller.
+        // No-op against the real synchronous MediaRemote bridge; exists so
+        // test doubles that record calls via a detached Task get a chance
+        // to run before assertions check them.
         await Task.yield()
     }
 
