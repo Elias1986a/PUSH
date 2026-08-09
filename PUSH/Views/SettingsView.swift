@@ -54,6 +54,7 @@ struct GeneralSettingsView: View {
 
                 Toggle("Enable hotkey", isOn: $appState.hotkeyEnabled)
                 Toggle("Play sound when recording starts", isOn: $appState.playSoundOnStart)
+                Toggle("Pause media while dictating", isOn: $appState.pauseMediaWhileDictating)
 
                 Text("Press Esc while recording to cancel without inserting text.")
                     .font(.caption)
