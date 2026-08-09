@@ -15,6 +15,7 @@ class AppState: ObservableObject {
         static let wakeWordEnabled = "wakeWordEnabled"
         static let wakeWord = "wakeWord"
         static let doubleSpaceAfterSentence = "doubleSpaceAfterSentence"
+        static let pauseMediaWhileDictating = "pauseMediaWhileDictating"
     }
 
     // MARK: - Published State
@@ -80,6 +81,16 @@ class AppState: ObservableObject {
     @Published var wakeWord: String = "push" {
         didSet {
             UserDefaults.standard.set(wakeWord, forKey: UserDefaultsKeys.wakeWord)
+        }
+    }
+
+    /// Pauses system media playback (Music, Spotify, browser video, etc.)
+    /// while recording, and resumes it afterward if we were the one that
+    /// paused it. Defaults to true — most people dictating over media want
+    /// this immediately.
+    @Published var pauseMediaWhileDictating: Bool = true {
+        didSet {
+            UserDefaults.standard.set(pauseMediaWhileDictating, forKey: UserDefaultsKeys.pauseMediaWhileDictating)
         }
     }
 
@@ -232,6 +243,11 @@ class AppState: ObservableObject {
         // Load formatting preference (default true when never set)
         if UserDefaults.standard.object(forKey: UserDefaultsKeys.doubleSpaceAfterSentence) != nil {
             self.doubleSpaceAfterSentence = UserDefaults.standard.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence)
+        }
+
+        // Load media-pause preference (default true when never set)
+        if UserDefaults.standard.object(forKey: UserDefaultsKeys.pauseMediaWhileDictating) != nil {
+            self.pauseMediaWhileDictating = UserDefaults.standard.bool(forKey: UserDefaultsKeys.pauseMediaWhileDictating)
         }
 
         // Load wake word settings from UserDefaults
