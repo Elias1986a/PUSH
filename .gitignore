@@ -62,6 +62,3 @@ ui-debug.log
 .claude/
 build.log
 dist-build/
-
-# Git worktrees
-.worktrees/
