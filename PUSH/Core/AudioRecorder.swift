@@ -75,6 +75,10 @@ final class AudioRecorder: @unchecked Sendable {
             try engine.start()
             isRecording = true
 
+            if AppState.shared.pauseMediaWhileDictating {
+                MediaPauseController.shared.pauseIfPlaying()
+            }
+
             // Always run Silero VAD: gates transcription in hotkey mode,
             // auto-stops recording in wake word mode.
             Task {
@@ -98,6 +102,8 @@ final class AudioRecorder: @unchecked Sendable {
 
     func stopRecording() async -> Data? {
         guard isRecording else { return nil }
+
+        await MediaPauseController.shared.resumeIfWePaused()
 
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
