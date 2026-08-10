@@ -48,11 +48,13 @@ class AppState: ObservableObject {
     /// The model actually loaded and serving transcriptions. Differs from
     /// `selectedWhisperModel` (the persisted preference) while a newly selected
     /// model downloads/loads — dictation keeps using this one until the swap.
-    @Published var activeModel: WhisperModel = .small
+    @Published var activeModel: WhisperModel = .parakeetV2
 
     @Published var statusMessage: String = "Ready"
 
-    @Published var selectedWhisperModel: WhisperModel = .small {
+    /// Parakeet is the default for fresh installs: it's faster to load and
+    /// avoids the whisper-small activation hang seen on macOS 26/27.
+    @Published var selectedWhisperModel: WhisperModel = .parakeetV2 {
         didSet {
             UserDefaults.standard.set(selectedWhisperModel.rawValue, forKey: UserDefaultsKeys.selectedWhisperModel)
         }
