@@ -60,9 +60,7 @@ struct GeneralSettingsView: View {
                     }
                 }
 
-                Text(appState.mediaBehavior == .pause
-                     ? "Sends the play/pause key, so it depends on the app responding to media keys."
-                     : "Lowers output volume while recording, then restores it.")
+                Text("Lowers output volume while recording, then restores it.")
                     .font(.caption)
                     .foregroundColor(.secondary)
 

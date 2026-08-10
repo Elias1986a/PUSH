@@ -2,9 +2,16 @@ import Foundation
 import CoreAudio
 
 /// What PUSH does to other apps' audio while you dictate.
+///
+/// A `.pause` case existed in 6.0.0 and was removed: macOS gives a third-party
+/// app no reliable way to know whether audio is actually playing (MediaRemote
+/// is gated to Apple-signed processes; a held output stream doesn't
+/// distinguish playing from paused), and the play/pause media key is a blind
+/// toggle. In practice it un-paused media the user had deliberately paused,
+/// and with nothing playing macOS routed the key to Music.app and launched it.
+/// Ducking needs no knowledge of other apps' state, so it can't fail that way.
 enum MediaBehavior: String, CaseIterable, Identifiable {
     case off
-    case pause
     case duck
 
     var id: String { rawValue }
@@ -12,7 +19,6 @@ enum MediaBehavior: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .off: return "Do nothing"
-        case .pause: return "Pause media"
         case .duck: return "Lower volume"
         }
     }
@@ -20,10 +26,7 @@ enum MediaBehavior: String, CaseIterable, Identifiable {
 
 /// Quiets other apps' audio for the duration of a dictation, then restores it.
 ///
-/// Two strategies, both verified to work from a Developer ID-signed app:
-/// - `.pause` posts a play/pause media key. It's a *toggle*, so it is sent
-///   symmetrically and only when some app holds an audio stream.
-/// - `.duck` lowers the default output device's volume and restores it.
+/// `.duck` lowers the default output device's volume and restores it after.
 ///
 /// Dependencies are injected so the decision logic is testable without
 /// touching real audio hardware.
@@ -39,8 +42,6 @@ final class MediaController {
     /// user's volume restored at next launch instead of being left quiet.
     private static let interruptedDuckKey = "mediaControllerDuckedVolume"
 
-    private let isAnythingPlaying: () -> Bool
-    private let postPlayPauseKey: () -> Void
     private let currentVolume: () -> Float32?
     private let setVolume: (Float32) -> Void
     private let defaults: UserDefaults
@@ -51,14 +52,11 @@ final class MediaController {
     private var activeIntervention: Intervention?
 
     private enum Intervention {
-        case paused
         case ducked(originalVolume: Float32)
     }
 
     convenience init() {
         self.init(
-            isAnythingPlaying: { SystemAudio.isAnythingPlaying() },
-            postPlayPauseKey: { SystemAudio.postPlayPauseKey() },
             currentVolume: {
                 guard let device = SystemAudio.defaultOutputDevice() else { return nil }
                 return SystemAudio.outputVolume(device)
@@ -71,13 +69,9 @@ final class MediaController {
         )
     }
 
-    init(isAnythingPlaying: @escaping () -> Bool,
-         postPlayPauseKey: @escaping () -> Void,
-         currentVolume: @escaping () -> Float32?,
+    init(currentVolume: @escaping () -> Float32?,
          setVolume: @escaping (Float32) -> Void,
          defaults: UserDefaults) {
-        self.isAnythingPlaying = isAnythingPlaying
-        self.postPlayPauseKey = postPlayPauseKey
         self.currentVolume = currentVolume
         self.setVolume = setVolume
         self.defaults = defaults
@@ -93,18 +87,6 @@ final class MediaController {
         switch behavior {
         case .off:
             return
-
-        case .pause:
-            // The media key is a blind toggle: sending it with nothing loaded
-            // would *start* playback. Only send it when some app actually
-            // holds an audio stream.
-            guard isAnythingPlaying() else {
-                PushLogger.log("MediaController: nothing playing, not pausing")
-                return
-            }
-            postPlayPauseKey()
-            activeIntervention = .paused
-            PushLogger.log("MediaController: sent play/pause (pause)")
 
         case .duck:
             guard let original = currentVolume(), original > 0 else {
@@ -125,10 +107,6 @@ final class MediaController {
         activeIntervention = nil
 
         switch intervention {
-        case .paused:
-            postPlayPauseKey()
-            PushLogger.log("MediaController: sent play/pause (resume)")
-
         case .ducked(let originalVolume):
             setVolume(originalVolume)
             defaults.removeObject(forKey: Self.interruptedDuckKey)
@@ -137,9 +115,7 @@ final class MediaController {
     }
 
     /// Restores volume left ducked by a previous run that died mid-dictation.
-    /// Call once at launch. (The pause strategy needs no equivalent: a missed
-    /// resume leaves media paused, which is recoverable by the user and never
-    /// leaves the machine in a confusing state the way silent audio does.)
+    /// Call once at launch.
     func restoreVolumeIfInterrupted() {
         guard let stored = defaults.object(forKey: Self.interruptedDuckKey) as? Float32 ??
                 (defaults.object(forKey: Self.interruptedDuckKey) as? Double).map(Float32.init) else { return }

@@ -9,8 +9,6 @@ final class MediaControllerTests: XCTestCase {
 
     @MainActor
     private final class Harness {
-        var playing = false
-        var keyPresses = 0
         var volume: Float32? = 0.8
         var volumeWrites: [Float32] = []
         let defaults: UserDefaults
@@ -22,8 +20,6 @@ final class MediaControllerTests: XCTestCase {
 
         func makeController() -> MediaController {
             MediaController(
-                isAnythingPlaying: { self.playing },
-                postPlayPauseKey: { self.keyPresses += 1 },
                 currentVolume: { self.volume },
                 setVolume: { value in
                     self.volume = value
@@ -36,67 +32,6 @@ final class MediaControllerTests: XCTestCase {
 
     private func makeHarness(_ name: String = #function) -> Harness {
         Harness(suiteName: "MediaControllerTests.\(name)")
-    }
-
-    // MARK: - Pause strategy
-
-    func testPause_whenSomethingIsPlaying_sendsKeyOnceEachWay() {
-        let harness = makeHarness()
-        harness.playing = true
-        let controller = harness.makeController()
-
-        controller.beginDictation(behavior: .pause)
-        XCTAssertEqual(harness.keyPresses, 1)
-
-        controller.endDictation()
-        XCTAssertEqual(harness.keyPresses, 2, "must toggle back so playback ends as it started")
-    }
-
-    /// The key is a blind toggle — sending it while nothing holds an audio
-    /// stream would START playback the user never asked for.
-    func testPause_whenNothingIsPlaying_sendsNothing() {
-        let harness = makeHarness()
-        harness.playing = false
-        let controller = harness.makeController()
-
-        controller.beginDictation(behavior: .pause)
-        controller.endDictation()
-
-        XCTAssertEqual(harness.keyPresses, 0)
-    }
-
-    func testPause_endWithoutBegin_doesNothing() {
-        let harness = makeHarness()
-        harness.playing = true
-        let controller = harness.makeController()
-
-        controller.endDictation()
-
-        XCTAssertEqual(harness.keyPresses, 0)
-    }
-
-    func testPause_doubleEnd_onlyRestoresOnce() {
-        let harness = makeHarness()
-        harness.playing = true
-        let controller = harness.makeController()
-
-        controller.beginDictation(behavior: .pause)
-        controller.endDictation()
-        controller.endDictation()
-
-        XCTAssertEqual(harness.keyPresses, 2)
-    }
-
-    /// Two rapid begins (e.g. a stop path racing a start) must not double-toggle.
-    func testPause_doubleBegin_onlySendsOnce() {
-        let harness = makeHarness()
-        harness.playing = true
-        let controller = harness.makeController()
-
-        controller.beginDictation(behavior: .pause)
-        controller.beginDictation(behavior: .pause)
-
-        XCTAssertEqual(harness.keyPresses, 1)
     }
 
     // MARK: - Duck strategy
@@ -134,17 +69,49 @@ final class MediaControllerTests: XCTestCase {
         XCTAssertTrue(harness.volumeWrites.isEmpty)
     }
 
+    func testDuck_doubleBegin_onlyDucksOnce() {
+        let harness = makeHarness()
+        harness.volume = 0.8
+        let controller = harness.makeController()
+
+        controller.beginDictation(behavior: .duck)
+        controller.beginDictation(behavior: .duck)
+
+        XCTAssertEqual(harness.volumeWrites.count, 1, "second begin must not re-duck an already-ducked volume")
+        XCTAssertEqual(harness.volume ?? -1, 0.2, accuracy: 0.0001)
+    }
+
+    func testDuck_doubleEnd_onlyRestoresOnce() {
+        let harness = makeHarness()
+        harness.volume = 0.8
+        let controller = harness.makeController()
+
+        controller.beginDictation(behavior: .duck)
+        controller.endDictation()
+        harness.volumeWrites.removeAll()
+        controller.endDictation()
+
+        XCTAssertTrue(harness.volumeWrites.isEmpty)
+    }
+
+    func testEndWithoutBegin_doesNothing() {
+        let harness = makeHarness()
+        let controller = harness.makeController()
+
+        controller.endDictation()
+
+        XCTAssertTrue(harness.volumeWrites.isEmpty)
+    }
+
     // MARK: - Off
 
     func testOff_touchesNothing() {
         let harness = makeHarness()
-        harness.playing = true
         let controller = harness.makeController()
 
         controller.beginDictation(behavior: .off)
         controller.endDictation()
 
-        XCTAssertEqual(harness.keyPresses, 0)
         XCTAssertTrue(harness.volumeWrites.isEmpty)
     }
 
