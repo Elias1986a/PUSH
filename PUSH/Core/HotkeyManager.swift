@@ -279,9 +279,16 @@ final class HotkeyManager: @unchecked Sendable {
     private func handleKeyDown() {
         PushLogger.log("HotkeyManager: handleKeyDown called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled), modelReady=\(AppState.shared.isModelReady)")
         guard AppState.shared.hotkeyEnabled else { return }
-        guard AppState.shared.isModelReady else {
-            PushLogger.log("HotkeyManager: Model not ready yet, ignoring hotkey")
+        // Recording does not need the model — only transcription does. Start
+        // capturing immediately rather than silently swallowing the press
+        // during startup; the engine finishes loading long before the user
+        // stops talking, and the pipeline loads it on demand regardless.
+        guard !AppState.shared.modelUnavailable else {
+            PushLogger.log("HotkeyManager: No model available, ignoring hotkey")
             return
+        }
+        if !AppState.shared.isModelReady {
+            PushLogger.log("HotkeyManager: Model still loading — recording ahead of it")
         }
 
         isCurrentlyRecording = true

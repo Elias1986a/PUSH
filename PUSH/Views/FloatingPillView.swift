@@ -76,12 +76,14 @@ struct FloatingPillView: View {
     private var baseStatusText: String {
         if appState.modelUnavailable {
             return "Model unavailable"
-        } else if !appState.isModelReady {
-            return "Loading model..."
+        } else if appState.isListening {
+            // Recording can start before the model is ready, so "Listening"
+            // takes precedence — the mic really is capturing.
+            return "Listening"
         } else if appState.isProcessing {
             return "Processing..."
-        } else if appState.isListening {
-            return "Listening"
+        } else if !appState.isModelReady {
+            return "Loading model..."
         } else if appState.isWarmingUp {
             // Model is usable; shaders are still warming in the background.
             return "Warming up..."
