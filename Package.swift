@@ -25,7 +25,7 @@ let package = Package(
         .package(url: "https://github.com/moonshine-ai/moonshine-swift.git", from: "0.0.48"),
 
         // FluidAudio for Parakeet TDT v2 speech-to-text (CoreML/ANE)
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.13.6"),
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.15.5"),
 
         // Qwen3-ASR speech-to-text (MLX + CoreML hybrid)
         // TODO: Re-enable once MLX metallib bundling is resolved

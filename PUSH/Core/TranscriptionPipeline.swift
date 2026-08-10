@@ -30,6 +30,8 @@ actor TranscriptionPipeline {
             return try await MoonshineEngine.shared.transcribe(audioData: audioData)
         case .parakeet:
             return try await ParakeetEngine.shared.transcribe(audioData: audioData)
+        case .parakeetUnified:
+            return try await ParakeetUnifiedEngine.shared.transcribe(audioData: audioData)
         case .whisperKit:
             return try await WhisperEngine.shared.transcribe(audioData: audioData)
         }

@@ -48,13 +48,17 @@ class AppState: ObservableObject {
     /// The model actually loaded and serving transcriptions. Differs from
     /// `selectedWhisperModel` (the persisted preference) while a newly selected
     /// model downloads/loads — dictation keeps using this one until the swap.
-    @Published var activeModel: WhisperModel = .parakeetV2
+    @Published var activeModel: WhisperModel = .parakeetUnified
 
     @Published var statusMessage: String = "Ready"
 
-    /// Parakeet is the default for fresh installs: it's faster to load and
-    /// avoids the whisper-small activation hang seen on macOS 26/27.
-    @Published var selectedWhisperModel: WhisperModel = .parakeetV2 {
+    /// Parakeet Unified is the default for fresh installs. Chosen over TDT v2
+    /// after an A/B on real dictation: v2 is ~2.4x faster (0.20s vs 0.49s on
+    /// ~28s of audio) but produced word errors in both takes ("scripped" for
+    /// "stripped", "transcript" for "transcription"), while Unified produced
+    /// none. Both format identically well. Also avoids the whisper-small
+    /// activation hang on macOS 26/27.
+    @Published var selectedWhisperModel: WhisperModel = .parakeetUnified {
         didSet {
             UserDefaults.standard.set(selectedWhisperModel.rawValue, forKey: UserDefaultsKeys.selectedWhisperModel)
         }
@@ -162,6 +166,7 @@ class AppState: ObservableObject {
         case moonshineTiny = "moonshine-tiny"
         case moonshineBase = "moonshine-base"
         case parakeetV2 = "parakeet-tdt-v2"
+        case parakeetUnified = "parakeet-unified"
         // case qwen3ASR = "qwen3-asr" // TODO: Re-enable once MLX metallib bundling is resolved
 
         var id: String { rawValue }
@@ -176,6 +181,7 @@ class AppState: ObservableObject {
             case .moonshineTiny: return "Moonshine Tiny"
             case .moonshineBase: return "Moonshine Base"
             case .parakeetV2: return "Parakeet TDT v2 — Fastest"
+            case .parakeetUnified: return "Parakeet Unified — Best formatting"
             }
         }
 
@@ -189,6 +195,7 @@ class AppState: ObservableObject {
             case .moonshineTiny: return "Ultra-fast, optimized for short speech (~45 MB)"
             case .moonshineBase: return "Fast and accurate, variable-length audio (~134 MB)"
             case .parakeetV2: return "Best English accuracy, native punctuation (~400 MB). 16 GB+ recommended."
+            case .parakeetUnified: return "Newer English model: punctuation + capitalization, 1.82% WER (~600 MB)."
             }
         }
 
@@ -201,6 +208,8 @@ class AppState: ObservableObject {
                 return .moonshine
             case .parakeetV2:
                 return .parakeet
+            case .parakeetUnified:
+                return .parakeetUnified
             }
         }
 
@@ -210,7 +219,7 @@ class AppState: ObservableObject {
         /// Whether this model produces high-quality native punctuation (skip punctuation post-processing)
         var hasNativePunctuation: Bool {
             switch self {
-            case .parakeetV2: return true
+            case .parakeetV2, .parakeetUnified: return true
             default: return false
             }
         }
@@ -221,6 +230,7 @@ class AppState: ObservableObject {
         case whisperKit
         case moonshine
         case parakeet
+        case parakeetUnified
     }
 
     // MARK: - Private

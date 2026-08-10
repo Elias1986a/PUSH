@@ -127,6 +127,8 @@ struct ModelsSettingsView: View {
             return appSupport.appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
         case .parakeet:
             return ParakeetEngine.modelDirectory
+        case .parakeetUnified:
+            return ParakeetUnifiedEngine.modelDirectory
         case .whisperKit:
             return WhisperEngine.modelFolderURL(for: selectedModel)
         }
@@ -138,6 +140,8 @@ struct ModelsSettingsView: View {
             return MoonshineEngine.isModelDownloaded(model) // Tiny is bundled → true
         case .parakeet:
             return ParakeetEngine.isModelDownloaded()
+        case .parakeetUnified:
+            return ParakeetUnifiedEngine.isModelDownloaded()
         case .whisperKit:
             return WhisperEngine.isModelDownloaded(model)
         }
@@ -268,6 +272,7 @@ struct ModelsSettingsView: View {
         case .moonshineTiny: return 45_000_000
         case .moonshineBase: return 134_000_000
         case .parakeetV2: return 400_000_000
+        case .parakeetUnified: return 600_000_000
         }
     }
 

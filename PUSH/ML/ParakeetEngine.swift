@@ -101,11 +101,15 @@ actor ParakeetEngine {
             throw ParakeetEngineError.emptyAudio
         }
 
-        PushLogger.log("ParakeetEngine: Transcribing \(floatArray.count) samples...")
-
+        let start = Date()
         let text = try await transcribeFloats(floatArray)
+        let elapsed = Date().timeIntervalSince(start)
 
-        PushLogger.log("ParakeetEngine: Transcription complete (\(text.count) chars)")
+        // Same format as ParakeetUnifiedEngine so the two are directly
+        // comparable in an A/B. Duration + timing only — never transcript text.
+        PushLogger.log(String(
+            format: "ParakeetEngine: Transcribed %.2fs audio in %.3fs (%d chars)",
+            Double(floatArray.count) / 16000.0, elapsed, text.count))
         return text
     }
 
@@ -116,7 +120,10 @@ actor ParakeetEngine {
             throw ParakeetEngineError.notInitialized
         }
 
-        let result = try await manager.transcribe(floatArray, source: .system)
+        // A fresh decoder state per utterance: each dictation is independent,
+        // so no RNNT context should carry over from the previous one.
+        var decoderState = try TdtDecoderState()
+        let result = try await manager.transcribe(floatArray, decoderState: &decoderState)
         return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
