@@ -103,6 +103,39 @@ final class MediaControllerTests: XCTestCase {
         XCTAssertTrue(harness.volumeWrites.isEmpty)
     }
 
+    // MARK: - Delayed duck (start chirp)
+
+    func testDuck_withDelay_ducksAfterTheDelay() async throws {
+        let harness = makeHarness()
+        harness.volume = 0.8
+        let controller = harness.makeController()
+
+        controller.beginDictation(behavior: .duck, afterDelay: 0.05)
+        XCTAssertTrue(harness.volumeWrites.isEmpty, "must not duck before the chirp finishes")
+
+        try await Task.sleep(nanoseconds: 150_000_000)
+        XCTAssertEqual(harness.volume ?? -1, 0.2, accuracy: 0.0001)
+
+        controller.endDictation()
+        XCTAssertEqual(harness.volume ?? -1, 0.8, accuracy: 0.0001)
+    }
+
+    /// A dictation shorter than the chirp must not duck after the restore has
+    /// already run — that would strand the user at a lowered volume.
+    func testDuck_dictationEndingBeforeDelayFires_neverDucks() async throws {
+        let harness = makeHarness()
+        harness.volume = 0.8
+        let controller = harness.makeController()
+
+        controller.beginDictation(behavior: .duck, afterDelay: 0.10)
+        controller.endDictation()   // released almost immediately
+
+        try await Task.sleep(nanoseconds: 250_000_000)
+
+        XCTAssertTrue(harness.volumeWrites.isEmpty, "stale duck fired after the dictation ended")
+        XCTAssertEqual(harness.volume ?? -1, 0.8, accuracy: 0.0001)
+    }
+
     // MARK: - Off
 
     func testOff_touchesNothing() {

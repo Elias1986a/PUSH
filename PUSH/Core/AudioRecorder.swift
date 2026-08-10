@@ -91,7 +91,11 @@ final class AudioRecorder: @unchecked Sendable {
             try engine.start()
             isRecording = true
 
-            MediaController.shared.beginDictation(behavior: AppState.shared.mediaBehavior)
+            // Let the start chirp finish before ducking, or the cue itself
+            // gets quieted along with everything else.
+            let chirpDelay = AppState.shared.playSoundOnStart ? SoundPlayer.shared.chirpDuration : 0
+            MediaController.shared.beginDictation(
+                behavior: AppState.shared.mediaBehavior, afterDelay: chirpDelay)
 
             // Always run Silero VAD: gates transcription in hotkey mode,
             // auto-stops recording in wake word mode.

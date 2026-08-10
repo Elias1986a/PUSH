@@ -105,6 +105,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        // Evaluate visibility once now. AppState's `didSet` observers don't fire
+        // during its initialization, so no .appStateDidChange is posted for the
+        // initial `isModelReady == false` — without this the "Loading model..."
+        // pill never appears during a cold start.
+        updatePillVisibility()
     }
 
     /// Bottom-center of the screen the pointer is on — dictation happens where
