@@ -164,7 +164,13 @@ class AppState: ObservableObject {
         case parakeetV2 = "parakeet-tdt-v2"
         case parakeetUnified = "parakeet-unified"
         case parakeetStreaming = "parakeet-streaming"
-        // case qwen3ASR = "qwen3-asr" // TODO: Re-enable once MLX metallib bundling is resolved
+        // case qwen3ASR = "qwen3-asr" // TODO: Re-enable once MLX metallib bundling is resolved.
+        // Spike finding (claude/mlx-bundling-spike, now deleted): the GPU test
+        // passed and the metallib loads fine — it lives at
+        // Contents/Resources/default.metallib inside mlx-swift_Cmlx.bundle, not
+        // at the bundle's top level. Prime suspect for the .app failure is that
+        // build_distribution.sh copies the nested *.bundle into Resources but
+        // never code-signs it. Start there if resuming.
 
         var id: String { rawValue }
 
