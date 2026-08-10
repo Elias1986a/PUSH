@@ -54,11 +54,23 @@ final class AudioRecorder: @unchecked Sendable {
 
         let (stream, continuation) = AsyncStream.makeStream(of: [Float].self)
         sampleContinuation = continuation
+        // SPIKE: the streaming model consumes audio while you speak. Resetting
+        // it here (rather than at engine.start()) guarantees it happens before
+        // the first sample is consumed — the AsyncStream buffers until this
+        // task is ready, so no leading audio is lost.
+        let isStreamingModel = AppState.shared.activeModel.engineType == .parakeetStreaming
+
         drainTask = Task { [weak self] in
+            if isStreamingModel {
+                await ParakeetStreamingEngine.shared.beginUtterance()
+            }
             for await samples in stream {
                 guard let self else { return }
                 self.audioData?.append(samples.withUnsafeBufferPointer { Data(buffer: $0) })
                 await self.sileroVAD.processSamples(samples)
+                if isStreamingModel {
+                    await ParakeetStreamingEngine.shared.feed(samples)
+                }
             }
         }
 

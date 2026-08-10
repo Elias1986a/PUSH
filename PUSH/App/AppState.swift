@@ -48,17 +48,16 @@ class AppState: ObservableObject {
     /// The model actually loaded and serving transcriptions. Differs from
     /// `selectedWhisperModel` (the persisted preference) while a newly selected
     /// model downloads/loads — dictation keeps using this one until the swap.
-    @Published var activeModel: WhisperModel = .parakeetUnified
+    @Published var activeModel: WhisperModel = .parakeetStreaming
 
     @Published var statusMessage: String = "Ready"
 
-    /// Parakeet Unified is the default for fresh installs. Chosen over TDT v2
-    /// after an A/B on real dictation: v2 is ~2.4x faster (0.20s vs 0.49s on
-    /// ~28s of audio) but produced word errors in both takes ("scripped" for
-    /// "stripped", "transcript" for "transcription"), while Unified produced
-    /// none. Both format identically well. Also avoids the whisper-small
-    /// activation hang on macOS 26/27.
-    @Published var selectedWhisperModel: WhisperModel = .parakeetUnified {
+    /// Parakeet Streaming is the default for fresh installs, chosen after an
+    /// A/B on real dictation. It consumes audio while you speak, so latency
+    /// after release is near-constant (0.068s on 6s of audio, 0.086s on 26s)
+    /// where the offline encoder scales with length (0.148s → 0.492s). Output
+    /// matched Unified word for word on the same passage.
+    @Published var selectedWhisperModel: WhisperModel = .parakeetStreaming {
         didSet {
             UserDefaults.standard.set(selectedWhisperModel.rawValue, forKey: UserDefaultsKeys.selectedWhisperModel)
         }
@@ -160,13 +159,11 @@ class AppState: ObservableObject {
     enum WhisperModel: String, CaseIterable, Identifiable {
         case base = "ggml-base.en"
         case small = "ggml-small.en"
-        case distilLargeV3 = "distil-large-v3"
-        case distilLargeV3Turbo = "distil-large-v3-turbo"
         case whisperLargeV3Turbo = "whisper-large-v3-turbo"
         case moonshineTiny = "moonshine-tiny"
-        case moonshineBase = "moonshine-base"
         case parakeetV2 = "parakeet-tdt-v2"
         case parakeetUnified = "parakeet-unified"
+        case parakeetStreaming = "parakeet-streaming"
         // case qwen3ASR = "qwen3-asr" // TODO: Re-enable once MLX metallib bundling is resolved
 
         var id: String { rawValue }
@@ -175,13 +172,11 @@ class AppState: ObservableObject {
             switch self {
             case .base: return "Whisper Base"
             case .small: return "Whisper Small"
-            case .distilLargeV3: return "Distil-Large V3"
-            case .distilLargeV3Turbo: return "Distil-Large V3 Turbo"
             case .whisperLargeV3Turbo: return "Whisper Large V3 Turbo"
             case .moonshineTiny: return "Moonshine Tiny"
-            case .moonshineBase: return "Moonshine Base"
-            case .parakeetV2: return "Parakeet TDT v2 — Fastest"
-            case .parakeetUnified: return "Parakeet Unified — Best formatting"
+            case .parakeetV2: return "Parakeet TDT v2 — Smallest download"
+            case .parakeetUnified: return "Parakeet Unified — Most accurate"
+            case .parakeetStreaming: return "Parakeet Streaming — Fastest & balanced"
             }
         }
 
@@ -189,27 +184,27 @@ class AppState: ObservableObject {
             switch self {
             case .base: return "Fastest WhisperKit model, lower accuracy (~150 MB)"
             case .small: return "Good balance of speed and accuracy (~250 MB)"
-            case .distilLargeV3: return "Fast and accurate, English-only (~600 MB)"
-            case .distilLargeV3Turbo: return "Great speed and accuracy, English-only (~600 MB)"
             case .whisperLargeV3Turbo: return "High accuracy, 99+ languages (~632 MB)"
             case .moonshineTiny: return "Ultra-fast, optimized for short speech (~45 MB)"
-            case .moonshineBase: return "Fast and accurate, variable-length audio (~134 MB)"
-            case .parakeetV2: return "Best English accuracy, native punctuation (~400 MB). 16 GB+ recommended."
-            case .parakeetUnified: return "Newer English model: punctuation + capitalization, 1.82% WER (~600 MB)."
+            case .parakeetV2: return "Older English model, smaller download (~400 MB)."
+            case .parakeetUnified: return "Highest accuracy. Transcribes after you release, so longer takes wait longer (~600 MB)."
+            case .parakeetStreaming: return "Transcribes while you speak, so text lands instantly however long you talk. Same download as Unified (~600 MB)."
             }
         }
 
         /// The engine type used by this model
         var engineType: EngineType {
             switch self {
-            case .base, .small, .distilLargeV3, .distilLargeV3Turbo, .whisperLargeV3Turbo:
+            case .base, .small, .whisperLargeV3Turbo:
                 return .whisperKit
-            case .moonshineTiny, .moonshineBase:
+            case .moonshineTiny:
                 return .moonshine
             case .parakeetV2:
                 return .parakeet
             case .parakeetUnified:
                 return .parakeetUnified
+            case .parakeetStreaming:
+                return .parakeetStreaming
             }
         }
 
@@ -219,7 +214,7 @@ class AppState: ObservableObject {
         /// Whether this model produces high-quality native punctuation (skip punctuation post-processing)
         var hasNativePunctuation: Bool {
             switch self {
-            case .parakeetV2, .parakeetUnified: return true
+            case .parakeetV2, .parakeetUnified, .parakeetStreaming: return true
             default: return false
             }
         }
@@ -231,6 +226,7 @@ class AppState: ObservableObject {
         case moonshine
         case parakeet
         case parakeetUnified
+        case parakeetStreaming
     }
 
     // MARK: - Private

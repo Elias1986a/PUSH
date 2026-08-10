@@ -129,6 +129,8 @@ struct ModelsSettingsView: View {
             return ParakeetEngine.modelDirectory
         case .parakeetUnified:
             return ParakeetUnifiedEngine.modelDirectory
+        case .parakeetStreaming:
+            return ParakeetStreamingEngine.modelDirectory
         case .whisperKit:
             return WhisperEngine.modelFolderURL(for: selectedModel)
         }
@@ -142,6 +144,8 @@ struct ModelsSettingsView: View {
             return ParakeetEngine.isModelDownloaded()
         case .parakeetUnified:
             return ParakeetUnifiedEngine.isModelDownloaded()
+        case .parakeetStreaming:
+            return ParakeetStreamingEngine.isModelDownloaded()
         case .whisperKit:
             return WhisperEngine.isModelDownloaded(model)
         }
@@ -267,12 +271,10 @@ struct ModelsSettingsView: View {
         switch model {
         case .base: return 150_000_000
         case .small: return 250_000_000
-        case .distilLargeV3, .distilLargeV3Turbo: return 600_000_000
         case .whisperLargeV3Turbo: return 632_000_000
         case .moonshineTiny: return 45_000_000
-        case .moonshineBase: return 134_000_000
         case .parakeetV2: return 400_000_000
-        case .parakeetUnified: return 600_000_000
+        case .parakeetUnified, .parakeetStreaming: return 600_000_000
         }
     }
 
