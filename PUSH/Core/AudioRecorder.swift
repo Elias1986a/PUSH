@@ -62,7 +62,11 @@ final class AudioRecorder: @unchecked Sendable {
             }
         }
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { buffer, _ in
+        // @Sendable is load-bearing: without it this closure inherits the
+        // enclosing @MainActor isolation, and AVFoundation invokes it on the
+        // realtime audio thread — which traps under -enable-actor-data-race-checks
+        // and is a latent data race in release builds.
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { @Sendable buffer, _ in
             let source = converter.flatMap {
                 Self.convert(buffer: buffer, converter: $0, outputFormat: outputFormat)
             } ?? buffer
@@ -75,9 +79,7 @@ final class AudioRecorder: @unchecked Sendable {
             try engine.start()
             isRecording = true
 
-            if AppState.shared.pauseMediaWhileDictating {
-                MediaPauseController.shared.pauseIfPlaying()
-            }
+            MediaController.shared.beginDictation(behavior: AppState.shared.mediaBehavior)
 
             // Always run Silero VAD: gates transcription in hotkey mode,
             // auto-stops recording in wake word mode.
@@ -103,15 +105,16 @@ final class AudioRecorder: @unchecked Sendable {
     func stopRecording() async -> Data? {
         guard isRecording else { return nil }
 
-        // Unconditional (unlike the pauseMediaWhileDictating-gated pause call
-        // above): a no-op unless we actually paused something, so this stays
-        // correct even if the setting is toggled off mid-recording.
-        await MediaPauseController.shared.resumeIfWePaused()
-
+        // Release the microphone FIRST — nothing about restoring other apps'
+        // audio should delay giving the mic back.
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
         audioEngine = nil
         isRecording = false
+
+        // Unconditional and synchronous: a no-op unless we actually changed
+        // something, so it stays correct even if the setting changed mid-take.
+        MediaController.shared.endDictation()
 
         // Drain buffered samples so the tail of speech isn't dropped.
         sampleContinuation?.finish()

@@ -7,6 +7,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var pillWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // If a previous run died mid-dictation while the output volume was
+        // ducked, put the user's volume back rather than leaving it quiet.
+        MediaController.shared.restoreVolumeIfInterrupted()
+
         // Request permissions
         requestMicrophonePermission()
 
@@ -27,6 +31,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         hotkeyManager?.stopListening()
+        // Don't leave the user's audio quieted if they quit mid-dictation.
+        MediaController.shared.endDictation()
     }
 
     // MARK: - Permissions
