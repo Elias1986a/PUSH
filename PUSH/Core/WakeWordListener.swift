@@ -10,6 +10,8 @@ final class WakeWordListener: @unchecked Sendable {
     private var isListening = false
     private var audioBuffer: Data = Data()
     private var checkTimer: Timer?
+    private var sampleContinuation: AsyncStream<[Float]>.Continuation?
+    private var drainTask: Task<Void, Never>?
 
     // Configuration
     private let sampleRate: Double = 16000
@@ -63,16 +65,26 @@ final class WakeWordListener: @unchecked Sendable {
 
         let converter = AVAudioConverter(from: inputFormat, to: outputFormat)
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
-            guard let self = self else { return }
-
-            if let converter = converter {
-                if let convertedBuffer = self.convert(buffer: buffer, converter: converter, outputFormat: outputFormat) {
-                    Task { @MainActor in
-                        self.appendToBuffer(convertedBuffer)
-                    }
-                }
+        // Ordered hand-off from the realtime tap thread to the main actor.
+        let (stream, continuation) = AsyncStream.makeStream(of: [Float].self)
+        sampleContinuation = continuation
+        drainTask = Task { [weak self] in
+            for await samples in stream {
+                guard let self else { return }
+                self.appendSamples(samples)
             }
+        }
+
+        // @Sendable is load-bearing: without it this closure inherits the
+        // enclosing @MainActor isolation, and AVFoundation invokes it on the
+        // realtime audio thread — which traps under -enable-actor-data-race-checks
+        // and is a latent data race in release builds.
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { @Sendable buffer, _ in
+            guard let converter = converter,
+                  let converted = Self.convert(buffer: buffer, converter: converter, outputFormat: outputFormat),
+                  let channelData = converted.floatChannelData else { return }
+            let samples = Array(UnsafeBufferPointer(start: channelData[0], count: Int(converted.frameLength)))
+            continuation.yield(samples)
         }
 
         do {
@@ -103,6 +115,11 @@ final class WakeWordListener: @unchecked Sendable {
         audioEngine = nil
         isListening = false
         audioBuffer = Data()
+
+        sampleContinuation?.finish()
+        sampleContinuation = nil
+        drainTask?.cancel()
+        drainTask = nil
 
         PushLogger.log("WakeWordListener: Stopped listening")
     }
@@ -139,7 +156,8 @@ final class WakeWordListener: @unchecked Sendable {
 
     // MARK: - Private
 
-    private func convert(
+    // nonisolated static: runs on the realtime tap thread, not the main actor.
+    private nonisolated static func convert(
         buffer: AVAudioPCMBuffer,
         converter: AVAudioConverter,
         outputFormat: AVAudioFormat
@@ -164,42 +182,34 @@ final class WakeWordListener: @unchecked Sendable {
         return error == nil ? outputBuffer : nil
     }
 
-    private func appendToBuffer(_ buffer: AVAudioPCMBuffer) {
-        guard let channelData = buffer.floatChannelData else { return }
+    // Already on the main actor (called from the drain task), so no inner hop.
+    private func appendSamples(_ samples: [Float]) {
+        guard !isPaused, !samples.isEmpty else { return }
 
-        let frameLength = Int(buffer.frameLength)
-        let data = Data(bytes: channelData[0], count: frameLength * MemoryLayout<Float>.size)
+        audioBuffer.append(samples.withUnsafeBufferPointer { Data(buffer: $0) })
 
-        // Calculate RMS for this buffer
-        let rms = calculateRMS(channelData[0], frameCount: frameLength)
+        // Track recent audio levels
+        recentAudioLevels.append(Self.calculateRMS(samples))
+        if recentAudioLevels.count > 15 { // ~0.5 seconds of levels
+            recentAudioLevels.removeFirst()
+        }
 
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, !self.isPaused else { return }
-            self.audioBuffer.append(data)
+        // Check if any recent audio exceeds speech threshold
+        hasSpeechInBuffer = recentAudioLevels.contains { $0 > speechThreshold }
 
-            // Track recent audio levels
-            self.recentAudioLevels.append(rms)
-            if self.recentAudioLevels.count > 15 { // ~0.5 seconds of levels
-                self.recentAudioLevels.removeFirst()
-            }
-
-            // Check if any recent audio exceeds speech threshold
-            self.hasSpeechInBuffer = self.recentAudioLevels.contains { $0 > self.speechThreshold }
-
-            // Keep only last N seconds of audio
-            let maxBytes = Int(self.sampleRate * self.bufferDuration) * MemoryLayout<Float>.size
-            if self.audioBuffer.count > maxBytes {
-                self.audioBuffer = self.audioBuffer.suffix(maxBytes)
-            }
+        // Keep only last N seconds of audio
+        let maxBytes = Int(sampleRate * bufferDuration) * MemoryLayout<Float>.size
+        if audioBuffer.count > maxBytes {
+            audioBuffer = audioBuffer.suffix(maxBytes)
         }
     }
 
-    private func calculateRMS(_ samples: UnsafePointer<Float>, frameCount: Int) -> Float {
+    private nonisolated static func calculateRMS(_ samples: [Float]) -> Float {
         var sum: Float = 0
-        for i in 0..<frameCount {
-            sum += samples[i] * samples[i]
+        for sample in samples {
+            sum += sample * sample
         }
-        return sqrt(sum / Float(frameCount))
+        return sqrt(sum / Float(samples.count))
     }
 
     private func checkForWakeWord() async {

@@ -62,7 +62,11 @@ final class AudioRecorder: @unchecked Sendable {
             }
         }
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { buffer, _ in
+        // @Sendable is load-bearing: without it this closure inherits the
+        // enclosing @MainActor isolation, and AVFoundation invokes it on the
+        // realtime audio thread — which traps under -enable-actor-data-race-checks
+        // and is a latent data race in release builds.
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { @Sendable buffer, _ in
             let source = converter.flatMap {
                 Self.convert(buffer: buffer, converter: $0, outputFormat: outputFormat)
             } ?? buffer
