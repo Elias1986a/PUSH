@@ -19,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         // WhisperKit for speech-to-text
-        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "0.9.0"),
+        .package(url: "https://github.com/argmaxinc/WhisperKit.git", from: "1.1.0"),
 
         // Moonshine for speech-to-text (edge-optimized ASR)
         .package(url: "https://github.com/moonshine-ai/moonshine-swift.git", from: "0.0.48"),
