@@ -28,82 +28,24 @@ actor MoonshineEngine {
         return nil
     }
 
-    /// Downloaded model directory in Application Support
-    private static func downloadedModelDir(name: String) -> URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport
-            .appendingPathComponent("PUSH/moonshine-models", isDirectory: true)
-            .appendingPathComponent(name, isDirectory: true)
-    }
-
     /// Check if a downloaded model has all required files
     nonisolated static func isModelDownloaded(_ model: AppState.WhisperModel) -> Bool {
-        guard model.isMoonshine else { return false }
-        if model == .moonshineTiny { return true } // Bundled
-        let dir = downloadedModelDir(name: "base-en")
-        let required = ["decoder_model_merged.ort", "encoder_model.ort", "tokenizer.bin"]
-        return required.allSatisfy { FileManager.default.fileExists(atPath: dir.appendingPathComponent($0).path) }
+        // Tiny is the only Moonshine model and ships bundled with the app.
+        model.isMoonshine
     }
 
-    /// Resolve the model path — bundled for Tiny, downloaded for Base
+    /// Resolve the model path (Tiny ships bundled with the app)
     private static func resolveModelPath(for model: AppState.WhisperModel) -> String? {
         switch model {
         case .moonshineTiny:
             return bundledModelPath(name: "tiny-en")
-        case .moonshineBase:
-            let dir = downloadedModelDir(name: "base-en")
-            if FileManager.default.fileExists(atPath: dir.appendingPathComponent("encoder_model.ort").path) {
-                return dir.path
-            }
-            return nil
         default:
             return nil
         }
     }
 
     private static func moonshineArch(for model: AppState.WhisperModel) -> ModelArch {
-        switch model {
-        case .moonshineBase: return .base
-        default: return .tiny
-        }
-    }
-
-    // MARK: - Model Download
-
-    /// Download Moonshine Base model files from GitHub LFS
-    func downloadBaseModel() async throws {
-        let dir = Self.downloadedModelDir(name: "base-en")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-
-        // LFS files use media.githubusercontent.com; small files use raw.githubusercontent.com
-        let lfsBaseURL = "https://media.githubusercontent.com/media/moonshine-ai/moonshine/main/examples/ios/Transcriber/models/base-en"
-        let rawBaseURL = "https://raw.githubusercontent.com/moonshine-ai/moonshine/main/examples/ios/Transcriber/models/base-en"
-        let files = ["decoder_model_merged.ort", "encoder_model.ort", "tokenizer.bin"]
-
-        for file in files {
-            let dest = dir.appendingPathComponent(file)
-            if FileManager.default.fileExists(atPath: dest.path) {
-                PushLogger.log("MoonshineEngine: \(file) already exists, skipping")
-                continue
-            }
-
-            // tokenizer.bin is a regular git file, not LFS
-            let base = (file == "tokenizer.bin") ? rawBaseURL : lfsBaseURL
-            guard let url = URL(string: "\(base)/\(file)") else { continue }
-
-            PushLogger.log("MoonshineEngine: Downloading \(file)...")
-            let (tempURL, response) = try await URLSession.shared.download(from: url)
-
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-                throw MoonshineEngineError.downloadFailed("HTTP \(code) for \(file)")
-            }
-
-            try FileManager.default.moveItem(at: tempURL, to: dest)
-            PushLogger.log("MoonshineEngine: ✅ Downloaded \(file)")
-        }
-
-        PushLogger.log("MoonshineEngine: ✅ All base model files downloaded")
+        .tiny
     }
 
     // MARK: - Public API
@@ -121,15 +63,6 @@ actor MoonshineEngine {
         }
 
         PushLogger.log("MoonshineEngine: Loading \(model.displayName)...")
-
-        // Download Base model if needed
-        if model == .moonshineBase && !Self.isModelDownloaded(model) {
-            PushLogger.log("MoonshineEngine: Base model not found, downloading...")
-            await MainActor.run {
-                AppState.shared.statusMessage = "Downloading Moonshine Base model..."
-            }
-            try await downloadBaseModel()
-        }
 
         guard let path = Self.resolveModelPath(for: model) else {
             PushLogger.log("MoonshineEngine: ❌ Could not find model files")

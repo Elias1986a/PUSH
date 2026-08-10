@@ -18,10 +18,8 @@ actor WhisperEngine {
         switch model {
         case .base: return "openai_whisper-base.en"
         case .small: return "openai_whisper-small.en"
-        case .distilLargeV3: return "distil-whisper_distil-large-v3"
-        case .distilLargeV3Turbo: return "distil-whisper_distil-large-v3_turbo"
         case .whisperLargeV3Turbo: return "openai_whisper-large-v3-v20240930_turbo_632MB"
-        case .moonshineTiny, .moonshineBase, .parakeetV2: return "" // Not WhisperKit models
+        case .moonshineTiny, .parakeetV2, .parakeetUnified, .parakeetStreaming: return "" // Not WhisperKit models
         }
     }
 

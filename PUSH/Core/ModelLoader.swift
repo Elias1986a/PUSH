@@ -90,6 +90,8 @@ enum ModelLoader {
         switch model.engineType {
         case .moonshine: try await MoonshineEngine.shared.loadModel(model)
         case .parakeet: try await ParakeetEngine.shared.loadModel()
+        case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
+        case .parakeetStreaming: try await ParakeetStreamingEngine.shared.loadModel()
         case .whisperKit: try await WhisperEngine.shared.loadModel(model)
         }
     }
@@ -98,6 +100,8 @@ enum ModelLoader {
         switch model.engineType {
         case .moonshine: await MoonshineEngine.shared.unloadModel()
         case .parakeet: await ParakeetEngine.shared.unloadModel()
+        case .parakeetUnified: await ParakeetUnifiedEngine.shared.unloadModel()
+        case .parakeetStreaming: await ParakeetStreamingEngine.shared.unloadModel()
         case .whisperKit: await WhisperEngine.shared.unloadModel()
         }
     }
@@ -106,6 +110,8 @@ enum ModelLoader {
         switch model.engineType {
         case .moonshine: await MoonshineEngine.shared.warmupInference()
         case .parakeet: await ParakeetEngine.shared.warmup()
+        case .parakeetUnified: await ParakeetUnifiedEngine.shared.warmup()
+        case .parakeetStreaming: await ParakeetStreamingEngine.shared.warmup()
         case .whisperKit: await WhisperEngine.shared.warmupInference()
         }
     }
