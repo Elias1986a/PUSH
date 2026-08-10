@@ -8,15 +8,6 @@ class SoundPlayer {
 
     private var audioPlayer: AVAudioPlayer?
 
-    /// Length of the start chirp, so callers can avoid stepping on it —
-    /// ducking the output volume mid-chirp makes the cue nearly inaudible.
-    /// Falls back to a small non-zero value if the file can't be measured.
-    private(set) lazy var chirpDuration: TimeInterval = {
-        guard let url = Self.chirpURL,
-              let player = try? AVAudioPlayer(contentsOf: url) else { return 0.25 }
-        return player.duration
-    }()
-
     private init() {}
 
     /// Locate the chirp — SPM resource bundle in Contents/Resources/ first,
@@ -39,7 +30,10 @@ class SoundPlayer {
 
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.volume = 0.5  // 50% volume
+            // 0.75 rather than 0.5: ducking drops system output to 25% at the
+            // same moment, so a quieter chirp is nearly inaudible. Deliberately
+            // NOT solved by delaying the duck — that left music loud too long.
+            audioPlayer?.volume = 0.75
             audioPlayer?.play()
         } catch {
             PushLogger.log("SoundPlayer: Failed to play sound: \(error)")

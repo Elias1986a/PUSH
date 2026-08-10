@@ -51,12 +51,6 @@ final class MediaController {
     /// "restores" state it didn't create.
     private var activeIntervention: Intervention?
 
-    /// Incremented on every begin/end so a duck scheduled behind the start
-    /// chirp can tell whether its dictation is still current. Without this a
-    /// dictation shorter than the chirp would duck *after* the restore and
-    /// leave the user's volume down.
-    private var sessionToken = 0
-
     private enum Intervention {
         case ducked(originalVolume: Float32)
     }
@@ -88,26 +82,9 @@ final class MediaController {
     /// Quiets other audio for the given behavior. Synchronous and cheap — the
     /// hotkey-to-recording path must not gain latency, so this does no waiting.
     ///
-    /// `afterDelay` defers the duck without blocking the caller, so the start
-    /// chirp can finish first (ducking mid-chirp makes the cue inaudible).
-    func beginDictation(behavior: MediaBehavior, afterDelay delay: TimeInterval = 0) {
+    func beginDictation(behavior: MediaBehavior) {
         guard activeIntervention == nil else { return }
 
-        sessionToken &+= 1
-        let token = sessionToken
-
-        guard delay <= 0 else {
-            Task { [weak self] in
-                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                guard let self, self.sessionToken == token, self.activeIntervention == nil else { return }
-                self.apply(behavior)
-            }
-            return
-        }
-        apply(behavior)
-    }
-
-    private func apply(_ behavior: MediaBehavior) {
         switch behavior {
         case .off:
             return
@@ -127,9 +104,6 @@ final class MediaController {
     /// Undoes whatever `beginDictation` did. Safe to call unconditionally —
     /// a no-op unless we actually changed something.
     func endDictation() {
-        // Invalidate any duck still waiting on the chirp.
-        sessionToken &+= 1
-
         guard let intervention = activeIntervention else { return }
         activeIntervention = nil
 
