@@ -54,7 +54,17 @@ struct GeneralSettingsView: View {
 
                 Toggle("Enable hotkey", isOn: $appState.hotkeyEnabled)
                 Toggle("Play sound when recording starts", isOn: $appState.playSoundOnStart)
-                Toggle("Pause media while dictating", isOn: $appState.pauseMediaWhileDictating)
+                Picker("While dictating", selection: $appState.mediaBehavior) {
+                    ForEach(MediaBehavior.allCases) { behavior in
+                        Text(behavior.displayName).tag(behavior)
+                    }
+                }
+
+                Text(appState.mediaBehavior == .pause
+                     ? "Sends the play/pause key, so it depends on the app responding to media keys."
+                     : "Lowers output volume while recording, then restores it.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
 
                 Text("Press Esc while recording to cancel without inserting text.")
                     .font(.caption)

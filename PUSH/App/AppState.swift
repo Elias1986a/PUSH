@@ -15,7 +15,7 @@ class AppState: ObservableObject {
         static let wakeWordEnabled = "wakeWordEnabled"
         static let wakeWord = "wakeWord"
         static let doubleSpaceAfterSentence = "doubleSpaceAfterSentence"
-        static let pauseMediaWhileDictating = "pauseMediaWhileDictating"
+        static let mediaBehavior = "mediaBehavior"
     }
 
     // MARK: - Published State
@@ -84,13 +84,13 @@ class AppState: ObservableObject {
         }
     }
 
-    /// Pauses system media playback (Music, Spotify, browser video, etc.)
-    /// while recording, and resumes it afterward if we were the one that
-    /// paused it. Defaults to true — most people dictating over media want
-    /// this immediately.
-    @Published var pauseMediaWhileDictating: Bool = true {
+    /// What to do about other apps' audio while dictating: nothing, pause it
+    /// (media key), or duck the output volume. Defaults to ducking — it works
+    /// on every setup and can't mis-target the wrong app, whereas pausing
+    /// depends on the media app honoring the play/pause key.
+    @Published var mediaBehavior: MediaBehavior = .duck {
         didSet {
-            UserDefaults.standard.set(pauseMediaWhileDictating, forKey: UserDefaultsKeys.pauseMediaWhileDictating)
+            UserDefaults.standard.set(mediaBehavior.rawValue, forKey: UserDefaultsKeys.mediaBehavior)
         }
     }
 
@@ -245,9 +245,10 @@ class AppState: ObservableObject {
             self.doubleSpaceAfterSentence = UserDefaults.standard.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence)
         }
 
-        // Load media-pause preference (default true when never set)
-        if UserDefaults.standard.object(forKey: UserDefaultsKeys.pauseMediaWhileDictating) != nil {
-            self.pauseMediaWhileDictating = UserDefaults.standard.bool(forKey: UserDefaultsKeys.pauseMediaWhileDictating)
+        // Load media behavior (keeps the .duck default when never set)
+        if let saved = UserDefaults.standard.string(forKey: UserDefaultsKeys.mediaBehavior),
+           let behavior = MediaBehavior(rawValue: saved) {
+            self.mediaBehavior = behavior
         }
 
         // Load wake word settings from UserDefaults
