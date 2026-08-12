@@ -25,6 +25,10 @@ actor ParakeetStreamingEngine {
     private var isStreaming = false
     private var fedSampleCount = 0
 
+    /// Last partial handed to `AppState`, so chunks that decode no new tokens
+    /// don't cost a main-actor hop (most mic buffers decode nothing).
+    private var publishedPartial = ""
+
     private static let sampleRate: Double = 16000
 
     private init() {}
@@ -81,6 +85,10 @@ actor ParakeetStreamingEngine {
     /// Called when recording starts. Safe to call when the model isn't loaded —
     /// it simply won't stream, and transcription falls back to the whole buffer.
     func beginUtterance() async {
+        // Clear ahead of the guard: the pill must never carry the previous
+        // take's text into a new one, even when streaming isn't available.
+        await publish("")
+
         guard isLoaded, let manager else { return }
         do {
             try await manager.reset()
@@ -101,10 +109,22 @@ actor ParakeetStreamingEngine {
             try await manager.appendAudio(buffer)
             try await manager.processBufferedAudio()
             fedSampleCount += samples.count
+            // The transcript is append-only, so the pill never has to un-say a
+            // word — each read is the previous one plus whatever just decoded.
+            await publish(manager.getPartialTranscript())
         } catch {
             PushLogger.log("ParakeetStreamingEngine: feed failed, falling back to batch: \(error)")
             isStreaming = false
         }
+    }
+
+    /// Hand the running transcript to the pill. Never logged — this is
+    /// transcript text, which stays out of PushLogger by policy.
+    private func publish(_ text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed != publishedPartial else { return }
+        publishedPartial = trimmed
+        await MainActor.run { AppState.shared.liveTranscript = trimmed }
     }
 
     // MARK: - Transcription
@@ -121,6 +141,9 @@ actor ParakeetStreamingEngine {
             // Live path: audio already went in during recording; just flush.
             isStreaming = false
             let text = try await manager.finish()
+            // The trailing chunk only decodes here, so publish once more —
+            // otherwise the pill's last frame is missing the final words.
+            await publish(text)
             let elapsed = Date().timeIntervalSince(start)
             PushLogger.log(String(
                 format: "ParakeetStreamingEngine: Streamed %.2fs audio, finalized in %.3fs (%d chars)",

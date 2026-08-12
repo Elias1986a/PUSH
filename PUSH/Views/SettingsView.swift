@@ -73,6 +73,14 @@ struct GeneralSettingsView: View {
                 Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
             }
 
+            Section("Recording Indicator") {
+                Toggle("Show text while you speak", isOn: $appState.showLiveTranscript)
+
+                Text("Streaming models only. The preview is raw speech output and trails your voice by a second or two — spacing, numbers, and dictionary corrections are applied when the text is inserted, so it can differ slightly from what gets pasted.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Wake Word (Hands-Free Mode)") {
                 Toggle("Enable wake word activation", isOn: $appState.wakeWordEnabled)
                     .onChange(of: appState.wakeWordEnabled) { _, newValue in

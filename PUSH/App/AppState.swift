@@ -16,6 +16,7 @@ class AppState: ObservableObject {
         static let wakeWord = "wakeWord"
         static let doubleSpaceAfterSentence = "doubleSpaceAfterSentence"
         static let mediaBehavior = "mediaBehavior"
+        static let showLiveTranscript = "showLiveTranscript"
     }
 
     // MARK: - Published State
@@ -51,6 +52,25 @@ class AppState: ObservableObject {
     @Published var activeModel: WhisperModel = .parakeetStreaming
 
     @Published var statusMessage: String = "Ready"
+
+    /// The running transcript from the streaming engine, updated while the user
+    /// is still speaking. Provisional in two ways: it lags speech by about the
+    /// engine's chunk + lookahead window, and none of TranscriptionPipeline's
+    /// post-processing has run on it yet — so it can differ from the text that
+    /// finally gets injected. Always empty for the batch engines, which have no
+    /// partial-result API.
+    ///
+    /// Deliberately does not call `notifyStateChange()`: this updates roughly
+    /// once a second during dictation and drives nothing but the pill's label.
+    @Published var liveTranscript: String = ""
+
+    /// Whether the pill previews speech as it's transcribed. On by default;
+    /// off restores the plain "Listening" indicator.
+    @Published var showLiveTranscript: Bool = true {
+        didSet {
+            UserDefaults.standard.set(showLiveTranscript, forKey: UserDefaultsKeys.showLiveTranscript)
+        }
+    }
 
     /// Parakeet Streaming is the default for fresh installs, chosen after an
     /// A/B on real dictation. It consumes audio while you speak, so latency
@@ -257,6 +277,11 @@ class AppState: ObservableObject {
         // Load formatting preference (default true when never set)
         if UserDefaults.standard.object(forKey: UserDefaultsKeys.doubleSpaceAfterSentence) != nil {
             self.doubleSpaceAfterSentence = UserDefaults.standard.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence)
+        }
+
+        // Load live-preview preference (default true when never set)
+        if UserDefaults.standard.object(forKey: UserDefaultsKeys.showLiveTranscript) != nil {
+            self.showLiveTranscript = UserDefaults.standard.bool(forKey: UserDefaultsKeys.showLiveTranscript)
         }
 
         // Load media behavior (keeps the .duck default when never set)
