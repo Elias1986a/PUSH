@@ -10,8 +10,11 @@ struct PUSHApp: App {
             MenuBarView()
                 .environmentObject(appState)
         } label: {
-            // Musical microphone icon
-            Image(systemName: "music.mic")
+            // The menu bar item is the one piece of UI that's always on screen,
+            // so it carries the loading state: an hourglass until a model is
+            // actually serving. The pill says "Loading model…" too, but it only
+            // appears over the active app and is easy to miss at login.
+            Image(systemName: appState.isModelReady ? "music.mic" : "hourglass")
         }
         .menuBarExtraStyle(.menu)
 

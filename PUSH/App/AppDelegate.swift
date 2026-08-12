@@ -23,10 +23,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup floating pill window
         setupFloatingPillWindow()
 
-        // Start Sparkle auto-updater so scheduled checks run even before the
-        // menu bar item is first opened.
-        _ = UpdaterManager.shared
-
         // Pre-load Whisper model in background (will download if needed)
         preloadModels()
     }
@@ -147,27 +143,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
-    /// Re-measure the SwiftUI content and grow/shrink the panel around its own
-    /// center, so the pill stays bottom-centered as live text widens it instead
-    /// of creeping rightward off the anchor.
-    private func refitPillWindow() {
+    /// Force a layout pass and match the panel to the SwiftUI content.
+    ///
+    /// Must run before `positionPillWindow()` whenever the pill is about to
+    /// appear: `window.frame` still holds the size from the *previous* time it
+    /// was shown, so centring without this centres the old width. That's what
+    /// made the first dictation of a session sit off-centre — the pill was
+    /// still status-sized when it was placed, then the preview's reserved width
+    /// spilled out to the right, leaving the mic icon at screen centre.
+    @discardableResult
+    private func sizePillToContent() -> Bool {
         guard let window = pillWindow,
-              let contentView = window.contentViewController?.view else { return }
+              let contentView = window.contentViewController?.view else { return false }
 
         contentView.layoutSubtreeIfNeeded()
         let newSize = contentView.fittingSize
-        let current = window.frame
-        guard abs(newSize.width - current.width) > 0.5 else { return }
+        guard abs(newSize.width - window.frame.width) > 0.5
+                || abs(newSize.height - window.frame.height) > 0.5 else { return false }
 
-        let x = current.midX - newSize.width / 2
-        window.setFrame(
-            NSRect(x: x,
-                   y: current.minY,
-                   width: newSize.width,
-                   height: newSize.height),
-            display: true,
-            animate: false
-        )
+        window.setContentSize(newSize)
+        return true
+    }
+
+    /// Re-measure and grow/shrink the panel around its own centre, so the pill
+    /// stays bottom-centered instead of creeping rightward off the anchor.
+    private func refitPillWindow() {
+        guard let window = pillWindow else { return }
+        let centerX = window.frame.midX
+        guard sizePillToContent() else { return }
+        window.setFrameOrigin(NSPoint(x: centerX - window.frame.width / 2,
+                                      y: window.frame.minY))
     }
 
     @objc private func screenLayoutChanged() {
@@ -183,7 +188,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // Re-anchor only when appearing, so the pill doesn't jump
                 // screens mid-dictation if the pointer moves.
                 if !(self.pillWindow?.isVisible ?? false) {
+                    self.sizePillToContent()   // before centring — see the note there
                     self.positionPillWindow()
+                    // SwiftUI may not have applied this state change yet, in
+                    // which case the size above was measured from the old
+                    // content. Re-fit once more next turn to settle it.
+                    DispatchQueue.main.async { self.refitPillWindow() }
                 }
                 self.pillWindow?.orderFront(nil)
             } else {
@@ -196,6 +206,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             // ModelLoader handles status, warmup, and failure surfacing.
             try? await ModelLoader.activate(AppState.shared.selectedWhisperModel)
+
+            // Only now start Sparkle. `startUpdater` can put up a modal (an
+            // update prompt, a permission request, an error), and a modal runs
+            // its own loop *inside* the main-queue block that opened it. The
+            // main queue is serial, so until that block returns every later
+            // DispatchQueue.main.async and every `Task { @MainActor }`
+            // continuation is stuck behind it — including the one that sets
+            // isModelReady. That deadlocked startup: the engine finished
+            // loading, the app never noticed, the pill sat on "Loading model…"
+            // and the hotkey did nothing, with no feedback about why.
+            // Starting it after the model is serving keeps dictation working
+            // no matter what Sparkle decides to show.
+            UpdaterManager.shared.start()
         }
     }
 }
