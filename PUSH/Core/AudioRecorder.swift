@@ -7,8 +7,12 @@ final class AudioRecorder: @unchecked Sendable {
     static let shared = AudioRecorder()
 
     private var audioEngine: AVAudioEngine?
+    private var engineBuild: Task<AVAudioEngine, Never>?
     private var audioData: Data?
     private var isRecording = false
+    /// Set for the window between a press and the engine being ready, so a
+    /// second press can't kick off a parallel start.
+    private var isStarting = false
 
     // Audio format for Whisper: 16kHz, mono, 16-bit PCM
     private let sampleRate: Double = 16000
@@ -36,7 +40,7 @@ final class AudioRecorder: @unchecked Sendable {
     /// Deliberately does NOT start the engine: nothing is captured, so the
     /// system microphone indicator stays off.
     func prewarm() async {
-        _ = readyEngine()
+        _ = await readyEngine()
         PushLogger.log("AudioRecorder: capture path pre-warmed")
 
         // The VAD's CoreML model otherwise loads on the first press, inside the
@@ -48,15 +52,40 @@ final class AudioRecorder: @unchecked Sendable {
     ///
     /// It outlives individual recordings on purpose. Constructing an engine and
     /// querying `inputNode.outputFormat` initialises the input device, which
-    /// measured ~0.72s cold and ~0.09s warm — and the earlier prewarm built a
-    /// local engine that was released immediately, so the device was torn back
-    /// down and the user's first press paid the cold cost anyway. Keeping one
-    /// instance means that happens once, at launch.
-    private func readyEngine() -> AVAudioEngine {
+    /// measured ~4s cold and ~0.09s warm — and an earlier prewarm built a local
+    /// engine that was released immediately, so the device was torn back down
+    /// and the user's first press paid the cold cost anyway.
+    ///
+    /// The build is held as a Task so a press landing mid-warmup joins the one
+    /// already running instead of starting a second: doing that cost 1336ms of
+    /// blocked main thread while the background build finished moments later.
+    /// Nothing here runs on the main thread — holding it that long is what gets
+    /// the hotkey's event tap disabled by the system.
+    private func readyEngine() async -> AVAudioEngine {
         if let audioEngine { return audioEngine }
+        let build = engineBuild ?? {
+            let task = Task.detached(priority: .userInitiated) { Self.buildEngine() }
+            engineBuild = task
+            return task
+        }()
+        let engine = await build.value
+        engineBuild = nil
+        // Another caller may have adopted it while this one was suspended.
+        if let audioEngine { return audioEngine }
+        adopt(engine)
+        return engine
+    }
+
+    /// Initialising the input device is the expensive part and needs no main
+    /// thread, so this is callable from anywhere.
+    private nonisolated static func buildEngine() -> AVAudioEngine {
         let engine = AVAudioEngine()
         _ = engine.inputNode.outputFormat(forBus: 0)
         engine.prepare()
+        return engine
+    }
+
+    private func adopt(_ engine: AVAudioEngine) {
         // Rebuild after a device change (mic unplugged, output switched):
         // a stopped engine can otherwise keep reporting the old device's format.
         NotificationCenter.default.addObserver(
@@ -71,16 +100,29 @@ final class AudioRecorder: @unchecked Sendable {
             }
         }
         audioEngine = engine
-        return engine
     }
 
-    func startRecording(withVAD: Bool = false) {
-        guard !isRecording else { return }
+    func startRecording(withVAD: Bool = false) async {
+        guard !isRecording, !isStarting else { return }
+        isStarting = true
+        defer { isStarting = false }
 
         PressTiming.mark("startRecording enter")
-        audioData = Data()
 
-        let engine = readyEngine()
+        // Suspends only if a press beat the launch warmup. Awaiting rather than
+        // building inline keeps the main thread free, so the pill keeps animating
+        // and the event tap stays alive while the device comes up.
+        let engine = await readyEngine()
+        PressTiming.mark("engine ready")
+
+        // The key can be released while the capture path is still warming; don't
+        // strand a recording nobody is waiting for.
+        guard AppState.shared.isListening else {
+            PushLogger.log("AudioRecorder: press ended before the capture path was ready")
+            return
+        }
+
+        audioData = Data()
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
         PressTiming.mark("inputFormat")

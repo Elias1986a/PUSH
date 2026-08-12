@@ -48,6 +48,19 @@ class AppState: ObservableObject {
         didSet { notifyStateChange() }
     }
 
+    /// True from launch until *every* warm-up step is done: the ASR model, the
+    /// chirp player, the capture engine and the VAD.
+    ///
+    /// `isModelReady` alone was a dishonest signal — the ASR model is ready in
+    /// about a tenth of a second, while the capture path takes several more, so
+    /// the pill went quiet and the app looked ready while a press was still slow
+    /// (and, before the prewarm moved off the main thread, could be dropped
+    /// outright). Same trap as the menu-bar hourglass: an indicator wired to the
+    /// wrong subsystem is worse than none.
+    @Published var isPrewarming: Bool = true {
+        didSet { notifyStateChange() }
+    }
+
     /// True when no model is serving at all (launch load failed, or the active
     /// model's files were deleted). Drives the pill's "Model unavailable" state.
     @Published var modelUnavailable: Bool = false {

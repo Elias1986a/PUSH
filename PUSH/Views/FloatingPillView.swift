@@ -147,7 +147,8 @@ struct FloatingPillView: View {
     }
 
     private var shouldShow: Bool {
-        appState.isListening || appState.isProcessing || !appState.isModelReady || appState.isWarmingUp
+        appState.isListening || appState.isProcessing || !appState.isModelReady
+            || appState.isWarmingUp || appState.isPrewarming
     }
 
     /// Whether to lay the pill out for the preview. Gated on the *active* engine
@@ -186,8 +187,9 @@ struct FloatingPillView: View {
             return "Processing..."
         } else if !appState.isModelReady {
             return "Loading model..."
-        } else if appState.isWarmingUp {
-            // Model is usable; shaders are still warming in the background.
+        } else if appState.isWarmingUp || appState.isPrewarming {
+            // Model is usable, but the capture path (and shaders) are still
+            // warming. Shown until a press would actually be fast.
             return "Warming up..."
         } else {
             return ""

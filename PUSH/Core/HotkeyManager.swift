@@ -110,7 +110,13 @@ final class HotkeyManager: @unchecked Sendable {
                 // The system disables the tap on timeout or heavy input; if we don't
                 // re-enable it the hotkey silently goes dead.
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                    Task { @MainActor in manager.reEnableTap() }
+                    // Synchronously, not via `Task { @MainActor }`: the tap gets
+                    // disabled precisely because the main thread is busy, so
+                    // queueing the recovery behind that same thread delays it for
+                    // as long as the stall lasts — measured at 9 seconds once.
+                    // This callback is serviced by the main run loop, so we are
+                    // already on the main actor.
+                    MainActor.assumeIsolated { manager.reEnableTap() }
                     return Unmanaged.passUnretained(event)
                 }
 
@@ -362,7 +368,7 @@ final class HotkeyManager: @unchecked Sendable {
             }
 
             // Start audio recording
-            AudioRecorder.shared.startRecording()
+            await AudioRecorder.shared.startRecording()
         }
 
         let hotkeyName = AppState.shared.selectedHotkey.displayName
@@ -469,7 +475,7 @@ final class HotkeyManager: @unchecked Sendable {
             }
 
             // Start audio recording WITH VAD enabled
-            AudioRecorder.shared.startRecording(withVAD: true)
+            await AudioRecorder.shared.startRecording(withVAD: true)
         }
 
         PushLogger.log("HotkeyManager: Wake word activated - listening with VAD")

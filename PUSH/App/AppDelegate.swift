@@ -198,6 +198,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func preloadModels() {
         Task { @MainActor in
+            // Clear the warming indicator however this ends — a failed model load
+            // must not leave the pill claiming it is still warming up forever.
+            defer { AppState.shared.isPrewarming = false }
+
             // ModelLoader handles status, warmup, and failure surfacing.
             try? await ModelLoader.activate(AppState.shared.selectedWhisperModel)
 
