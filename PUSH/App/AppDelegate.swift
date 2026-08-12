@@ -202,6 +202,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Sparkle stalls the app for around four seconds when it starts — measured,
+    /// and not the permission modal: it happens with checks already enabled.
+    /// The ASR model now loads in ~0.1s, so starting the updater straight after
+    /// put that stall directly under the user's first hotkey press, which felt
+    /// exactly like the startup hang it replaced. Push it well past the point
+    /// where someone would plausibly be dictating; update checks are daily, so
+    /// a minute's delay costs nothing.
+    ///
+    /// Timer rather than Task.sleep on purpose: a run-loop timer still fires if
+    /// something wedges the main queue, which is the failure mode this whole
+    /// area keeps producing.
+    private func scheduleUpdaterStart() {
+        let timer = Timer(timeInterval: 60, repeats: false) { _ in
+            MainActor.assumeIsolated { UpdaterManager.shared.start() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
     private func preloadModels() {
         Task { @MainActor in
             // ModelLoader handles status, warmup, and failure surfacing.
@@ -218,7 +236,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // and the hotkey did nothing, with no feedback about why.
             // Starting it after the model is serving keeps dictation working
             // no matter what Sparkle decides to show.
-            UpdaterManager.shared.start()
+            scheduleUpdaterStart()
+
         }
     }
 }
