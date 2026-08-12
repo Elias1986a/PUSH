@@ -1,10 +1,12 @@
 import SwiftUI
 import AVFoundation
+import Combine
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkeyManager: HotkeyManager?
     private var pillWindow: NSWindow?
+    private var previewCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // If a previous run died mid-dictation while the output volume was
@@ -106,6 +108,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
 
+        // The pill is a borderless panel sized once from `fittingSize`, so it
+        // does not grow on its own when the live preview adds text. Re-fit it as
+        // partials arrive. Not routed through .appStateDidChange on purpose —
+        // that notification drives show/hide, which shouldn't run every second.
+        previewCancellable = AppState.shared.$livePartialText
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                // The published value hasn't been applied to the view yet; let
+                // SwiftUI render this frame before measuring the new fit.
+                DispatchQueue.main.async { self?.refitPillWindow() }
+            }
+
         // Evaluate visibility once now. AppState's `didSet` observers don't fire
         // during its initialization, so no .appStateDidChange is posted for the
         // initial `isModelReady == false` — without this the "Loading model..."
@@ -125,6 +139,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let x = screenFrame.midX - windowSize.width / 2
         let y = screenFrame.minY + 10  // 10px from bottom
         window.setFrameOrigin(NSPoint(x: x, y: y))
+    }
+
+    /// Re-measure the SwiftUI content and grow/shrink the panel around its own
+    /// center, so the pill stays bottom-centered as live text widens it instead
+    /// of creeping rightward off the anchor.
+    private func refitPillWindow() {
+        guard let window = pillWindow,
+              let contentView = window.contentViewController?.view else { return }
+
+        contentView.layoutSubtreeIfNeeded()
+        let newSize = contentView.fittingSize
+        let current = window.frame
+        guard abs(newSize.width - current.width) > 0.5 else { return }
+
+        let centerX = current.midX
+        window.setFrame(
+            NSRect(x: centerX - newSize.width / 2,
+                   y: current.minY,
+                   width: newSize.width,
+                   height: newSize.height),
+            display: true,
+            animate: false
+        )
     }
 
     @objc private func screenLayoutChanged() {

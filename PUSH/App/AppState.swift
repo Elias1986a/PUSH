@@ -16,12 +16,20 @@ class AppState: ObservableObject {
         static let wakeWord = "wakeWord"
         static let doubleSpaceAfterSentence = "doubleSpaceAfterSentence"
         static let mediaBehavior = "mediaBehavior"
+        static let showLivePreview = "showLivePreview"
     }
 
     // MARK: - Published State
 
     @Published var isListening: Bool = false {
-        didSet { notifyStateChange() }
+        didSet {
+            // Reset the preview at the start of each dictation rather than at the
+            // end of the last one: clearing it on completion would shrink the pill
+            // mid fade-out. Doing it here also covers engines that emit no
+            // partials, so stale text can never carry into the next dictation.
+            if isListening { livePartialText = "" }
+            notifyStateChange()
+        }
     }
 
     @Published var isProcessing: Bool = false {
@@ -106,6 +114,25 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(doubleSpaceAfterSentence, forKey: UserDefaultsKeys.doubleSpaceAfterSentence)
         }
     }
+
+    /// Show the rough transcript in the pill while you speak. Only the streaming
+    /// Parakeet engine emits partials; on every other engine this has no effect.
+    /// Off by default: the text trails speech by ~2s, so it stays blank on short
+    /// dictations and is worth opting into rather than meeting unannounced.
+    @Published var showLivePreview: Bool = false {
+        didSet {
+            UserDefaults.standard.set(showLivePreview, forKey: UserDefaultsKeys.showLivePreview)
+            if !showLivePreview { livePartialText = "" }
+        }
+    }
+
+    /// Rough, un-cleaned transcript emitted mid-utterance by the streaming
+    /// engine — display only, never injected and never logged. Append-only, so
+    /// it grows rather than rewriting itself.
+    ///
+    /// Deliberately does NOT call `notifyStateChange()`: that notification drives
+    /// pill window visibility, and this updates about once a second.
+    @Published var livePartialText: String = ""
 
     // MARK: - Hotkey Configuration
 
@@ -258,6 +285,10 @@ class AppState: ObservableObject {
         if UserDefaults.standard.object(forKey: UserDefaultsKeys.doubleSpaceAfterSentence) != nil {
             self.doubleSpaceAfterSentence = UserDefaults.standard.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence)
         }
+
+        // Load live preview preference (bool(forKey:) is false when never set,
+        // which is the intended default)
+        self.showLivePreview = UserDefaults.standard.bool(forKey: UserDefaultsKeys.showLivePreview)
 
         // Load media behavior (keeps the .duck default when never set)
         if let saved = UserDefaults.standard.string(forKey: UserDefaultsKeys.mediaBehavior),

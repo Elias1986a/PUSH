@@ -47,6 +47,16 @@ actor ParakeetStreamingEngine {
         do {
             let manager = StreamingUnifiedAsrManager()
             try await manager.loadModels()
+            // Feed the rough in-flight transcript to the pill. Fires off-main
+            // roughly once per 1.04s chunk, so it hops to the main actor to
+            // publish. Display only — this text is never injected or logged.
+            await manager.setPartialTranscriptCallback { partial in
+                Task { @MainActor in
+                    guard AppState.shared.showLivePreview,
+                          AppState.shared.isListening else { return }
+                    AppState.shared.livePartialText = partial
+                }
+            }
             self.manager = manager
             isLoaded = true
             PushLogger.log("ParakeetStreamingEngine: ✅ Model loaded successfully")

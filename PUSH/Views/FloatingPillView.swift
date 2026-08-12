@@ -6,21 +6,29 @@ struct FloatingPillView: View {
     @State private var dotPhase2: CGFloat = 0
     @State private var dotPhase3: CGFloat = 0
 
+    /// Widest the pill grows once live text arrives. Past this the text scrolls
+    /// instead, so the pill never creeps across the screen on a long dictation.
+    private static let maxPreviewWidth: CGFloat = 360
+
     var body: some View {
         HStack(spacing: 6) {
             // Microphone icon
-            Image(systemName: "mic.fill")
+            Image(systemName: iconName)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(appState.isListening ? .red : .orange)
 
-            // Status text with animated dots
-            HStack(alignment: .bottom, spacing: 0) {
-                Text(baseStatusText)
-                    .font(.system(size: 11, weight: .medium))
+            if showPreview {
+                livePreviewText
+            } else {
+                // Status text with animated dots
+                HStack(alignment: .bottom, spacing: 0) {
+                    Text(baseStatusText)
+                        .font(.system(size: 11, weight: .medium))
 
-                if appState.isListening {
-                    bouncingDots
-                        .padding(.bottom, 1)  // Align with text baseline
+                    if appState.isListening {
+                        bouncingDots
+                            .padding(.bottom, 1)  // Align with text baseline
+                    }
                 }
             }
         }
@@ -49,6 +57,34 @@ struct FloatingPillView: View {
         }
     }
 
+    /// The rough in-flight transcript. Laid out at its natural width, then
+    /// clamped to `maxPreviewWidth` with trailing alignment, so the newest words
+    /// stay pinned to the right and older ones slide off the left edge under a
+    /// short fade.
+    private var livePreviewText: some View {
+        Text(appState.livePartialText)
+            .font(.system(size: 11, weight: .medium))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .frame(maxWidth: Self.maxPreviewWidth, alignment: .trailing)
+            .clipped()
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: 0.06),
+                        .init(color: .black, location: 1)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            // Dim once the hotkey is released: what's on screen is the captured
+            // text, and cleanup is still to come.
+            .opacity(appState.isListening ? 1 : 0.55)
+            .animation(.easeOut(duration: 0.15), value: appState.livePartialText)
+    }
+
     private var bouncingDots: some View {
         HStack(spacing: 1) {
             Circle()
@@ -71,6 +107,26 @@ struct FloatingPillView: View {
 
     private var shouldShow: Bool {
         appState.isListening || appState.isProcessing || !appState.isModelReady || appState.isWarmingUp
+    }
+
+    /// Live text replaces the status label only while there is something to show
+    /// and a dictation is actually in flight. Until the first partial lands
+    /// (~2s in) this is false, so short utterances look exactly as they do today.
+    private var showPreview: Bool {
+        appState.showLivePreview
+            && !appState.livePartialText.isEmpty
+            && (appState.isListening || appState.isProcessing)
+    }
+
+    private var iconName: String {
+        if appState.isListening {
+            return "mic.fill"
+        } else if showPreview {
+            // Released, holding the captured text while cleanup runs.
+            return "hourglass"
+        } else {
+            return "mic.fill"
+        }
     }
 
     private var baseStatusText: String {
