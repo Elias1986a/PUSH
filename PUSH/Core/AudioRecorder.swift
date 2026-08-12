@@ -79,9 +79,24 @@ final class AudioRecorder: @unchecked Sendable {
     /// Initialising the input device is the expensive part and needs no main
     /// thread, so this is callable from anywhere.
     private nonisolated static func buildEngine() -> AVAudioEngine {
+        // Timed in parts: this is the "deaf window" on a cold press — the seconds
+        // between the key going down and the mic actually hearing anything — so
+        // it matters which step owns it, not just the total.
+        let t0 = Date()
         let engine = AVAudioEngine()
-        _ = engine.inputNode.outputFormat(forBus: 0)
+        let t1 = Date()
+        let input = engine.inputNode
+        let t2 = Date()
+        _ = input.outputFormat(forBus: 0)
+        let t3 = Date()
         engine.prepare()
+        let t4 = Date()
+        PushLogger.log(String(
+            format: "AudioRecorder: engine build — alloc %.0fms, inputNode %.0fms, format %.0fms, prepare %.0fms",
+            t1.timeIntervalSince(t0) * 1000,
+            t2.timeIntervalSince(t1) * 1000,
+            t3.timeIntervalSince(t2) * 1000,
+            t4.timeIntervalSince(t3) * 1000))
         return engine
     }
 

@@ -205,6 +205,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 PushLogger.log("AppDelegate: warm-up complete, indicator cleared")
             }
 
+            // Start the audio warm-ups immediately, in parallel with the model
+            // load, rather than after it. Binding the input HAL measured 4.3s on
+            // a USB mic — it is by far the longest pole, and every moment it
+            // starts earlier is a moment shaved off the window where a press
+            // finds the app deaf. The model load only takes ~0.1s, but it was
+            // 0.1s the microphone was not warming.
+            async let capture: Void = AudioRecorder.shared.prewarm()
+            async let chirp: Void = SoundPlayer.shared.prewarm()
+
             // ModelLoader handles status, warmup, and failure surfacing.
             try? await ModelLoader.activate(AppState.shared.selectedWhisperModel)
 
@@ -227,11 +236,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // the benefit of whatever finished first. The chirp is cheap and comes
             // first on the press path; the capture engine and the VAD's CoreML
             // load are the slow ones.
-            // Concurrently, and both awaited: the indicator must not clear until
-            // every part is genuinely warm. The chirp used to be fire-and-forget,
-            // so the pill went away about a second before it finished.
-            async let chirp: Void = SoundPlayer.shared.prewarm()
-            await AudioRecorder.shared.prewarm()
+            // Both awaited: the indicator must not clear until every part is
+            // genuinely warm. The chirp used to be fire-and-forget, so the pill
+            // went away about a second before it finished.
+            await capture
             await chirp
 
             scheduleUpdaterStart()
