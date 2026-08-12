@@ -292,14 +292,17 @@ final class HotkeyManager: @unchecked Sendable {
         }
 
         isCurrentlyRecording = true
+        PressTiming.begin()
 
         Task { @MainActor in
+            PressTiming.mark("main-actor hop")
             AppState.shared.isListening = true
             AppState.shared.statusMessage = "Listening..."
 
             // Play chirp sound if enabled
             if AppState.shared.playSoundOnStart {
                 SoundPlayer.shared.playChirp()
+                PressTiming.mark("chirp")
             }
 
             // Start audio recording

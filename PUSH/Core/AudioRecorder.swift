@@ -51,6 +51,7 @@ final class AudioRecorder: @unchecked Sendable {
     func startRecording(withVAD: Bool = false) {
         guard !isRecording else { return }
 
+        PressTiming.mark("startRecording enter")
         audioData = Data()
         audioEngine = AVAudioEngine()
 
@@ -58,6 +59,7 @@ final class AudioRecorder: @unchecked Sendable {
 
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
+        PressTiming.mark("inputFormat")
 
         guard let outputFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
@@ -108,9 +110,11 @@ final class AudioRecorder: @unchecked Sendable {
 
         do {
             try engine.start()
+            PressTiming.mark("engine.start")
             isRecording = true
 
             MediaController.shared.beginDictation(behavior: AppState.shared.mediaBehavior)
+            PressTiming.mark("beginDictation")
 
             // Always run Silero VAD: gates transcription in hotkey mode,
             // auto-stops recording in wake word mode.
@@ -125,6 +129,8 @@ final class AudioRecorder: @unchecked Sendable {
             }
 
             PushLogger.log("AudioRecorder: Started recording\(withVAD ? " with auto-stop VAD" : "")")
+            PressTiming.mark("recording started")
+            PressTiming.end()
         } catch {
             PushLogger.log("AudioRecorder: Failed to start engine: \(error)")
             continuation.finish()
