@@ -3,6 +3,7 @@ import AppKit
 
 struct FloatingPillView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var revealer = PreviewRevealer()
     @State private var dotPhase1: CGFloat = 0
     @State private var dotPhase2: CGFloat = 0
     @State private var dotPhase3: CGFloat = 0
@@ -35,7 +36,7 @@ struct FloatingPillView: View {
                 // for the text it is about to hold. Nothing then moves for the
                 // rest of the dictation: no widening, no re-centering, and the
                 // status label sits exactly where the first word will appear.
-                if appState.livePartialText.isEmpty {
+                if revealer.revealed.isEmpty {
                     statusLabel
                         .frame(width: previewWidth, alignment: .leading)
                 } else {
@@ -68,6 +69,9 @@ struct FloatingPillView: View {
                 startBouncingAnimation()
             }
         }
+        .onChange(of: appState.livePartialText) { _, text in
+            revealer.setTarget(text)
+        }
     }
 
     /// Status text with animated dots — the pill's original content.
@@ -92,7 +96,7 @@ struct FloatingPillView: View {
     /// off the left under a fade. The fade is applied only when it is actually
     /// scrolling; otherwise it would dim the first word of every dictation.
     private var livePreviewText: some View {
-        Text(appState.livePartialText)
+        Text(revealer.revealed)
             .font(.system(size: previewFontSize, weight: .medium))
             .fontWidth(.condensed)
             .lineLimit(1)
@@ -114,12 +118,11 @@ struct FloatingPillView: View {
             // Dim once the hotkey is released: what's on screen is the captured
             // text, and cleanup is still to come.
             .opacity(appState.isListening ? 1 : 0.55)
-            .animation(.easeOut(duration: 0.15), value: appState.livePartialText)
     }
 
     /// True once the transcript is wider than the box and has to start scrolling.
     private var previewOverflows: Bool {
-        (appState.livePartialText as NSString)
+        (revealer.revealed as NSString)
             .size(withAttributes: [.font: previewFont]).width > previewWidth
     }
 
@@ -158,7 +161,7 @@ struct FloatingPillView: View {
 
     /// True once there is actual transcript on screen (~2s into a dictation).
     private var showPreview: Bool {
-        reservesPreviewWidth && !appState.livePartialText.isEmpty
+        reservesPreviewWidth && !revealer.revealed.isEmpty
     }
 
     private var iconName: String {
