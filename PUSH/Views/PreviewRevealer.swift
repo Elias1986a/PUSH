@@ -22,7 +22,11 @@ final class PreviewRevealer: ObservableObject {
     /// the ~1.04s between chunks, so the reveal always catches up before the
     /// next one lands and never compounds into extra lag.
     private static let chunkDuration: TimeInterval = 0.4
-    private static let tick: TimeInterval = 1.0 / 60.0
+    /// 120Hz. This display refreshes at up to 120Hz, and stepping at the same
+    /// rate halves how far the text jumps per step versus 60. The work per step
+    /// is a string prefix and a Text redraw, so the extra ticks are cheap — and
+    /// the window is never resized, only the text inside a fixed-width box.
+    private static let tick: TimeInterval = 1.0 / 120.0
     private static var ticksPerChunk: Double { chunkDuration / tick }
 
     private var target: String = ""
