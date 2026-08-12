@@ -236,6 +236,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // and the hotkey did nothing, with no feedback about why.
             // Starting it after the model is serving keeps dictation working
             // no matter what Sparkle decides to show.
+            // Pay the capture path's lazy setup now, not on the user's first
+            // press. Runs before the updater is scheduled so it can't be
+            // delayed behind it.
+            await AudioRecorder.shared.prewarm()
+
             scheduleUpdaterStart()
 
         }

@@ -29,6 +29,25 @@ final class AudioRecorder: @unchecked Sendable {
 
     // MARK: - Public API
 
+    /// Touch the expensive, lazily-initialised parts of the capture path at
+    /// launch so the first hotkey press doesn't pay for them. Nobody dictates
+    /// the instant their machine boots, so this cost belongs at startup.
+    ///
+    /// Deliberately does NOT start the engine: nothing is captured, so the
+    /// system microphone indicator stays off. Only the first `outputFormat`
+    /// query (measured at ~0.10s cold, ~0.02s warm) and buffer allocation are
+    /// paid here.
+    func prewarm() async {
+        let engine = AVAudioEngine()
+        _ = engine.inputNode.outputFormat(forBus: 0)
+        engine.prepare()
+        PushLogger.log("AudioRecorder: capture path pre-warmed")
+
+        // The VAD's CoreML model otherwise loads on the first press, inside the
+        // same window the user is already waiting through.
+        await sileroVAD.setup()
+    }
+
     func startRecording(withVAD: Bool = false) {
         guard !isRecording else { return }
 
