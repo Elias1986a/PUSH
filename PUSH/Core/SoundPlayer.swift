@@ -40,42 +40,45 @@ class SoundPlayer {
     /// All of it runs off the main thread. Done inline it froze the main thread for
     /// ~2s at launch, which is exactly when the pill is animating in and out — the
     /// pill visibly hung mid-animation.
-    func prewarm() {
+    func prewarm() async {
         guard chirpPlayer == nil, !isPreparing else { return }
         guard let url = Self.chirpURL else {
             PushLogger.log("SoundPlayer: Could not find nextel_chirp.mp3")
             return
         }
         isPreparing = true
+        defer { isPreparing = false }
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            guard let player = try? AVAudioPlayer(contentsOf: url) else {
-                PushLogger.log("SoundPlayer: Failed to prepare sound")
-                DispatchQueue.main.async {
-                    MainActor.assumeIsolated { Self.shared.isPreparing = false }
-                }
-                return
-            }
+        // Building the player and starting the output device, off the main
+        // thread. Done inline it froze the main thread for ~2s at launch —
+        // which is when the pill is animating and when the hotkey's event tap
+        // is most easily disabled.
+        let built = await Task.detached(priority: .userInitiated) { () -> AVAudioPlayer? in
+            guard let player = try? AVAudioPlayer(contentsOf: url) else { return nil }
             player.volume = 0
             player.prepareToPlay()
             player.play()
-            // Let the silent play actually reach the hardware before winding back.
-            Thread.sleep(forTimeInterval: 0.5)
-            player.stop()
-            player.currentTime = 0
-            player.volume = chirpVolume
+            return player
+        }.value
 
-            // Published only once it is genuinely ready to chirp, so `playChirp`
-            // can treat "no player" as "not warm yet" and skip rather than block.
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated { Self.shared.adopt(player) }
-            }
+        guard let player = built else {
+            PushLogger.log("SoundPlayer: Failed to prepare sound")
+            return
         }
-    }
 
-    private func adopt(_ player: AVAudioPlayer) {
+        // Let the silent play actually reach the hardware before winding back.
+        try? await Task.sleep(for: .milliseconds(500))
+        // pause(), never stop(): `stop()` is documented to undo the setup that
+        // `prepareToPlay()` performed, which threw away the very thing this is
+        // warming. With stop() here the first real chirp still cost ~1.3s,
+        // exactly as if nothing had been prewarmed.
+        player.pause()
+        player.currentTime = 0
+        player.volume = chirpVolume
+
+        // Published only once it is genuinely ready to chirp, so `playChirp` can
+        // treat "no player" as "not warm yet" and skip rather than block.
         chirpPlayer = player
-        isPreparing = false
         PushLogger.log("SoundPlayer: chirp pre-warmed")
     }
 
@@ -90,11 +93,18 @@ class SoundPlayer {
             // would cost ~1s right in front of the recording, so skip the cue for
             // this press and warm up behind it instead.
             PushLogger.log("SoundPlayer: chirp not ready yet, skipping")
-            prewarm()
+            Task { await prewarm() }
             return
         }
-        // Rewind: a player that already played sits at the end and won't restart.
-        player.currentTime = 0
-        player.play()
+        // Off the main actor as well. Warming makes `play()` fast, but "fast"
+        // depends on what CoreAudio has done with the output device since — and
+        // this call sits directly between the key press and the recording, so it
+        // must not be able to cost the user their opening words even when it is
+        // slow. Nothing downstream waits on the chirp.
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Rewind: a player that already played sits at the end and won't restart.
+            player.currentTime = 0
+            player.play()
+        }
     }
 }

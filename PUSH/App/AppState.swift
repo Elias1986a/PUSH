@@ -37,6 +37,14 @@ class AppState: ObservableObject {
         didSet { notifyStateChange() }
     }
 
+    /// True once the microphone is genuinely capturing, which is not the same as
+    /// `isListening` — that flips the instant the key goes down, while the audio
+    /// device can take seconds to come up on a cold press. The pill said
+    /// "Listening" through a measured 4.2s wait and the user spoke into nothing.
+    @Published var isCapturing: Bool = false {
+        didSet { notifyStateChange() }
+    }
+
     @Published var isModelReady: Bool = false {
         didSet { notifyStateChange() }
     }
@@ -73,6 +81,15 @@ class AppState: ObservableObject {
     @Published var activeModel: WhisperModel = .parakeetStreaming
 
     @Published var statusMessage: String = "Ready"
+
+    /// Whether the pill should be on screen. The single source of truth for both
+    /// the SwiftUI view's own visibility and AppDelegate's ordering of the panel
+    /// — they were separate copies of this condition, and adding `isPrewarming`
+    /// to only one of them meant the window was ordered out before the view could
+    /// ever draw "Warming up…".
+    var pillShouldShow: Bool {
+        isListening || isProcessing || !isModelReady || isWarmingUp || isPrewarming
+    }
 
     /// Parakeet Streaming is the default for fresh installs, chosen after an
     /// A/B on real dictation. It consumes audio while you speak, so latency

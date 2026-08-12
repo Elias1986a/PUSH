@@ -161,7 +161,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func updatePillVisibility() {
         DispatchQueue.main.async {
             let state = AppState.shared
-            if state.isListening || state.isProcessing || !state.isModelReady || state.isWarmingUp {
+            if state.pillShouldShow {
                 // Re-anchor only when appearing, so the pill doesn't jump
                 // screens mid-dictation if the pointer moves. Lay out first:
                 // the window still holds the size from the last time it was
@@ -200,7 +200,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             // Clear the warming indicator however this ends — a failed model load
             // must not leave the pill claiming it is still warming up forever.
-            defer { AppState.shared.isPrewarming = false }
+            defer {
+                AppState.shared.isPrewarming = false
+                PushLogger.log("AppDelegate: warm-up complete, indicator cleared")
+            }
 
             // ModelLoader handles status, warmup, and failure surfacing.
             try? await ModelLoader.activate(AppState.shared.selectedWhisperModel)
@@ -224,8 +227,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // the benefit of whatever finished first. The chirp is cheap and comes
             // first on the press path; the capture engine and the VAD's CoreML
             // load are the slow ones.
-            SoundPlayer.shared.prewarm()
+            // Concurrently, and both awaited: the indicator must not clear until
+            // every part is genuinely warm. The chirp used to be fire-and-forget,
+            // so the pill went away about a second before it finished.
+            async let chirp: Void = SoundPlayer.shared.prewarm()
             await AudioRecorder.shared.prewarm()
+            await chirp
 
             scheduleUpdaterStart()
 

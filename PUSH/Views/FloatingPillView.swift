@@ -28,7 +28,8 @@ struct FloatingPillView: View {
             // Microphone icon
             Image(systemName: iconName)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(appState.isListening ? .red : .orange)
+                // Red means the mic is live, so it follows capture, not the key.
+                .foregroundStyle(appState.isCapturing ? .red : .orange)
 
             if reservesPreviewWidth {
                 // Claim the full width up front — including during the ~2s before
@@ -146,10 +147,7 @@ struct FloatingPillView: View {
         .padding(.leading, 1)
     }
 
-    private var shouldShow: Bool {
-        appState.isListening || appState.isProcessing || !appState.isModelReady
-            || appState.isWarmingUp || appState.isPrewarming
-    }
+    private var shouldShow: Bool { appState.pillShouldShow }
 
     /// Whether to lay the pill out for the preview. Gated on the *active* engine
     /// so the wide box is never reserved for a model that can't stream partials
@@ -180,9 +178,13 @@ struct FloatingPillView: View {
         if appState.modelUnavailable {
             return "Model unavailable"
         } else if appState.isListening {
-            // Recording can start before the model is ready, so "Listening"
-            // takes precedence — the mic really is capturing.
-            return "Listening"
+            // Only claim to be listening once the microphone is actually
+            // capturing. On a cold press the audio device can take seconds to
+            // come up, and saying "Listening" through that wait invites the user
+            // to talk into nothing — measured at 4.2s, with the whole sentence
+            // lost. Recording can still legitimately start before the *model* is
+            // ready; that isn't what this covers.
+            return appState.isCapturing ? "Listening" : "Warming up..."
         } else if appState.isProcessing {
             return "Processing..."
         } else if !appState.isModelReady {

@@ -178,6 +178,7 @@ final class AudioRecorder: @unchecked Sendable {
             try engine.start()
             PressTiming.mark("engine.start")
             isRecording = true
+            AppState.shared.isCapturing = true
 
             MediaController.shared.beginDictation(behavior: AppState.shared.mediaBehavior)
             PressTiming.mark("beginDictation")
@@ -215,6 +216,7 @@ final class AudioRecorder: @unchecked Sendable {
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
         isRecording = false
+        AppState.shared.isCapturing = false
 
         // Unconditional and synchronous: a no-op unless we actually changed
         // something, so it stays correct even if the setting changed mid-take.
