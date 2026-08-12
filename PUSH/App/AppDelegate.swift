@@ -109,9 +109,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         // The pill is a borderless panel sized once from `fittingSize`, so it
-        // does not grow on its own when the live preview adds text. Re-fit it as
-        // partials arrive. Not routed through .appStateDidChange on purpose —
-        // that notification drives show/hide, which shouldn't run every second.
+        // does not resize itself when the live preview appears. The preview
+        // claims a fixed width, so in practice this fires twice per dictation —
+        // once when the first partial widens the pill, once when it clears —
+        // and the width check below no-ops on every partial in between.
+        // Not routed through .appStateDidChange on purpose: that notification
+        // drives show/hide, which shouldn't run every second.
         previewCancellable = AppState.shared.$livePartialText
             .removeDuplicates()
             .sink { [weak self] _ in

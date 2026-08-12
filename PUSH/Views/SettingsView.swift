@@ -39,6 +39,13 @@ struct SettingsView: View {
 struct GeneralSettingsView: View {
     @EnvironmentObject var appState: AppState
 
+    /// Keyed off the *selected* model rather than the active one, so the toggle
+    /// greys out the moment you pick another model instead of waiting for the
+    /// swap to finish loading.
+    private var supportsLivePreview: Bool {
+        appState.selectedWhisperModel.engineType == .parakeetStreaming
+    }
+
     var body: some View {
         Form {
             Section {
@@ -75,8 +82,11 @@ struct GeneralSettingsView: View {
 
             Section("Live Preview") {
                 Toggle("Show text in the pill as you speak", isOn: $appState.showLivePreview)
+                    .disabled(!supportsLivePreview)
 
-                Text("Rough transcript, about two seconds behind you. The final text is cleaned up before it's inserted. Streaming Parakeet only.")
+                Text(supportsLivePreview
+                     ? "Rough transcript, about two seconds behind you. The final text is cleaned up before it's inserted."
+                     : "Only Parakeet Streaming transcribes while you speak — switch to it above to use the live preview.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
