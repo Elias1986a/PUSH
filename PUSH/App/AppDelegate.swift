@@ -190,12 +190,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if !(self.pillWindow?.isVisible ?? false) {
                     self.sizePillToContent()   // before centring — see the note there
                     self.positionPillWindow()
-                    // SwiftUI may not have applied this state change yet, in
-                    // which case the size above was measured from the old
-                    // content. Re-fit once more next turn to settle it.
-                    DispatchQueue.main.async { self.refitPillWindow() }
                 }
                 self.pillWindow?.orderFront(nil)
+                // Re-fit on every state change, not just on appear. The status
+                // text changes width while the pill is already on screen
+                // ("Loading model…" → "Warming up…" → "Listening"), and without
+                // this the window keeps its old size and clips the longer
+                // string — "Warming up…" rendered cut off. Deferred a turn so
+                // SwiftUI has applied the change before we measure it.
+                DispatchQueue.main.async { self.refitPillWindow() }
             } else {
                 self.pillWindow?.orderOut(nil)
             }
