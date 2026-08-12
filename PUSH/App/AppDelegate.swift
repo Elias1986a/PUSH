@@ -243,6 +243,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // press. Runs before the updater is scheduled so it can't be
             // delayed behind it.
             await AudioRecorder.shared.prewarm()
+            // Same reasoning for the chirp: its first play built an AVAudioPlayer
+            // from scratch on the main actor while the user was already holding
+            // the key down.
+            SoundPlayer.shared.prewarm()
 
             scheduleUpdaterStart()
 

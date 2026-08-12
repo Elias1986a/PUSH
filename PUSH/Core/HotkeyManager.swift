@@ -298,6 +298,10 @@ final class HotkeyManager: @unchecked Sendable {
             PressTiming.mark("main-actor hop")
             AppState.shared.isListening = true
             AppState.shared.statusMessage = "Listening..."
+            // Splits the gap that used to read as one 1072ms jump to "chirp":
+            // everything the state change drags in (pill show + first SwiftUI
+            // render) lands before this mark, the audio player's setup after it.
+            PressTiming.mark("state set")
 
             // Play chirp sound if enabled
             if AppState.shared.playSoundOnStart {
