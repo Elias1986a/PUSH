@@ -84,6 +84,14 @@ struct GeneralSettingsView: View {
                 Toggle("Show text in the pill as you speak", isOn: $appState.showLivePreview)
                     .disabled(!supportsLivePreview)
 
+                Picker("Size", selection: $appState.previewSize) {
+                    ForEach(AppState.PreviewSize.allCases) { size in
+                        Text(size.displayName).tag(size)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(!supportsLivePreview || !appState.showLivePreview)
+
                 Text(supportsLivePreview
                      ? "Rough transcript, about two seconds behind you. The final text is cleaned up before it's inserted."
                      : "Only Parakeet Streaming transcribes while you speak — switch to it above to use the live preview.")

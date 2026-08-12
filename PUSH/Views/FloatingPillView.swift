@@ -7,15 +7,20 @@ struct FloatingPillView: View {
     @State private var dotPhase2: CGFloat = 0
     @State private var dotPhase3: CGFloat = 0
 
-    /// Width the preview reserves as soon as the first partial lands. It is a
-    /// fixed width, not a maximum: the pill claims the whole box up front and
-    /// keeps it, so the window stops resizing (and re-centering) per word and
-    /// the text underneath never gets shoved sideways.
-    private static let previewWidth: CGFloat = 360
+    /// Width the preview reserves, from the chosen size. It is a fixed width,
+    /// not a maximum: the pill claims the whole box up front and keeps it, so
+    /// the window stops resizing (and re-centering) per word and the text
+    /// underneath never gets shoved sideways.
+    private var previewWidth: CGFloat { appState.previewSize.width }
+
+    private var previewFontSize: CGFloat { appState.previewSize.fontSize }
 
     /// Must match `livePreviewText`'s font — it measures the string to decide
-    /// whether the text still fits.
-    private static let previewFont = NSFont.systemFont(ofSize: 11, weight: .medium)
+    /// whether the text still fits. Condensed: narrower glyphs fit more words
+    /// per line, so a size step shows up as height rather than length.
+    private var previewFont: NSFont {
+        NSFont.systemFont(ofSize: previewFontSize, weight: .medium, width: .condensed)
+    }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -32,7 +37,7 @@ struct FloatingPillView: View {
                 // status label sits exactly where the first word will appear.
                 if appState.livePartialText.isEmpty {
                     statusLabel
-                        .frame(width: Self.previewWidth, alignment: .leading)
+                        .frame(width: previewWidth, alignment: .leading)
                 } else {
                     livePreviewText   // carries the same fixed width itself
                 }
@@ -88,10 +93,11 @@ struct FloatingPillView: View {
     /// scrolling; otherwise it would dim the first word of every dictation.
     private var livePreviewText: some View {
         Text(appState.livePartialText)
-            .font(.system(size: 11, weight: .medium))
+            .font(.system(size: previewFontSize, weight: .medium))
+            .fontWidth(.condensed)
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
-            .frame(width: Self.previewWidth, alignment: previewOverflows ? .trailing : .leading)
+            .frame(width: previewWidth, alignment: previewOverflows ? .trailing : .leading)
             .clipped()
             .mask(
                 LinearGradient(
@@ -114,7 +120,7 @@ struct FloatingPillView: View {
     /// True once the transcript is wider than the box and has to start scrolling.
     private var previewOverflows: Bool {
         (appState.livePartialText as NSString)
-            .size(withAttributes: [.font: Self.previewFont]).width > Self.previewWidth
+            .size(withAttributes: [.font: previewFont]).width > previewWidth
     }
 
     private var bouncingDots: some View {

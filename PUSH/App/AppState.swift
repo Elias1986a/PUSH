@@ -17,6 +17,7 @@ class AppState: ObservableObject {
         static let doubleSpaceAfterSentence = "doubleSpaceAfterSentence"
         static let mediaBehavior = "mediaBehavior"
         static let showLivePreview = "showLivePreview"
+        static let previewSize = "previewSize"
     }
 
     // MARK: - Published State
@@ -123,6 +124,51 @@ class AppState: ObservableObject {
         didSet {
             UserDefaults.standard.set(showLivePreview, forKey: UserDefaultsKeys.showLivePreview)
             if !showLivePreview { livePartialText = "" }
+        }
+    }
+
+    /// How large the live preview draws. Scales the text and the width of the
+    /// box it reserves.
+    @Published var previewSize: PreviewSize = .medium {
+        didSet {
+            UserDefaults.standard.set(previewSize.rawValue, forKey: UserDefaultsKeys.previewSize)
+        }
+    }
+
+    enum PreviewSize: String, CaseIterable, Identifiable {
+        case small, medium, large
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .small: return "Small"
+            case .medium: return "Medium"
+            case .large: return "Large"
+            }
+        }
+
+        /// Point size of the preview text. Drawn in the condensed system width
+        /// (see `FloatingPillView`), so stepping up a size reads mostly as
+        /// taller letters rather than a longer line.
+        var fontSize: CGFloat {
+            switch self {
+            case .small: return 12
+            case .medium: return 16
+            case .large: return 20
+            }
+        }
+
+        /// Width the preview reserves. Deliberately generous — the box is only
+        /// as wide as it needs to be to delay the point where text starts
+        /// scrolling, and a wider box costs nothing when it sits at the bottom
+        /// of the screen.
+        var width: CGFloat {
+            switch self {
+            case .small: return 400
+            case .medium: return 600
+            case .large: return 800
+            }
         }
     }
 
@@ -289,6 +335,10 @@ class AppState: ObservableObject {
         // Load live preview preference (bool(forKey:) is false when never set,
         // which is the intended default)
         self.showLivePreview = UserDefaults.standard.bool(forKey: UserDefaultsKeys.showLivePreview)
+        if let savedSize = UserDefaults.standard.string(forKey: UserDefaultsKeys.previewSize),
+           let size = PreviewSize(rawValue: savedSize) {
+            self.previewSize = size
+        }
 
         // Load media behavior (keeps the .duck default when never set)
         if let saved = UserDefaults.standard.string(forKey: UserDefaultsKeys.mediaBehavior),

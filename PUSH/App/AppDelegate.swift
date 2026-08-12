@@ -137,10 +137,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
             ?? NSScreen.main ?? NSScreen.screens.first
-        guard let screenFrame = screen?.visibleFrame else { return }
+        guard let screen else { return }
         let windowSize = window.frame.size
-        let x = screenFrame.midX - windowSize.width / 2
-        let y = screenFrame.minY + 10  // 10px from bottom
+        // Centre on the physical screen, not `visibleFrame` — a Dock pinned to
+        // the left or right shrinks visibleFrame and would push the pill
+        // off-centre relative to the display.
+        let x = screen.frame.midX - windowSize.width / 2
+        let y = screen.visibleFrame.minY + 10  // 10px from bottom
         window.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
@@ -156,9 +159,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let current = window.frame
         guard abs(newSize.width - current.width) > 0.5 else { return }
 
-        let centerX = current.midX
+        let x = current.midX - newSize.width / 2
         window.setFrame(
-            NSRect(x: centerX - newSize.width / 2,
+            NSRect(x: x,
                    y: current.minY,
                    width: newSize.width,
                    height: newSize.height),
