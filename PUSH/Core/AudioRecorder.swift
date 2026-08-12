@@ -35,6 +35,11 @@ final class AudioRecorder: @unchecked Sendable {
         audioData = Data()
         audioEngine = AVAudioEngine()
 
+        // Drop the previous take's preview here rather than in the streaming
+        // engine alone — switching to a batch model mid-session would otherwise
+        // leave its last transcript sitting in the pill, looking live.
+        AppState.shared.liveTranscript = ""
+
         guard let engine = audioEngine else { return }
 
         let inputNode = engine.inputNode

@@ -64,6 +64,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Floating Pill Window
 
+    /// Wide enough for a full line of live transcript at 11pt. The window is
+    /// transparent and ignores mouse events, so the unused width costs nothing.
+    private static let pillWindowWidth: CGFloat = 520
+    private static let pillMinimumHeight: CGFloat = 32
+
     private func setupFloatingPillWindow() {
         let pillView = FloatingPillView()
             .environmentObject(AppState.shared)
@@ -84,9 +89,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.ignoresMouseEvents = true
         window.isFloatingPanel = true
 
-        // Force a layout to get the actual window size
+        // Fixed-width panel: the capsule grows and shrinks inside it as live
+        // text arrives, so the window never resizes or re-centres mid-sentence.
+        // Height still comes from layout — the pill is always a single line.
         hostingController.view.layoutSubtreeIfNeeded()
-        window.setContentSize(hostingController.view.fittingSize)
+        let contentHeight = max(hostingController.view.fittingSize.height, Self.pillMinimumHeight)
+        window.setContentSize(NSSize(width: Self.pillWindowWidth, height: contentHeight))
 
         self.pillWindow = window
         positionPillWindow()
@@ -122,7 +130,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             ?? NSScreen.main ?? NSScreen.screens.first
         guard let screenFrame = screen?.visibleFrame else { return }
         let windowSize = window.frame.size
-        let x = screenFrame.midX - windowSize.width / 2
+        // Clamp to the screen: the panel is wider than the visible capsule, so
+        // on a narrow display centring alone could push it off the left edge.
+        let x = max(screenFrame.minX, screenFrame.midX - windowSize.width / 2)
         let y = screenFrame.minY + 10  // 10px from bottom
         window.setFrameOrigin(NSPoint(x: x, y: y))
     }
