@@ -73,6 +73,14 @@ struct GeneralSettingsView: View {
                 Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
             }
 
+            Section("Live Preview") {
+                Toggle("Show text in the pill as you speak", isOn: $appState.showLivePreview)
+
+                Text("Rough transcript, about two seconds behind you. The final text is cleaned up before it's inserted. Streaming Parakeet only.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Wake Word (Hands-Free Mode)") {
                 Toggle("Enable wake word activation", isOn: $appState.wakeWordEnabled)
                     .onChange(of: appState.wakeWordEnabled) { _, newValue in
