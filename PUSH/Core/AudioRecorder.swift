@@ -34,13 +34,9 @@ final class AudioRecorder: @unchecked Sendable {
     /// the instant their machine boots, so this cost belongs at startup.
     ///
     /// Deliberately does NOT start the engine: nothing is captured, so the
-    /// system microphone indicator stays off. Only the first `outputFormat`
-    /// query (measured at ~0.10s cold, ~0.02s warm) and buffer allocation are
-    /// paid here.
+    /// system microphone indicator stays off.
     func prewarm() async {
-        let engine = AVAudioEngine()
-        _ = engine.inputNode.outputFormat(forBus: 0)
-        engine.prepare()
+        _ = readyEngine()
         PushLogger.log("AudioRecorder: capture path pre-warmed")
 
         // The VAD's CoreML model otherwise loads on the first press, inside the
@@ -48,15 +44,43 @@ final class AudioRecorder: @unchecked Sendable {
         await sileroVAD.setup()
     }
 
+    /// The process's one capture engine, built on first use.
+    ///
+    /// It outlives individual recordings on purpose. Constructing an engine and
+    /// querying `inputNode.outputFormat` initialises the input device, which
+    /// measured ~0.72s cold and ~0.09s warm — and the earlier prewarm built a
+    /// local engine that was released immediately, so the device was torn back
+    /// down and the user's first press paid the cold cost anyway. Keeping one
+    /// instance means that happens once, at launch.
+    private func readyEngine() -> AVAudioEngine {
+        if let audioEngine { return audioEngine }
+        let engine = AVAudioEngine()
+        _ = engine.inputNode.outputFormat(forBus: 0)
+        engine.prepare()
+        // Rebuild after a device change (mic unplugged, output switched):
+        // a stopped engine can otherwise keep reporting the old device's format.
+        NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, !self.isRecording else { return }
+                self.audioEngine = nil
+                PushLogger.log("AudioRecorder: audio configuration changed, engine will rebuild")
+            }
+        }
+        audioEngine = engine
+        return engine
+    }
+
     func startRecording(withVAD: Bool = false) {
         guard !isRecording else { return }
 
         PressTiming.mark("startRecording enter")
         audioData = Data()
-        audioEngine = AVAudioEngine()
 
-        guard let engine = audioEngine else { return }
-
+        let engine = readyEngine()
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
         PressTiming.mark("inputFormat")
@@ -144,9 +168,10 @@ final class AudioRecorder: @unchecked Sendable {
 
         // Release the microphone FIRST — nothing about restoring other apps'
         // audio should delay giving the mic back.
+        // Stopped, not released: holding the engine keeps the input device
+        // initialised so the next press doesn't re-pay for waking it.
         audioEngine?.inputNode.removeTap(onBus: 0)
         audioEngine?.stop()
-        audioEngine = nil
         isRecording = false
 
         // Unconditional and synchronous: a no-op unless we actually changed

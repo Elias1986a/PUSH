@@ -6,7 +6,8 @@ import Combine
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkeyManager: HotkeyManager?
     private var pillWindow: NSWindow?
-    private var previewCancellable: AnyCancellable?
+    /// Screen-centre the pill is anchored to, captured when it appears.
+    private var pillCenterX: CGFloat?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // If a previous run died mid-dictation while the output volume was
@@ -67,6 +68,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .environmentObject(AppState.shared)
 
         let hostingController = NSHostingController(rootView: pillView)
+        // Let AppKit follow SwiftUI's own ideal size instead of us re-measuring
+        // by hand on each state change. Every hand-rolled refit had to name the
+        // moments worth re-measuring, and each missed one clipped the pill —
+        // "Warming up…" rendered cut off because the status text changed width
+        // while the window was already on screen. This tracks all of them.
+        hostingController.sizingOptions = [.preferredContentSize]
 
         // Use NSPanel with .nonactivatingPanel so showing it doesn't activate the app
         // or pull the user out of full-screen mode
@@ -84,7 +91,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Force a layout to get the actual window size
         hostingController.view.layoutSubtreeIfNeeded()
-        window.setContentSize(hostingController.view.fittingSize)
 
         self.pillWindow = window
         positionPillWindow()
@@ -103,21 +109,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
-
-        // The pill is a borderless panel sized once from `fittingSize`, so it
-        // does not resize itself when the live preview appears. The preview
-        // claims a fixed width, so in practice this fires twice per dictation —
-        // once when the first partial widens the pill, once when it clears —
-        // and the width check below no-ops on every partial in between.
-        // Not routed through .appStateDidChange on purpose: that notification
-        // drives show/hide, which shouldn't run every second.
-        previewCancellable = AppState.shared.$livePartialText
-            .removeDuplicates()
-            .sink { [weak self] _ in
-                // The published value hasn't been applied to the view yet; let
-                // SwiftUI render this frame before measuring the new fit.
-                DispatchQueue.main.async { self?.refitPillWindow() }
-            }
+        // SwiftUI resizes the window from the bottom-left, so anything that
+        // widens the pill would walk it rightward off its anchor. Re-centre on
+        // the anchor we chose when it appeared.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(pillDidResize),
+            name: NSWindow.didResizeNotification,
+            object: window
+        )
 
         // Evaluate visibility once now. AppState's `didSet` observers don't fire
         // during its initialization, so no .appStateDidChange is posted for the
@@ -134,45 +134,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
             ?? NSScreen.main ?? NSScreen.screens.first
         guard let screen else { return }
-        let windowSize = window.frame.size
         // Centre on the physical screen, not `visibleFrame` — a Dock pinned to
         // the left or right shrinks visibleFrame and would push the pill
         // off-centre relative to the display.
-        let x = screen.frame.midX - windowSize.width / 2
+        pillCenterX = screen.frame.midX
         let y = screen.visibleFrame.minY + 10  // 10px from bottom
-        window.setFrameOrigin(NSPoint(x: x, y: y))
+        window.setFrameOrigin(NSPoint(x: screen.frame.midX - window.frame.width / 2, y: y))
     }
 
-    /// Force a layout pass and match the panel to the SwiftUI content.
-    ///
-    /// Must run before `positionPillWindow()` whenever the pill is about to
-    /// appear: `window.frame` still holds the size from the *previous* time it
-    /// was shown, so centring without this centres the old width. That's what
-    /// made the first dictation of a session sit off-centre — the pill was
-    /// still status-sized when it was placed, then the preview's reserved width
-    /// spilled out to the right, leaving the mic icon at screen centre.
-    @discardableResult
-    private func sizePillToContent() -> Bool {
-        guard let window = pillWindow,
-              let contentView = window.contentViewController?.view else { return false }
-
-        contentView.layoutSubtreeIfNeeded()
-        let newSize = contentView.fittingSize
-        guard abs(newSize.width - window.frame.width) > 0.5
-                || abs(newSize.height - window.frame.height) > 0.5 else { return false }
-
-        window.setContentSize(newSize)
-        return true
-    }
-
-    /// Re-measure and grow/shrink the panel around its own centre, so the pill
-    /// stays bottom-centered instead of creeping rightward off the anchor.
-    private func refitPillWindow() {
-        guard let window = pillWindow else { return }
-        let centerX = window.frame.midX
-        guard sizePillToContent() else { return }
-        window.setFrameOrigin(NSPoint(x: centerX - window.frame.width / 2,
-                                      y: window.frame.minY))
+    /// Keep the pill centered on its anchor as SwiftUI resizes it. Re-centring
+    /// on the stored anchor rather than the window's own midX means repeated
+    /// resizes can't accumulate drift.
+    @objc private func pillDidResize() {
+        guard let window = pillWindow, let centerX = pillCenterX else { return }
+        let x = centerX - window.frame.width / 2
+        guard abs(window.frame.minX - x) > 0.5 else { return }
+        window.setFrameOrigin(NSPoint(x: x, y: window.frame.minY))
     }
 
     @objc private func screenLayoutChanged() {
@@ -186,19 +163,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let state = AppState.shared
             if state.isListening || state.isProcessing || !state.isModelReady || state.isWarmingUp {
                 // Re-anchor only when appearing, so the pill doesn't jump
-                // screens mid-dictation if the pointer moves.
+                // screens mid-dictation if the pointer moves. Lay out first:
+                // the window still holds the size from the last time it was
+                // shown, and centring the old width is what put the first
+                // dictation of a session off-centre.
                 if !(self.pillWindow?.isVisible ?? false) {
-                    self.sizePillToContent()   // before centring — see the note there
+                    self.pillWindow?.contentViewController?.view.layoutSubtreeIfNeeded()
                     self.positionPillWindow()
                 }
                 self.pillWindow?.orderFront(nil)
-                // Re-fit on every state change, not just on appear. The status
-                // text changes width while the pill is already on screen
-                // ("Loading model…" → "Warming up…" → "Listening"), and without
-                // this the window keeps its old size and clips the longer
-                // string — "Warming up…" rendered cut off. Deferred a turn so
-                // SwiftUI has applied the change before we measure it.
-                DispatchQueue.main.async { self.refitPillWindow() }
             } else {
                 self.pillWindow?.orderOut(nil)
             }
@@ -242,11 +215,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Pay the capture path's lazy setup now, not on the user's first
             // press. Runs before the updater is scheduled so it can't be
             // delayed behind it.
-            await AudioRecorder.shared.prewarm()
-            // Same reasoning for the chirp: its first play built an AVAudioPlayer
-            // from scratch on the main actor while the user was already holding
-            // the key down.
+            // Warm in press-path order — chirp, then capture — because the whole
+            // sequence takes a few seconds and a press part-way through only gets
+            // the benefit of whatever finished first. The chirp is cheap and comes
+            // first on the press path; the capture engine and the VAD's CoreML
+            // load are the slow ones.
             SoundPlayer.shared.prewarm()
+            await AudioRecorder.shared.prewarm()
 
             scheduleUpdaterStart()
 

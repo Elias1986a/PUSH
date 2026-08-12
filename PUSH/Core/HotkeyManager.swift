@@ -16,6 +16,8 @@ final class HotkeyManager: @unchecked Sendable {
     private var onKeyDown: (() -> Void)?
     private var onKeyUp: (() -> Void)?
     private var retryTimer: Timer?
+    private var releaseWatchdog: Timer?
+    private var releaseMissTicks = 0
 
     // Tracks whether we're actively recording (hotkey or wake word).
     // Accessed from event tap callback (main run loop) and @MainActor methods.
@@ -161,6 +163,55 @@ final class HotkeyManager: @unchecked Sendable {
         }
     }
 
+    // MARK: - Release watchdog
+
+    /// Catch a hotkey release that never reached us.
+    ///
+    /// macOS disables an event tap whose callback doesn't return promptly, and
+    /// the tap's run loop source lives on the main thread — so any main-thread
+    /// stall long enough to trip that also swallows every event aimed at the tap,
+    /// including the release that ends the dictation. The pill then sat there
+    /// holding the transcript until the user pressed a second time to flush it.
+    ///
+    /// Rather than reason about which stalls can still happen, ask the hardware
+    /// what the modifiers are actually doing. Two consecutive quiet ticks before
+    /// acting, so a single odd reading can't cut a dictation short.
+    private func startReleaseWatchdog() {
+        stopReleaseWatchdog()
+        let hotkey = AppState.shared.selectedHotkey
+        // The generic modifier bit, not `flagMask`'s left/right-specific one:
+        // `flagsState` is only documented to report the generic flags, and a
+        // watchdog that misreads "released" would end every dictation instantly.
+        let generic: CGEventFlags = hotkey.requiresAlternate ? .maskAlternate
+            : hotkey.requiresCommand ? .maskCommand
+            : .maskControl
+
+        releaseMissTicks = 0
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.isRightOptionPressed else { return }
+                guard !CGEventSource.flagsState(.combinedSessionState).contains(generic) else {
+                    self.releaseMissTicks = 0
+                    return
+                }
+                self.releaseMissTicks += 1
+                guard self.releaseMissTicks >= 2 else { return }
+
+                PushLogger.log("HotkeyManager: release was never delivered — ending dictation")
+                self.isRightOptionPressed = false
+                self.handleKeyUp()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        releaseWatchdog = timer
+    }
+
+    private func stopReleaseWatchdog() {
+        releaseWatchdog?.invalidate()
+        releaseWatchdog = nil
+        releaseMissTicks = 0
+    }
+
     /// Re-enable the tap after the system disabled it (timeout / heavy input).
     private func reEnableTap() {
         guard let tap = eventTap else { return }
@@ -293,6 +344,7 @@ final class HotkeyManager: @unchecked Sendable {
 
         isCurrentlyRecording = true
         PressTiming.begin()
+        startReleaseWatchdog()
 
         Task { @MainActor in
             PressTiming.mark("main-actor hop")
@@ -319,6 +371,7 @@ final class HotkeyManager: @unchecked Sendable {
 
     private func handleKeyUp() {
         PushLogger.log("HotkeyManager: handleKeyUp called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
+        stopReleaseWatchdog()
         guard AppState.shared.hotkeyEnabled else { return }
 
         isCurrentlyRecording = false
@@ -364,6 +417,7 @@ final class HotkeyManager: @unchecked Sendable {
 
     private func handleCancelRecording() {
         PushLogger.log("HotkeyManager: Cancelling recording/processing - discarding audio")
+        stopReleaseWatchdog()
 
         isCurrentlyRecording = false
         isCurrentlyProcessing = false
