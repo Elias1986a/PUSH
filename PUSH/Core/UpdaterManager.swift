@@ -15,11 +15,24 @@ final class UpdaterManager: ObservableObject {
 
     private let controller: SPUStandardUpdaterController
 
-    /// Mirrors `SPUUpdater.canCheckForUpdates` so the menu item can disable itself
-    /// while a check is already in flight.
+    /// Mirrors `SPUUpdater.canCheckForUpdates`. False both before the updater
+    /// has started *and* while a check is in flight — two very different
+    /// states, which is why the menu reads the two properties below instead.
     @Published private(set) var canCheckForUpdates = false
 
-    private var hasStarted = false
+    @Published private(set) var hasStarted = false
+
+    /// Whether the menu item should be tappable.
+    ///
+    /// True during the pre-start minute: the delay exists so Sparkle's start-up
+    /// cost can't land under someone's first hotkey press, and a user opening
+    /// the menu to ask for an update is exactly the moment that cost is welcome.
+    /// Tapping then starts the updater on demand.
+    var canBeInvoked: Bool { !hasStarted || canCheckForUpdates }
+
+    /// True only for a check actually running, so the menu can say so rather
+    /// than greying out with no explanation.
+    var isCheckingForUpdates: Bool { hasStarted && !canCheckForUpdates }
 
     private init() {
         // startingUpdater: false is load-bearing. `startUpdater` can put up a
@@ -49,7 +62,13 @@ final class UpdaterManager: ObservableObject {
     }
 
     /// Triggers a user-initiated update check (shows "you're up to date" when none).
+    ///
+    /// Starts the updater first if the launch timer hasn't fired yet. Sparkle
+    /// cannot check before `startUpdater()`, and the alternative — leaving the
+    /// menu item grey for the first minute — looked like a broken app rather
+    /// than a deliberate delay.
     func checkForUpdates() {
+        start()
         controller.updater.checkForUpdates()
     }
 }
