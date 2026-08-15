@@ -114,35 +114,47 @@ struct FloatingPillView: View {
         )
     }
 
-    /// A two-point acid-green outline with a bright band sweeping across it.
+    /// A two-point acid-green outline with a bright band sweeping across it,
+    /// running the three open sides — left flank, bottom, right flank. The top
+    /// edge is left bare: it is where the shape meets the screen edge (and, on
+    /// a MacBook, emerges from the notch), so an outline across it would draw
+    /// a lid on something meant to read as open at the top.
     ///
     /// Inset rather than centred on the path: the window is sized to the shape
     /// exactly, so half of a centred stroke — and all of an outer glow — would
     /// be clipped. The bloom is a blurred copy of the same stroke clipped back
     /// to the silhouette, which reads as a glow while staying inside the frame.
-    ///
-    /// The top edge sits at the top of the screen, so in practice the sweep
-    /// traces the two flanks and the rounded bottom.
-    @ViewBuilder
     private var edgePulse: some View {
-        if reduceMotion {
-            // A sweep is motion for its own sake; hold it at a steady outline.
-            tabShape.strokeBorder(
-                Pulse.color.opacity(Pulse.peakOpacity * 0.6),
-                lineWidth: Pulse.lineWidth
-            )
-        } else {
-            TimelineView(.animation) { context in
-                let gradient = pulseGradient(at: context.date)
-                ZStack {
-                    tabShape
-                        .strokeBorder(gradient, lineWidth: Pulse.lineWidth)
-                        .blur(radius: 3)
-                        .clipShape(tabShape)
-                    tabShape
-                        .strokeBorder(gradient, lineWidth: Pulse.lineWidth)
+        Group {
+            if reduceMotion {
+                // A sweep is motion for its own sake; hold it at a steady outline.
+                tabShape.strokeBorder(
+                    Pulse.color.opacity(Pulse.peakOpacity * 0.6),
+                    lineWidth: Pulse.lineWidth
+                )
+            } else {
+                TimelineView(.animation) { context in
+                    let gradient = pulseGradient(at: context.date)
+                    ZStack {
+                        tabShape
+                            .strokeBorder(gradient, lineWidth: Pulse.lineWidth)
+                            .blur(radius: 3)
+                            .clipShape(tabShape)
+                        tabShape
+                            .strokeBorder(gradient, lineWidth: Pulse.lineWidth)
+                    }
                 }
             }
+        }
+        // Three sides only: left, bottom, right. Masking the top band off the
+        // finished stroke keeps the flanks and the bottom corners on exactly
+        // the fill's geometry — tracing an open path by hand would have to
+        // re-approximate the continuous corner curve and would show a seam
+        // against the black. The top run is what gets cut; the flanks simply
+        // begin a couple of points down, which is invisible against the
+        // screen edge.
+        .mask(alignment: .bottom) {
+            Rectangle().padding(.top, Pulse.lineWidth + 1)
         }
     }
 
