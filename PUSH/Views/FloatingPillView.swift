@@ -286,10 +286,30 @@ struct FloatingPillView: View {
 }
 
 #if DEBUG
-#Preview {
+#Preview("Bottom · capsule") {
     FloatingPillView()
         .environmentObject(AppState.shared)
         .padding(50)
         .background(Color.gray.opacity(0.3))
+}
+
+/// The top placement, staged against a stand-in screen edge. The real inset is
+/// measured per screen at runtime; 37 is a 14" MacBook Pro's notch.
+#Preview("Top · notch tab") {
+    let state = AppState.shared
+    state.pillPosition = .top
+    state.pillTopInset = 37
+    state.isListening = true
+    state.isCapturing = true
+
+    return VStack(spacing: 0) {
+        FloatingPillView()
+            .environmentObject(state)
+        Spacer()
+    }
+    .frame(width: 900, height: 260)
+    .background(
+        LinearGradient(colors: [.indigo, .purple], startPoint: .top, endPoint: .bottom)
+    )
 }
 #endif
