@@ -8,6 +8,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var pillWindow: NSWindow?
     /// Screen-centre the pill is anchored to, captured when it appears.
     private var pillCenterX: CGFloat?
+    /// Screen top the pill hangs from, or nil at the bottom placement.
+    private var pillTopY: CGFloat?
+    /// The placement the window was last positioned for.
+    private var positionedPlacement: AppState.PillPosition?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // If a previous run died mid-dictation while the output volume was
@@ -126,8 +130,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         updatePillVisibility()
     }
 
-    /// Bottom-center of the screen the pointer is on — dictation happens where
-    /// the user is working, which isn't necessarily the launch-time main screen.
+    /// Centered on the screen the pointer is on — dictation happens where the
+    /// user is working, which isn't necessarily the launch-time main screen —
+    /// and pinned to whichever edge the placement asks for.
     private func positionPillWindow() {
         guard let window = pillWindow else { return }
         let mouse = NSEvent.mouseLocation
@@ -138,18 +143,65 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // the left or right shrinks visibleFrame and would push the pill
         // off-centre relative to the display.
         pillCenterX = screen.frame.midX
-        let y = screen.visibleFrame.minY + 10  // 10px from bottom
-        window.setFrameOrigin(NSPoint(x: screen.frame.midX - window.frame.width / 2, y: y))
+        positionedPlacement = AppState.shared.pillPosition
+
+        if AppState.shared.pillPosition == .top {
+            // The tab has to draw over the menu bar strip it descends from.
+            // `.statusBar` sits one level above `.mainMenu`, which the menu bar
+            // itself can still win; the extra levels are what NotchIsland-style
+            // HUDs use to own that strip without private API.
+            window.level = NSWindow.Level(rawValue: NSWindow.Level.mainMenu.rawValue + 3)
+            AppState.shared.pillTopInset = topClearance(for: screen)
+            // Let SwiftUI re-measure with the inset it was just handed, so the
+            // top edge is pinned against the real height rather than the
+            // previous one.
+            window.contentViewController?.view.layoutSubtreeIfNeeded()
+            pillTopY = screen.frame.maxY
+            window.setFrameOrigin(NSPoint(
+                x: screen.frame.midX - window.frame.width / 2,
+                y: screen.frame.maxY - window.frame.height
+            ))
+        } else {
+            window.level = .statusBar
+            pillTopY = nil
+            window.setFrameOrigin(NSPoint(
+                x: screen.frame.midX - window.frame.width / 2,
+                y: screen.visibleFrame.minY + 10
+            ))
+        }
     }
 
-    /// Keep the pill centered on its anchor as SwiftUI resizes it. Re-centring
-    /// on the stored anchor rather than the window's own midX means repeated
+    /// What the top placement has to clear before it can draw.
+    ///
+    /// Only the notch earns a full band: it is hardware, and drawing under it
+    /// puts text behind the camera. The menu bar is not — the tab is drawn
+    /// over it, and the centre of the menu bar where the tab sits is empty on
+    /// every standard setup — so reserving its full height on a display
+    /// without a notch just spends 30 points of the user's desktop to clear
+    /// something that isn't there.
+    private func topClearance(for screen: NSScreen) -> CGFloat {
+        let notch = screen.safeAreaInsets.top
+        return notch > 0 ? notch : Self.bareEdgeClearance
+    }
+
+    /// Breathing room above the content on a display with no notch — enough
+    /// that the text isn't jammed against the screen edge, and no more.
+    private static let bareEdgeClearance: CGFloat = 6
+
+    /// Keep the pill on its anchors as SwiftUI resizes it. Re-anchoring against
+    /// the stored values rather than the window's own frame means repeated
     /// resizes can't accumulate drift.
+    ///
+    /// The top placement has to re-pin vertically too: AppKit resizes from the
+    /// bottom-left, so a pill that grows taller — the preview wrapping, the
+    /// status text changing — would push its top edge down off the screen edge
+    /// and open a gap above itself.
     @objc private func pillDidResize() {
         guard let window = pillWindow, let centerX = pillCenterX else { return }
         let x = centerX - window.frame.width / 2
-        guard abs(window.frame.minX - x) > 0.5 else { return }
-        window.setFrameOrigin(NSPoint(x: x, y: window.frame.minY))
+        let y = pillTopY.map { $0 - window.frame.height } ?? window.frame.minY
+        guard abs(window.frame.minX - x) > 0.5 || abs(window.frame.minY - y) > 0.5 else { return }
+        window.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
     @objc private func screenLayoutChanged() {
@@ -167,7 +219,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // the window still holds the size from the last time it was
                 // shown, and centring the old width is what put the first
                 // dictation of a session off-centre.
-                if !(self.pillWindow?.isVisible ?? false) {
+                // A placement change is the one thing worth re-anchoring a pill
+                // that's already on screen for: it has to cross the display.
+                if !(self.pillWindow?.isVisible ?? false)
+                    || self.positionedPlacement != state.pillPosition {
                     self.pillWindow?.contentViewController?.view.layoutSubtreeIfNeeded()
                     self.positionPillWindow()
                 }

@@ -80,6 +80,19 @@ struct GeneralSettingsView: View {
                 Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
             }
 
+            Section("Pill") {
+                Picker("Position", selection: $appState.pillPosition) {
+                    ForEach(AppState.PillPosition.allCases) { position in
+                        Text(position.displayName).tag(position)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text("At the top the pill hangs off the screen edge under the notch, so a live transcript sits where you're already reading. At the bottom it floats as a capsule, out of the way.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Live Preview") {
                 Toggle("Show text in the pill as you speak", isOn: $appState.showLivePreview)
                     .disabled(!supportsLivePreview)

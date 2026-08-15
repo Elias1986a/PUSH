@@ -3,10 +3,26 @@ import AppKit
 
 struct FloatingPillView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var revealer = PreviewRevealer()
     @State private var dotPhase1: CGFloat = 0
     @State private var dotPhase2: CGFloat = 0
     @State private var dotPhase3: CGFloat = 0
+
+    /// The travelling edge pulse.
+    private enum Pulse {
+        static let color = Color(red: 0.69, green: 1.0, blue: 0.0)
+        /// Seconds for one crossing. Slow enough to read as a sweep rather
+        /// than a blink, at the edge of what still looks deliberate.
+        static let period: TimeInterval = 3.2
+        /// How much of the width the bright band covers, either side of centre.
+        static let halfWidth: CGFloat = 0.22
+        static let lineWidth: CGFloat = 2
+        /// The edge is never fully dark: the sweep rides on a dim constant so
+        /// the outline stays legible as an outline between passes.
+        static let floorOpacity: Double = 0.16
+        static let peakOpacity: Double = 0.95
+    }
 
     /// Width the preview reserves, from the chosen size. It is a fixed width,
     /// not a maximum: the pill claims the whole box up front and keeps it, so
@@ -23,7 +39,179 @@ struct FloatingPillView: View {
         NSFont.systemFont(ofSize: previewFontSize, weight: .medium, width: .condensed)
     }
 
+    private var isTopPlacement: Bool { appState.pillPosition == .top }
+
+    /// The tab's fill is always black, so its content can't follow the system
+    /// appearance the way it can on the capsule's material.
+    private var contentColor: Color { isTopPlacement ? .white : .primary }
+
     var body: some View {
+        Group {
+            if isTopPlacement {
+                notchTab
+            } else {
+                capsulePill
+            }
+        }
+        .foregroundStyle(contentColor)
+        .opacity(shouldShow ? 1 : 0)
+        .scaleEffect(
+            x: isTopPlacement ? 1 : (shouldShow ? 1 : 0.85),
+            y: shouldShow ? 1 : (isTopPlacement ? 0.001 : 0.85),
+            anchor: isTopPlacement ? .top : .center
+        )
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: shouldShow)
+        .fixedSize()
+        .task {
+            // Start animation when view appears and is listening
+            if appState.isListening {
+                startBouncingAnimation()
+            }
+        }
+        .onChange(of: appState.isListening) { _, isListening in
+            if isListening {
+                startBouncingAnimation()
+            }
+        }
+        .onChange(of: appState.livePartialText) { _, text in
+            revealer.setTarget(text)
+        }
+    }
+
+    /// The top placement: a black tab hanging off the screen's top edge that
+    /// reads as the notch continuing downward. Square on top because that edge
+    /// *is* the screen edge, rounded below.
+    ///
+    /// The housing band is left empty — on a MacBook those points sit behind
+    /// the camera, and on every other display behind the menu bar — so the
+    /// content starts underneath it. Collapse to zero and the shape retracts
+    /// into the housing rather than shrinking in place.
+    private var notchTab: some View {
+        VStack(spacing: 0) {
+            Color.clear
+                .frame(height: appState.pillTopInset)
+
+            pillContent
+                .padding(.horizontal, 16)
+                .padding(.top, 3)
+                .padding(.bottom, 7)
+        }
+        .frame(minWidth: AppState.notchMinimumWidth)
+        // No shadow: the tab reads as an extension of the hardware, and
+        // hardware doesn't cast one onto the desktop. A shadow only added
+        // a band of grey pixels around a shape that should end at its edge.
+        // The edge treatment is the pulse below instead — drawn *inside* the
+        // silhouette, so it needs no slack around the window either.
+        .background(tabShape.fill(.black))
+        .overlay(edgePulse)
+    }
+
+    private var tabShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            bottomLeadingRadius: 16,
+            bottomTrailingRadius: 16,
+            style: .continuous
+        )
+    }
+
+    /// A two-point acid-green outline with a bright band sweeping across it,
+    /// running the three open sides — left flank, bottom, right flank. The top
+    /// edge is left bare: it is where the shape meets the screen edge (and, on
+    /// a MacBook, emerges from the notch), so an outline across it would draw
+    /// a lid on something meant to read as open at the top.
+    ///
+    /// Inset rather than centred on the path: the window is sized to the shape
+    /// exactly, so half of a centred stroke — and all of an outer glow — would
+    /// be clipped. The bloom is a blurred copy of the same stroke clipped back
+    /// to the silhouette, which reads as a glow while staying inside the frame.
+    @ViewBuilder
+    private var edgePulse: some View {
+        if reduceMotion {
+            // A sweep is motion for its own sake; hold it at a steady outline.
+            openEdgeStroke(Pulse.color.opacity(Pulse.peakOpacity * 0.6))
+        } else {
+            TimelineView(.animation) { context in
+                let gradient = pulseGradient(at: context.date)
+                ZStack {
+                    // Trimmed before it is blurred, and trimmed again after.
+                    // Blurring the full outline first spreads the top run
+                    // downward past the trim line, which leaves a faint green
+                    // bar across the top — dimmer than the stroke it came
+                    // from, but exactly the line the trim exists to remove.
+                    // The second trim catches the flanks' bloom reaching back
+                    // up into the same band.
+                    openEdgeStroke(gradient)
+                        .blur(radius: 3)
+                        .clipShape(tabShape)
+                        .mask(alignment: .bottom) { openEdgeMask }
+                    openEdgeStroke(gradient)
+                }
+            }
+        }
+    }
+
+    /// The outline with its top run cut off, leaving the three open sides.
+    ///
+    /// Trimmed from the finished stroke rather than traced as an open path:
+    /// this keeps the flanks and bottom corners on exactly the fill's
+    /// geometry, where a hand-built path would have to re-approximate the
+    /// continuous corner curve and would show a seam against the black. The
+    /// flanks simply begin a couple of points down, which is invisible against
+    /// the screen edge.
+    private func openEdgeStroke(_ style: some ShapeStyle) -> some View {
+        tabShape
+            .strokeBorder(style, lineWidth: Pulse.lineWidth)
+            .mask(alignment: .bottom) { openEdgeMask }
+    }
+
+    private var openEdgeMask: some View {
+        Rectangle().padding(.top, Pulse.lineWidth + 1)
+    }
+
+    /// The outline's colour along its width at this instant. The band travels
+    /// from off one edge to off the other, so it enters and leaves rather than
+    /// snapping back to the start.
+    private func pulseGradient(at date: Date) -> LinearGradient {
+        let cycle = date.timeIntervalSinceReferenceDate
+            .truncatingRemainder(dividingBy: Pulse.period) / Pulse.period
+        // Travels across 1.5 widths, starting a quarter-width off the leading
+        // edge, so the band is fully outside the shape at both ends.
+        let phase = CGFloat(cycle) * 1.5 - 0.25
+
+        let floor = Pulse.color.opacity(Pulse.floorOpacity)
+        let peak = Pulse.color.opacity(Pulse.peakOpacity)
+        // Clamped in order: gradient stops have to be non-decreasing.
+        let lead = min(max(phase - Pulse.halfWidth, 0), 1)
+        let mid = min(max(phase, 0), 1)
+        let trail = min(max(phase + Pulse.halfWidth, 0), 1)
+
+        return LinearGradient(
+            stops: [
+                .init(color: floor, location: 0),
+                .init(color: floor, location: lead),
+                .init(color: peak, location: mid),
+                .init(color: floor, location: trail),
+                .init(color: floor, location: 1)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
+    /// The original floating capsule, shown at the bottom of the screen.
+    private var capsulePill: some View {
+        pillContent
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
+            )
+    }
+
+    /// Icon plus status/preview — identical in both placements.
+    private var pillContent: some View {
         HStack(spacing: 6) {
             // Microphone icon
             Image(systemName: iconName)
@@ -46,32 +234,6 @@ struct FloatingPillView: View {
             } else {
                 statusLabel
             }
-        }
-        .foregroundStyle(.primary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
-        )
-        .opacity(shouldShow ? 1 : 0)
-        .scaleEffect(shouldShow ? 1 : 0.85)
-        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: shouldShow)
-        .fixedSize()
-        .task {
-            // Start animation when view appears and is listening
-            if appState.isListening {
-                startBouncingAnimation()
-            }
-        }
-        .onChange(of: appState.isListening) { _, isListening in
-            if isListening {
-                startBouncingAnimation()
-            }
-        }
-        .onChange(of: appState.livePartialText) { _, text in
-            revealer.setTarget(text)
         }
     }
 
@@ -130,17 +292,17 @@ struct FloatingPillView: View {
     private var bouncingDots: some View {
         HStack(spacing: 1) {
             Circle()
-                .fill(.primary)
+                .fill(contentColor)
                 .frame(width: 3, height: 3)
                 .offset(y: dotPhase1 * -2)
 
             Circle()
-                .fill(.primary)
+                .fill(contentColor)
                 .frame(width: 3, height: 3)
                 .offset(y: dotPhase2 * -2)
 
             Circle()
-                .fill(.primary)
+                .fill(contentColor)
                 .frame(width: 3, height: 3)
                 .offset(y: dotPhase3 * -2)
         }
@@ -226,10 +388,30 @@ struct FloatingPillView: View {
 }
 
 #if DEBUG
-#Preview {
+#Preview("Bottom · capsule") {
     FloatingPillView()
         .environmentObject(AppState.shared)
         .padding(50)
         .background(Color.gray.opacity(0.3))
+}
+
+/// The top placement, staged against a stand-in screen edge. The real inset is
+/// measured per screen at runtime; 37 is a 14" MacBook Pro's notch.
+#Preview("Top · notch tab") {
+    let state = AppState.shared
+    state.pillPosition = .top
+    state.pillTopInset = 37
+    state.isListening = true
+    state.isCapturing = true
+
+    return VStack(spacing: 0) {
+        FloatingPillView()
+            .environmentObject(state)
+        Spacer()
+    }
+    .frame(width: 900, height: 260)
+    .background(
+        LinearGradient(colors: [.indigo, .purple], startPoint: .top, endPoint: .bottom)
+    )
 }
 #endif
