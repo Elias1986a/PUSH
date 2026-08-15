@@ -23,7 +23,93 @@ struct FloatingPillView: View {
         NSFont.systemFont(ofSize: previewFontSize, weight: .medium, width: .condensed)
     }
 
+    private var isTopPlacement: Bool { appState.pillPosition == .top }
+
+    /// The tab's fill is always black, so its content can't follow the system
+    /// appearance the way it can on the capsule's material.
+    private var contentColor: Color { isTopPlacement ? .white : .primary }
+
     var body: some View {
+        Group {
+            if isTopPlacement {
+                notchTab
+            } else {
+                capsulePill
+            }
+        }
+        .foregroundStyle(contentColor)
+        .opacity(shouldShow ? 1 : 0)
+        .scaleEffect(
+            x: isTopPlacement ? 1 : (shouldShow ? 1 : 0.85),
+            y: shouldShow ? 1 : (isTopPlacement ? 0.001 : 0.85),
+            anchor: isTopPlacement ? .top : .center
+        )
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: shouldShow)
+        .fixedSize()
+        .task {
+            // Start animation when view appears and is listening
+            if appState.isListening {
+                startBouncingAnimation()
+            }
+        }
+        .onChange(of: appState.isListening) { _, isListening in
+            if isListening {
+                startBouncingAnimation()
+            }
+        }
+        .onChange(of: appState.livePartialText) { _, text in
+            revealer.setTarget(text)
+        }
+    }
+
+    /// The top placement: a black tab hanging off the screen's top edge that
+    /// reads as the notch continuing downward. Square on top because that edge
+    /// *is* the screen edge, rounded below.
+    ///
+    /// The housing band is left empty — on a MacBook those points sit behind
+    /// the camera, and on every other display behind the menu bar — so the
+    /// content starts underneath it. Collapse to zero and the shape retracts
+    /// into the housing rather than shrinking in place.
+    private var notchTab: some View {
+        VStack(spacing: 0) {
+            Color.clear
+                .frame(height: appState.pillTopInset)
+
+            pillContent
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+                .padding(.bottom, 10)
+        }
+        .frame(minWidth: AppState.notchMinimumWidth)
+        .background(
+            UnevenRoundedRectangle(
+                bottomLeadingRadius: 20,
+                bottomTrailingRadius: 20,
+                style: .continuous
+            )
+            .fill(.black)
+            .shadow(color: .black.opacity(0.35), radius: 11, x: 0, y: 4)
+        )
+        // Transparent slack so the drawn shadow isn't clipped by the window,
+        // which is sized to fit exactly. Nothing is added at the top: that edge
+        // is the screen edge and the shape sits flush against it.
+        .padding([.horizontal, .bottom], 14)
+    }
+
+    /// The original floating capsule, shown at the bottom of the screen.
+    private var capsulePill: some View {
+        pillContent
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
+            )
+    }
+
+    /// Icon plus status/preview — identical in both placements.
+    private var pillContent: some View {
         HStack(spacing: 6) {
             // Microphone icon
             Image(systemName: iconName)
@@ -46,32 +132,6 @@ struct FloatingPillView: View {
             } else {
                 statusLabel
             }
-        }
-        .foregroundStyle(.primary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
-        )
-        .opacity(shouldShow ? 1 : 0)
-        .scaleEffect(shouldShow ? 1 : 0.85)
-        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: shouldShow)
-        .fixedSize()
-        .task {
-            // Start animation when view appears and is listening
-            if appState.isListening {
-                startBouncingAnimation()
-            }
-        }
-        .onChange(of: appState.isListening) { _, isListening in
-            if isListening {
-                startBouncingAnimation()
-            }
-        }
-        .onChange(of: appState.livePartialText) { _, text in
-            revealer.setTarget(text)
         }
     }
 
@@ -130,17 +190,17 @@ struct FloatingPillView: View {
     private var bouncingDots: some View {
         HStack(spacing: 1) {
             Circle()
-                .fill(.primary)
+                .fill(contentColor)
                 .frame(width: 3, height: 3)
                 .offset(y: dotPhase1 * -2)
 
             Circle()
-                .fill(.primary)
+                .fill(contentColor)
                 .frame(width: 3, height: 3)
                 .offset(y: dotPhase2 * -2)
 
             Circle()
-                .fill(.primary)
+                .fill(contentColor)
                 .frame(width: 3, height: 3)
                 .offset(y: dotPhase3 * -2)
         }

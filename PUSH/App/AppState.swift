@@ -18,6 +18,7 @@ class AppState: ObservableObject {
         static let mediaBehavior = "mediaBehavior"
         static let showLivePreview = "showLivePreview"
         static let previewSize = "previewSize"
+        static let pillPosition = "pillPosition"
     }
 
     // MARK: - Published State
@@ -202,6 +203,43 @@ class AppState: ObservableObject {
         }
     }
 
+    /// Where the pill lives on screen. At the top it stops being a floating
+    /// capsule and becomes a tab hanging off the screen's top edge, continuing
+    /// the notch downward — the reading position for a live transcript, rather
+    /// than the corner of the eye the bottom placement asks for.
+    @Published var pillPosition: PillPosition = .bottom {
+        didSet {
+            UserDefaults.standard.set(pillPosition.rawValue, forKey: UserDefaultsKeys.pillPosition)
+            notifyStateChange()
+        }
+    }
+
+    enum PillPosition: String, CaseIterable, Identifiable {
+        case bottom, top
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .bottom: return "Bottom"
+            case .top: return "Top (notch)"
+            }
+        }
+    }
+
+    /// Clearance the top placement has to leave before it can draw: the notch
+    /// on a MacBook, the menu bar everywhere else. Written by `AppDelegate`
+    /// when it positions the window, because only it knows which screen the
+    /// pill landed on. Not persisted, and deliberately not a state-change
+    /// notification — it is measured *during* positioning.
+    @Published var pillTopInset: CGFloat = 0
+
+    /// Width the top placement claims at minimum, so the shape is always wider
+    /// than the housing it descends from. A bare "Listening" pill measures
+    /// about 100pt — narrower than the ~200pt notch it would then hide behind
+    /// completely.
+    static let notchMinimumWidth: CGFloat = 280
+
     /// Rough, un-cleaned transcript emitted mid-utterance by the streaming
     /// engine — display only, never injected and never logged. Append-only, so
     /// it grows rather than rewriting itself.
@@ -368,6 +406,10 @@ class AppState: ObservableObject {
         if let savedSize = UserDefaults.standard.string(forKey: UserDefaultsKeys.previewSize),
            let size = PreviewSize(rawValue: savedSize) {
             self.previewSize = size
+        }
+        if let savedPosition = UserDefaults.standard.string(forKey: UserDefaultsKeys.pillPosition),
+           let position = PillPosition(rawValue: savedPosition) {
+            self.pillPosition = position
         }
 
         // Load media behavior (keeps the .duck default when never set)
