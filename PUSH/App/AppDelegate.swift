@@ -171,15 +171,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// What the top placement has to clear before it can draw: the notch on a
-    /// MacBook, the menu bar on everything else. Both are read rather than
-    /// assumed — an auto-hidden menu bar measures zero, and on a notched
-    /// display the safe area is the only one of the two that's hardware.
+    /// What the top placement has to clear before it can draw.
+    ///
+    /// Only the notch earns a full band: it is hardware, and drawing under it
+    /// puts text behind the camera. The menu bar is not — the tab is drawn
+    /// over it, and the centre of the menu bar where the tab sits is empty on
+    /// every standard setup — so reserving its full height on a display
+    /// without a notch just spends 30 points of the user's desktop to clear
+    /// something that isn't there.
     private func topClearance(for screen: NSScreen) -> CGFloat {
         let notch = screen.safeAreaInsets.top
-        let menuBar = screen.frame.maxY - screen.visibleFrame.maxY
-        return max(notch, menuBar)
+        return notch > 0 ? notch : Self.bareEdgeClearance
     }
+
+    /// Breathing room above the content on a display with no notch — enough
+    /// that the text isn't jammed against the screen edge, and no more.
+    private static let bareEdgeClearance: CGFloat = 6
 
     /// Keep the pill on its anchors as SwiftUI resizes it. Re-anchoring against
     /// the stored values rather than the window's own frame means repeated

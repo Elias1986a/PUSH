@@ -77,23 +77,23 @@ struct FloatingPillView: View {
 
             pillContent
                 .padding(.horizontal, 16)
-                .padding(.top, 4)
-                .padding(.bottom, 10)
+                .padding(.top, 3)
+                .padding(.bottom, 7)
         }
         .frame(minWidth: AppState.notchMinimumWidth)
+        // No shadow: the tab reads as an extension of the hardware, and
+        // hardware doesn't cast one onto the desktop. A shadow only added
+        // a band of grey pixels around a shape that should end at its edge.
+        // Anything added here later wants to be a tight outline glow rather
+        // than a soft drop — a couple of points, hugging the silhouette.
         .background(
             UnevenRoundedRectangle(
-                bottomLeadingRadius: 20,
-                bottomTrailingRadius: 20,
+                bottomLeadingRadius: 16,
+                bottomTrailingRadius: 16,
                 style: .continuous
             )
             .fill(.black)
-            .shadow(color: .black.opacity(0.35), radius: 11, x: 0, y: 4)
         )
-        // Transparent slack so the drawn shadow isn't clipped by the window,
-        // which is sized to fit exactly. Nothing is added at the top: that edge
-        // is the screen edge and the shape sits flush against it.
-        .padding([.horizontal, .bottom], 14)
     }
 
     /// The original floating capsule, shown at the bottom of the screen.
