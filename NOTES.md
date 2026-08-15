@@ -1,6 +1,69 @@
 # NOTES
 
-## Current state (2026-08-12, v6.3.3 — released)
+## Current state (2026-08-15, v6.4.0 — released)
+
+The pill can now hang from the top of the screen instead of floating at the
+bottom. Prompted by Talkify (MIT, `tornikegomareli/Talkify`), whose HUD is worth
+reading if this area grows: measured-vs-simulated notch split, a fixed-size host
+window whose origin moves but never resizes, and `NotchFilletShape` — a square
+minus a quarter disc on its *outer* corner, which is the flare we still don't
+have.
+
+**Bottom is still the default.** Top is opt-in via Settings → Pill.
+
+### Untested: this has never run on a notched display
+
+Everything below was verified on a 2304x1296 external monitor, which reports
+`safeAreaInsets.top == 0`. The whole point of the design — flanks meeting a real
+notch — is unverified. Before trusting it on a MacBook, check:
+
+- whether the flanks line up with the notch sides or need the fillet
+- whether the glow terminating at the notch's lower corners reads as intentional
+- whether 37pt of camera clearance plus content is too tall in practice
+
+### What the geometry does
+
+- Clearance above the content is **hardware only**. A notch gets its measured
+  `safeAreaInsets.top`; every other display gets 6pt. Reserving the menu bar's
+  full 30pt was wrong — the tab is drawn *over* the menu bar at `mainMenu + 3`,
+  and the centre where it sits is empty. That mistake was a third of the
+  shape's height (59pt → 30pt on the external display).
+- The window **pins its top edge on every resize**. AppKit resizes from the
+  bottom-left, so a pill that grows taller pushes its own top edge down and
+  opens a gap against the screen edge.
+- Minimum width 280pt. A bare "Listening" pill is ~100pt and would vanish behind
+  a ~200pt notch entirely; the flanks either side are what sell the illusion.
+
+### The edge pulse
+
+Acid green, 2pt, sweeping the three open sides on a 3.2s cycle. Two things that
+are load-bearing and will look like arbitrary complexity later:
+
+- **Trim the top run before blurring, then again after.** Blurring the full
+  outline first spreads the top line's green ~5pt down, so trimming afterwards
+  leaves a faint green bar across the top. The user caught this after I'd called
+  it done. Measured between the flanks: 15/13/11/9/7 down rows 6-10 before, 0
+  after.
+- The glow is drawn **inside** the silhouette. The window is sized to the shape
+  exactly — that is what stops it wasting desktop — so an outer glow would need
+  transparent slack around the window, which is the thing that got removed for
+  looking like stray pixels.
+
+### Testing a dev build without losing Accessibility
+
+TCC keys Accessibility on bundle ID **and** signature. An ad-hoc build of
+`com.push.voicetotext` cannot get its own entry alongside the installed app, and
+is denied against the existing one however the toggle looks — the symptom is
+`Failed to create event tap`, retrying every 2s forever, with the app otherwise
+running fine. Sign the test bundle with the real Developer ID and the grant
+applies with no prompt. Notarisation is irrelevant to TCC.
+
+Also: when the pill seems to have vanished, check the placement preference
+before suspecting the code. `CGWindowListCopyWindowInfo` gives the truth in one
+call — `layer=25` is the bottom capsule, `layer=27` the top tab. Racing
+screenshots against a 4s warm-up window wastes far more time.
+
+## Previous state (2026-08-12, v6.3.3 — released)
 
 Live preview shipped (6.2.x). Startup/press latency work closed out in 6.3.3.
 Confirmed working in production by the user.
