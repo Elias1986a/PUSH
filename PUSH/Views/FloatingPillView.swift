@@ -124,38 +124,48 @@ struct FloatingPillView: View {
     /// exactly, so half of a centred stroke — and all of an outer glow — would
     /// be clipped. The bloom is a blurred copy of the same stroke clipped back
     /// to the silhouette, which reads as a glow while staying inside the frame.
+    @ViewBuilder
     private var edgePulse: some View {
-        Group {
-            if reduceMotion {
-                // A sweep is motion for its own sake; hold it at a steady outline.
-                tabShape.strokeBorder(
-                    Pulse.color.opacity(Pulse.peakOpacity * 0.6),
-                    lineWidth: Pulse.lineWidth
-                )
-            } else {
-                TimelineView(.animation) { context in
-                    let gradient = pulseGradient(at: context.date)
-                    ZStack {
-                        tabShape
-                            .strokeBorder(gradient, lineWidth: Pulse.lineWidth)
-                            .blur(radius: 3)
-                            .clipShape(tabShape)
-                        tabShape
-                            .strokeBorder(gradient, lineWidth: Pulse.lineWidth)
-                    }
+        if reduceMotion {
+            // A sweep is motion for its own sake; hold it at a steady outline.
+            openEdgeStroke(Pulse.color.opacity(Pulse.peakOpacity * 0.6))
+        } else {
+            TimelineView(.animation) { context in
+                let gradient = pulseGradient(at: context.date)
+                ZStack {
+                    // Trimmed before it is blurred, and trimmed again after.
+                    // Blurring the full outline first spreads the top run
+                    // downward past the trim line, which leaves a faint green
+                    // bar across the top — dimmer than the stroke it came
+                    // from, but exactly the line the trim exists to remove.
+                    // The second trim catches the flanks' bloom reaching back
+                    // up into the same band.
+                    openEdgeStroke(gradient)
+                        .blur(radius: 3)
+                        .clipShape(tabShape)
+                        .mask(alignment: .bottom) { openEdgeMask }
+                    openEdgeStroke(gradient)
                 }
             }
         }
-        // Three sides only: left, bottom, right. Masking the top band off the
-        // finished stroke keeps the flanks and the bottom corners on exactly
-        // the fill's geometry — tracing an open path by hand would have to
-        // re-approximate the continuous corner curve and would show a seam
-        // against the black. The top run is what gets cut; the flanks simply
-        // begin a couple of points down, which is invisible against the
-        // screen edge.
-        .mask(alignment: .bottom) {
-            Rectangle().padding(.top, Pulse.lineWidth + 1)
-        }
+    }
+
+    /// The outline with its top run cut off, leaving the three open sides.
+    ///
+    /// Trimmed from the finished stroke rather than traced as an open path:
+    /// this keeps the flanks and bottom corners on exactly the fill's
+    /// geometry, where a hand-built path would have to re-approximate the
+    /// continuous corner curve and would show a seam against the black. The
+    /// flanks simply begin a couple of points down, which is invisible against
+    /// the screen edge.
+    private func openEdgeStroke(_ style: some ShapeStyle) -> some View {
+        tabShape
+            .strokeBorder(style, lineWidth: Pulse.lineWidth)
+            .mask(alignment: .bottom) { openEdgeMask }
+    }
+
+    private var openEdgeMask: some View {
+        Rectangle().padding(.top, Pulse.lineWidth + 1)
     }
 
     /// The outline's colour along its width at this instant. The band travels
