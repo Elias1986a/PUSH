@@ -3,10 +3,26 @@ import AppKit
 
 struct FloatingPillView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var revealer = PreviewRevealer()
     @State private var dotPhase1: CGFloat = 0
     @State private var dotPhase2: CGFloat = 0
     @State private var dotPhase3: CGFloat = 0
+
+    /// The travelling edge pulse.
+    private enum Pulse {
+        static let color = Color(red: 0.69, green: 1.0, blue: 0.0)
+        /// Seconds for one crossing. Slow enough to read as a sweep rather
+        /// than a blink, at the edge of what still looks deliberate.
+        static let period: TimeInterval = 3.2
+        /// How much of the width the bright band covers, either side of centre.
+        static let halfWidth: CGFloat = 0.22
+        static let lineWidth: CGFloat = 2
+        /// The edge is never fully dark: the sweep rides on a dim constant so
+        /// the outline stays legible as an outline between passes.
+        static let floorOpacity: Double = 0.16
+        static let peakOpacity: Double = 0.95
+    }
 
     /// Width the preview reserves, from the chosen size. It is a fixed width,
     /// not a maximum: the pill claims the whole box up front and keeps it, so
@@ -84,15 +100,79 @@ struct FloatingPillView: View {
         // No shadow: the tab reads as an extension of the hardware, and
         // hardware doesn't cast one onto the desktop. A shadow only added
         // a band of grey pixels around a shape that should end at its edge.
-        // Anything added here later wants to be a tight outline glow rather
-        // than a soft drop — a couple of points, hugging the silhouette.
-        .background(
-            UnevenRoundedRectangle(
-                bottomLeadingRadius: 16,
-                bottomTrailingRadius: 16,
-                style: .continuous
+        // The edge treatment is the pulse below instead — drawn *inside* the
+        // silhouette, so it needs no slack around the window either.
+        .background(tabShape.fill(.black))
+        .overlay(edgePulse)
+    }
+
+    private var tabShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            bottomLeadingRadius: 16,
+            bottomTrailingRadius: 16,
+            style: .continuous
+        )
+    }
+
+    /// A two-point acid-green outline with a bright band sweeping across it.
+    ///
+    /// Inset rather than centred on the path: the window is sized to the shape
+    /// exactly, so half of a centred stroke — and all of an outer glow — would
+    /// be clipped. The bloom is a blurred copy of the same stroke clipped back
+    /// to the silhouette, which reads as a glow while staying inside the frame.
+    ///
+    /// The top edge sits at the top of the screen, so in practice the sweep
+    /// traces the two flanks and the rounded bottom.
+    @ViewBuilder
+    private var edgePulse: some View {
+        if reduceMotion {
+            // A sweep is motion for its own sake; hold it at a steady outline.
+            tabShape.strokeBorder(
+                Pulse.color.opacity(Pulse.peakOpacity * 0.6),
+                lineWidth: Pulse.lineWidth
             )
-            .fill(.black)
+        } else {
+            TimelineView(.animation) { context in
+                let gradient = pulseGradient(at: context.date)
+                ZStack {
+                    tabShape
+                        .strokeBorder(gradient, lineWidth: Pulse.lineWidth)
+                        .blur(radius: 3)
+                        .clipShape(tabShape)
+                    tabShape
+                        .strokeBorder(gradient, lineWidth: Pulse.lineWidth)
+                }
+            }
+        }
+    }
+
+    /// The outline's colour along its width at this instant. The band travels
+    /// from off one edge to off the other, so it enters and leaves rather than
+    /// snapping back to the start.
+    private func pulseGradient(at date: Date) -> LinearGradient {
+        let cycle = date.timeIntervalSinceReferenceDate
+            .truncatingRemainder(dividingBy: Pulse.period) / Pulse.period
+        // Travels across 1.5 widths, starting a quarter-width off the leading
+        // edge, so the band is fully outside the shape at both ends.
+        let phase = CGFloat(cycle) * 1.5 - 0.25
+
+        let floor = Pulse.color.opacity(Pulse.floorOpacity)
+        let peak = Pulse.color.opacity(Pulse.peakOpacity)
+        // Clamped in order: gradient stops have to be non-decreasing.
+        let lead = min(max(phase - Pulse.halfWidth, 0), 1)
+        let mid = min(max(phase, 0), 1)
+        let trail = min(max(phase + Pulse.halfWidth, 0), 1)
+
+        return LinearGradient(
+            stops: [
+                .init(color: floor, location: 0),
+                .init(color: floor, location: lead),
+                .init(color: peak, location: mid),
+                .init(color: floor, location: trail),
+                .init(color: floor, location: 1)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
         )
     }
 
