@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- SPIKE ONLY. Same as PUSH.entitlements plus the iCloud keys.
+
+         Kept separate because these are *restricted* entitlements: they are
+         only valid when the bundle also carries an embedded provisioning
+         profile that grants them. build_distribution.sh embeds no profile, so
+         signing a release with this file would produce an app that refuses to
+         launch. Merge the iCloud keys into PUSH.entitlements only together
+         with the profile-embedding step in that script. -->
+
+    <!-- Allow accessibility API access (for text injection and global hotkeys) -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+
+    <!-- Allow microphone access -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+
+    <!-- Allow network access (for model downloads) -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- Allow file access for model storage -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+
+    <!-- Temporary exception for accessibility (needed for text injection) -->
+    <key>com.apple.security.temporary-exception.apple-events</key>
+    <array>
+        <string>com.apple.systemevents</string>
+    </array>
+
+    <!-- iCloud key-value storage. The profile grants B8R5B24PMP.*; this names
+         the concrete store. Deliberately no CloudKit container keys: the whole
+         point of the spike is whether KVS alone is enough. -->
+    <key>com.apple.application-identifier</key>
+    <string>B8R5B24PMP.com.push.voicetotext</string>
+
+    <key>com.apple.developer.team-identifier</key>
+    <string>B8R5B24PMP</string>
+
+    <key>com.apple.developer.ubiquity-kvstore-identifier</key>
+    <string>B8R5B24PMP.com.push.voicetotext</string>
+</dict>
+</plist>
