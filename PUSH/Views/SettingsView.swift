@@ -78,6 +78,12 @@ struct GeneralSettingsView: View {
 
             Section("Formatting") {
                 Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
+
+                Toggle("Act on spoken corrections", isOn: $appState.resolveSelfCorrections)
+
+                Text("Say \"the red car, I mean the blue car\" and only \"the blue car\" is pasted. Recognises \"I mean\", \"no wait\", \"make that\", \"scratch that\" and similar. Ambiguous words like \"sorry\" and \"actually\" are ignored on purpose — they're too often ordinary speech, and a wrong guess deletes words you meant to keep.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section("Pill") {

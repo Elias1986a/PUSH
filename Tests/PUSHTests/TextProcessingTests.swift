@@ -162,4 +162,66 @@ final class TextProcessingTests: XCTestCase {
         // A real possessive/word containing "cause" is left alone.
         XCTAssertEqual(TranscriptionPipeline.normalizeCause("the cause of it"), "the cause of it")
     }
+
+    // MARK: - Spoken self-corrections
+
+    private func resolve(_ text: String) -> String {
+        TranscriptionPipeline.resolveSelfCorrections(text)
+    }
+
+    func testReplacementDropsTheCorrectedSpan() {
+        XCTAssertEqual(resolve("I want the red car, I mean the blue car"),
+                       "I want the blue car")
+        XCTAssertEqual(resolve("meet me at four, I meant at five"),
+                       "meet me at five")
+        XCTAssertEqual(resolve("send it to Dave, no wait to Sarah"),
+                       "send it to Sarah")
+    }
+
+    func testRestartDropsTheWholeClause() {
+        XCTAssertEqual(resolve("let's go to the park, scratch that let's stay home"),
+                       "let's stay home")
+        XCTAssertEqual(resolve("the total is fifty, delete that the total is sixty"),
+                       "the total is sixty")
+    }
+
+    /// The most important property here: a correction must never eat the
+    /// sentence before it, however the word count lands.
+    func testDeletionStopsAtTheSentenceBoundary() {
+        XCTAssertEqual(resolve("Keep this sentence. Red, I mean blue"),
+                       "Keep this sentence. blue")
+        XCTAssertEqual(resolve("First thought. Second one, scratch that third one"),
+                       "First thought. third one")
+    }
+
+    /// False positives silently delete what the user said, so the ambiguous
+    /// markers are deliberately not recognised. These must pass through whole.
+    func testAmbiguousMarkersAreLeftAlone() {
+        XCTAssertEqual(resolve("I'm sorry about the delay"),
+                       "I'm sorry about the delay")
+        XCTAssertEqual(resolve("I actually like the red one"),
+                       "I actually like the red one")
+        XCTAssertEqual(resolve("I'd rather go tomorrow"),
+                       "I'd rather go tomorrow")
+    }
+
+    func testOrdinaryTextIsUntouched() {
+        XCTAssertEqual(resolve("The quick brown fox jumps over the lazy dog"),
+                       "The quick brown fox jumps over the lazy dog")
+        XCTAssertEqual(resolve(""), "")
+    }
+
+    /// Word-boundary check: a marker embedded in a longer word must not fire.
+    func testMarkerInsideAWordDoesNotFire() {
+        XCTAssertEqual(resolve("in the meantime we wait"), "in the meantime we wait")
+    }
+
+    func testDanglingMarkerWithNothingAfterItIsDropped() {
+        XCTAssertEqual(resolve("the red car, I mean"), "the red car")
+    }
+
+    func testMultipleCorrectionsResolveInOrder() {
+        XCTAssertEqual(resolve("call Bob, I mean call Sue, I mean call Ann"),
+                       "call Ann")
+    }
 }
