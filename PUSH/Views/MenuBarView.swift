@@ -63,11 +63,15 @@ struct MenuBarView: View {
             Button(action: updater.checkForUpdates) {
                 HStack {
                     Image(systemName: "arrow.down.circle")
-                    Text("Check for Updates...")
+                    Text(updater.isCheckingForUpdates
+                         ? "Checking for Updates..."
+                         : "Check for Updates...")
                 }
             }
             .buttonStyle(.plain)
-            .disabled(!updater.canCheckForUpdates)
+            // Only a check already running disables this. Before the updater
+            // has started the item stays live and starts it on demand.
+            .disabled(!updater.canBeInvoked)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
 
