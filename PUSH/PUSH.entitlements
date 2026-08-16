@@ -30,5 +30,21 @@
     <array>
         <string>com.apple.systemevents</string>
     </array>
+
+    <!-- iCloud key-value storage, for syncing settings and the dictionary.
+
+         RESTRICTED entitlements: unlike everything above, these are only
+         honoured when the bundle also carries the provisioning profile that
+         grants them. build_distribution.sh embeds that profile — the two must
+         stay together. Signing with these keys and no embedded profile
+         produces an app that refuses to launch, for everyone. -->
+    <key>com.apple.application-identifier</key>
+    <string>B8R5B24PMP.com.push.voicetotext</string>
+
+    <key>com.apple.developer.team-identifier</key>
+    <string>B8R5B24PMP</string>
+
+    <key>com.apple.developer.ubiquity-kvstore-identifier</key>
+    <string>B8R5B24PMP.com.push.voicetotext</string>
 </dict>
 </plist>

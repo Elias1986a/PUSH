@@ -101,6 +101,24 @@ else
     exit 1
 fi
 
+# Embed the provisioning profile.
+#
+# PUSH.entitlements claims iCloud key-value storage, which is a *restricted*
+# entitlement: macOS only honours it when the bundle carries a profile granting
+# it. Without this the signed app refuses to launch — so this is a hard failure,
+# not a warning. The profile is a signing asset and deliberately not in the
+# repo; regenerate it from the Developer portal (Profiles → Developer ID →
+# com.push.voicetotext) if it goes missing.
+echo "   Embedding provisioning profile..."
+PROFILE="${HOME}/Library/Developer/PUSH-signing/PUSH_Developer_ID_iCloud.provisionprofile"
+if [ ! -f "$PROFILE" ]; then
+    echo "   ❌ Provisioning profile not found at $PROFILE"
+    echo "      PUSH.entitlements claims iCloud; signing without the profile"
+    echo "      would ship an app that cannot launch. Refusing to continue."
+    exit 1
+fi
+ditto --norsrc --noextattr "$PROFILE" "$APP_DIR/Contents/embedded.provisionprofile"
+
 # Fix library paths
 echo "   Fixing library paths..."
 # Add rpath so the binary can find llama.framework in Frameworks/
