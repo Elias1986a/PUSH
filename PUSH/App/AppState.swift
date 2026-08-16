@@ -19,6 +19,7 @@ class AppState: ObservableObject {
         static let showLivePreview = "showLivePreview"
         static let previewSize = "previewSize"
         static let pillPosition = "pillPosition"
+        static let resolveSelfCorrections = "resolveSelfCorrections"
     }
 
     // MARK: - Published State
@@ -200,6 +201,19 @@ class AppState: ObservableObject {
             case .medium: return 600
             case .large: return 800
             }
+        }
+    }
+
+    /// Whether to act on spoken self-corrections — "the red car, I mean the
+    /// blue car" pastes as "the blue car".
+    ///
+    /// Off by default, and it should stay off until it has been lived with:
+    /// this is the only post-processing step that deletes words the user
+    /// actually said, so its failure mode is losing meaning silently rather
+    /// than formatting something oddly.
+    @Published var resolveSelfCorrections: Bool = false {
+        didSet {
+            UserDefaults.standard.set(resolveSelfCorrections, forKey: UserDefaultsKeys.resolveSelfCorrections)
         }
     }
 
@@ -411,6 +425,7 @@ class AppState: ObservableObject {
            let position = PillPosition(rawValue: savedPosition) {
             self.pillPosition = position
         }
+        self.resolveSelfCorrections = UserDefaults.standard.bool(forKey: UserDefaultsKeys.resolveSelfCorrections)
 
         // Load media behavior (keeps the .duck default when never set)
         if let saved = UserDefaults.standard.string(forKey: UserDefaultsKeys.mediaBehavior),
