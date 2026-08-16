@@ -1,6 +1,75 @@
 # NOTES
 
-## Current state (2026-08-15, v6.4.0 — released)
+## Current state (2026-08-16, v6.4.3 — released)
+
+Three releases today: 6.4.1 (updater menu), 6.4.2 (iCloud entitlement + KVS
+spike), 6.4.3 (spoken self-corrections).
+
+### Tomorrow: three things to check, all on the MacBook
+
+Install 6.4.3 on the notched MacBook and one launch answers two of them.
+
+1. **Notch fit.** Never yet run on a notched display — see the 6.4.0 section
+   below for what to look at. Everything so far was verified on a 2304x1296
+   external monitor reporting `safeAreaInsets.top == 0`.
+2. **Cross-device sync.** Check `~/Library/Application Support/PUSH/push_debug.log`
+   for `CloudSyncSpike`. Seeing `Elias's M4 Mac Mini=...` in the stamp list
+   proves KVS reaches iCloud → settings/dictionary sync is a few hundred lines.
+   Only the MacBook's own stamp → KVS works locally but not in the cloud, and
+   the answer is CloudKit instead.
+3. **Self-corrections.** Settings → Formatting → "Act on spoken corrections"
+   (off by default). Note which misses cluster — see below.
+
+### iCloud key-value storage: proven to work unsandboxed
+
+The open question was whether KVS functions without the sandbox, which PUSH
+cannot have. It does:
+
+- Apple grants `ubiquity-kvstore-identifier` on a **Developer ID** profile
+  (`B8R5B24PMP.*`, to 2044) — outside-App-Store distribution is no barrier.
+- The signed app launches with the entitlement, `synchronize()` returns true,
+  and a second launch reads back the previous process's stamp, so the store
+  outlives the process.
+- **Still unproven:** that writes reach iCloud. KVS also persists locally when
+  the cloud is unavailable, so single-machine persistence cannot tell the two
+  apart. Hence check 2 above.
+- `~/Library/SyncedPreferences/` does not exist on this macOS; don't go looking
+  for the backing store on disk, it's a dead end.
+
+**The release pipeline now depends on a provisioning profile.** It lives at
+`~/Library/Developer/PUSH-signing/`, deliberately out of the repo. iCloud is a
+*restricted* entitlement: `PUSH.entitlements` claims it, and an app signed with
+it but no embedded profile **refuses to launch, for everyone**.
+`build_distribution.sh` embeds it and hard-fails if missing. Those two changes
+must never be separated.
+
+### Spoken self-corrections (6.4.3)
+
+Stage one of the hybrid — heuristic only, no LLM. `resolveSelfCorrections` runs
+before the formatting pipeline, while markers are intact; filler removal only
+eats um/uh/like so it doesn't interfere.
+
+Measured: **0.125ms** with a correction present, **0.040ms** without, against a
+64ms Parakeet finalize. The LLM resolver was scoped at ~200-400ms even in the
+hybrid's best case, which is why the heuristic went first — it may turn out to
+be enough.
+
+**Marker choice is the load-bearing decision, don't loosen it casually.** This
+is the only post-processing step that *deletes words the user said*, so a false
+positive loses meaning silently rather than formatting something oddly. Every
+marker is a phrase. Bare "sorry", "actually" and "rather" are excluded and
+tested for: "I'm sorry about that", "I'd rather go" are ordinary speech. Those
+are the LLM resolver's job description — if the misses cluster there, that is
+the signal to build stage two.
+
+### Still to do
+
+- **Remove `CloudSyncSpike` in 6.4.4.** Kept in 6.4.3 only because deleting it
+  would break the cross-device test above. It writes a `spike.stamp.<host>` key
+  into every user's iCloud — harmless, but it is litter in other people's
+  accounts.
+
+## Previous state (2026-08-15, v6.4.0 — released)
 
 The pill can now hang from the top of the screen instead of floating at the
 bottom. Prompted by Talkify (MIT, `tornikegomareli/Talkify`), whose HUD is worth
