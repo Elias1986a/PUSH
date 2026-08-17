@@ -299,9 +299,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             scheduleUpdaterStart()
 
-            // SPIKE: behind the warm-up, so nothing speculative sits in front
-            // of the user's first press. Remove with CloudSyncSpike.swift.
-            CloudSyncSpike.run()
+            // Behind the warm-up: syncing is never worth delaying a first press.
+            CloudSync.shared.start()
         }
     }
 }

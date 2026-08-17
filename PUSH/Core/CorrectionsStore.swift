@@ -24,18 +24,48 @@ final class CorrectionsStore: ObservableObject {
         /// by `.contextual` entries.
         var entity: String?
 
-        init(id: UUID = UUID(), wrong: String, right: String, kind: Kind = .always, entity: String? = nil) {
+        /// When this entry last changed. The tiebreaker when the same entry was
+        /// edited on two machines — see `CloudSync.mergeCorrections`.
+        var modifiedAt: Date
+
+        /// Set instead of removing the entry. A sync that merges by id would
+        /// otherwise resurrect anything deleted here from the other machine's
+        /// copy, so a deletion has to be a fact that travels, not an absence.
+        var deletedAt: Date?
+
+        var isDeleted: Bool { deletedAt != nil }
+
+        /// Identity for "the same correction added twice, independently". Two
+        /// machines that each add "Hamer" produce different UUIDs and identical
+        /// meaning; this is what lets the merge collapse them.
+        var contentKey: String {
+            "\(wrong.lowercased())→\(right.lowercased())|\(kind.rawValue)"
+        }
+
+        init(
+            id: UUID = UUID(),
+            wrong: String,
+            right: String,
+            kind: Kind = .always,
+            entity: String? = nil,
+            modifiedAt: Date = Date(),
+            deletedAt: Date? = nil
+        ) {
             self.id = id
             self.wrong = wrong
             self.right = right
             self.kind = kind
             self.entity = entity
+            self.modifiedAt = modifiedAt
+            self.deletedAt = deletedAt
         }
 
         // Back-compatible decoding: entries persisted before context-awareness
-        // (v4.1.x) have no `kind`/`entity` keys and must decode as `.always`
-        // rather than throwing.
-        enum CodingKeys: String, CodingKey { case id, wrong, right, kind, entity }
+        // (v4.1.x) have no `kind`/`entity` keys, and entries from before sync
+        // (≤6.4.x) have no timestamps. Both must decode rather than throw.
+        enum CodingKeys: String, CodingKey {
+            case id, wrong, right, kind, entity, modifiedAt, deletedAt
+        }
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
@@ -43,14 +73,24 @@ final class CorrectionsStore: ObservableObject {
             right = try c.decode(String.self, forKey: .right)
             kind = try c.decodeIfPresent(Kind.self, forKey: .kind) ?? .always
             entity = try c.decodeIfPresent(String.self, forKey: .entity)
+            // Pre-sync entries sort oldest, so a genuine edit on the other
+            // machine always wins over an entry that predates timestamps.
+            modifiedAt = try c.decodeIfPresent(Date.self, forKey: .modifiedAt) ?? .distantPast
+            deletedAt = try c.decodeIfPresent(Date.self, forKey: .deletedAt)
         }
     }
 
+    /// The live dictionary. Unchanged in meaning for every consumer: tombstones
+    /// never appear here.
     @Published var corrections: [Correction] = [] {
         didSet { save() }
     }
 
-    private static let userDefaultsKey = "customDictionaryCorrections"
+    /// Deleted entries, kept so the deletion can reach the other machine.
+    /// Not published — nothing in the UI or the pipeline should see these.
+    private(set) var tombstones: [Correction] = []
+
+    static let userDefaultsKey = "customDictionaryCorrections"
 
     /// Verdict source for the contextual lane. Heuristic-only until a warm
     /// on-device model is wired in behind `VerdictSource` (5.0.0 Phase 2).
@@ -73,9 +113,26 @@ final class CorrectionsStore: ObservableObject {
         ))
     }
 
+    /// Tombstone rather than erase, so the deletion survives a merge with a
+    /// machine that still has the entry.
     func remove(_ correction: Correction) {
-        corrections.removeAll { $0.id == correction.id }
+        guard let entry = corrections.first(where: { $0.id == correction.id }) else { return }
+        var dead = entry
+        dead.deletedAt = Date()
+        dead.modifiedAt = dead.deletedAt!
+        tombstones.append(dead)
+        corrections.removeAll { $0.id == correction.id }  // triggers save()
     }
+
+    /// Replace the whole dictionary from a merge, without re-stamping anything.
+    /// `corrections`' own `didSet` persists it.
+    func applyMerged(alive: [Correction], tombstones: [Correction]) {
+        self.tombstones = tombstones
+        self.corrections = alive
+    }
+
+    /// Everything the sync layer needs to publish: live entries and tombstones.
+    var allForSync: [Correction] { corrections + tombstones }
 
     // MARK: - Application
 
@@ -173,16 +230,32 @@ final class CorrectionsStore: ObservableObject {
 
     // MARK: - Private
 
+    /// True while `load()` runs. Assigning `corrections` fires `didSet`, and
+    /// saving what was just read is both pointless and — before this guard —
+    /// fatal: it ran during `shared`'s one-time initialiser.
+    private var isLoading = false
+
     private func load() {
+        isLoading = true
+        defer { isLoading = false }
+
         guard let data = UserDefaults.standard.data(forKey: Self.userDefaultsKey),
               let decoded = try? JSONDecoder().decode([Correction].self, from: data) else {
             return
         }
-        corrections = decoded
+        // One stored array holds both; they are split on the way in so the
+        // published list stays exactly what it always was.
+        tombstones = decoded.filter(\.isDeleted)
+        corrections = decoded.filter { !$0.isDeleted }
     }
 
     private func save() {
-        guard let data = try? JSONEncoder().encode(corrections) else { return }
+        guard !isLoading else { return }
+        let all = corrections + tombstones
+        guard let data = try? JSONEncoder().encode(all) else { return }
         UserDefaults.standard.set(data, forKey: Self.userDefaultsKey)
+        // Passed by value: CloudSync must not read `shared` back while this is
+        // running, which can be inside this type's own initialiser.
+        CloudSync.shared.dictionaryDidChange(all)
     }
 }

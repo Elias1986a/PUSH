@@ -1,5 +1,4 @@
 import SwiftUI
-import LaunchAtLogin
 import AppKit
 
 struct SettingsView: View {
@@ -38,6 +37,7 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var launchAtLogin = LaunchAtLoginModel()
 
     /// Keyed off the *selected* model rather than the active one, so the toggle
     /// greys out the moment you pick another model instead of waiting for the
@@ -49,7 +49,15 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                LaunchAtLogin.Toggle("Start PUSH at login")
+                // Not LaunchAtLogin.Toggle: its binding reads
+                // SMAppService.status synchronously from the view body, which
+                // blocks the main thread ~61ms per render pass. See
+                // LaunchAtLoginModel.
+                Toggle("Start PUSH at login", isOn: Binding(
+                    get: { launchAtLogin.isEnabled },
+                    set: { launchAtLogin.set($0) }
+                ))
+                .task { await launchAtLogin.loadIfNeeded() }
             }
 
             Section("Hotkey") {
@@ -82,6 +90,14 @@ struct GeneralSettingsView: View {
                 Toggle("Act on spoken corrections", isOn: $appState.resolveSelfCorrections)
 
                 Text("Say \"the red car, I mean the blue car\" and only \"the blue car\" is pasted. Recognises \"I mean\", \"no wait\", \"make that\", \"scratch that\" and similar. Ambiguous words like \"sorry\" and \"actually\" are ignored on purpose — they're too often ordinary speech, and a wrong guess deletes words you meant to keep.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section("iCloud") {
+                Toggle("Sync settings and dictionary across my Macs", isOn: $appState.iCloudSyncEnabled)
+
+                Text("Uses the iCloud account this Mac is already signed into — no separate login. Dictionary entries are merged, never replaced, so adding a word on one Mac can't remove one added on another. The pill's position stays per-Mac, since a notched laptop and an external display want different answers.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
