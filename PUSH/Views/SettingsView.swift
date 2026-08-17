@@ -94,6 +94,14 @@ struct GeneralSettingsView: View {
                     .foregroundColor(.secondary)
             }
 
+            Section("iCloud") {
+                Toggle("Sync settings and dictionary across my Macs", isOn: $appState.iCloudSyncEnabled)
+
+                Text("Uses the iCloud account this Mac is already signed into — no separate login. Dictionary entries are merged, never replaced, so adding a word on one Mac can't remove one added on another. The pill's position stays per-Mac, since a notched laptop and an external display want different answers.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Pill") {
                 Picker("Position", selection: $appState.pillPosition) {
                     ForEach(AppState.PillPosition.allCases) { position in

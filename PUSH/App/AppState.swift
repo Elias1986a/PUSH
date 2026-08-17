@@ -20,6 +20,7 @@ class AppState: ObservableObject {
         static let previewSize = "previewSize"
         static let pillPosition = "pillPosition"
         static let resolveSelfCorrections = "resolveSelfCorrections"
+        static let iCloudSyncEnabled = "iCloudSyncEnabled"
     }
 
     // MARK: - Published State
@@ -201,6 +202,53 @@ class AppState: ObservableObject {
             case .medium: return 600
             case .large: return 800
             }
+        }
+    }
+
+    /// Whether settings and the dictionary follow the user across their Macs
+    /// through iCloud. On by default: it needs no account and no setup, and
+    /// the merge is additive — entries are unioned, never replaced wholesale.
+    @Published var iCloudSyncEnabled: Bool = true {
+        didSet {
+            UserDefaults.standard.set(iCloudSyncEnabled, forKey: UserDefaultsKeys.iCloudSyncEnabled)
+            if iCloudSyncEnabled { CloudSync.shared.start() }
+        }
+    }
+
+    /// Re-read the mirrored settings after a sync has written them underneath
+    /// us. Assignment is skipped where the value is unchanged, so this doesn't
+    /// churn the UI on every remote key.
+    func reloadFromDefaults() {
+        let d = UserDefaults.standard
+
+        if let raw = d.string(forKey: UserDefaultsKeys.selectedWhisperModel),
+           let v = WhisperModel(rawValue: raw), v != selectedWhisperModel {
+            selectedWhisperModel = v
+        }
+        if let raw = d.string(forKey: UserDefaultsKeys.selectedHotkey),
+           let v = Hotkey(rawValue: raw), v != selectedHotkey {
+            selectedHotkey = v
+        }
+        if let raw = d.string(forKey: UserDefaultsKeys.mediaBehavior),
+           let v = MediaBehavior(rawValue: raw), v != mediaBehavior {
+            mediaBehavior = v
+        }
+        if let raw = d.string(forKey: UserDefaultsKeys.previewSize),
+           let v = PreviewSize(rawValue: raw), v != previewSize {
+            previewSize = v
+        }
+        let wake = d.string(forKey: UserDefaultsKeys.wakeWord) ?? wakeWord
+        if wake != wakeWord, !wake.isEmpty { wakeWord = wake }
+
+        let flags: [(Bool, ReferenceWritableKeyPath<AppState, Bool>)] = [
+            (d.bool(forKey: UserDefaultsKeys.playSoundOnStart), \.playSoundOnStart),
+            (d.bool(forKey: UserDefaultsKeys.wakeWordEnabled), \.wakeWordEnabled),
+            (d.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence), \.doubleSpaceAfterSentence),
+            (d.bool(forKey: UserDefaultsKeys.showLivePreview), \.showLivePreview),
+            (d.bool(forKey: UserDefaultsKeys.resolveSelfCorrections), \.resolveSelfCorrections)
+        ]
+        for (value, path) in flags where self[keyPath: path] != value {
+            self[keyPath: path] = value
         }
     }
 
@@ -426,6 +474,10 @@ class AppState: ObservableObject {
             self.pillPosition = position
         }
         self.resolveSelfCorrections = UserDefaults.standard.bool(forKey: UserDefaultsKeys.resolveSelfCorrections)
+        // Defaults to true when never set, unlike every other flag here.
+        if UserDefaults.standard.object(forKey: UserDefaultsKeys.iCloudSyncEnabled) != nil {
+            self.iCloudSyncEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.iCloudSyncEnabled)
+        }
 
         // Load media behavior (keeps the .duck default when never set)
         if let saved = UserDefaults.standard.string(forKey: UserDefaultsKeys.mediaBehavior),
