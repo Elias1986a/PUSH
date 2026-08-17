@@ -95,13 +95,16 @@ final class TextProcessingTests: XCTestCase {
 
     func testRemoveFillerWords() {
         XCTAssertEqual(TranscriptionPipeline.removeFillerWords("Um, I think so"), "I think so")
-        XCTAssertEqual(TranscriptionPipeline.removeFillerWords("I think, um, it works"), "I think, it works")
+        // The commas bracketed the filler, so they leave with it. This used to
+        // assert "I think, it works" — the filler gone and a comma splice left
+        // behind in its place.
+        XCTAssertEqual(TranscriptionPipeline.removeFillerWords("I think, um, it works"), "I think it works")
         XCTAssertEqual(TranscriptionPipeline.removeFillerWords("it was uh really good"), "it was really good")
     }
 
-    func testLikeOnlyRemovedWhenCommaBounded() {
+    func testLikeAsAVerbIsNeverRemoved() {
         XCTAssertEqual(TranscriptionPipeline.removeFillerWords("I like pizza"), "I like pizza")
-        XCTAssertEqual(TranscriptionPipeline.removeFillerWords("I was, like, going"), "I was, going")
+        XCTAssertEqual(TranscriptionPipeline.removeFillerWords("I was, like, going"), "I was going")
     }
 
     func testRemoveStutteredWords() {
@@ -161,6 +164,40 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(TranscriptionPipeline.normalizeCause("just \u{2019}cause"), "just cause")
         // A real possessive/word containing "cause" is left alone.
         XCTAssertEqual(TranscriptionPipeline.normalizeCause("the cause of it"), "the cause of it")
+    }
+
+    // MARK: - Filler "like"
+
+    private func filler(_ text: String) -> String {
+        TranscriptionPipeline.removeFillerWords(text)
+    }
+
+    func testFillerLikeIsRemoved() {
+        XCTAssertEqual(filler("I was, like, going"), "I was going")
+        XCTAssertEqual(filler("it works for like normal situations"),
+                       "it works for normal situations")
+        XCTAssertEqual(filler("Like, I don't know"), "I don't know")
+        XCTAssertEqual(filler("Fine. Like, whatever"), "Fine. whatever")
+    }
+
+    /// "like" is a verb, a comparison and an approximation as well as a filler.
+    /// Each of these changes meaning if it is stripped.
+    func testMeaningfulLikeSurvives() {
+        XCTAssertEqual(filler("I like it"), "I like it")
+        XCTAssertEqual(filler("it looks like rain"), "it looks like rain")
+        XCTAssertEqual(filler("do it like this"), "do it like this")
+        XCTAssertEqual(filler("it was like a dream"), "it was like a dream")
+        XCTAssertEqual(filler("I would like a coffee"), "I would like a coffee")
+        XCTAssertEqual(filler("people like us"), "people like us")
+    }
+
+    /// "in like 30 minutes" means about thirty. Dropping the "like" would turn
+    /// an approximation into a precise claim.
+    func testApproximationLikeSurvives() {
+        XCTAssertEqual(filler("I'll be there in like 30 minutes"),
+                       "I'll be there in like 30 minutes")
+        XCTAssertEqual(filler("it costs about like 20 dollars"),
+                       "it costs about like 20 dollars")
     }
 
     // MARK: - Spoken self-corrections

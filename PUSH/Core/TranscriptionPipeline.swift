@@ -265,19 +265,55 @@ actor TranscriptionPipeline {
     static func removeFillerWords(_ text: String) -> String {
         var result = text
 
-        // Remove ", like," (filler usage, e.g. "I was, like, going")
-        if let likeRegex = try? NSRegularExpression(pattern: ",\\s*like\\s*,", options: .caseInsensitive) {
+        // "like" is the hard one: it is a filler and an ordinary verb and a
+        // comparison and an approximation, so only shapes that cannot be any of
+        // the other three are stripped.
+        //
+        // Left alone on purpose:
+        //   verb           "I like it"
+        //   comparison     "looks like rain", "like this", "was like a dream"
+        //   approximation  "like 30 minutes" — dropping it changes the number's
+        //                  meaning from about-thirty to exactly-thirty
+        //
+        // Comma-bounded filler: "I was, like, going".
+        //
+        // Both commas go, not just the word. They were only there to bracket
+        // the filler, and leaving one behind produced "I was, going" — the
+        // filler removed and a comma splice left in its place.
+        if let likeRegex = try? NSRegularExpression(pattern: ",\\s*like\\s*,\\s*", options: .caseInsensitive) {
             let range = NSRange(result.startIndex..., in: result)
-            result = likeRegex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: ",")
+            result = likeRegex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: " ")
+        }
+
+        // Sentence-initial: "Like, I don't know" — nothing precedes it to
+        // compare to, so it cannot be the comparison sense.
+        if let regex = try? NSRegularExpression(
+            pattern: "(^|(?<=[.!?])\\s+)like\\s*,\\s*",
+            options: .caseInsensitive
+        ) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1")
+        }
+
+        // After a preposition: "for like normal", "with like three of them".
+        // A preposition already governs what follows, so "like" adds nothing —
+        // except before a number, where it is the approximation sense.
+        if let regex = try? NSRegularExpression(
+            pattern: "\\b(for|of|with|about|at|on|in|from|by)\\s+like\\s+(?![0-9])",
+            options: .caseInsensitive
+        ) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1 ")
         }
 
         // Remove standalone "um" and "uh" (with surrounding commas/spaces)
         // Patterns: ", um," / ", uh," / "Um, " at start / " um " mid-sentence
         for filler in ["um", "uh"] {
-            // Mid-sentence with commas: ", um,"
-            if let regex = try? NSRegularExpression(pattern: ",\\s*\(filler)\\s*,", options: .caseInsensitive) {
+            // Mid-sentence with commas: ", um," — both commas go with it, for
+            // the same reason as the filler "like" above.
+            if let regex = try? NSRegularExpression(pattern: ",\\s*\(filler)\\s*,\\s*", options: .caseInsensitive) {
                 let range = NSRange(result.startIndex..., in: result)
-                result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: ",")
+                result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: " ")
             }
             // Start of text: "Um, " or "Uh, "
             if let regex = try? NSRegularExpression(pattern: "^\\s*\(filler)\\s*,?\\s*", options: .caseInsensitive) {
