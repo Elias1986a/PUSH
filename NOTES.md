@@ -1,24 +1,62 @@
 # NOTES
 
-## Current state (2026-08-16, v6.4.3 — released)
+## Current state (2026-08-17, v6.5.1 — released)
 
-Three releases today: 6.4.1 (updater menu), 6.4.2 (iCloud entitlement + KVS
-spike), 6.4.3 (spoken self-corrections).
+Six releases across two days: 6.4.1 (updater menu), 6.4.2 (iCloud entitlement +
+KVS spike), 6.4.3 (spoken self-corrections), 6.5.0 (real iCloud sync + Settings
+tab lag), 6.5.1 (filler "like").
 
-### Tomorrow: three things to check, all on the MacBook
+Mac Mini is on 6.5.1. **The MacBook is still on 6.4.3** — update it first, it
+has no sync code at all.
 
-Install 6.4.3 on the notched MacBook and one launch answers two of them.
+### Unmerged, waiting on tomorrow
 
-1. **Notch fit.** Never yet run on a notched display — see the 6.4.0 section
-   below for what to look at. Everything so far was verified on a 2304x1296
-   external monitor reporting `safeAreaInsets.top == 0`.
-2. **Cross-device sync.** Check `~/Library/Application Support/PUSH/push_debug.log`
-   for `CloudSyncSpike`. Seeing `Elias's M4 Mac Mini=...` in the stamp list
-   proves KVS reaches iCloud → settings/dictionary sync is a few hundred lines.
-   Only the MacBook's own stamp → KVS works locally but not in the cloud, and
-   the answer is CloudKit instead.
-3. **Self-corrections.** Settings → Formatting → "Act on spoken corrections"
-   (off by default). Note which misses cluster — see below.
+`claude/filler-like-pos-tagger` — rewrites filler "like" removal to use the
+NLTagger instead of string patterns. Built, 69 tests pass, held only so it can
+go out with whatever tomorrow's notch check produces.
+
+### Tomorrow: the notch, still not looked at
+
+Deferred twice now. Everything about the top placement was verified on a
+2304x1296 external monitor reporting `safeAreaInsets.top == 0`, so the part the
+design exists for is unverified. On the notched MacBook, check:
+
+- whether the flanks line up with the notch sides or need `NotchFilletShape`
+- whether the pulse terminating at the notch's lower corners reads as
+  intentional or as cut off
+- whether 37pt of camera clearance plus content is too tall in practice
+
+Also worth doing while both Macs are on 6.5.1: add a dictionary word on one and
+watch it appear on the other. The *capability* is proven (see below); the
+shipped feature has only been exercised on one machine.
+
+### iCloud sync: proven, and how it reconciles
+
+KVS works unsandboxed on a Developer ID build — a write on the MacBook reached
+the Mac Mini in **2 seconds**. No account, no login, no server.
+
+Three different rules, because one rule loses data:
+
+- **Settings** — last-writer-wins per *key*, so a hotkey change on one Mac and a
+  preview-size change on the other both survive.
+- **Dictionary** — union by entry id, newest `modifiedAt` wins. Never LWW on the
+  list; that drops entries.
+- **Deletions** — tombstones. Union by id without them resurrects everything the
+  user deletes, from the other machine's copy. Expire after 30 days.
+- **Independent duplicates** — the same word added on both Macs has two uuids and
+  one meaning; deduped by content, oldest kept so the surviving id is stable.
+
+`pillPosition` deliberately does **not** sync: a notched laptop and an external
+display are exactly where the same person wants different answers.
+
+11 merge tests cover each failure mode, including idempotency and stable
+ordering — an unstable merge makes two Macs push at each other forever.
+
+**A crash worth remembering:** the first signed build died on launch with a
+`dispatch_once` trap. `CorrectionsStore.shared` init → `load()` → `didSet` →
+`save()` → `CloudSync` → read `CorrectionsStore.shared` back, while that
+initialiser was still running. All 11 merge tests passed against an app that
+could not launch. Unit tests do not substitute for running the signed build.
 
 ### iCloud key-value storage: proven to work unsandboxed
 
@@ -62,12 +100,40 @@ tested for: "I'm sorry about that", "I'd rather go" are ordinary speech. Those
 are the LLM resolver's job description — if the misses cluster there, that is
 the signal to build stage two.
 
-### Still to do
+### The LLM resolver now has a job description
 
-- **Remove `CloudSyncSpike` in 6.4.4.** Kept in 6.4.3 only because deleting it
-  would break the cross-device test above. It writes a `spike.stamp.<host>` key
-  into every user's iCloud — harmless, but it is litter in other people's
-  accounts.
+Two independent findings point at the same missing capability, both from real
+dictation rather than invented examples:
+
+1. **Correction markers.** Bare "sorry", "actually", "rather" are excluded from
+   `resolveSelfCorrections` — "I'm sorry about that", "I'd rather go" are
+   ordinary speech.
+2. **Filler "like".** "is just like human level common courtesy" and "never put
+   like a corporate lens" are misses, and deliberately so. Their POS tag *and*
+   their neighbours are identical to "she looks just like her mother" and "it
+   was like a dream". Verified with NLTagger, not assumed.
+
+Both need the same thing: knowing whether a comparison is actually being made.
+That is semantic, and no amount of part-of-speech work reaches it. Phase 2's
+measured ~110ms for a one-token classification is the right shape — "is this a
+real comparison, yes or no" — and the five SwiftLlama patches are recorded in
+`phase2_llm_gate_findings`.
+
+**The asymmetry that governs all of this:** a miss leaves one visible stray
+word. A false positive deletes a word and leaves a sentence that still reads
+fine, so it is never noticed. Widen these rules only with evidence, never for
+tidiness.
+
+### Release pipeline
+
+`build_distribution.sh` now depends on a provisioning profile at
+`~/Library/Developer/PUSH-signing/`, deliberately outside the repo. iCloud is a
+*restricted* entitlement: `PUSH.entitlements` claims it, and an app signed with
+it but no embedded profile **refuses to launch, for everyone**. The script
+hard-fails if the profile is missing. Never separate those two changes.
+
+Releases below v6 were deleted from GitHub; their **tags were kept**, so any v5
+is still checkoutable and rebuildable from source.
 
 ## Previous state (2026-08-15, v6.4.0 — released)
 
