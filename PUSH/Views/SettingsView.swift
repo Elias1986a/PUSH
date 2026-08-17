@@ -1,5 +1,4 @@
 import SwiftUI
-import LaunchAtLogin
 import AppKit
 
 struct SettingsView: View {
@@ -38,6 +37,7 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var appState: AppState
+    @StateObject private var launchAtLogin = LaunchAtLoginModel()
 
     /// Keyed off the *selected* model rather than the active one, so the toggle
     /// greys out the moment you pick another model instead of waiting for the
@@ -49,7 +49,15 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                LaunchAtLogin.Toggle("Start PUSH at login")
+                // Not LaunchAtLogin.Toggle: its binding reads
+                // SMAppService.status synchronously from the view body, which
+                // blocks the main thread ~61ms per render pass. See
+                // LaunchAtLoginModel.
+                Toggle("Start PUSH at login", isOn: Binding(
+                    get: { launchAtLogin.isEnabled },
+                    set: { launchAtLogin.set($0) }
+                ))
+                .task { await launchAtLogin.loadIfNeeded() }
             }
 
             Section("Hotkey") {
