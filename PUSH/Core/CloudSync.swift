@@ -103,9 +103,14 @@ final class CloudSync: ObservableObject {
 
     // MARK: - Local → iCloud
 
-    func dictionaryDidChange() {
+    /// Entries are passed in rather than read back from `CorrectionsStore`.
+    /// Reaching for the singleton here deadlocked: the store calls this from
+    /// its own `didSet`, which runs during `CorrectionsStore.shared`'s one-time
+    /// initialiser, so touching `.shared` from inside it re-enters
+    /// `dispatch_once` and traps.
+    func dictionaryDidChange(_ entries: [CorrectionsStore.Correction]) {
         guard started, !isApplyingRemote else { return }
-        pushDictionary()
+        push(entries)
     }
 
     private func pushAll() {
@@ -119,9 +124,14 @@ final class CloudSync: ObservableObject {
     }
 
     private func pushDictionary() {
-        let all = CorrectionsStore.shared.allForSync
-        guard let data = try? JSONEncoder().encode(all) else { return }
+        push(CorrectionsStore.shared.allForSync)
+    }
+
+    private func push(_ entries: [CorrectionsStore.Correction]) {
+        guard let data = try? JSONEncoder().encode(entries) else { return }
         store.set(data, forKey: Self.dictionaryKey)
+        // Counts and bytes only — dictionary contents are the user's words.
+        PushLogger.log("CloudSync: pushed dictionary — \(entries.count) entr(ies), \(data.count) bytes")
     }
 
     // MARK: - iCloud → local

@@ -230,7 +230,15 @@ final class CorrectionsStore: ObservableObject {
 
     // MARK: - Private
 
+    /// True while `load()` runs. Assigning `corrections` fires `didSet`, and
+    /// saving what was just read is both pointless and — before this guard —
+    /// fatal: it ran during `shared`'s one-time initialiser.
+    private var isLoading = false
+
     private func load() {
+        isLoading = true
+        defer { isLoading = false }
+
         guard let data = UserDefaults.standard.data(forKey: Self.userDefaultsKey),
               let decoded = try? JSONDecoder().decode([Correction].self, from: data) else {
             return
@@ -242,8 +250,12 @@ final class CorrectionsStore: ObservableObject {
     }
 
     private func save() {
-        guard let data = try? JSONEncoder().encode(corrections + tombstones) else { return }
+        guard !isLoading else { return }
+        let all = corrections + tombstones
+        guard let data = try? JSONEncoder().encode(all) else { return }
         UserDefaults.standard.set(data, forKey: Self.userDefaultsKey)
-        CloudSync.shared.dictionaryDidChange()
+        // Passed by value: CloudSync must not read `shared` back while this is
+        // running, which can be inside this type's own initialiser.
+        CloudSync.shared.dictionaryDidChange(all)
     }
 }
