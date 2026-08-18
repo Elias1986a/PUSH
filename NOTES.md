@@ -1,34 +1,59 @@
 # NOTES
 
-## Current state (2026-08-17, v6.5.1 — released)
+## Current state (2026-08-18, v6.5.2 — released)
 
-Six releases across two days: 6.4.1 (updater menu), 6.4.2 (iCloud entitlement +
-KVS spike), 6.4.3 (spoken self-corrections), 6.5.0 (real iCloud sync + Settings
-tab lag), 6.5.1 (filler "like").
+Seven releases across three days: 6.4.1 (updater menu), 6.4.2 (iCloud
+entitlement + KVS spike), 6.4.3 (spoken self-corrections), 6.5.0 (real iCloud
+sync + Settings tab lag), 6.5.1 (filler "like"), 6.5.2 (filler "like" via the
+POS tagger).
 
-Mac Mini is on 6.5.1. **The MacBook is still on 6.4.3** — update it first, it
-has no sync code at all.
+Nothing is left unmerged. Both feature branches that were waiting are in.
 
-### Unmerged, waiting on tomorrow
+### The notch: checked on the MacBook, and it's fine
 
-`claude/filler-like-pos-tagger` — rewrites filler "like" removal to use the
-NLTagger instead of string patterns. Built, 69 tests pass, held only so it can
-go out with whatever tomorrow's notch check produces.
+The deferred check finally happened on the notched laptop. The flanks, the
+pulse terminating at the notch's lower corners and the 37pt of camera clearance
+all read correctly in practice — no `NotchFilletShape`, no geometry change
+needed. That closes the item that had been carried for three days.
 
-### Tomorrow: the notch, still not looked at
+### 6.5.2 — filler "like" now uses the part-of-speech tagger
 
-Deferred twice now. Everything about the top placement was verified on a
-2304x1296 external monitor reporting `safeAreaInsets.top == 0`, so the part the
-design exists for is unverified. On the notched MacBook, check:
+Replaces 6.5.1's string patterns, which real dictation got through: "how are
+you not like irate" and "as if he like lives on another planet" both survived,
+since the patterns only knew prepositions and sentence starts.
 
-- whether the flanks line up with the notch sides or need `NotchFilletShape`
-- whether the pulse terminating at the notch's lower corners reads as
-  intentional or as cut off
-- whether 37pt of camera clearance plus content is too tall in practice
+Extending the patterns is not safe, and this was measured rather than assumed.
+The senses are not separable by the tag on "like" alone — filler and comparison
+both come back `Preposition` — nor by the neighbours alone, because "I like
+pizza" and "he like lives" have the same shape. It takes both signals: the tag
+rules out the verb, the neighbours rule out the comparison. A regex matching
+pronoun + "like" turns "I like pizza" into "I pizza"; that is the whole reason
+this is not a regex, and there is a test named for it.
 
-Also worth doing while both Macs are on 6.5.1: add a dictionary word on one and
-watch it appear on the other. The *capability* is proven (see below); the
-shipped feature has only been exercised on one machine.
+Cost: 0.25ms with "like" present, 0.008ms without, against a 64ms finalize.
+
+The two known misses are deliberate and unchanged — "is just like human level
+common courtesy", "never put like a corporate lens". They are the LLM
+resolver's job (see below), not a looser rule's.
+
+### Still open
+
+- **Cross-Mac sync has still only been exercised on one machine.** The
+  capability is proven (a KVS write crossed in 2 seconds), but the shipped
+  feature has not been watched end to end. Now that both Macs can run 6.5.2:
+  add a dictionary word on one, watch it appear on the other.
+- **Phase 2, the LLM resolver.** Job description below; unchanged.
+- **Stale remote branches.** `claude/realtime-speech-display-quculk` (Aug 12)
+  never merged — live preview shipped down a different path and main's version
+  is well past it. The other `claude/*` branches are merged and can go too.
+
+### Release pipeline gotcha found today
+
+`DEVELOPER_DIR` is **not** `/Applications/Xcode-beta.app`. Xcode-beta lives on
+the external volume: `/Volumes/Part 2/Applications/Xcode-beta.app/Contents/
+Developer`. `xcode-select -p` already points there, so running
+`./build_distribution.sh` with no override works; a wrong explicit override
+fails in step 1 with "missing DEVELOPER_DIR path".
 
 ### iCloud sync: proven, and how it reconciles
 
