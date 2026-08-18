@@ -180,6 +180,25 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(filler("Fine. Like, whatever"), "Fine. whatever")
     }
 
+    /// Real dictation. Both of these survived the first implementation, which
+    /// only knew about prepositions and sentence starts.
+    func testFillerLikeAfterNegationAndPronoun() {
+        XCTAssertEqual(
+            filler("How are you not like irate about Bill's emails as if he like lives on another planet"),
+            "How are you not irate about Bill's emails as if he lives on another planet"
+        )
+        XCTAssertEqual(filler("and like nobody cared"), "and nobody cared")
+        XCTAssertEqual(filler("it's like really cold"), "it's really cold")
+    }
+
+    /// The catastrophic case. A rule matching pronoun + "like" without checking
+    /// the part of speech turns this into "I pizza".
+    func testLikeAsMainVerbAfterPronounIsNeverRemoved() {
+        XCTAssertEqual(filler("I like pizza"), "I like pizza")
+        XCTAssertEqual(filler("they like us"), "they like us")
+        XCTAssertEqual(filler("we like it here"), "we like it here")
+    }
+
     /// "like" is a verb, a comparison and an approximation as well as a filler.
     /// Each of these changes meaning if it is stripped.
     func testMeaningfulLikeSurvives() {

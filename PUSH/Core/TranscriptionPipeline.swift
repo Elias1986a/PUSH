@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 
 /// Orchestrates the transcription pipeline: audio → Whisper → Qwen → text injection
 actor TranscriptionPipeline {
@@ -295,16 +296,7 @@ actor TranscriptionPipeline {
             result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1")
         }
 
-        // After a preposition: "for like normal", "with like three of them".
-        // A preposition already governs what follows, so "like" adds nothing —
-        // except before a number, where it is the approximation sense.
-        if let regex = try? NSRegularExpression(
-            pattern: "\\b(for|of|with|about|at|on|in|from|by)\\s+like\\s+(?![0-9])",
-            options: .caseInsensitive
-        ) {
-            let range = NSRange(result.startIndex..., in: result)
-            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1 ")
-        }
+        result = removeFillerLike(result)
 
         // Remove standalone "um" and "uh" (with surrounding commas/spaces)
         // Patterns: ", um," / ", uh," / "Um, " at start / " um " mid-sentence
@@ -448,6 +440,93 @@ actor TranscriptionPipeline {
             t = t.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return t
+    }
+
+    // MARK: - Filler "like"
+
+    /// Words after which a preposition-tagged "like" is filler rather than a
+    /// comparison. Negations, conjunctions and subject pronouns cannot be the
+    /// left side of a comparison — "he like lives here" has nothing being
+    /// compared — whereas a noun or a comparison verb can: "people like us",
+    /// "looks like rain".
+    private static let fillerLikePredecessors: Set<String> = [
+        "not", "never", "and", "but", "so", "or",
+        "i", "he", "she", "it", "they", "we", "you"
+    ]
+
+    /// Strip filler "like" using the on-device part-of-speech tagger.
+    ///
+    /// String patterns alone cannot do this. Measured against the tagger, the
+    /// senses are not separable by the tag on "like" by itself — filler and
+    /// comparison both come back `Preposition` — and they are not separable by
+    /// the neighbouring words either, because "I like pizza" and "he like
+    /// lives" have the same shape. It takes both: the tag rules out the verb,
+    /// the neighbours rule out the comparison.
+    ///
+    /// Without the tag, a rule matching pronoun + "like" turns "I like pizza"
+    /// into "I pizza". That is the whole reason this is not a regex.
+    static func removeFillerLike(_ text: String) -> String {
+        guard text.range(of: "like", options: .caseInsensitive) != nil else { return text }
+
+        let tagger = NLTagger(tagSchemes: [.lexicalClass])
+        tagger.string = text
+
+        // Collected first, applied last-to-first, so earlier ranges stay valid.
+        var doomed: [Range<String.Index>] = []
+        var previousWord = ""
+
+        tagger.enumerateTags(
+            in: text.startIndex..<text.endIndex,
+            unit: .word,
+            scheme: .lexicalClass,
+            options: [.omitPunctuation, .omitWhitespace]
+        ) { tag, range in
+            let word = text[range].lowercased()
+            defer { previousWord = word }
+            guard word == "like" else { return true }
+
+            switch tag {
+            case .verb:
+                // "I like it", "would like a coffee", and — because the tagger
+                // labels it so — "do it like this". Never removed: this is the
+                // case where a wrong guess destroys the sentence.
+                return true
+
+            case .interjection:
+                // The tagger's own filler reading. Kept only before a number,
+                // where it means "about": dropping it in "in like 30 minutes"
+                // would turn an estimate into a precise claim.
+                if !nextWordIsNumber(after: range, in: text) {
+                    doomed.append(range)
+                }
+
+            case .preposition:
+                // Ambiguous: both "looks like rain" and "not like irate". The
+                // preceding word decides.
+                if Self.fillerLikePredecessors.contains(previousWord),
+                   !nextWordIsNumber(after: range, in: text) {
+                    doomed.append(range)
+                }
+
+            default:
+                break
+            }
+            return true
+        }
+
+        guard !doomed.isEmpty else { return text }
+
+        var result = text
+        for range in doomed.reversed() {
+            result.replaceSubrange(range, with: "")
+        }
+        return result
+    }
+
+    private static func nextWordIsNumber(after range: Range<String.Index>, in text: String) -> Bool {
+        let rest = text[range.upperBound...]
+        guard let next = rest.split(whereSeparator: \.isWhitespace).first else { return false }
+        return next.first?.isNumber ?? false
     }
 
     /// Remove stuttered/duplicate consecutive words: "the the" → "the", "I I" → "I"
