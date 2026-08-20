@@ -9,7 +9,34 @@ POS tagger).
 
 Nothing is left unmerged. Both feature branches that were waiting are in.
 
-### Unreleased on main: the number pipeline, fixed in three rounds
+### Unreleased on main: two Apple engines (stages 1–2 of 4)
+
+Plan: `~/.claude/plans/recursive-churning-moore.md` — Apple models, then a `PUSHCore`
+library split, then a local engine-comparison tool. Stages 3–4 not started.
+
+**Apple SpeechAnalyzer** is a fourth ASR engine (`ML/AppleSpeechEngine.swift`). No
+weights to fetch — the OS owns the assets, so `loadModel()` installs and reserves a
+*locale*, and the settings row reports system asset status rather than offering a
+Download button. 5.18s of speech in 0.12s, punctuates natively, writes "4.8 million"
+itself.
+
+**Apple Intelligence cleanup** (`Core/AppleTextCleanup.swift`) is an *alternative* to
+`postProcess`, not a stage after it — running a model over already-formatted text would
+undo the number handling and make the A/B meaningless. Off by default. 4s timeout falls
+back to the rule result computed alongside it.
+
+**The guard is the part worth reading before touching this.** Dictating "what's the
+capital of france" came back as "Paris is the capital of France." and the original
+length-based check passed it, because a short question gets a short answer. Length is the
+wrong invariant. The right one is vocabulary: cleanup deletes words but never invents
+them. Digits are exempt (number rewriting is wanted), stopwords are exempt (contractions
+expand). Don't relax this without re-running
+`AppleTextCleanupTests/testDictationPhrasedAsAQuestionIsNeverAnswered`.
+
+Verified without a microphone: the Apple Speech test synthesizes its clip with `say`,
+which also means never asking the user to read a script aloud.
+
+### Released in 6.5.3: the number pipeline, fixed in three rounds
 
 Shipped nothing yet; `main` is four commits ahead of v6.5.2.
 
