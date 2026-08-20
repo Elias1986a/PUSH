@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import PUSHCore
 
 struct FloatingPillView: View {
     @EnvironmentObject var appState: AppState

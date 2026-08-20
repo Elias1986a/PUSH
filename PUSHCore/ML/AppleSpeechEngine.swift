@@ -12,8 +12,8 @@ import Speech
 /// `.processLifetime` retention is what keeps that cheap — it tells the OS to hold the
 /// loaded model between utterances instead of paging it back in on every press.
 @available(macOS 26, *)
-actor AppleSpeechEngine {
-    static let shared = AppleSpeechEngine()
+public actor AppleSpeechEngine {
+    public static let shared = AppleSpeechEngine()
 
     /// The locale whose assets are installed and reserved. `nil` until `loadModel()` succeeds.
     private var readyLocale: Locale?
@@ -27,14 +27,14 @@ actor AppleSpeechEngine {
 
     /// Whether this Mac can run the transcriber at all. Cheap and synchronous, so the
     /// settings picker can filter the model out without an await.
-    nonisolated static var isSupported: Bool {
+    public nonisolated static var isSupported: Bool {
         SpeechTranscriber.isAvailable
     }
 
     /// Asset state for the locale we'd use. The settings row shows this instead of a
     /// download button — the OS manages these assets, and a progress bar we don't
     /// control would be a fiction.
-    static func installStatus() async -> AssetInventory.Status {
+    public static func installStatus() async -> AssetInventory.Status {
         guard let locale = await resolveLocale() else { return .unsupported }
         return await AssetInventory.status(forModules: [SpeechTranscriber(locale: locale, preset: .transcription)])
     }
@@ -55,7 +55,7 @@ actor AppleSpeechEngine {
     /// First run for a locale genuinely downloads from Apple and can take a while — this
     /// is the equivalent of another engine's model fetch, and the caller should expect it
     /// to be slow exactly once.
-    func loadModel() async throws {
+    public func loadModel() async throws {
         if readyLocale != nil { return }
 
         guard SpeechTranscriber.isAvailable else {
@@ -88,7 +88,7 @@ actor AppleSpeechEngine {
         PushLogger.log("AppleSpeechEngine: ✅ Ready (\(locale.identifier))")
     }
 
-    func unloadModel() async {
+    public func unloadModel() async {
         if let locale = readyLocale {
             _ = await AssetInventory.release(reservedLocale: locale)
         }
@@ -100,7 +100,7 @@ actor AppleSpeechEngine {
     ///
     /// This is what pays for `.processLifetime` retention: it forces the first (slow)
     /// model load to happen here rather than on the user's first press.
-    func warmup() async {
+    public func warmup() async {
         PushLogger.log("AppleSpeechEngine: Starting warmup...")
         let startTime = Date()
 
@@ -117,7 +117,7 @@ actor AppleSpeechEngine {
     }
 
     /// Transcribe 16 kHz mono Float32 PCM.
-    func transcribe(audioData: Data) async throws -> String {
+    public func transcribe(audioData: Data) async throws -> String {
         if readyLocale == nil {
             PushLogger.log("AppleSpeechEngine: Not loaded, loading...")
             try await loadModel()
@@ -239,7 +239,7 @@ actor AppleSpeechEngine {
 // MARK: - Errors
 
 @available(macOS 26, *)
-enum AppleSpeechEngineError: LocalizedError {
+public enum AppleSpeechEngineError: LocalizedError {
     case unsupportedSystem
     case unsupportedLocale(String)
     case notInitialized
@@ -247,7 +247,7 @@ enum AppleSpeechEngineError: LocalizedError {
     case noCompatibleAudioFormat
     case conversionFailed(String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .unsupportedSystem:
             return "Apple Speech isn't available on this Mac"

@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import PUSHCore
 
 /// Injects text into the currently focused text field via clipboard paste
 /// (the most compatible path across native apps, Electron, and web inputs)

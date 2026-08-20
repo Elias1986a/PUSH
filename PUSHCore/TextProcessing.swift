@@ -1,173 +1,19 @@
 import Foundation
 import NaturalLanguage
 
-/// Orchestrates the transcription pipeline: audio → Whisper → Qwen → text injection
-actor TranscriptionPipeline {
-    static let shared = TranscriptionPipeline()
+/// Turns a raw transcript into the text PUSH pastes.
+///
+/// Split out of the app target so the engines, the pipeline and the comparison tool
+/// share one implementation — a second copy of these rules would drift, and the whole
+/// point of comparing engines is that only the engine differs.
+///
+/// Every pass here is a pure function of its input. The orchestration that has opinions
+/// about `AppState`, injection and logging lives in `TranscriptionPipeline+App.swift`
+/// in the app target.
+public actor TranscriptionPipeline {
+    public static let shared = TranscriptionPipeline()
 
-    private init() {}
-
-    // MARK: - Hallucination Filters
-
-    /// Exact-match hallucination phrases (Whisper outputs these on silence/ambient noise)
-    private static let hallucinationPhrases: Set<String> = [
-        "subscribe", "like and subscribe",
-        "see you next time", "bye", "goodbye",
-        "you", "the end", "the end."
-    ]
-
-    /// Prefix-match hallucinations (catch "thank you", "thank you so much", "thanks for watching", etc.)
-    private static let hallucinationPrefixes = [
-        "thank you", "thanks for"
-    ]
-
-    // MARK: - Public API
-
-    /// Route audio to the engine backing `model`. Shared by the main pipeline
-    /// and the wake word listener so both always use the loaded engine.
-    static func transcribe(audioData: Data, using model: AppState.WhisperModel) async throws -> String {
-        switch model.engineType {
-        case .moonshine:
-            return try await MoonshineEngine.shared.transcribe(audioData: audioData)
-        case .parakeet:
-            return try await ParakeetEngine.shared.transcribe(audioData: audioData)
-        case .parakeetUnified:
-            return try await ParakeetUnifiedEngine.shared.transcribe(audioData: audioData)
-        case .parakeetStreaming:
-            return try await ParakeetStreamingEngine.shared.transcribe(audioData: audioData)
-        case .whisperKit:
-            return try await WhisperEngine.shared.transcribe(audioData: audioData)
-        case .appleSpeech:
-            guard #available(macOS 26, *) else { throw ModelLoaderError.requiresNewerSystem }
-            return try await AppleSpeechEngine.shared.transcribe(audioData: audioData)
-        }
-    }
-
-    /// Process audio data through the full pipeline
-    func process(audioData: Data) async {
-        do {
-            PushLogger.log("TranscriptionPipeline: Starting transcription, audio size: \(audioData.count) bytes")
-            // Step 1: Transcribe with the active (loaded) engine — the selected
-            // preference may still be downloading; ModelLoader swaps activeModel
-            // only once the new model is ready.
-            let activeModel = await MainActor.run { AppState.shared.activeModel }
-            PushLogger.log("TranscriptionPipeline: Using \(activeModel.engineType) engine...")
-            let rawText = try await Self.transcribe(audioData: audioData, using: activeModel)
-
-            // Filter out empty results and Whisper's blank audio markers
-            var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            // Check for empty, [BLANK_AUDIO], bracketed text, silence markers,
-            // and common Whisper hallucinations on silence/ambient noise
-            var lowerText = filteredText.lowercased()
-            if filteredText.isEmpty ||
-               lowerText.contains("blank_audio") ||
-               lowerText.contains("blank audio") ||
-               lowerText.contains("silence") ||
-               Self.hallucinationPhrases.contains(lowerText) ||
-               Self.hallucinationPrefixes.contains(where: { lowerText.hasPrefix($0) }) ||
-               filteredText.hasPrefix("(") && filteredText.hasSuffix(")") ||
-               filteredText.hasPrefix("[") && filteredText.hasSuffix("]") {
-                PushLogger.log("TranscriptionPipeline: No speech detected (empty, blank, or hallucination)")
-                return
-            }
-
-            // Strip "beep" from the start of transcription (microphone picks up the chirp sound effect)
-            // Handle variations: "Beep", "beep,", "Beep.", "beep ", "(beeping)", "[beeping]", etc.
-            let beepPatterns = [
-                #/^\(beep(ing)?\)[,.\s]*/#,      // (beep) or (beeping)
-                #/^\[beep(ing)?\][,.\s]*/#,      // [beep] or [beeping]
-                #/^beep(ing)?[,.\s]*/#           // beep or beeping
-            ]
-            for pattern in beepPatterns {
-                if let match = try? pattern.ignoresCase().prefixMatch(in: filteredText) {
-                    filteredText = String(filteredText[match.range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                    lowerText = filteredText.lowercased()
-                    PushLogger.log("TranscriptionPipeline: Stripped beep prefix from transcription")
-                    break
-                }
-            }
-
-            // If only "beep" was transcribed (nothing left after stripping), treat as no speech
-            if filteredText.isEmpty || lowerText == "beep" || lowerText == "beeping" {
-                PushLogger.log("TranscriptionPipeline: No speech detected (only beep sound)")
-                return
-            }
-
-            // Strip wake word from the start of transcription if enabled
-            let (wakeWordEnabled, wakeWord) = await MainActor.run {
-                (AppState.shared.wakeWordEnabled, AppState.shared.wakeWord)
-            }
-            if wakeWordEnabled && !wakeWord.isEmpty {
-                // Create pattern to match wake word at start (case insensitive)
-                // Handle variations: "push", "Push,", "push.", "push " etc.
-                let escapedWakeWord = NSRegularExpression.escapedPattern(for: wakeWord)
-                if let regex = try? NSRegularExpression(pattern: "^" + escapedWakeWord + "[,.:!?\\s]*", options: .caseInsensitive) {
-                    let range = NSRange(filteredText.startIndex..., in: filteredText)
-                    if let match = regex.firstMatch(in: filteredText, options: [], range: range) {
-                        let matchRange = Range(match.range, in: filteredText)!
-                        filteredText = String(filteredText[matchRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                        lowerText = filteredText.lowercased()
-                        PushLogger.log("TranscriptionPipeline: Stripped wake word from transcription")
-                    }
-                }
-
-                // If only wake word was transcribed (nothing left after stripping), treat as no speech
-                if filteredText.isEmpty || lowerText == wakeWord.lowercased() {
-                    PushLogger.log("TranscriptionPipeline: No speech detected (only wake word)")
-                    return
-                }
-            }
-
-            // Avoid logging raw transcription text to protect user privacy.
-            PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
-
-            // Apply user-defined dictionary corrections (e.g. names Whisper consistently mishears).
-            // `.always` entries replace unconditionally; `.contextual` entries are gated so
-            // homophones (the tool "hammer" vs. the person "Hamer") aren't corrupted.
-            let corrections = await MainActor.run { CorrectionsStore.shared.corrections }
-            filteredText = await CorrectionsStore.applyContextAware(corrections, to: filteredText)
-
-            // Act on spoken self-corrections before formatting, while the
-            // markers are still intact — the formatting pipeline rewrites
-            // punctuation around exactly the commas these depend on.
-            if await MainActor.run(body: { AppState.shared.resolveSelfCorrections }) {
-                let beforeCount = filteredText.count
-                filteredText = Self.resolveSelfCorrections(filteredText)
-                if filteredText.count != beforeCount {
-                    // Lengths only — the transcript itself is never logged.
-                    PushLogger.log("TranscriptionPipeline: resolved self-correction (\(beforeCount) → \(filteredText.count) chars)")
-                }
-            }
-
-            // Post-processing pipeline varies by model capability:
-            // Models with native punctuation (Parakeet) get a reduced pipeline
-            // to avoid overriding their higher-quality formatting.
-            var formattedText = Self.postProcess(
-                filteredText, hasNativePunctuation: activeModel.hasNativePunctuation)
-
-            // Typographic preference — off by request via Settings → General.
-            if await MainActor.run(body: { AppState.shared.doubleSpaceAfterSentence }) {
-                formattedText = Self.doubleSpaceAfterPeriods(formattedText)
-            }
-
-            // Step 2: Inject into active text field
-            PushLogger.log("TranscriptionPipeline: Injecting text...")
-            let textToInject = formattedText
-            await MainActor.run {
-                TextInjector.shared.insertText(textToInject)
-            }
-
-            PushLogger.log("TranscriptionPipeline: ✅ Text injected successfully")
-
-        } catch {
-            PushLogger.log("TranscriptionPipeline: ❌ ERROR - \(error)")
-            await MainActor.run {
-                AppState.shared.statusMessage = "Error: \(error.localizedDescription)"
-                NotificationManager.shared.showTranscriptionError()
-            }
-        }
-    }
+    init() {}
 
     // MARK: - Text Post-Processing
 
@@ -176,7 +22,7 @@ actor TranscriptionPipeline {
     /// capitalises. Everything else counts as content.
     private static let sentenceStartPassThrough: Set<Character> = ["\"", "'", "\u{201C}", "\u{2018}", "(", "["]
 
-    static func fixCapitalization(_ text: String) -> String {
+    public static func fixCapitalization(_ text: String) -> String {
         guard !text.isEmpty else { return text }
 
         var result = ""
@@ -208,7 +54,7 @@ actor TranscriptionPipeline {
     }
 
     /// Capitalize standalone "i" → "I" (the pronoun, not inside words)
-    static func capitalizeI(_ text: String) -> String {
+    public static func capitalizeI(_ text: String) -> String {
         // Match standalone "i" surrounded by word boundaries
         guard let regex = try? NSRegularExpression(pattern: "\\bi\\b", options: []) else {
             return text
@@ -220,7 +66,7 @@ actor TranscriptionPipeline {
     /// Add double space after sentence-ending punctuation (. ? !).
     /// Note: this can't distinguish abbreviations ("Dr. Smith" also gets two
     /// spaces), which is part of why it's user-toggleable.
-    static func doubleSpaceAfterPeriods(_ text: String) -> String {
+    public static func doubleSpaceAfterPeriods(_ text: String) -> String {
         var result = text
         // Replace single space after sentence-ending punctuation with double space
         for punct in [".", "?", "!"] {
@@ -234,7 +80,7 @@ actor TranscriptionPipeline {
     }
 
     /// Remove filler words: "um", "uh" always; "like" only when comma-bounded filler
-    static func removeFillerWords(_ text: String) -> String {
+    public static func removeFillerWords(_ text: String) -> String {
         var result = text
 
         // "like" is the hard one: it is a filler and an ordinary verb and a
@@ -332,7 +178,7 @@ actor TranscriptionPipeline {
     ///
     /// Deletion never crosses a sentence boundary, so a correction can't eat
     /// the sentence before it however the count lands.
-    static func resolveSelfCorrections(_ text: String) -> String {
+    public static func resolveSelfCorrections(_ text: String) -> String {
         var result = text
         // Each pass resolves the first marker. The cap stops a pathological
         // transcript from looping; real speech never stacks this many.
@@ -436,7 +282,7 @@ actor TranscriptionPipeline {
     ///
     /// Without the tag, a rule matching pronoun + "like" turns "I like pizza"
     /// into "I pizza". That is the whole reason this is not a regex.
-    static func removeFillerLike(_ text: String) -> String {
+    public static func removeFillerLike(_ text: String) -> String {
         guard text.range(of: "like", options: .caseInsensitive) != nil else { return text }
 
         let tagger = NLTagger(tagSchemes: [.lexicalClass])
@@ -501,7 +347,7 @@ actor TranscriptionPipeline {
     }
 
     /// Remove stuttered/duplicate consecutive words: "the the" → "the", "I I" → "I"
-    static func removeStutteredWords(_ text: String) -> String {
+    public static func removeStutteredWords(_ text: String) -> String {
         guard let regex = try? NSRegularExpression(
             pattern: "\\b(\\w+)\\s+\\1\\b",
             options: .caseInsensitive
@@ -512,7 +358,7 @@ actor TranscriptionPipeline {
     }
 
     /// Fix question marks: sentences starting with question words should end with ?
-    static func fixQuestionMarks(_ text: String) -> String {
+    public static func fixQuestionMarks(_ text: String) -> String {
         let questionWords: Set<String> = [
             "who", "what", "where", "when", "why", "how",
             "is", "are", "am", "was", "were",
@@ -553,7 +399,7 @@ actor TranscriptionPipeline {
     }
 
     /// Replace trailing comma with a period (model sometimes leaves a dangling comma)
-    static func fixTrailingComma(_ text: String) -> String {
+    public static func fixTrailingComma(_ text: String) -> String {
         var result = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if result.hasSuffix(",") {
             result = String(result.dropLast()) + "."
@@ -562,7 +408,7 @@ actor TranscriptionPipeline {
     }
 
     /// Add a period at the end if there's no ending punctuation
-    static func ensureEndingPunctuation(_ text: String) -> String {
+    public static func ensureEndingPunctuation(_ text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return text }
         let lastChar = trimmed.last!
@@ -573,7 +419,7 @@ actor TranscriptionPipeline {
     }
 
     /// Smart symbol replacement: "percent" → "%", "dollar" → "$", "at sign" → "@"
-    static func smartSymbols(_ text: String) -> String {
+    public static func smartSymbols(_ text: String) -> String {
         var result = text
 
         // Number + "percent" → number + "%"  (e.g. "50 percent" → "50%")
@@ -618,7 +464,7 @@ actor TranscriptionPipeline {
 
     /// Strip the leading apostrophe Whisper adds to the contraction of "because":
     /// "'cause" → "cause" (handles straight and curly apostrophes, preserves casing).
-    static func normalizeCause(_ text: String) -> String {
+    public static func normalizeCause(_ text: String) -> String {
         // (^|non-word) + apostrophe + "cause" word → drop the apostrophe, keep the boundary and word.
         guard let regex = try? NSRegularExpression(
             pattern: "(^|[^A-Za-z'\u{2019}])['\u{2019}](causes?)\\b",
@@ -640,7 +486,7 @@ actor TranscriptionPipeline {
     ///
     /// `hasNativePunctuation` (Parakeet) skips the punctuation/capitalisation
     /// passes so we don't override the model's own, better, formatting.
-    static func postProcess(_ text: String, hasNativePunctuation: Bool) -> String {
+    public static func postProcess(_ text: String, hasNativePunctuation: Bool) -> String {
         var out = normalizeCause(text)
         out = removeFillerWords(out)
         out = removeStutteredWords(out)
@@ -711,7 +557,7 @@ actor TranscriptionPipeline {
     /// none at all and the word is prose ("a hundred people"). Expanding it uses
     /// `parseNumberRun`'s implicit multiplier of 1 and invents a number —
     /// "4.8 million" became "4.8 1,000,000".
-    static func isBareMagnitudeRun(_ run: String) -> Bool {
+    public static func isBareMagnitudeRun(_ run: String) -> Bool {
         let words = run.lowercased()
             .replacingOccurrences(of: "-", with: " ")
             .split(separator: " ")
@@ -721,7 +567,7 @@ actor TranscriptionPipeline {
 
     /// Parse a contiguous run of number words ("twenty five", "one hundred five") into an Int.
     /// Returns nil if any token isn't recognized. `allowOh` enables "oh" → 0 for decimal contexts.
-    static func parseNumberRun(_ run: String, allowOh: Bool = false) -> Int? {
+    public static func parseNumberRun(_ run: String, allowOh: Bool = false) -> Int? {
         let words = run.lowercased()
             .replacingOccurrences(of: "-", with: " ")
             .split(separator: " ")
@@ -757,7 +603,7 @@ actor TranscriptionPipeline {
     /// the run gave "3.5". But "twenty five" is 25, not "205". The rule that splits
     /// them: a run of nothing but single digits concatenates, anything else parses
     /// arithmetically.
-    static func parseDecimalFraction(_ run: String) -> String? {
+    public static func parseDecimalFraction(_ run: String) -> String? {
         let words = run.lowercased()
             .replacingOccurrences(of: "-", with: " ")
             .split(separator: " ")
@@ -785,7 +631,7 @@ actor TranscriptionPipeline {
 
     /// Rewrite "X point Y [point Z]" dictation as "X.Y[.Z]" (versions, decimals).
     /// "four point zero point two" → "4.0.2"; "ten point five" → "10.5".
-    static func normalizeDecimalDictation(_ text: String) -> String {
+    public static func normalizeDecimalDictation(_ text: String) -> String {
         // The integer side may carry magnitudes ("one hundred point five" → 100.5);
         // the fractional side may not (see decimalFractionWordPattern).
         let intWord = decimalWordPattern
@@ -841,7 +687,7 @@ actor TranscriptionPipeline {
     /// AP style: spelled numbers ≥10 → digits, 1–9 stay spelled. Existing digits untouched.
     /// "twenty-five years" → "25 years"; "five apples" stays; "one hundred five" → "105".
     /// A run of nothing but magnitude words stays spelled: "4.8 million", "a hundred people".
-    static func normalizeNumberWords(_ text: String) -> String {
+    public static func normalizeNumberWords(_ text: String) -> String {
         let word = numberWordPattern
         let pattern = "\\b(?:\(word))(?:[\\s-]+(?:\(word)))*\\b"
 
@@ -869,7 +715,7 @@ actor TranscriptionPipeline {
     }
 
     /// Comma-group a bare digit string. No length rule — callers decide what to group.
-    static func insertThousandsSeparators(_ digits: String) -> String {
+    public static func insertThousandsSeparators(_ digits: String) -> String {
         var grouped = ""
         for (i, ch) in digits.enumerated() {
             if i > 0 && (digits.count - i) % 3 == 0 { grouped.append(",") }
@@ -886,7 +732,7 @@ actor TranscriptionPipeline {
     ///
     /// The exception is the spoken-year shape — 1000–2999 with a 1–99 remainder,
     /// i.e. "two thousand twenty four" — which stays "2024".
-    static func formatSpokenNumber(_ value: Int) -> String {
+    public static func formatSpokenNumber(_ value: Int) -> String {
         guard value >= 1000 else { return String(value) }
         let remainder = value % 1000
         let isYearLike = (1000...2999).contains(value) && (1..<100).contains(remainder)
@@ -903,7 +749,7 @@ actor TranscriptionPipeline {
     /// splits. Magnitude words disqualify the run outright ("two thousand twenty
     /// four" is already handled), and the result must land in 1000–2999 so that a
     /// "sixty forty split" doesn't become 6040.
-    static func parseSpokenYear(_ run: String) -> Int? {
+    public static func parseSpokenYear(_ run: String) -> Int? {
         let words = run.lowercased()
             .replacingOccurrences(of: "-", with: " ")
             .split(separator: " ")
@@ -935,7 +781,7 @@ actor TranscriptionPipeline {
     /// Only 5+ digit runs are grouped — 4-digit values (years, ports) are ambiguous
     /// and stay as-is. Runs adjacent to a dot, comma, or digit (decimal fractions,
     /// already-grouped numbers) are left untouched.
-    static func groupThousands(_ text: String) -> String {
+    public static func groupThousands(_ text: String) -> String {
         let pattern = "(?<![\\d.,])\\d{5,}(?!\\d)"
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
 
@@ -952,7 +798,7 @@ actor TranscriptionPipeline {
     }
 
     /// "st"/"nd"/"rd"/"th" suffix for an ordinal value (11–13 are always "th").
-    static func ordinalSuffix(_ n: Int) -> String {
+    public static func ordinalSuffix(_ n: Int) -> String {
         if (11...13).contains(n % 100) { return "th" }
         switch n % 10 {
         case 1: return "st"
@@ -965,7 +811,7 @@ actor TranscriptionPipeline {
     /// Parse a run whose final token is an ordinal word into (value, suffix).
     /// Prefix tokens may be number words, digits, or "and": "twenty fifth" → (25, "th"),
     /// "one hundred and fifth" → (105, "th"), "20 fifth" → (25, "th").
-    static func parseOrdinalRun(_ run: String) -> (value: Int, suffix: String)? {
+    public static func parseOrdinalRun(_ run: String) -> (value: Int, suffix: String)? {
         let tokens = run.lowercased()
             .replacingOccurrences(of: "-", with: " ")
             .split(separator: " ")
@@ -1006,7 +852,7 @@ actor TranscriptionPipeline {
 
     /// Spelled-out ordinals → figures: "fifth" → "5th", "twenty fifth" → "25th".
     /// Plurals ("two fifths", "ten seconds") are skipped via word boundaries.
-    static func normalizeOrdinals(_ text: String) -> String {
+    public static func normalizeOrdinals(_ text: String) -> String {
         let numTok = "(?:\(numberWordPattern)|and|\\d+)"
         let pattern = "\\b(?:\(numTok)[\\s-]+)*(?:\(ordinalWordPattern))\\b"
 
@@ -1033,7 +879,7 @@ actor TranscriptionPipeline {
     /// following number/ordinal word so the run parses as one number.
     /// "one hundred and forty two" → "one hundred forty two" (→ 142).
     /// Leaves "five and ten" and already-digit text ("1100 and 42") untouched.
-    static func stripConnectingAnd(_ text: String) -> String {
+    public static func stripConnectingAnd(_ text: String) -> String {
         let lookahead = "(?:\(numberWordPattern)|\(ordinalWordPattern))"
         let pattern = "\\b(hundred|thousand|million)\\s+and\\s+(?=\(lookahead)\\b)"
 

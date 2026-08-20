@@ -1,4 +1,5 @@
 import SwiftUI
+import PUSHCore
 
 @main
 struct PUSHApp: App {

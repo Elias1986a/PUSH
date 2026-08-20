@@ -1,5 +1,6 @@
 import Foundation
 import FluidAudio
+import PUSHCore
 
 /// Streaming VAD using FluidAudio's Silero VAD model (CoreML/Neural Engine).
 /// Processes audio in 256ms chunks and fires onSilenceDetected after 1s of silence

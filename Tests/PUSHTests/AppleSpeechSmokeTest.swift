@@ -1,6 +1,7 @@
 import XCTest
 import AVFoundation
 @testable import PUSH
+@testable import PUSHCore
 
 /// Exercises the Apple Speech path without a microphone, using synthesized speech.
 final class AppleSpeechSmokeTest: XCTestCase {

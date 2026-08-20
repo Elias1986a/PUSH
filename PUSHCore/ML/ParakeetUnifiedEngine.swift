@@ -10,8 +10,8 @@ import FluidAudio
 /// Uses the offline full-attention 15s encoder, which FluidAudio reports at
 /// 1.82% WER on LibriSpeech test-clean (vs 2.15% for the chunked streaming
 /// export), and which emits punctuation and capitalization.
-actor ParakeetUnifiedEngine {
-    static let shared = ParakeetUnifiedEngine()
+public actor ParakeetUnifiedEngine {
+    public static let shared = ParakeetUnifiedEngine()
 
     private var manager: UnifiedAsrManager?
     private var isLoaded = false
@@ -26,7 +26,7 @@ actor ParakeetUnifiedEngine {
     /// is not the HuggingFace repo name (FluidAudio strips the "-coreml"
     /// suffix), and hardcoding it once already produced a false
     /// "Not downloaded" in Settings while the model was loaded and serving.
-    nonisolated static var modelDirectory: URL {
+    public nonisolated static var modelDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return appSupport
             .appendingPathComponent("FluidAudio", isDirectory: true)
@@ -34,14 +34,14 @@ actor ParakeetUnifiedEngine {
             .appendingPathComponent(Repo.parakeetUnified.folderName, isDirectory: true)
     }
 
-    nonisolated static func isModelDownloaded() -> Bool {
+    public nonisolated static func isModelDownloaded() -> Bool {
         let dir = modelDirectory
         guard FileManager.default.fileExists(atPath: dir.path) else { return false }
         let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
         return contents.contains { $0.hasSuffix(".mlmodelc") }
     }
 
-    nonisolated static func deleteModel() throws {
+    public nonisolated static func deleteModel() throws {
         let dir = modelDirectory
         if FileManager.default.fileExists(atPath: dir.path) {
             try FileManager.default.removeItem(at: dir)
@@ -51,7 +51,7 @@ actor ParakeetUnifiedEngine {
 
     // MARK: - Public API
 
-    func loadModel() async throws {
+    public func loadModel() async throws {
         if isLoaded { return }
 
         PushLogger.log("ParakeetUnifiedEngine: Loading Parakeet Unified 0.6B (English)...")
@@ -69,13 +69,13 @@ actor ParakeetUnifiedEngine {
         }
     }
 
-    func unloadModel() {
+    public func unloadModel() {
         manager = nil
         isLoaded = false
         PushLogger.log("ParakeetUnifiedEngine: Model unloaded")
     }
 
-    func warmup() async {
+    public func warmup() async {
         PushLogger.log("ParakeetUnifiedEngine: Starting warmup...")
         let startTime = Date()
 
@@ -92,7 +92,7 @@ actor ParakeetUnifiedEngine {
         }
     }
 
-    func transcribe(audioData: Data) async throws -> String {
+    public func transcribe(audioData: Data) async throws -> String {
         if !isLoaded {
             PushLogger.log("ParakeetUnifiedEngine: Not loaded, loading model...")
             try await loadModel()

@@ -1,14 +1,14 @@
 import Foundation
 import OSLog
 
-enum PushLogger {
+public enum PushLogger {
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "PUSH",
         category: "push"
     )
     private static let queue = DispatchQueue(label: "push.logger")
 
-    static func log(_ message: String) {
+    public static func log(_ message: String) {
         // Emit to the unified log in ALL builds so `log show` can surface
         // diagnostics from release builds. These are operational events only
         // (no transcription text), so .public keeps them readable.

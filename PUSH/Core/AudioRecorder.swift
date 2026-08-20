@@ -1,4 +1,5 @@
 import Foundation
+import PUSHCore
 @preconcurrency import AVFoundation
 
 /// Captures audio from the microphone into a buffer

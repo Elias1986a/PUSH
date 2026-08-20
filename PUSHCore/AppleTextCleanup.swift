@@ -25,7 +25,7 @@ import FoundationModels
 /// - **Guarded.** Output is rejected when the model answered the text instead of
 ///   cleaning it — the classic failure when dictation reads as an instruction.
 @available(macOS 26, *)
-enum AppleTextCleanup {
+public enum AppleTextCleanup {
 
     /// Past this, taking the deterministic result beats making the user wait.
     private static let timeout: Duration = .seconds(4)
@@ -51,12 +51,12 @@ enum AppleTextCleanup {
 
     // MARK: - Availability
 
-    static var isAvailable: Bool {
+    public static var isAvailable: Bool {
         SystemLanguageModel.default.availability == .available
     }
 
     /// Why the model can't be used, in words a person can act on. `nil` when available.
-    static var unavailableReason: String? {
+    public static var unavailableReason: String? {
         switch SystemLanguageModel.default.availability {
         case .available:
             return nil
@@ -80,7 +80,7 @@ enum AppleTextCleanup {
     ///
     /// Never throws and never returns garbage: every failure path — unavailable, timeout,
     /// model error, suspicious output — returns nil so the caller falls back.
-    static func clean(_ raw: String) async -> String? {
+    public static func clean(_ raw: String) async -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, isAvailable else { return nil }
 
@@ -137,7 +137,7 @@ enum AppleTextCleanup {
     ///
     /// A false reject costs the user nothing but the rule chain. A false accept pastes a
     /// chatbot reply into their document, so this errs strict.
-    static func isPlausibleCleanup(of original: String, result: String) -> Bool {
+    public static func isPlausibleCleanup(of original: String, result: String) -> Bool {
         guard !result.isEmpty else { return false }
 
         let originalCount = original.count

@@ -2,8 +2,8 @@ import Foundation
 import FluidAudio
 
 /// Wrapper for FluidAudio/Parakeet TDT v2 speech-to-text engine (English-only)
-actor ParakeetEngine {
-    static let shared = ParakeetEngine()
+public actor ParakeetEngine {
+    public static let shared = ParakeetEngine()
 
     private var asrManager: AsrManager?
     private var isLoaded = false
@@ -13,13 +13,13 @@ actor ParakeetEngine {
     // MARK: - Model Storage
 
     /// FluidAudio's default model directory for Parakeet v2
-    nonisolated static var modelDirectory: URL {
+    public nonisolated static var modelDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2", isDirectory: true)
     }
 
     /// Check if the Parakeet v2 model has been downloaded
-    nonisolated static func isModelDownloaded() -> Bool {
+    public nonisolated static func isModelDownloaded() -> Bool {
         let dir = modelDirectory
         guard FileManager.default.fileExists(atPath: dir.path) else { return false }
         let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
@@ -27,7 +27,7 @@ actor ParakeetEngine {
     }
 
     /// Delete the downloaded Parakeet model to free disk space
-    nonisolated static func deleteModel() throws {
+    public nonisolated static func deleteModel() throws {
         let dir = modelDirectory
         if FileManager.default.fileExists(atPath: dir.path) {
             try FileManager.default.removeItem(at: dir)
@@ -38,7 +38,7 @@ actor ParakeetEngine {
     // MARK: - Public API
 
     /// Load the Parakeet TDT v2 model (downloads to FluidAudio's default location if needed)
-    func loadModel() async throws {
+    public func loadModel() async throws {
         if isLoaded { return }
 
         PushLogger.log("ParakeetEngine: Loading Parakeet TDT v2 (English-only)...")
@@ -61,14 +61,14 @@ actor ParakeetEngine {
     }
 
     /// Unload the current model
-    func unloadModel() {
+    public func unloadModel() {
         asrManager = nil
         isLoaded = false
         PushLogger.log("ParakeetEngine: Model unloaded")
     }
 
     /// Warm up the model
-    func warmup() async {
+    public func warmup() async {
         PushLogger.log("ParakeetEngine: Starting warmup...")
         let startTime = Date()
 
@@ -86,7 +86,7 @@ actor ParakeetEngine {
     }
 
     /// Transcribe audio data to text
-    func transcribe(audioData: Data) async throws -> String {
+    public func transcribe(audioData: Data) async throws -> String {
         if !isLoaded {
             PushLogger.log("ParakeetEngine: Not loaded, loading model...")
             try await loadModel()
@@ -144,12 +144,12 @@ actor ParakeetEngine {
 
 // MARK: - Errors
 
-enum ParakeetEngineError: LocalizedError {
+public enum ParakeetEngineError: LocalizedError {
     case notInitialized
     case emptyAudio
     case loadFailed(String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .notInitialized:
             return "Parakeet engine not initialized"

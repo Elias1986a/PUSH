@@ -1,6 +1,7 @@
 import Foundation
 import Carbon
 import Cocoa
+import PUSHCore
 @preconcurrency import ApplicationServices
 
 /// Manages global hotkey detection for push-to-talk functionality

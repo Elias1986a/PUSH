@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import Combine
+import PUSHCore
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {

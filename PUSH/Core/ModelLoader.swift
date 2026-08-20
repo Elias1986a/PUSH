@@ -1,4 +1,5 @@
 import Foundation
+import PUSHCore
 
 /// Central model lifecycle. Loads a model, swaps it in as `AppState.activeModel`,
 /// unloads the previous engine, and warms up — keeping dictation available on the
@@ -91,7 +92,18 @@ enum ModelLoader {
         case .moonshine: try await MoonshineEngine.shared.loadModel(model)
         case .parakeet: try await ParakeetEngine.shared.loadModel()
         case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
-        case .parakeetStreaming: try await ParakeetStreamingEngine.shared.loadModel()
+        case .parakeetStreaming:
+            // The engine no longer knows about AppState; it just reports partials. The
+            // decision about whether a partial should be shown is the app's, and it is
+            // asked here rather than inside the engine.
+            await ParakeetStreamingEngine.shared.setOnPartial { partial in
+                Task { @MainActor in
+                    guard AppState.shared.showLivePreview,
+                          AppState.shared.isListening else { return }
+                    AppState.shared.livePartialText = partial
+                }
+            }
+            try await ParakeetStreamingEngine.shared.loadModel()
         case .whisperKit: try await WhisperEngine.shared.loadModel(model)
         case .appleSpeech:
             guard #available(macOS 26, *) else { throw ModelLoaderError.requiresNewerSystem }

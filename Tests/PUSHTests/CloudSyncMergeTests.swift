@@ -1,5 +1,6 @@
 import XCTest
 @testable import PUSH
+@testable import PUSHCore
 
 /// Tests for the dictionary merge. Every case here is a way a naive
 /// implementation loses or resurrects one of the user's entries.

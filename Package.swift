@@ -15,7 +15,10 @@ let package = Package(
         .macOS(.v15)
     ],
     products: [
-        .executable(name: "PUSH", targets: ["PUSH"])
+        .executable(name: "PUSH", targets: ["PUSH"]),
+        // The engines and the text pipeline, so the local comparison tool can drive the
+        // same code the app runs rather than a second copy of it.
+        .library(name: "PUSHCore", targets: ["PUSHCore"])
     ],
     dependencies: [
         // WhisperKit for speech-to-text
@@ -38,9 +41,36 @@ let package = Package(
         .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.6.0")
     ],
     targets: [
+        // Engines + text post-processing. No SwiftUI, no AppState, no resources —
+        // adding a resource here would introduce Bundle.module, which fatal-asserts in
+        // distribution builds. The app bundle owns the resources.
+        .target(
+            name: "PUSHCore",
+            dependencies: [
+                .product(name: "WhisperKit", package: "WhisperKit"),
+                .product(name: "Moonshine", package: "moonshine-swift"),
+                .product(name: "FluidAudio", package: "FluidAudio")
+            ],
+            path: "PUSHCore",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ],
+            linkerSettings: [
+                .linkedLibrary("c++"),
+                // Follows MoonshineEngine into this target. Moonshine ships a static
+                // archive whose symbols are only referenced dynamically, so without
+                // -force_load the linker drops them and the app fails at runtime rather
+                // than at build time.
+                .unsafeFlags([
+                    "-Xlinker", "-force_load",
+                    "-Xlinker", ".build/artifacts/moonshine-swift/Moonshine/Moonshine.xcframework/macos-arm64_x86_64/libmoonshine.a"
+                ])
+            ]
+        ),
         .executableTarget(
             name: "PUSH",
             dependencies: [
+                "PUSHCore",
                 .product(name: "WhisperKit", package: "WhisperKit"),
                 .product(name: "Moonshine", package: "moonshine-swift"),
                 .product(name: "FluidAudio", package: "FluidAudio"),
@@ -78,7 +108,7 @@ let package = Package(
         ),
         .testTarget(
             name: "PUSHTests",
-            dependencies: ["PUSH"],
+            dependencies: ["PUSH", "PUSHCore"],
             path: "Tests/PUSHTests",
             swiftSettings: [
                 .swiftLanguageMode(.v5)

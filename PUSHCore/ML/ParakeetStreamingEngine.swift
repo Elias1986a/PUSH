@@ -13,8 +13,20 @@ import FluidAudio
 ///
 /// Falls back to transcribing the whole buffer if it was never fed live, so
 /// `transcribe(audioData:)` still works standalone.
-actor ParakeetStreamingEngine {
-    static let shared = ParakeetStreamingEngine()
+public actor ParakeetStreamingEngine {
+    public static let shared = ParakeetStreamingEngine()
+
+    /// Called with each partial transcript while the user is still speaking.
+    ///
+    /// The engine used to write `AppState.shared.livePartialText` directly, along with
+    /// the two guards deciding whether the preview should show at all. Those are the
+    /// app's questions, not the engine's — the app installs a handler that asks them,
+    /// and the comparison tool installs none.
+    public var onPartial: (@Sendable (String) -> Void)?
+
+    public func setOnPartial(_ handler: (@Sendable (String) -> Void)?) {
+        onPartial = handler
+    }
 
     private var manager: StreamingUnifiedAsrManager?
     private var isLoaded = false
@@ -29,18 +41,18 @@ actor ParakeetStreamingEngine {
 
     private init() {}
 
-    nonisolated static var modelDirectory: URL {
+    public nonisolated static var modelDirectory: URL {
         // Same model bundle as the offline Unified engine.
         ParakeetUnifiedEngine.modelDirectory
     }
 
-    nonisolated static func isModelDownloaded() -> Bool {
+    public nonisolated static func isModelDownloaded() -> Bool {
         ParakeetUnifiedEngine.isModelDownloaded()
     }
 
     // MARK: - Lifecycle
 
-    func loadModel() async throws {
+    public func loadModel() async throws {
         if isLoaded { return }
 
         PushLogger.log("ParakeetStreamingEngine: Loading streaming Parakeet Unified...")
@@ -50,12 +62,9 @@ actor ParakeetStreamingEngine {
             // Feed the rough in-flight transcript to the pill. Fires off-main
             // roughly once per 1.04s chunk, so it hops to the main actor to
             // publish. Display only — this text is never injected or logged.
+            let onPartial = self.onPartial
             await manager.setPartialTranscriptCallback { partial in
-                Task { @MainActor in
-                    guard AppState.shared.showLivePreview,
-                          AppState.shared.isListening else { return }
-                    AppState.shared.livePartialText = partial
-                }
+                onPartial?(partial)
             }
             self.manager = manager
             isLoaded = true
@@ -66,14 +75,14 @@ actor ParakeetStreamingEngine {
         }
     }
 
-    func unloadModel() {
+    public func unloadModel() {
         manager = nil
         isLoaded = false
         isStreaming = false
         PushLogger.log("ParakeetStreamingEngine: Model unloaded")
     }
 
-    func warmup() async {
+    public func warmup() async {
         PushLogger.log("ParakeetStreamingEngine: Starting warmup...")
         let start = Date()
         do {
@@ -90,7 +99,7 @@ actor ParakeetStreamingEngine {
 
     /// Called when recording starts. Safe to call when the model isn't loaded —
     /// it simply won't stream, and transcription falls back to the whole buffer.
-    func beginUtterance() async {
+    public func beginUtterance() async {
         guard isLoaded, let manager else { return }
         do {
             try await manager.reset()
@@ -104,7 +113,7 @@ actor ParakeetStreamingEngine {
 
     /// Feed mic samples as they arrive. Errors demote to batch mode rather than
     /// failing the recording — dictation must never be lost to a spike.
-    func feed(_ samples: [Float]) async {
+    public func feed(_ samples: [Float]) async {
         guard isStreaming, let manager else { return }
         guard let buffer = Self.makeBuffer(from: samples) else { return }
         do {
@@ -119,7 +128,7 @@ actor ParakeetStreamingEngine {
 
     // MARK: - Transcription
 
-    func transcribe(audioData: Data) async throws -> String {
+    public func transcribe(audioData: Data) async throws -> String {
         if !isLoaded {
             try await loadModel()
         }

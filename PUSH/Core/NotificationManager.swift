@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import PUSHCore
 
 /// Manages user notifications for errors and alerts
 @MainActor

@@ -1,4 +1,5 @@
 import SwiftUI
+import PUSHCore
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState

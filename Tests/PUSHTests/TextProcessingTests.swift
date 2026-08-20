@@ -1,5 +1,6 @@
 import XCTest
 @testable import PUSH
+@testable import PUSHCore
 
 /// Tests for the pure text post-processing functions in TranscriptionPipeline.
 final class TextProcessingTests: XCTestCase {

@@ -1,5 +1,6 @@
 import XCTest
 @testable import PUSH
+@testable import PUSHCore
 
 /// Tests for MediaController's decision logic. The real audio mechanisms
 /// (media key, CoreAudio volume) are injected as doubles — they were verified

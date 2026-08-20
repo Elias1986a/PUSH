@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(AppKit)
 import AppKit
+import PUSHCore
 #endif
 
 // MARK: - Candidate & verdict

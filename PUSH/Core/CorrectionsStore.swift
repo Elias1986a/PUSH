@@ -1,4 +1,5 @@
 import Foundation
+import PUSHCore
 
 /// User-defined word corrections (e.g. "Hammer" -> "Hamer") applied to transcriptions
 /// after Whisper runs, to fix names/jargon Whisper consistently mishears.

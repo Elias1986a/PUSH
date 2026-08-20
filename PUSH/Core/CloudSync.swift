@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import PUSHCore
 
 /// Syncs settings and the custom dictionary across the user's Macs through
 /// iCloud key-value storage.

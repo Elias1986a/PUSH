@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Sparkle
+import PUSHCore
 
 /// Owns Sparkle's updater for the app's lifetime and exposes a SwiftUI-friendly
 /// "Check for Updates…" action.

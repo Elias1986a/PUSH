@@ -1,5 +1,6 @@
 import XCTest
 @testable import PUSH
+@testable import PUSHCore
 
 /// Tests for the context-aware dictionary: prompt building/parsing, the
 /// heuristic gate, and correction application.

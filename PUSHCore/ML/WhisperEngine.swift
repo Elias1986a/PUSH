@@ -2,19 +2,27 @@ import Foundation
 @preconcurrency import WhisperKit
 
 /// Wrapper for WhisperKit speech-to-text engine
-actor WhisperEngine {
-    static let shared = WhisperEngine()
+public actor WhisperEngine {
+    public static let shared = WhisperEngine()
 
     private var whisperKit: WhisperKit?
     private var isLoaded = false
     private var currentModel: String?
+    /// The model to fall back to if `transcribe` runs before `loadModel`.
+    ///
+    /// This used to read `AppState.shared.activeModel`, which had an engine reaching into
+    /// app state to answer a question its own caller already knew. Recording the last
+    /// model actually requested keeps the recovery path — an engine unloaded after a
+    /// model switch can reload itself — without the dependency.
+    private var fallbackModel: WhisperModel?
+
 
     private init() {}
 
     // MARK: - Model Names
 
     /// Map our model enum to WhisperKit model names (only for WhisperKit models)
-    private static func whisperKitModelName(for model: AppState.WhisperModel) -> String {
+    private static func whisperKitModelName(for model: WhisperModel) -> String {
         switch model {
         case .base: return "openai_whisper-base.en"
         case .small: return "openai_whisper-small.en"
@@ -27,14 +35,14 @@ actor WhisperEngine {
     /// Root cache directory passed to WhisperKit as `downloadBase`.
     /// HubApi appends `models/<repo>/<variant>` underneath this.
     /// Lives in Application Support so it's hidden from Finder and not iCloud-synced.
-    nonisolated static var downloadBaseURL: URL {
+    public nonisolated static var downloadBaseURL: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return appSupport
             .appendingPathComponent("PUSH", isDirectory: true)
             .appendingPathComponent("whisperkit", isDirectory: true)
     }
 
-    nonisolated static func modelFolderURL(for model: AppState.WhisperModel) -> URL {
+    public nonisolated static func modelFolderURL(for model: WhisperModel) -> URL {
         let modelName = whisperKitModelName(for: model)
         return downloadBaseURL
             .appendingPathComponent("models/argmaxinc/whisperkit-coreml", isDirectory: true)
@@ -44,7 +52,7 @@ actor WhisperEngine {
     /// One-time migration: move any previously downloaded WhisperKit cache from
     /// `~/Documents/huggingface/` (default HubApi location, user-visible + iCloud-synced)
     /// into `downloadBaseURL` under Application Support.
-    nonisolated static func migrateLegacyCacheIfNeeded() {
+    public nonisolated static func migrateLegacyCacheIfNeeded() {
         let fm = FileManager.default
         let documents = fm.urls(for: .documentDirectory, in: .userDomainMask).first!
         let legacyRoot = documents.appendingPathComponent("huggingface", isDirectory: true)
@@ -66,7 +74,7 @@ actor WhisperEngine {
         }
     }
 
-    nonisolated static func isModelDownloaded(_ model: AppState.WhisperModel) -> Bool {
+    public nonisolated static func isModelDownloaded(_ model: WhisperModel) -> Bool {
         guard model.engineType == .whisperKit else { return false }
         let folder = modelFolderURL(for: model)
         guard FileManager.default.fileExists(atPath: folder.path) else { return false }
@@ -77,7 +85,8 @@ actor WhisperEngine {
     // MARK: - Public API
 
     /// Load the Whisper model (downloads if needed)
-    func loadModel(_ model: AppState.WhisperModel = .base) async throws {
+    public func loadModel(_ model: WhisperModel = .base) async throws {
+        fallbackModel = model
         let modelName = Self.whisperKitModelName(for: model)
         guard !modelName.isEmpty else {
             throw WhisperError.loadFailed("\(model.rawValue) is not a WhisperKit model")
@@ -111,7 +120,7 @@ actor WhisperEngine {
     }
 
     /// Unload the current model
-    func unloadModel() {
+    public func unloadModel() {
         whisperKit = nil
         isLoaded = false
         currentModel = nil
@@ -119,7 +128,7 @@ actor WhisperEngine {
     }
 
     /// Run a dummy inference to compile Metal shaders (model must already be loaded)
-    func warmupInference() async {
+    public func warmupInference() async {
         guard let whisper = whisperKit else { return }
         let startTime = Date()
         do {
@@ -134,12 +143,12 @@ actor WhisperEngine {
     }
 
     /// Transcribe audio data to text
-    func transcribe(audioData: Data) async throws -> String {
+    public func transcribe(audioData: Data) async throws -> String {
         // Load the active model if not loaded (normally ModelLoader has done this)
         if !isLoaded {
-            let activeModel = await MainActor.run { AppState.shared.activeModel }
-            PushLogger.log("WhisperEngine: Not loaded, loading active model: \(activeModel)")
-            try await loadModel(activeModel)
+            guard let fallbackModel else { throw WhisperError.notInitialized }
+            PushLogger.log("WhisperEngine: Not loaded, loading \(fallbackModel)")
+            try await loadModel(fallbackModel)
         } else {
             PushLogger.log("WhisperEngine: Using already loaded model: \(currentModel ?? "unknown")")
         }
@@ -188,13 +197,13 @@ actor WhisperEngine {
 
 // MARK: - Errors
 
-enum WhisperError: LocalizedError {
+public enum WhisperError: LocalizedError {
     case notInitialized
     case emptyAudio
     case loadFailed(String)
     case transcriptionFailed(String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .notInitialized:
             return "Whisper engine not initialized"

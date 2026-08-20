@@ -2,12 +2,20 @@ import Foundation
 import MoonshineVoice
 
 /// Wrapper for Moonshine speech-to-text engine
-actor MoonshineEngine {
-    static let shared = MoonshineEngine()
+public actor MoonshineEngine {
+    public static let shared = MoonshineEngine()
 
     private var transcriber: Transcriber?
     private var isLoaded = false
-    private var currentModel: AppState.WhisperModel?
+    private var currentModel: WhisperModel?
+    /// The model to fall back to if `transcribe` runs before `loadModel`.
+    ///
+    /// This used to read `AppState.shared.activeModel`, which had an engine reaching into
+    /// app state to answer a question its own caller already knew. Recording the last
+    /// model actually requested keeps the recovery path — an engine unloaded after a
+    /// model switch can reload itself — without the dependency.
+    private var fallbackModel: WhisperModel?
+
 
     private init() {}
 
@@ -29,13 +37,13 @@ actor MoonshineEngine {
     }
 
     /// Check if a downloaded model has all required files
-    nonisolated static func isModelDownloaded(_ model: AppState.WhisperModel) -> Bool {
+    public nonisolated static func isModelDownloaded(_ model: WhisperModel) -> Bool {
         // Tiny is the only Moonshine model and ships bundled with the app.
         model.isMoonshine
     }
 
     /// Resolve the model path (Tiny ships bundled with the app)
-    private static func resolveModelPath(for model: AppState.WhisperModel) -> String? {
+    private static func resolveModelPath(for model: WhisperModel) -> String? {
         switch model {
         case .moonshineTiny:
             return bundledModelPath(name: "tiny-en")
@@ -44,14 +52,15 @@ actor MoonshineEngine {
         }
     }
 
-    private static func moonshineArch(for model: AppState.WhisperModel) -> ModelArch {
+    private static func moonshineArch(for model: WhisperModel) -> ModelArch {
         .tiny
     }
 
     // MARK: - Public API
 
     /// Load the Moonshine model (downloads Base if needed)
-    func loadModel(_ model: AppState.WhisperModel) async throws {
+    public func loadModel(_ model: WhisperModel) async throws {
+        fallbackModel = model
         // Skip if already loaded with same model
         if isLoaded && currentModel == model {
             return
@@ -82,7 +91,7 @@ actor MoonshineEngine {
     }
 
     /// Unload the current model
-    func unloadModel() {
+    public func unloadModel() {
         transcriber?.close()
         transcriber = nil
         isLoaded = false
@@ -91,7 +100,7 @@ actor MoonshineEngine {
     }
 
     /// Run a dummy inference to warm up the engine (model must already be loaded)
-    func warmupInference() async {
+    public func warmupInference() async {
         guard let engine = transcriber else { return }
         let startTime = Date()
         do {
@@ -110,11 +119,11 @@ actor MoonshineEngine {
     }
 
     /// Transcribe audio data to text
-    func transcribe(audioData: Data) async throws -> String {
+    public func transcribe(audioData: Data) async throws -> String {
         if !isLoaded {
-            let activeModel = await MainActor.run { AppState.shared.activeModel }
-            PushLogger.log("MoonshineEngine: Not loaded, loading \(activeModel.displayName)...")
-            try await loadModel(activeModel)
+            guard let fallbackModel else { throw MoonshineEngineError.notInitialized }
+            PushLogger.log("MoonshineEngine: Not loaded, loading \(fallbackModel.displayName)...")
+            try await loadModel(fallbackModel)
         }
 
         guard let engine = transcriber else {
@@ -165,14 +174,14 @@ actor MoonshineEngine {
 
 // MARK: - Errors
 
-enum MoonshineEngineError: LocalizedError {
+public enum MoonshineEngineError: LocalizedError {
     case notInitialized
     case emptyAudio
     case modelNotFound
     case loadFailed(String)
     case downloadFailed(String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .notInitialized:
             return "Moonshine engine not initialized"

@@ -1,5 +1,6 @@
 import Foundation
 import ServiceManagement
+import PUSHCore
 
 /// Cached "start at login" state.
 ///

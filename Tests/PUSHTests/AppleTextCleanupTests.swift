@@ -1,5 +1,6 @@
 import XCTest
 @testable import PUSH
+@testable import PUSHCore
 
 @available(macOS 26, *)
 final class AppleTextCleanupTests: XCTestCase {
