@@ -140,52 +140,8 @@ actor TranscriptionPipeline {
             // Post-processing pipeline varies by model capability:
             // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.
-            var formattedText: String
-            if activeModel.hasNativePunctuation {
-                // Reduced pipeline: filler/stutter removal, number normalization, smart symbols
-                formattedText = Self.smartSymbols(
-                    Self.groupThousands(
-                        Self.normalizeNumberWords(
-                            Self.normalizeDecimalDictation(
-                                Self.normalizeOrdinals(
-                                    Self.stripConnectingAnd(
-                                        Self.removeStutteredWords(
-                                            Self.removeFillerWords(Self.normalizeCause(filteredText))
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            } else {
-                // Full pipeline for Whisper/Moonshine models
-                formattedText = Self.capitalizeI(
-                    Self.fixCapitalization(
-                        Self.smartSymbols(
-                            Self.fixQuestionMarks(
-                                Self.ensureEndingPunctuation(
-                                    Self.fixTrailingComma(
-                                        Self.groupThousands(
-                                            Self.normalizeNumberWords(
-                                                Self.normalizeDecimalDictation(
-                                                    Self.normalizeOrdinals(
-                                                        Self.stripConnectingAnd(
-                                                            Self.removeStutteredWords(
-                                                                Self.removeFillerWords(Self.normalizeCause(filteredText))
-                                                            )
-                                                        )
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            }
+            var formattedText = Self.postProcess(
+                filteredText, hasNativePunctuation: activeModel.hasNativePunctuation)
 
             // Typographic preference — off by request via Settings → General.
             if await MainActor.run(body: { AppState.shared.doubleSpaceAfterSentence }) {
@@ -611,9 +567,15 @@ actor TranscriptionPipeline {
             result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1%")
         }
 
-        // "dollar" / "dollars" before or after numbers
-        // "$50" pattern: "50 dollars" → "$50", "50 dollar" → "$50"
-        if let regex = try? NSRegularExpression(pattern: "(\\d+)\\s+dollars?\\b", options: .caseInsensitive) {
+        // "50 dollars" → "$50". The number must be matched whole: this pass runs
+        // *after* comma-grouping, and a bare \d+ matched only the last group of
+        // "5,000,000 dollars", which turned it into "5,000,$000". A trailing
+        // magnitude word is part of the amount too — "5 million dollars" is
+        // "$5 million", not "$5 million dollars".
+        let amount = "\\d[\\d,]*(?:\\.\\d+)?"
+        let magnitude = "(?:\\s+(?:hundred|thousand|million))?"
+        if let regex = try? NSRegularExpression(pattern: "(?<![\\d.,])(\(amount)\(magnitude))\\s+dollars?\\b",
+                                                options: .caseInsensitive) {
             let range = NSRange(result.startIndex..., in: result)
             result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "\\$$1")
         }
@@ -653,6 +615,38 @@ actor TranscriptionPipeline {
         return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1$2")
     }
 
+    // MARK: - Post-processing chain
+
+    /// The whole post-processing chain, in order. Extracted from the transcription
+    /// path so the passes can be tested *in composition* — the number bugs users
+    /// actually hit have been interactions between passes (comma-grouping running
+    /// before the dollar rule, decimal dictation running before magnitude words),
+    /// not faults in any single pass. Testing them one at a time hides that.
+    ///
+    /// `hasNativePunctuation` (Parakeet) skips the punctuation/capitalisation
+    /// passes so we don't override the model's own, better, formatting.
+    static func postProcess(_ text: String, hasNativePunctuation: Bool) -> String {
+        var out = normalizeCause(text)
+        out = removeFillerWords(out)
+        out = removeStutteredWords(out)
+        out = stripConnectingAnd(out)
+        out = normalizeOrdinals(out)
+        out = normalizeDecimalDictation(out)
+        out = normalizeNumberWords(out)
+        out = groupThousands(out)
+        if !hasNativePunctuation {
+            out = fixTrailingComma(out)
+            out = ensureEndingPunctuation(out)
+            out = fixQuestionMarks(out)
+        }
+        out = smartSymbols(out)
+        if !hasNativePunctuation {
+            out = fixCapitalization(out)
+            out = capitalizeI(out)
+        }
+        return out
+    }
+
     // MARK: - Number Normalization (AP style + decimal dictation)
 
     /// Spelled-out number words and their integer values.
@@ -672,6 +666,12 @@ actor TranscriptionPipeline {
         baseNumberWords.keys.sorted { $0.count > $1.count }.joined(separator: "|")
     private static let decimalWordPattern: String =
         (Array(baseNumberWords.keys) + ["oh"]).sorted { $0.count > $1.count }.joined(separator: "|")
+    /// Same, minus the magnitudes. The fractional side of a dictated decimal must
+    /// not swallow them: "four point eight million" is 4.8 million, and absorbing
+    /// "million" into the fraction produced "4.8000000".
+    private static let decimalFractionWordPattern: String =
+        (baseNumberWords.keys.filter { !["hundred", "thousand", "million"].contains($0) } + ["oh"])
+            .sorted { $0.count > $1.count }.joined(separator: "|")
 
     /// Spelled-out ordinal words mapped to their cardinal value.
     /// Suffix (st/nd/rd/th) is derived from the final combined value, not stored here.
@@ -737,12 +737,47 @@ actor TranscriptionPipeline {
         return total + current
     }
 
+    /// Parse the fractional side of a dictated decimal into its digits.
+    /// "one four" is 14, not 5 — pi is dictated "three point one four", and summing
+    /// the run gave "3.5". But "twenty five" is 25, not "205". The rule that splits
+    /// them: a run of nothing but single digits concatenates, anything else parses
+    /// arithmetically.
+    static func parseDecimalFraction(_ run: String) -> String? {
+        let words = run.lowercased()
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .map(String.init)
+        guard !words.isEmpty else { return nil }
+
+        var digits = ""
+        for word in words {
+            let value: Int
+            if word == "oh" {
+                value = 0
+            } else if let v = baseNumberWords[word] {
+                value = v
+            } else {
+                return nil
+            }
+            guard value <= 9 else {
+                // Not a pure digit run — fall back to arithmetic ("twenty five" → 25).
+                return parseNumberRun(run, allowOh: true).map(String.init)
+            }
+            digits.append(String(value))
+        }
+        return digits
+    }
+
     /// Rewrite "X point Y [point Z]" dictation as "X.Y[.Z]" (versions, decimals).
     /// "four point zero point two" → "4.0.2"; "ten point five" → "10.5".
     static func normalizeDecimalDictation(_ text: String) -> String {
-        let word = decimalWordPattern
-        let chunk = "(?:\(word))(?:[\\s-]+(?:\(word)))*"
-        let pattern = "\\b\(chunk)(?:\\s+point\\s+\(chunk))+\\b"
+        // The integer side may carry magnitudes ("one hundred point five" → 100.5);
+        // the fractional side may not (see decimalFractionWordPattern).
+        let intWord = decimalWordPattern
+        let fracWord = decimalFractionWordPattern
+        let intChunk = "(?:\(intWord))(?:[\\s-]+(?:\(intWord)))*"
+        let fracChunk = "(?:\(fracWord))(?:[\\s-]+(?:\(fracWord)))*"
+        let pattern = "\\b\(intChunk)(?:\\s+point\\s+\(fracChunk))+\\b"
 
         guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
               let splitter = try? NSRegularExpression(pattern: "\\s+point\\s+", options: .caseInsensitive) else {
@@ -771,9 +806,14 @@ actor TranscriptionPipeline {
 
             var digits: [String] = []
             var ok = true
-            for piece in pieces {
-                if let v = parseNumberRun(piece, allowOh: true) {
-                    digits.append(String(v))
+            for (i, piece) in pieces.enumerated() {
+                // Integer side parses arithmetically; every side after a "point"
+                // is a fraction and follows the digit-concatenation rule.
+                let parsed = i == 0
+                    ? parseNumberRun(piece, allowOh: true).map(String.init)
+                    : parseDecimalFraction(piece)
+                if let v = parsed {
+                    digits.append(v)
                 } else { ok = false; break }
             }
             if ok && digits.count >= 2 {
@@ -804,10 +844,35 @@ actor TranscriptionPipeline {
             let runText = String(result[range])
             if isBareMagnitudeRun(runText) { continue }
             if let value = parseNumberRun(runText), value >= 10 {
-                result.replaceSubrange(range, with: String(value))
+                result.replaceSubrange(range, with: formatSpokenNumber(value))
             }
         }
         return result
+    }
+
+    /// Comma-group a bare digit string. No length rule — callers decide what to group.
+    static func insertThousandsSeparators(_ digits: String) -> String {
+        var grouped = ""
+        for (i, ch) in digits.enumerated() {
+            if i > 0 && (digits.count - i) % 3 == 0 { grouped.append(",") }
+            grouped.append(ch)
+        }
+        return grouped
+    }
+
+    /// Render a number that was *spoken as words*. Such a number gets separators
+    /// from 1,000 up, where `groupThousands` starts at five digits: that pass sees
+    /// only digits and can't tell a count from a year or a port, so it has to leave
+    /// every 4-digit run alone. Words carry the provenance digits lost — "one
+    /// thousand people" is a count, and came out as "1000 people".
+    ///
+    /// The exception is the spoken-year shape — 1000–2999 with a 1–99 remainder,
+    /// i.e. "two thousand twenty four" — which stays "2024".
+    static func formatSpokenNumber(_ value: Int) -> String {
+        guard value >= 1000 else { return String(value) }
+        let remainder = value % 1000
+        let isYearLike = (1000...2999).contains(value) && (1..<100).contains(remainder)
+        return isYearLike ? String(value) : insertThousandsSeparators(String(value))
     }
 
     /// Insert thousands separators into large integer runs: "30000000" → "30,000,000".
@@ -825,13 +890,7 @@ actor TranscriptionPipeline {
         var result = text
         for match in matches.reversed() {
             guard let range = Range(match.range, in: result) else { continue }
-            let digits = String(result[range])
-            var grouped = ""
-            for (i, ch) in digits.enumerated() {
-                if i > 0 && (digits.count - i) % 3 == 0 { grouped.append(",") }
-                grouped.append(ch)
-            }
-            result.replaceSubrange(range, with: grouped)
+            result.replaceSubrange(range, with: insertThousandsSeparators(String(result[range])))
         }
         return result
     }

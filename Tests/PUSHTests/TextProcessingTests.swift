@@ -70,7 +70,63 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("a hundred thousand dollars"),
                        "a hundred thousand dollars")
         // A magnitude with a real multiplier still expands.
-        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("two hundred thousand"), "200000")
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("two hundred thousand"), "200,000")
+    }
+
+    // MARK: - Composed pipeline
+    //
+    // These run the whole chain. Every bug below was an *interaction* between
+    // passes that each looked correct on its own, so testing them in isolation
+    // is what let the bugs ship.
+
+    /// Parakeet's variant — it punctuates natively, so those passes are skipped.
+    private func push(_ text: String) -> String {
+        TranscriptionPipeline.postProcess(text, hasNativePunctuation: true)
+    }
+
+    func testDecimalKeepsItsMagnitudeWord() {
+        // Was "4.8000000": the fractional chunk swallowed "million" and summed it.
+        XCTAssertEqual(push("four point eight million"), "4.8 million")
+        XCTAssertEqual(push("4.8 million"), "4.8 million")
+        // The integer side may still carry a magnitude.
+        XCTAssertEqual(push("one hundred point five"), "100.5")
+    }
+
+    func testDictatedDigitsAfterThePointConcatenate() {
+        // Was "3.5" — the run "one four" was summed instead of read off as digits.
+        XCTAssertEqual(push("three point one four"), "3.14")
+        XCTAssertEqual(push("three point one four one five nine"), "3.14159")
+        // A run that isn't all single digits is still arithmetic.
+        XCTAssertEqual(push("ten point twenty five"), "10.25")
+        XCTAssertEqual(push("ten point five"), "10.5")
+        XCTAssertEqual(push("version five point oh"), "version 5.0")
+    }
+
+    func testDollarAmountsTakeTheWholeNumber() {
+        // Was "5,000,$000": the dollar rule runs after comma-grouping and a bare
+        // \d+ matched only the final group.
+        XCTAssertEqual(push("five million dollars"), "$5,000,000")
+        XCTAssertEqual(push("twelve thousand dollars"), "$12,000")
+        XCTAssertEqual(push("one hundred thousand dollars"), "$100,000")
+        // A trailing magnitude word belongs to the amount.
+        XCTAssertEqual(push("5 million dollars"), "$5 million")
+        XCTAssertEqual(push("two point five million dollars"), "$2.5 million")
+        XCTAssertEqual(push("25 dollars"), "$25")
+    }
+
+    func testSpokenThousandsAreGroupedButSpokenYearsAreNot() {
+        // Was "1000 people" — groupThousands can't tell a count from a year, but
+        // a number that arrived as words carries that provenance.
+        XCTAssertEqual(push("one thousand people"), "1,000 people")
+        XCTAssertEqual(push("three thousand two hundred"), "3,200")
+        XCTAssertEqual(push("two thousand twenty four"), "2024")
+        XCTAssertEqual(push("in two thousand twenty four we shipped"), "in 2024 we shipped")
+        // Digits the recogniser wrote are still left alone below five figures.
+        XCTAssertEqual(push("port 8080"), "port 8080")
+    }
+
+    func testTheReportedSentence() {
+        XCTAssertEqual(push("that's only like 4.8 million"), "that's only like 4.8 million")
     }
 
     func testStripConnectingAnd() {
