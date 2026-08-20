@@ -93,6 +93,9 @@ enum ModelLoader {
         case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
         case .parakeetStreaming: try await ParakeetStreamingEngine.shared.loadModel()
         case .whisperKit: try await WhisperEngine.shared.loadModel(model)
+        case .appleSpeech:
+            guard #available(macOS 26, *) else { throw ModelLoaderError.requiresNewerSystem }
+            try await AppleSpeechEngine.shared.loadModel()
         }
     }
 
@@ -103,6 +106,8 @@ enum ModelLoader {
         case .parakeetUnified: await ParakeetUnifiedEngine.shared.unloadModel()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.unloadModel()
         case .whisperKit: await WhisperEngine.shared.unloadModel()
+        case .appleSpeech:
+            if #available(macOS 26, *) { await AppleSpeechEngine.shared.unloadModel() }
         }
     }
 
@@ -113,6 +118,23 @@ enum ModelLoader {
         case .parakeetUnified: await ParakeetUnifiedEngine.shared.warmup()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.warmup()
         case .whisperKit: await WhisperEngine.shared.warmupInference()
+        case .appleSpeech:
+            if #available(macOS 26, *) { await AppleSpeechEngine.shared.warmup() }
+        }
+    }
+}
+
+// MARK: - Errors
+
+enum ModelLoaderError: LocalizedError {
+    /// Reachable only from a saved preference that outlived a downgrade — the picker
+    /// filters this model out on systems that can't run it.
+    case requiresNewerSystem
+
+    var errorDescription: String? {
+        switch self {
+        case .requiresNewerSystem:
+            return "Apple Speech requires macOS 26 or later"
         }
     }
 }

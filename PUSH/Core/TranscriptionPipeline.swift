@@ -37,6 +37,9 @@ actor TranscriptionPipeline {
             return try await ParakeetStreamingEngine.shared.transcribe(audioData: audioData)
         case .whisperKit:
             return try await WhisperEngine.shared.transcribe(audioData: audioData)
+        case .appleSpeech:
+            guard #available(macOS 26, *) else { throw ModelLoaderError.requiresNewerSystem }
+            return try await AppleSpeechEngine.shared.transcribe(audioData: audioData)
         }
     }
 

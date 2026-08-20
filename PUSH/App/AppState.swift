@@ -367,6 +367,7 @@ class AppState: ObservableObject {
         case parakeetV2 = "parakeet-tdt-v2"
         case parakeetUnified = "parakeet-unified"
         case parakeetStreaming = "parakeet-streaming"
+        case appleSpeech = "apple-speech"
         // case qwen3ASR = "qwen3-asr" // TODO: Re-enable once MLX metallib bundling is resolved.
         // Spike finding (claude/mlx-bundling-spike, now deleted): the GPU test
         // passed and the metallib loads fine — it lives at
@@ -377,6 +378,22 @@ class AppState: ObservableObject {
 
         var id: String { rawValue }
 
+        /// The cases the picker should offer. Enum cases can't carry `@available`, so
+        /// the macOS 26 engine is filtered out here — otherwise an older system would
+        /// list a model that can only ever fail to load. A stale saved preference is
+        /// still handled: the engine throws a legible error rather than crashing.
+        static var selectable: [WhisperModel] {
+            allCases.filter { model in
+                switch model.engineType {
+                case .appleSpeech:
+                    if #available(macOS 26, *) { return AppleSpeechEngine.isSupported }
+                    return false
+                case .whisperKit, .moonshine, .parakeet, .parakeetUnified, .parakeetStreaming:
+                    return true
+                }
+            }
+        }
+
         var displayName: String {
             switch self {
             case .base: return "Whisper Base"
@@ -386,6 +403,7 @@ class AppState: ObservableObject {
             case .parakeetV2: return "Parakeet TDT v2 — Smallest download"
             case .parakeetUnified: return "Parakeet Unified — Most accurate"
             case .parakeetStreaming: return "Parakeet Streaming — Fastest & balanced"
+            case .appleSpeech: return "Apple Speech — No download"
             }
         }
 
@@ -398,6 +416,7 @@ class AppState: ObservableObject {
             case .parakeetV2: return "Older English model, smaller download (~400 MB)."
             case .parakeetUnified: return "Highest accuracy. Transcribes after you release, so longer takes wait longer (~600 MB)."
             case .parakeetStreaming: return "Transcribes while you speak, so text lands instantly however long you talk. Same download as Unified (~600 MB)."
+            case .appleSpeech: return "Built into macOS 26 — nothing to download, and the system keeps it updated. Punctuates as it goes."
             }
         }
 
@@ -414,6 +433,8 @@ class AppState: ObservableObject {
                 return .parakeetUnified
             case .parakeetStreaming:
                 return .parakeetStreaming
+            case .appleSpeech:
+                return .appleSpeech
             }
         }
 
@@ -423,7 +444,7 @@ class AppState: ObservableObject {
         /// Whether this model produces high-quality native punctuation (skip punctuation post-processing)
         var hasNativePunctuation: Bool {
             switch self {
-            case .parakeetV2, .parakeetUnified, .parakeetStreaming: return true
+            case .parakeetV2, .parakeetUnified, .parakeetStreaming, .appleSpeech: return true
             default: return false
             }
         }
@@ -436,6 +457,7 @@ class AppState: ObservableObject {
         case parakeet
         case parakeetUnified
         case parakeetStreaming
+        case appleSpeech
     }
 
     // MARK: - Private

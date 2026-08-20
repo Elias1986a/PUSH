@@ -174,6 +174,7 @@ struct ModelsSettingsView: View {
     /// Snapshot of the filesystem check — kept in @State so delete/download
     /// actually refresh the view (a computed property wouldn't re-render).
     @State private var isDownloaded = false
+    @State private var appleStatus: AppleSpeechAssetStatus = .unknown
 
     private var selectedModel: AppState.WhisperModel {
         appState.selectedWhisperModel
@@ -192,6 +193,10 @@ struct ModelsSettingsView: View {
             return ParakeetStreamingEngine.modelDirectory
         case .whisperKit:
             return WhisperEngine.modelFolderURL(for: selectedModel)
+        case .appleSpeech:
+            // The OS owns these assets; there is no folder of ours to reveal. Never
+            // reached — the Apple row shows no "Show in Finder" button.
+            return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         }
     }
 
@@ -207,6 +212,61 @@ struct ModelsSettingsView: View {
             return ParakeetStreamingEngine.isModelDownloaded()
         case .whisperKit:
             return WhisperEngine.isModelDownloaded(model)
+        case .appleSpeech:
+            // Nothing for us to download — the system installs on demand. Reporting
+            // "downloaded" is what lets the picker activate it immediately.
+            return true
+        }
+    }
+
+    private var appleStatusLabel: String {
+        switch appleStatus {
+        case .unknown: return "Checking…"
+        case .installed: return "Ready"
+        case .willInstall: return "Installs on first use"
+        case .installing: return "Installing…"
+        case .unsupported: return "Not available on this Mac"
+        }
+    }
+
+    private var appleStatusIcon: String {
+        switch appleStatus {
+        case .installed: return "checkmark.circle.fill"
+        case .installing: return "arrow.down.circle"
+        case .willInstall: return "icloud.and.arrow.down"
+        case .unknown: return "ellipsis.circle"
+        case .unsupported: return "exclamationmark.triangle"
+        }
+    }
+
+    private var appleStatusColor: Color {
+        switch appleStatus {
+        case .installed: return .green
+        case .unsupported: return .orange
+        case .unknown, .willInstall, .installing: return .secondary
+        }
+    }
+
+    /// Ask the system what state its speech assets are in. Only meaningful for
+    /// `.appleSpeech`, so it's a no-op for every other model.
+    private func refreshAppleStatus() {
+        guard appState.selectedWhisperModel == .appleSpeech else { return }
+        guard #available(macOS 26, *) else {
+            appleStatus = .unsupported
+            return
+        }
+        appleStatus = .unknown
+        Task {
+            let status = await AppleSpeechEngine.installStatus()
+            await MainActor.run {
+                switch status {
+                case .installed: appleStatus = .installed
+                case .downloading: appleStatus = .installing
+                case .supported: appleStatus = .willInstall
+                case .unsupported: appleStatus = .unsupported
+                @unknown default: appleStatus = .unknown
+                }
+            }
         }
     }
 
@@ -225,7 +285,7 @@ struct ModelsSettingsView: View {
         Form {
             Section("Speech Model") {
                 Picker("Model", selection: $appState.selectedWhisperModel) {
-                    ForEach(AppState.WhisperModel.allCases) { model in
+                    ForEach(AppState.WhisperModel.selectable) { model in
                         Text(model.displayName).tag(model)
                     }
                 }
@@ -234,7 +294,19 @@ struct ModelsSettingsView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                if selectedModel == .moonshineTiny {
+                if selectedModel == .appleSpeech {
+                    // No download button: these assets belong to the OS. A progress bar
+                    // we neither drive nor can cancel would be a fiction, so this row
+                    // reports the system's own state instead.
+                    HStack(spacing: 8) {
+                        Label(appleStatusLabel, systemImage: appleStatusIcon)
+                            .foregroundColor(appleStatusColor)
+                        Spacer()
+                    }
+                    Text("macOS manages this model. The first dictation in a new language may pause while the system installs it.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else if selectedModel == .moonshineTiny {
                     HStack(spacing: 8) {
                         Label("Bundled", systemImage: "checkmark.circle.fill")
                             .foregroundColor(.green)
@@ -313,10 +385,12 @@ struct ModelsSettingsView: View {
         .padding()
         .onAppear {
             isDownloaded = Self.checkDownloaded(selectedModel)
+            refreshAppleStatus()
         }
         .onChange(of: appState.selectedWhisperModel) { _, newModel in
             downloadError = nil
             isDownloaded = Self.checkDownloaded(newModel)
+            refreshAppleStatus()
             // Swap immediately when the model is already on disk; otherwise the
             // user downloads explicitly and the swap happens after that.
             if isDownloaded {
@@ -334,6 +408,7 @@ struct ModelsSettingsView: View {
         case .moonshineTiny: return 45_000_000
         case .parakeetV2: return 400_000_000
         case .parakeetUnified, .parakeetStreaming: return 600_000_000
+        case .appleSpeech: return 0  // never downloaded through us
         }
     }
 
@@ -598,3 +673,13 @@ struct AboutView: View {
         .environmentObject(AppState.shared)
 }
 #endif
+
+/// Mirrors `AssetInventory.Status` so the view can hold it in `@State` without the
+/// whole view needing `@available(macOS 26, *)`.
+enum AppleSpeechAssetStatus {
+    case unknown
+    case installed
+    case willInstall
+    case installing
+    case unsupported
+}
