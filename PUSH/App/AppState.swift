@@ -20,6 +20,7 @@ class AppState: ObservableObject {
         static let previewSize = "previewSize"
         static let pillPosition = "pillPosition"
         static let resolveSelfCorrections = "resolveSelfCorrections"
+        static let useAppleCleanup = "useAppleCleanup"
         static let iCloudSyncEnabled = "iCloudSyncEnabled"
     }
 
@@ -245,7 +246,8 @@ class AppState: ObservableObject {
             (d.bool(forKey: UserDefaultsKeys.wakeWordEnabled), \.wakeWordEnabled),
             (d.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence), \.doubleSpaceAfterSentence),
             (d.bool(forKey: UserDefaultsKeys.showLivePreview), \.showLivePreview),
-            (d.bool(forKey: UserDefaultsKeys.resolveSelfCorrections), \.resolveSelfCorrections)
+            (d.bool(forKey: UserDefaultsKeys.resolveSelfCorrections), \.resolveSelfCorrections),
+            (d.bool(forKey: UserDefaultsKeys.useAppleCleanup), \.useAppleCleanup)
         ]
         for (value, path) in flags where self[keyPath: path] != value {
             self[keyPath: path] = value
@@ -262,6 +264,15 @@ class AppState: ObservableObject {
     @Published var resolveSelfCorrections: Bool = false {
         didSet {
             UserDefaults.standard.set(resolveSelfCorrections, forKey: UserDefaultsKeys.resolveSelfCorrections)
+        }
+    }
+
+    /// Clean the transcript with Apple's on-device model instead of the rule-based
+    /// post-processing chain. Off by default, and deliberately an *alternative* to
+    /// that chain rather than a stage after it — see `AppleTextCleanup`.
+    @Published var useAppleCleanup: Bool = false {
+        didSet {
+            UserDefaults.standard.set(useAppleCleanup, forKey: UserDefaultsKeys.useAppleCleanup)
         }
     }
 
@@ -496,6 +507,7 @@ class AppState: ObservableObject {
             self.pillPosition = position
         }
         self.resolveSelfCorrections = UserDefaults.standard.bool(forKey: UserDefaultsKeys.resolveSelfCorrections)
+        self.useAppleCleanup = UserDefaults.standard.bool(forKey: UserDefaultsKeys.useAppleCleanup)
         // Defaults to true when never set, unlike every other flag here.
         if UserDefaults.standard.object(forKey: UserDefaultsKeys.iCloudSyncEnabled) != nil {
             self.iCloudSyncEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.iCloudSyncEnabled)
