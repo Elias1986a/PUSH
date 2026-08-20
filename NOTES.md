@@ -23,10 +23,11 @@ Fix: `isBareMagnitudeRun` skips runs made of nothing but hundred/thousand/
 million. Runs with a real multiplier are untouched, so "thirty million" still
 expands to 30,000,000.
 
-That leaves an asymmetry worth a decision: spelled "thirty million" expands to
-30,000,000 (requested in fe61caa) while digit-form "30 million" now stays
+This leaves a deliberate asymmetry: spelled "thirty million" expands to
+30,000,000 (requested in fe61caa) while digit-form "30 million" stays
 "30 million" (AP style). Same phrase, different output depending on what the
-ASR chose to write. Not yet resolved either way.
+ASR chose to write. Decided 2026-08-20 to keep it that way — both forms are
+readable and neither mangles the number. Do not "fix" the inconsistency.
 
 ### The notch: checked on the MacBook, and it's fine
 
@@ -344,5 +345,3 @@ For local test builds without notarising, see the throwaway script pattern:
   become a genuine cross-thread race, and event ordering must stay FIFO
   (`DispatchQueue.main.async`, not `Task`). Held back as too risky to bundle;
   the watchdog covers the observed failure.
-- Pushes to `main` bypass a branch-protection PR rule (seven times now). Asked
-  three times, never answered — either drop the rule or start opening PRs.
