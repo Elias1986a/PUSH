@@ -146,17 +146,6 @@ actor TranscriptionPipeline {
             var formattedText = Self.postProcess(
                 filteredText, hasNativePunctuation: activeModel.hasNativePunctuation)
 
-            // Apple's on-device model, when the user has opted in, *replaces* that
-            // chain rather than running after it — see AppleTextCleanup. It returns
-            // nil for every failure (unavailable, timeout, implausible output), and
-            // the rule-based result computed above is the fallback, so a stalled
-            // model can never cost an utterance already spoken.
-            if #available(macOS 26, *),
-               await MainActor.run(body: { AppState.shared.useAppleCleanup }),
-               let cleaned = await AppleTextCleanup.clean(filteredText) {
-                formattedText = cleaned
-            }
-
             // Typographic preference — off by request via Settings → General.
             if await MainActor.run(body: { AppState.shared.doubleSpaceAfterSentence }) {
                 formattedText = Self.doubleSpaceAfterPeriods(formattedText)

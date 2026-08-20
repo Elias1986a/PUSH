@@ -3,10 +3,17 @@ import FoundationModels
 
 /// Transcript cleanup via Apple's on-device Foundation Models (macOS 26).
 ///
-/// This is an *alternative* to `TranscriptionPipeline.postProcess`, not a stage after it.
+/// **Not wired into dictation, deliberately.** It shipped as a settings toggle, was tried,
+/// and came back too slow: a measured 0.90s on every utterance, which is a lot to add to a
+/// path whose whole value is that text appears the instant you let go of the key. The
+/// toggle was removed rather than left as an option nobody should pick. This stays as a
+/// column in the engine comparison tool, where the latency is the point of the comparison
+/// rather than a tax on it.
+///
+/// It is an *alternative* to `TranscriptionPipeline.postProcess`, never a stage after it.
 /// Running a model over already-formatted text would let it undo the deterministic
-/// number and punctuation handling, and would make the A/B meaningless — you'd be
-/// comparing "rules" against "rules plus a model" rather than one against the other.
+/// number and punctuation handling, and would make the comparison meaningless — you'd be
+/// reading "rules" against "rules plus a model" rather than one against the other.
 ///
 /// What it buys over the rule chain is the thing rules structurally cannot do: honoring
 /// a correction spoken mid-sentence ("three servers — no, make that four").

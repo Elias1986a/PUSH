@@ -46,20 +46,6 @@ struct GeneralSettingsView: View {
         appState.selectedWhisperModel.engineType == .parakeetStreaming
     }
 
-    /// Whether to show the Apple cleanup row at all — hidden entirely below macOS 26,
-    /// where the framework doesn't exist.
-    private var appleCleanupSupported: Bool {
-        if #available(macOS 26, *) { return true }
-        return false
-    }
-
-    /// Actionable copy when the model exists but can't run — "unavailable" alone tells
-    /// the user nothing they can do.
-    private var appleCleanupUnavailableReason: String? {
-        guard #available(macOS 26, *) else { return nil }
-        return AppleTextCleanup.unavailableReason
-    }
-
     var body: some View {
         Form {
             Section {
@@ -106,23 +92,6 @@ struct GeneralSettingsView: View {
                 Text("Say \"the red car, I mean the blue car\" and only \"the blue car\" is pasted. Recognises \"I mean\", \"no wait\", \"make that\", \"scratch that\" and similar. Ambiguous words like \"sorry\" and \"actually\" are ignored on purpose — they're too often ordinary speech, and a wrong guess deletes words you meant to keep.\n\nThe live preview shows what you said, uncorrected. Corrections apply to the pasted text only.")
                     .font(.caption)
                     .foregroundColor(.secondary)
-
-                if appleCleanupSupported {
-                    Divider()
-
-                    Toggle("Clean up with Apple Intelligence", isOn: $appState.useAppleCleanup)
-                        .disabled(appleCleanupUnavailableReason != nil)
-
-                    if let reason = appleCleanupUnavailableReason {
-                        Text(reason)
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    } else {
-                        Text("Uses Apple's on-device model instead of the rules above — nothing leaves your Mac. It handles corrections you speak mid-sentence, which the rules can't. If it takes longer than four seconds or returns something odd, the rule-based result is used instead, so a slow model never costs you an utterance.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
             }
 
             Section("iCloud") {
