@@ -169,6 +169,10 @@ actor TranscriptionPipeline {
     // MARK: - Text Post-Processing
 
     /// Capitalize the first letter of the text and the first letter after sentence-ending punctuation
+    /// Opening punctuation a sentence can start behind, so `. "hello` still
+    /// capitalises. Everything else counts as content.
+    private static let sentenceStartPassThrough: Set<Character> = ["\"", "'", "\u{201C}", "\u{2018}", "(", "["]
+
     static func fixCapitalization(_ text: String) -> String {
         guard !text.isEmpty else { return text }
 
@@ -183,7 +187,15 @@ actor TranscriptionPipeline {
                 result.append(char)
                 if char == "." || char == "?" || char == "!" {
                     capitalizeNext = true
-                } else if char.isLetter {
+                } else if char.isWhitespace || sentenceStartPassThrough.contains(char) {
+                    // Transparent: a pending sentence start survives the gap.
+                } else {
+                    // Any other content — digit, symbol, letter — occupies the
+                    // sentence start, so nothing later gets capitalised for it.
+                    // Clearing only on letters left the flag armed across digits
+                    // and it landed on the next letter it found: "31st" → "31St",
+                    // "142 people" → "142 People", "50% of" → "50% Of". The
+                    // decimal point in "$2.5 million" re-armed it — "Million".
                     capitalizeNext = false
                 }
             }
@@ -843,7 +855,10 @@ actor TranscriptionPipeline {
             guard let range = Range(match.range, in: result) else { continue }
             let runText = String(result[range])
             if isBareMagnitudeRun(runText) { continue }
-            if let value = parseNumberRun(runText), value >= 10 {
+            // Years are never comma-grouped, so they bypass formatSpokenNumber.
+            if let year = parseSpokenYear(runText) {
+                result.replaceSubrange(range, with: String(year))
+            } else if let value = parseNumberRun(runText), value >= 10 {
                 result.replaceSubrange(range, with: formatSpokenNumber(value))
             }
         }
@@ -873,6 +888,44 @@ actor TranscriptionPipeline {
         let remainder = value % 1000
         let isYearLike = (1000...2999).contains(value) && (1..<100).contains(remainder)
         return isYearLike ? String(value) : insertThousandsSeparators(String(value))
+    }
+
+    /// Years dictated as two pairs: "nineteen ninety nine" → 1999,
+    /// "twenty twenty four" → 2024. `parseNumberRun` sums them — 19 + 90 + 9 = 118 —
+    /// because it has no notion of a pair.
+    ///
+    /// The tell is arithmetic that isn't English: no number is formed by adding two
+    /// values ≥ 10 in sequence, so the second one must start a second pair. That
+    /// leaves ordinary compounds alone — "twenty five" adds 5 to 20 and never
+    /// splits. Magnitude words disqualify the run outright ("two thousand twenty
+    /// four" is already handled), and the result must land in 1000–2999 so that a
+    /// "sixty forty split" doesn't become 6040.
+    static func parseSpokenYear(_ run: String) -> Int? {
+        let words = run.lowercased()
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .map(String.init)
+        guard words.count >= 2 else { return nil }
+
+        var values: [Int] = []
+        for word in words {
+            guard let v = baseNumberWords[word], v < 100 else { return nil }
+            values.append(v)
+        }
+
+        var running = 0
+        var splitIndex: Int?
+        for (i, v) in values.enumerated() {
+            if running >= 10 && v >= 10 { splitIndex = i; break }
+            running += v
+        }
+        guard let split = splitIndex, split > 0 else { return nil }
+
+        let high = values[..<split].reduce(0, +)
+        let low = values[split...].reduce(0, +)
+        guard (10...99).contains(high), (0...99).contains(low) else { return nil }
+        let year = high * 100 + low
+        return (1000...2999).contains(year) ? year : nil
     }
 
     /// Insert thousands separators into large integer runs: "30000000" → "30,000,000".

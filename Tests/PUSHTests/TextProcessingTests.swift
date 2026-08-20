@@ -129,6 +129,37 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(push("that's only like 4.8 million"), "that's only like 4.8 million")
     }
 
+    /// Whisper/Moonshine's variant — they don't punctuate, so those passes run.
+    private func whisper(_ text: String) -> String {
+        TranscriptionPipeline.postProcess(text, hasNativePunctuation: false)
+    }
+
+    func testCapitalizationDoesNotSlideAcrossDigits() {
+        // fixCapitalization cleared its flag only on letters, so a pending
+        // sentence start survived digits and symbols and landed on the next
+        // letter it found.
+        XCTAssertEqual(whisper("thirty first"), "31st.")
+        XCTAssertEqual(whisper("one hundred and forty two people"), "142 people.")
+        XCTAssertEqual(whisper("50 percent off"), "50% off.")
+        // The decimal point re-armed the flag: "$2.5 Million".
+        XCTAssertEqual(whisper("two point five million dollars"), "$2.5 million.")
+        // Real sentence starts still capitalise.
+        XCTAssertEqual(whisper("hello. world is here"), "Hello. World is here.")
+    }
+
+    func testSpokenYearsReadAsPairs() {
+        XCTAssertEqual(TranscriptionPipeline.parseSpokenYear("nineteen ninety nine"), 1999)
+        XCTAssertEqual(TranscriptionPipeline.parseSpokenYear("seventeen seventy six"), 1776)
+        XCTAssertEqual(whisper("nineteen ninety nine"), "1999.")
+        // Ordinary compounds never split — 5 is added to 20, not paired with it.
+        XCTAssertNil(TranscriptionPipeline.parseSpokenYear("twenty five"))
+        // Out of year range, so a "sixty forty split" doesn't become 6040.
+        XCTAssertNil(TranscriptionPipeline.parseSpokenYear("sixty forty"))
+        // Magnitude words disqualify the run; this path already worked.
+        XCTAssertNil(TranscriptionPipeline.parseSpokenYear("two thousand twenty four"))
+        XCTAssertEqual(whisper("in two thousand twenty four we shipped"), "In 2024 we shipped.")
+    }
+
     func testStripConnectingAnd() {
         XCTAssertEqual(
             TranscriptionPipeline.normalizeNumberWords(
