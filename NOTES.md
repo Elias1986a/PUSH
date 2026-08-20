@@ -9,7 +9,43 @@ POS tagger).
 
 Nothing is left unmerged. Both feature branches that were waiting are in.
 
-### Unreleased on main: bare magnitude words no longer expand
+### Unreleased on main: the number pipeline, fixed in three rounds
+
+Shipped nothing yet; `main` is four commits ahead of v6.5.2.
+
+The first fix was incomplete and the user caught it twice. The lesson is in
+the second commit: **these passes were each tested in isolation, and every bug
+was an interaction between them.** The chain is now extracted as
+`postProcess(_:hasNativePunctuation:)` and the regression tests run end to end
+against that. Test composed, not per-pass.
+
+Fixed, with the output each produced before:
+
+| dictated | was | now |
+|---|---|---|
+| `4.8 million` | `4.8 1,000,000` | `4.8 million` |
+| `four point eight million` | `4.8000000` | `4.8 million` |
+| `three point one four` | `3.5` | `3.14` |
+| `five million dollars` | `5,000,$000` | `$5,000,000` |
+| `one thousand people` | `1000 people` | `1,000 people` |
+| `nineteen ninety nine` | `118` | `1999` |
+| `thirty first` | `31St` | `31st` |
+| `50 percent off` | `50% Off` | `50% off` |
+
+The last three only surface on Whisper/Moonshine — Parakeet writes numbers as
+digits itself and skips the punctuation passes, so the user never saw them.
+Worth remembering when a bug report and a harness disagree: **check which
+pipeline variant the active engine actually runs** before calling it real.
+
+Still broken, deliberately left:
+
+- `twenty twenty four` → `24`. `removeStutteredWords` eats the repeated
+  "twenty" before any number pass runs. Same pass fixes real stutters; needs
+  its own decision.
+- `a sixty forty split` → `a 100 split`. Pre-existing; the year parser
+  declines it on purpose (6040 is not a year).
+
+### Bare magnitude words no longer expand
 
 Dictating "4.8 million" produced "4.8 1,000,000". `normalizeNumberWords`
 matched the lone word "million" as a run of its own, and `parseNumberRun`
