@@ -9,6 +9,25 @@ POS tagger).
 
 Nothing is left unmerged. Both feature branches that were waiting are in.
 
+### Unreleased on main: bare magnitude words no longer expand
+
+Dictating "4.8 million" produced "4.8 1,000,000". `normalizeNumberWords`
+matched the lone word "million" as a run of its own, and `parseNumberRun`
+applies an implicit multiplier of 1 when nothing smaller precedes a magnitude
+— right inside "one hundred five", wrong when the run *is* the magnitude. The
+4.8 outside the run was dropped and `groupThousands` then formatted the
+invented value. Same fault behind "30 million" → "30 1,000,000", "$5 million",
+"a hundred people" → "a 100 people", "a thousand times" → "a 1000 times".
+
+Fix: `isBareMagnitudeRun` skips runs made of nothing but hundred/thousand/
+million. Runs with a real multiplier are untouched, so "thirty million" still
+expands to 30,000,000.
+
+That leaves an asymmetry worth a decision: spelled "thirty million" expands to
+30,000,000 (requested in fe61caa) while digit-form "30 million" now stays
+"30 million" (AP style). Same phrase, different output depending on what the
+ASR chose to write. Not yet resolved either way.
+
 ### The notch: checked on the MacBook, and it's fine
 
 The deferred check finally happened on the notched laptop. The flanks, the
