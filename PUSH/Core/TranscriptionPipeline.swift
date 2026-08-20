@@ -687,6 +687,23 @@ actor TranscriptionPipeline {
     private static let ordinalWordPattern: String =
         ordinalWords.keys.sorted { $0.count > $1.count }.joined(separator: "|")
 
+    /// Magnitude words are multipliers, not numbers in their own right.
+    private static let magnitudeWords: Set<String> = ["hundred", "thousand", "million"]
+
+    /// True when a run is nothing but magnitude words ("million", "hundred thousand").
+    /// Such a run has no multiplier of its own: either the multiplier is already
+    /// digits sitting outside the run ("4.8 million", "$5 million") or there is
+    /// none at all and the word is prose ("a hundred people"). Expanding it uses
+    /// `parseNumberRun`'s implicit multiplier of 1 and invents a number —
+    /// "4.8 million" became "4.8 1,000,000".
+    static func isBareMagnitudeRun(_ run: String) -> Bool {
+        let words = run.lowercased()
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+            .map(String.init)
+        return !words.isEmpty && words.allSatisfy { magnitudeWords.contains($0) }
+    }
+
     /// Parse a contiguous run of number words ("twenty five", "one hundred five") into an Int.
     /// Returns nil if any token isn't recognized. `allowOh` enables "oh" → 0 for decimal contexts.
     static func parseNumberRun(_ run: String, allowOh: Bool = false) -> Int? {
@@ -768,6 +785,7 @@ actor TranscriptionPipeline {
 
     /// AP style: spelled numbers ≥10 → digits, 1–9 stay spelled. Existing digits untouched.
     /// "twenty-five years" → "25 years"; "five apples" stays; "one hundred five" → "105".
+    /// A run of nothing but magnitude words stays spelled: "4.8 million", "a hundred people".
     static func normalizeNumberWords(_ text: String) -> String {
         let word = numberWordPattern
         let pattern = "\\b(?:\(word))(?:[\\s-]+(?:\(word)))*\\b"
@@ -784,6 +802,7 @@ actor TranscriptionPipeline {
         for match in matches.reversed() {
             guard let range = Range(match.range, in: result) else { continue }
             let runText = String(result[range])
+            if isBareMagnitudeRun(runText) { continue }
             if let value = parseNumberRun(runText), value >= 10 {
                 result.replaceSubrange(range, with: String(value))
             }

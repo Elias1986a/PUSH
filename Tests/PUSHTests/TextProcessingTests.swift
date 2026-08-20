@@ -54,6 +54,25 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(TranscriptionPipeline.groupThousands(digits), "30,000,000")
     }
 
+    func testMagnitudeWordAfterDigitsStaysSpelled() {
+        // Bug: "4.8 million" came out as "4.8 1,000,000" — the bare "million"
+        // was expanded with an implicit multiplier of 1, losing the 4.8 entirely.
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("that's only like 4.8 million"),
+                       "that's only like 4.8 million")
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("30 million"), "30 million")
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("$5 million in revenue"),
+                       "$5 million in revenue")
+    }
+
+    func testBareMagnitudeWordInProseStaysSpelled() {
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("a hundred people"), "a hundred people")
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("a thousand times"), "a thousand times")
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("a hundred thousand dollars"),
+                       "a hundred thousand dollars")
+        // A magnitude with a real multiplier still expands.
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("two hundred thousand"), "200000")
+    }
+
     func testStripConnectingAnd() {
         XCTAssertEqual(
             TranscriptionPipeline.normalizeNumberWords(
