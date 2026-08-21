@@ -65,3 +65,6 @@ dist-build/
 
 # Local comparison tool build output
 compare/.build/
+
+# Local Claude Code permissions — machine paths, never for a public repo
+.claude/settings.local.json
