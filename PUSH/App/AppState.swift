@@ -82,7 +82,7 @@ class AppState: ObservableObject {
     /// The model actually loaded and serving transcriptions. Differs from
     /// `selectedWhisperModel` (the persisted preference) while a newly selected
     /// model downloads/loads — dictation keeps using this one until the swap.
-    @Published var activeModel: WhisperModel = .parakeetStreaming
+    @Published var activeModel: WhisperModel = .parakeetUnified
 
     @Published var statusMessage: String = "Ready"
 
@@ -95,12 +95,18 @@ class AppState: ObservableObject {
         isListening || isProcessing || !isModelReady || isWarmingUp || isPrewarming
     }
 
-    /// Parakeet Streaming is the default for fresh installs, chosen after an
-    /// A/B on real dictation. It consumes audio while you speak, so latency
-    /// after release is near-constant (0.068s on 6s of audio, 0.086s on 26s)
-    /// where the offline encoder scales with length (0.148s → 0.492s). Output
-    /// matched Unified word for word on the same passage.
-    @Published var selectedWhisperModel: WhisperModel = .parakeetStreaming {
+    /// Parakeet Unified is the default for fresh installs, chosen after running
+    /// every engine over the same recording in `compare/`: 8.3s of audio in
+    /// 0.061s, the fastest of the four and the most accurate on English.
+    ///
+    /// It replaced Parakeet Streaming, whose case for the slot was that it
+    /// consumes audio while you speak, so latency after release stays flat
+    /// (~0.04s) where Unified's scales with length (~0.010s per second). That
+    /// still holds, and Streaming remains the right pick for long-form
+    /// dictation and the only one that shows text while you talk — but at
+    /// ordinary utterance length the difference is imperceptible, and in the
+    /// app's own logs Streaming returned nothing at all on 4 of 86 runs.
+    @Published var selectedWhisperModel: WhisperModel = .parakeetUnified {
         didSet {
             UserDefaults.standard.set(selectedWhisperModel.rawValue, forKey: UserDefaultsKeys.selectedWhisperModel)
         }
