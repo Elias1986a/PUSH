@@ -38,9 +38,9 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .parakeetV2: return "Parakeet TDT v2 — Smallest download"
-        case .parakeetUnified: return "Parakeet Unified — Most accurate"
-        case .parakeetStreaming: return "Parakeet Streaming — Fastest & balanced"
+        case .parakeetV2: return "Parakeet TDT v2 — Smallest"
+        case .parakeetUnified: return "Parakeet Unified — Most accurate and fastest"
+        case .parakeetStreaming: return "Parakeet Streaming — Visualize as you talk"
         case .appleSpeech: return "Apple Speech — No download"
         }
     }
