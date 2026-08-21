@@ -45,6 +45,9 @@ final class ComparisonModel {
         isRecording ? finish() : begin()
     }
 
+    /// When the current recording started — the key Wispr's row is matched on.
+    private var holdStarted = Date()
+
     private func begin() {
         status = "Checking microphone access…"
         Task {
@@ -54,6 +57,7 @@ final class ComparisonModel {
             }
             do {
                 try recorder.start()
+                holdStarted = Date()
                 isRecording = true
                 status = "Recording — click Stop when you're done talking."
             } catch {
@@ -96,6 +100,15 @@ final class ComparisonModel {
             if let best = comparison.runs.filter({ !$0.failed }).min(by: { $0.seconds < $1.seconds }) {
                 self.status = "Running Apple Intelligence cleanup…"
                 comparison.cleanup = await EngineComparison.cleanup(of: best.raw, engine: best.engine)
+                self.comparisons[0] = comparison
+            }
+
+            // Wispr's cleanup is server-side, so its row lands after every local engine
+            // has finished. Absent is the normal case — it only has a result if its own
+            // hotkey was held for this utterance too.
+            if WisprReader.isInstalled {
+                self.status = "Waiting for Wispr Flow…"
+                comparison.wispr = await WisprReader.result(around: self.holdStarted, timeout: 8)
                 self.comparisons[0] = comparison
             }
 

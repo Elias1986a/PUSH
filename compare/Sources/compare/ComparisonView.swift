@@ -61,9 +61,13 @@ struct ComparisonView: View {
     /// Names the engines rather than counting them — "4 engines" hides which ones were
     /// skipped for want of a download.
     private var engineSummary: String {
-        model.models.isEmpty
-            ? "No engines available — download a model in PUSH first."
-            : "Click Record, talk, click Stop. " + model.models.map(\.displayName).joined(separator: " · ")
+        if model.models.isEmpty { return "No engines available — download a model in PUSH first." }
+        let engines = model.models.map(\.displayName).joined(separator: " · ")
+        // Wispr can only be compared on an utterance it also heard, and it listens to
+        // its own hotkey — there is no way to trigger it from here.
+        return WisprReader.isInstalled
+            ? "Click Record, hold Wispr's hotkey while you talk, click Stop. " + engines + " · Wispr Flow"
+            : "Click Record, talk, click Stop. " + engines
     }
 
     private var empty: some View {
@@ -142,6 +146,11 @@ private struct ComparisonCard: View {
                           isFastest: index == 0 && !run.failed && comparison.runs.count > 1)
             }
 
+            if let wispr = comparison.wispr {
+                Divider()
+                WisprRow(wispr: wispr, audioSeconds: comparison.audioSeconds)
+            }
+
             if let cleanup = comparison.cleanup {
                 Divider()
                 CleanupRow(cleanup: cleanup)
@@ -197,6 +206,38 @@ private struct EngineRow: View {
             }
         }
         .padding(.vertical, 3)
+    }
+}
+
+private struct WisprRow: View {
+    let wispr: WisprRun
+    let audioSeconds: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Wispr Flow · cloud")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 8).padding(.vertical, 2)
+                    .background(Color.blue.opacity(0.16), in: Capsule())
+                    .foregroundStyle(.blue)
+                Spacer()
+                Text("\(wispr.processingSeconds, format: .number.precision(.fractionLength(2)))s + \(wispr.networkSeconds, format: .number.precision(.fractionLength(2)))s network")
+                    .font(.caption).monospacedDigit()
+                    .foregroundStyle(.blue)
+            }
+
+            LabeledText(label: "raw", text: wispr.raw)
+            if wispr.formatted != wispr.raw {
+                LabeledText(label: "final", text: wispr.formatted, emphasised: true)
+            }
+
+            // Their number is measured differently from ours and must be labelled so —
+            // reading it as comparable to local compute time flatters us.
+            Text("their own measurement, server-side; the engines above are local compute")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
     }
 }
 

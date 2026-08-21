@@ -29,6 +29,8 @@ struct Comparison: Codable, Identifiable, Sendable {
     /// Apple's on-device cleanup applied to one engine's raw text, with its own cost.
     /// Kept out of dictation for being too slow; this is where that cost is the point.
     var cleanup: CleanupRun?
+    /// Wispr Flow's result for the same utterance, when its hotkey was held too.
+    var wispr: WisprRun?
 }
 
 struct CleanupRun: Codable, Sendable {

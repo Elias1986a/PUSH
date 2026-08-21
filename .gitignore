@@ -68,3 +68,6 @@ compare/.build/
 
 # Local Claude Code permissions — machine paths, never for a public repo
 .claude/settings.local.json
+
+# compare/.build is a symlink out of iCloud (see root .build)
+compare/.build
