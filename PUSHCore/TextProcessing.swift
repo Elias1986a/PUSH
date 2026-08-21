@@ -21,16 +21,12 @@ public actor TranscriptionPipeline {
     /// and the wake word listener so both always use the loaded engine.
     public static func transcribe(audioData: Data, using model: WhisperModel) async throws -> String {
         switch model.engineType {
-        case .moonshine:
-            return try await MoonshineEngine.shared.transcribe(audioData: audioData)
         case .parakeet:
             return try await ParakeetEngine.shared.transcribe(audioData: audioData)
         case .parakeetUnified:
             return try await ParakeetUnifiedEngine.shared.transcribe(audioData: audioData)
         case .parakeetStreaming:
             return try await ParakeetStreamingEngine.shared.transcribe(audioData: audioData)
-        case .whisperKit:
-            return try await WhisperEngine.shared.transcribe(audioData: audioData)
         case .appleSpeech:
             guard #available(macOS 26, *) else { throw PipelineError.requiresNewerSystem }
             return try await AppleSpeechEngine.shared.transcribe(audioData: audioData)

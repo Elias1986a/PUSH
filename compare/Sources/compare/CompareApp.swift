@@ -95,13 +95,6 @@ final class ComparisonModel {
                     self.pending -= 1
                 })
 
-            // Cleanup runs once, on the fastest successful engine's raw text. Once per
-            // engine would multiply a ~0.9s cost that is itself the thing being shown.
-            if let best = comparison.runs.filter({ !$0.failed }).min(by: { $0.seconds < $1.seconds }) {
-                self.status = "Running Apple Intelligence cleanup…"
-                comparison.cleanup = await EngineComparison.cleanup(of: best.raw, engine: best.engine)
-                self.comparisons[0] = comparison
-            }
 
             // Wispr's cleanup is server-side, so its row lands after every local engine
             // has finished. Absent is the normal case — it only has a result if its own

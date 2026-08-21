@@ -89,7 +89,6 @@ enum ModelLoader {
 
     private static func load(_ model: AppState.WhisperModel) async throws {
         switch model.engineType {
-        case .moonshine: try await MoonshineEngine.shared.loadModel(model)
         case .parakeet: try await ParakeetEngine.shared.loadModel()
         case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
         case .parakeetStreaming:
@@ -104,7 +103,6 @@ enum ModelLoader {
                 }
             }
             try await ParakeetStreamingEngine.shared.loadModel()
-        case .whisperKit: try await WhisperEngine.shared.loadModel(model)
         case .appleSpeech:
             guard #available(macOS 26, *) else { throw PipelineError.requiresNewerSystem }
             try await AppleSpeechEngine.shared.loadModel()
@@ -113,11 +111,9 @@ enum ModelLoader {
 
     private static func unload(_ model: AppState.WhisperModel) async {
         switch model.engineType {
-        case .moonshine: await MoonshineEngine.shared.unloadModel()
         case .parakeet: await ParakeetEngine.shared.unloadModel()
         case .parakeetUnified: await ParakeetUnifiedEngine.shared.unloadModel()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.unloadModel()
-        case .whisperKit: await WhisperEngine.shared.unloadModel()
         case .appleSpeech:
             if #available(macOS 26, *) { await AppleSpeechEngine.shared.unloadModel() }
         }
@@ -125,11 +121,9 @@ enum ModelLoader {
 
     private static func warmup(_ model: AppState.WhisperModel) async {
         switch model.engineType {
-        case .moonshine: await MoonshineEngine.shared.warmupInference()
         case .parakeet: await ParakeetEngine.shared.warmup()
         case .parakeetUnified: await ParakeetUnifiedEngine.shared.warmup()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.warmup()
-        case .whisperKit: await WhisperEngine.shared.warmupInference()
         case .appleSpeech:
             if #available(macOS 26, *) { await AppleSpeechEngine.shared.warmup() }
         }

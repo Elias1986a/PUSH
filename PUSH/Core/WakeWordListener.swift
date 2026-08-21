@@ -234,8 +234,8 @@ final class WakeWordListener: @unchecked Sendable {
 
         let wakeWord = AppState.shared.wakeWord.lowercased()
         let bufferCopy = audioBuffer
-        // Use the active engine — WhisperEngine can't serve non-WhisperKit
-        // models (Moonshine/Parakeet), and the active engine is already loaded.
+        // Route through the *active* model rather than the selected one: the selection
+        // may still be downloading, and the active engine is already loaded and warm.
         let activeModel = AppState.shared.activeModel
 
         do {

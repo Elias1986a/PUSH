@@ -26,20 +26,12 @@ struct Comparison: Codable, Identifiable, Sendable {
     let date: Date
     let audioSeconds: Double
     var runs: [EngineRun]
-    /// Apple's on-device cleanup applied to one engine's raw text, with its own cost.
-    /// Kept out of dictation for being too slow; this is where that cost is the point.
-    var cleanup: CleanupRun?
     /// Wispr Flow's result for the same utterance, when its hotkey was held too.
     var wispr: WisprRun?
     /// Why there is no Wispr result. Rendered, so an absent row never reads as a bug.
     var wisprAbsence: String?
 }
 
-struct CleanupRun: Codable, Sendable {
-    let basedOn: String
-    let text: String
-    let seconds: Double
-}
 
 /// Runs one captured buffer through each engine.
 enum EngineComparison {
@@ -51,8 +43,6 @@ enum EngineComparison {
         WhisperModel.selectable.filter { model in
             switch model.engineType {
             case .appleSpeech: return true
-            case .whisperKit: return WhisperEngine.isModelDownloaded(model)
-            case .moonshine: return MoonshineEngine.isModelDownloaded(model)
             case .parakeet: return ParakeetEngine.isModelDownloaded()
             case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
             case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
@@ -138,8 +128,6 @@ enum EngineComparison {
     /// engine, and the real attempt reports the error properly.
     private static func warmup(_ model: WhisperModel) async {
         switch model.engineType {
-        case .whisperKit: await WhisperEngine.shared.warmupInference()
-        case .moonshine: await MoonshineEngine.shared.warmupInference()
         case .parakeet: await ParakeetEngine.shared.warmup()
         case .parakeetUnified: await ParakeetUnifiedEngine.shared.warmup()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.warmup()
@@ -170,8 +158,6 @@ enum EngineComparison {
 
     private static func load(_ model: WhisperModel) async throws {
         switch model.engineType {
-        case .whisperKit: try await WhisperEngine.shared.loadModel(model)
-        case .moonshine: try await MoonshineEngine.shared.loadModel(model)
         case .parakeet: try await ParakeetEngine.shared.loadModel()
         case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
         case .parakeetStreaming: try await ParakeetStreamingEngine.shared.loadModel()
@@ -181,18 +167,6 @@ enum EngineComparison {
         }
     }
 
-    /// Apple's on-device cleanup over one engine's raw text.
-    static func cleanup(of raw: String, engine: String) async -> CleanupRun? {
-        guard #available(macOS 26, *), AppleTextCleanup.isAvailable else { return nil }
-        let start = Date()
-        guard let text = await AppleTextCleanup.clean(raw) else {
-            return CleanupRun(
-                basedOn: engine,
-                text: "⚠️ rejected or timed out — PUSH would fall back to the rules",
-                seconds: Date().timeIntervalSince(start))
-        }
-        return CleanupRun(basedOn: engine, text: text, seconds: Date().timeIntervalSince(start))
-    }
 }
 
 enum ComparisonError: LocalizedError {

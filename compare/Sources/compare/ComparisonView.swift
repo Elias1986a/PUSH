@@ -158,10 +158,6 @@ private struct ComparisonCard: View {
                 .foregroundStyle(.tertiary)
             }
 
-            if let cleanup = comparison.cleanup {
-                Divider()
-                CleanupRow(cleanup: cleanup)
-            }
         }
         .padding(15)
         .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
@@ -248,34 +244,6 @@ private struct WisprRow: View {
     }
 }
 
-private struct CleanupRow: View {
-    let cleanup: CleanupRun
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Apple Intelligence cleanup")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8).padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.16), in: Capsule())
-                    .foregroundStyle(.orange)
-                Spacer()
-                Text("+\(cleanup.seconds, format: .number.precision(.fractionLength(2)))s")
-                    .font(.caption).monospacedDigit()
-                    .foregroundStyle(.orange)
-            }
-            Text(cleanup.text)
-                .font(.callout)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
-            // The reason this isn't in PUSH: it is added to every utterance, on top of
-            // whichever engine already ran.
-            Text("on \(cleanup.basedOn)'s raw text — this cost is why it isn't an option in PUSH")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-        }
-    }
-}
 
 private struct LabeledText: View {
     let label: String

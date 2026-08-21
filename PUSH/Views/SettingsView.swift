@@ -183,17 +183,12 @@ struct ModelsSettingsView: View {
 
     private var modelFolderPath: URL {
         switch selectedModel.engineType {
-        case .moonshine:
-            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            return appSupport.appendingPathComponent("PUSH/moonshine-models/base-en", isDirectory: true)
         case .parakeet:
             return ParakeetEngine.modelDirectory
         case .parakeetUnified:
             return ParakeetUnifiedEngine.modelDirectory
         case .parakeetStreaming:
             return ParakeetStreamingEngine.modelDirectory
-        case .whisperKit:
-            return WhisperEngine.modelFolderURL(for: selectedModel)
         case .appleSpeech:
             // The OS owns these assets; there is no folder of ours to reveal. Never
             // reached — the Apple row shows no "Show in Finder" button.
@@ -203,16 +198,12 @@ struct ModelsSettingsView: View {
 
     private static func checkDownloaded(_ model: AppState.WhisperModel) -> Bool {
         switch model.engineType {
-        case .moonshine:
-            return MoonshineEngine.isModelDownloaded(model) // Tiny is bundled → true
         case .parakeet:
             return ParakeetEngine.isModelDownloaded()
         case .parakeetUnified:
             return ParakeetUnifiedEngine.isModelDownloaded()
         case .parakeetStreaming:
             return ParakeetStreamingEngine.isModelDownloaded()
-        case .whisperKit:
-            return WhisperEngine.isModelDownloaded(model)
         case .appleSpeech:
             // Nothing for us to download — the system installs on demand. Reporting
             // "downloaded" is what lets the picker activate it immediately.
@@ -307,15 +298,6 @@ struct ModelsSettingsView: View {
                     Text("macOS manages this model. The first dictation in a new language may pause while the system installs it.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                } else if selectedModel == .moonshineTiny {
-                    HStack(spacing: 8) {
-                        Label("Bundled", systemImage: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Spacer()
-                    }
-                    Text("Moonshine Tiny is included with the app.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 } else {
                     HStack(spacing: 8) {
                         if isDownloaded {
@@ -403,10 +385,6 @@ struct ModelsSettingsView: View {
     /// Rough on-disk sizes used to derive download progress (engines don't report it).
     private static func expectedSize(of model: AppState.WhisperModel) -> Double {
         switch model {
-        case .base: return 150_000_000
-        case .small: return 250_000_000
-        case .whisperLargeV3Turbo: return 632_000_000
-        case .moonshineTiny: return 45_000_000
         case .parakeetV2: return 400_000_000
         case .parakeetUnified, .parakeetStreaming: return 600_000_000
         case .appleSpeech: return 0  // never downloaded through us

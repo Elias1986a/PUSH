@@ -96,16 +96,21 @@ final class ContextGateTests: XCTestCase {
         XCTAssertEqual(result, "ACME sells a hammer")
     }
 
-    // MARK: - Engine routing guard
+    // MARK: - Removed models
 
-    func testWhisperEngineRejectsNonWhisperKitModels() async {
-        // Regression guard for the wake word bug: loading a Moonshine/Parakeet
-        // model through WhisperEngine must throw, not attempt an empty download.
-        do {
-            try await WhisperEngine.shared.loadModel(.parakeetV2)
-            XCTFail("Expected loadModel to throw for a non-WhisperKit model")
-        } catch {
-            XCTAssertTrue(error is WhisperError)
+    func testRetiredModelIdentifiersNoLongerResolve() {
+        // Anyone upgrading may have one of these saved in UserDefaults. They must fail
+        // to decode so AppState falls back to its default rather than resolving to
+        // something wrong — the raw values are what was persisted, not the case names.
+        for retired in ["ggml-base.en", "ggml-small.en", "whisper-large-v3-turbo", "moonshine-tiny"] {
+            XCTAssertNil(WhisperModel(rawValue: retired), "\(retired) should be gone")
         }
+    }
+
+    func testEveryRemainingModelRoutesToItsOwnEngine() {
+        // The wake word bug was a model reaching the wrong engine. With Whisper and
+        // Moonshine gone the mapping is one-to-one, and this keeps it that way.
+        let engines = WhisperModel.allCases.map(\.engineType)
+        XCTAssertEqual(Set(engines.map(String.init(describing:))).count, WhisperModel.allCases.count)
     }
 }
