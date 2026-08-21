@@ -18,6 +18,23 @@ final class Recorder {
     private static let target = AVAudioFormat(
         commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false)!
 
+    /// Ask for the microphone explicitly.
+    ///
+    /// Letting `AVAudioEngine.start()` trigger the prompt as a side effect is
+    /// unreliable: when access is refused it tends to hand back a zero-channel input
+    /// rather than an error, which reads as "no audio device" and hides the real cause.
+    /// Asking outright means a denial is a denial, and can be reported as one.
+    static func requestAccess() async -> Bool {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            return true
+        case .notDetermined:
+            return await AVCaptureDevice.requestAccess(for: .audio)
+        default:
+            return false
+        }
+    }
+
     func start() throws {
         guard !isRecording else { return }
         samples.removeAll(keepingCapacity: true)

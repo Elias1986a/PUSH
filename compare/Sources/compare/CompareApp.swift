@@ -46,12 +46,19 @@ final class ComparisonModel {
     }
 
     private func begin() {
-        do {
-            try recorder.start()
-            isRecording = true
-            status = "Recording — click Stop when you're done talking."
-        } catch {
-            status = error.localizedDescription
+        status = "Checking microphone access…"
+        Task {
+            guard await Recorder.requestAccess() else {
+                status = "Microphone access denied — System Settings ▸ Privacy & Security ▸ Microphone ▸ PUSH Compare."
+                return
+            }
+            do {
+                try recorder.start()
+                isRecording = true
+                status = "Recording — click Stop when you're done talking."
+            } catch {
+                status = error.localizedDescription
+            }
         }
     }
 

@@ -33,10 +33,11 @@ done
 echo "✍️  Signing..."
 xattr -cr "$APP" 2>/dev/null || true
 if security find-identity -v -p codesigning | grep -q "$IDENTITY"; then
-    codesign --force --options runtime --sign "$IDENTITY" "$APP"
+    codesign --force --options runtime --entitlements compare.entitlements \
+        --sign "$IDENTITY" "$APP"
 else
     echo "   Developer ID not found — signing ad-hoc (the mic grant will not survive rebuilds)"
-    codesign --force --sign - "$APP"
+    codesign --force --entitlements compare.entitlements --sign - "$APP"
 fi
 codesign --verify --verbose "$APP" 2>&1 | tail -2
 

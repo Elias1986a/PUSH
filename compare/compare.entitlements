@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Required. The bundle is signed with the hardened runtime, which denies the
+         microphone outright when this key is absent — the symptom is no permission
+         prompt at all, rather than a prompt that gets refused. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+
+    <!-- Apple's speech assets are fetched by the OS on first use for a locale. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- Deliberately no restricted entitlements (application-identifier,
+         ubiquity-kvstore): those are only honoured alongside an embedded
+         provisioning profile, and signing with them and no profile produces an app
+         that refuses to launch. This tool needs none of them. -->
+</dict>
+</plist>
