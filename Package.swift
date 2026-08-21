@@ -4,6 +4,15 @@ import PackageDescription
 
 // Sparkle is a binary xcframework; SPM links it via @rpath but doesn't embed it
 // in the test bundle, so `swift test` needs an rpath to the resolved artifact.
+// The Moonshine static archive, as an absolute path. It used to be written relative
+// to the working directory, which resolves correctly only when the build is run from
+// the repo root — the comparison tool builds PUSHCore from its own directory and would
+// otherwise fail to link.
+let moonshineArchivePath = URL(fileURLWithPath: #filePath)
+    .deletingLastPathComponent()
+    .appendingPathComponent(".build/artifacts/moonshine-swift/Moonshine/Moonshine.xcframework/macos-arm64_x86_64/libmoonshine.a")
+    .path
+
 let sparkleArtifactPath = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
     .appendingPathComponent(".build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64")
@@ -48,6 +57,10 @@ let package = Package(
             name: "PUSHCore",
             dependencies: [
                 .product(name: "WhisperKit", package: "WhisperKit"),
+                // v0.0.48 names this product "Moonshine"; v0.1.3 renamed it to
+                // "MoonshineVoice". Any package depending on PUSHCore must pin the same
+                // revision — compare/Package.resolved is copied from this package's for
+                // exactly that reason.
                 .product(name: "Moonshine", package: "moonshine-swift"),
                 .product(name: "FluidAudio", package: "FluidAudio")
             ],
@@ -63,7 +76,7 @@ let package = Package(
                 // than at build time.
                 .unsafeFlags([
                     "-Xlinker", "-force_load",
-                    "-Xlinker", ".build/artifacts/moonshine-swift/Moonshine/Moonshine.xcframework/macos-arm64_x86_64/libmoonshine.a"
+                    "-Xlinker", moonshineArchivePath
                 ])
             ]
         ),
@@ -71,8 +84,8 @@ let package = Package(
             name: "PUSH",
             dependencies: [
                 "PUSHCore",
-                .product(name: "WhisperKit", package: "WhisperKit"),
-                .product(name: "Moonshine", package: "moonshine-swift"),
+                // Only FluidAudio remains: SileroVAD lives in the app. The engines and
+                // their SDKs moved to PUSHCore.
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 // .product(name: "Qwen3ASR", package: "speech-swift"),
                 .product(name: "LaunchAtLogin", package: "LaunchAtLogin-Modern"),
@@ -102,7 +115,7 @@ let package = Package(
                 .linkedLibrary("c++"),
                 .unsafeFlags([
                     "-Xlinker", "-force_load",
-                    "-Xlinker", ".build/artifacts/moonshine-swift/Moonshine/Moonshine.xcframework/macos-arm64_x86_64/libmoonshine.a"
+                    "-Xlinker", moonshineArchivePath
                 ])
             ]
         ),

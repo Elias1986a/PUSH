@@ -62,3 +62,6 @@ ui-debug.log
 .claude/
 build.log
 dist-build/
+
+# Local comparison tool build output
+compare/.build/

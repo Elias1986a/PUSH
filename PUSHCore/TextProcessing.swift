@@ -15,6 +15,28 @@ public actor TranscriptionPipeline {
 
     init() {}
 
+    // MARK: - Engine routing
+
+    /// Route audio to the engine backing `model`. Shared by the main pipeline
+    /// and the wake word listener so both always use the loaded engine.
+    public static func transcribe(audioData: Data, using model: WhisperModel) async throws -> String {
+        switch model.engineType {
+        case .moonshine:
+            return try await MoonshineEngine.shared.transcribe(audioData: audioData)
+        case .parakeet:
+            return try await ParakeetEngine.shared.transcribe(audioData: audioData)
+        case .parakeetUnified:
+            return try await ParakeetUnifiedEngine.shared.transcribe(audioData: audioData)
+        case .parakeetStreaming:
+            return try await ParakeetStreamingEngine.shared.transcribe(audioData: audioData)
+        case .whisperKit:
+            return try await WhisperEngine.shared.transcribe(audioData: audioData)
+        case .appleSpeech:
+            guard #available(macOS 26, *) else { throw PipelineError.requiresNewerSystem }
+            return try await AppleSpeechEngine.shared.transcribe(audioData: audioData)
+        }
+    }
+
     // MARK: - Text Post-Processing
 
     /// Capitalize the first letter of the text and the first letter after sentence-ending punctuation
@@ -892,5 +914,19 @@ public actor TranscriptionPipeline {
             in: text, options: [],
             range: NSRange(location: 0, length: nsText.length),
             withTemplate: "$1 ")
+    }
+}
+
+/// Failures that belong to routing itself rather than to any one engine.
+public enum PipelineError: LocalizedError {
+    /// Reachable only from a saved preference that outlived a downgrade — the picker
+    /// filters this model out on systems that can't run it.
+    case requiresNewerSystem
+
+    public var errorDescription: String? {
+        switch self {
+        case .requiresNewerSystem:
+            return "Apple Speech requires macOS 26 or later"
+        }
     }
 }
