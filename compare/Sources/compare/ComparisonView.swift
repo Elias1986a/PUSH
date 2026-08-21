@@ -173,6 +173,18 @@ private struct EngineRow: View {
                 }
             }
 
+            // Shown separately from the transcription time and never mixed into it: a
+            // cold Neural Engine compile is minutes for a large model and seconds for a
+            // small one, which would swamp the number this tool exists to compare.
+            if run.loadSeconds > 1 {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.arrow.circlepath").font(.caption2)
+                    Text("\(run.loadSeconds, format: .number.precision(.fractionLength(1)))s to load and warm up — one-time, not counted above")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.tertiary)
+            }
+
             // Both stages, because the two failure modes look identical in the final text
             // alone: a word the model misheard, and a word the pipeline mangled.
             LabeledText(label: "raw", text: run.raw)

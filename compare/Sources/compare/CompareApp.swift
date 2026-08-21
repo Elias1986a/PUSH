@@ -81,11 +81,15 @@ final class ComparisonModel {
         Task {
             // Results are shown as each engine finishes rather than all at the end —
             // with several engines in the list the wait is otherwise long and blank.
-            await EngineComparison.run(audio: audio, models: models) { run in
-                comparison.runs.append(run)
-                self.comparisons[0] = comparison
-                self.pending -= 1
-            }
+            await EngineComparison.run(
+                audio: audio,
+                models: models,
+                onPhase: { self.status = $0 },
+                onResult: { run in
+                    comparison.runs.append(run)
+                    self.comparisons[0] = comparison
+                    self.pending -= 1
+                })
 
             // Cleanup runs once, on the fastest successful engine's raw text. Once per
             // engine would multiply a ~0.9s cost that is itself the thing being shown.
