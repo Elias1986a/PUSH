@@ -9,7 +9,47 @@ POS tagger).
 
 Nothing is left unmerged. Both feature branches that were waiting are in.
 
-### Unreleased on main: two Apple engines (stages 1–2 of 4)
+### The comparison tool works, and here are the numbers
+
+`compare/` — its own package, local only, never shipped. One recording through every
+engine plus Wispr Flow. Build and run it with `./compare/build_compare.sh`.
+
+Measured on one 8.3s utterance, all seven engines plus Wispr:
+
+| engine | transcribe | × realtime |
+|---|---|---|
+| Parakeet Unified | 0.061s | 136× |
+| Parakeet v2 | 0.074s | 112× |
+| Apple Speech | 0.118s | 70× |
+| Parakeet Streaming | 0.161s | 52× |
+| Wispr Flow (cloud) | 0.492s + 0.095s network | 17× |
+| Whisper Small | 0.947s | 8.8× |
+| Whisper Large V3 Turbo | 1.106s | 7.5× |
+| Moonshine Tiny | fails | — |
+
+**Parakeet Unified beats Wispr's server-side processing by 8×**, before counting their
+network. Accuracy is still unmeasured — that is what the side-by-side is for.
+
+**Things that cost time here, worth not re-learning:**
+
+- **Wispr's database is WAL-mode.** The main file's mtime read *February*, and
+  `sqlite3` returned CANTOPEN, and both had one cause. Recent rows live in
+  `flow.sqlite-wal`; the `-shm` sidecar exists only while Wispr runs, and a read-only
+  connection may not create one. So: **Wispr must be running to be read**, and the open
+  must never use `immutable` — that flag ignores the WAL and hands back the February
+  checkpoint. Diagnosed as a stale database first; it wasn't.
+- **`compare/.build` must be symlinked out of iCloud**, exactly like the root's. iCloud
+  duplicated a file inside a dependency checkout (`GenerateDoccReference 2.swift`) and
+  the build failed on it.
+- **moonshine-swift renames its product between versions** — `Moonshine` in v0.0.48,
+  `MoonshineVoice` in v0.1.3. The root pins v0.0.48, so `compare/Package.resolved` is
+  copied from the root's to keep both on the same revision.
+- **Whisper Large v3 Turbo's first inference compiles for ~2 minutes** on the ANE, at 0%
+  CPU, then caches (3.8s afterwards). It is not hung.
+- A missing Wispr row now says *why*: not installed / not running / not triggered.
+  Rendering nothing was indistinguishable from a broken integration.
+
+### Two Apple engines
 
 Plan: `~/.claude/plans/recursive-churning-moore.md` — Apple models, then a `PUSHCore`
 library split, then a local engine-comparison tool. Stages 3–4 not started.
