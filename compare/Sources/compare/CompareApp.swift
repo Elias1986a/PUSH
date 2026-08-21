@@ -106,11 +106,14 @@ final class ComparisonModel {
             // Wispr's cleanup is server-side, so its row lands after every local engine
             // has finished. Absent is the normal case — it only has a result if its own
             // hotkey was held for this utterance too.
-            if WisprReader.isInstalled {
-                self.status = "Waiting for Wispr Flow…"
-                comparison.wispr = await WisprReader.result(around: self.holdStarted, timeout: 8)
-                self.comparisons[0] = comparison
+            self.status = "Waiting for Wispr Flow…"
+            switch await WisprReader.result(around: self.holdStarted, timeout: 8) {
+            case .success(let run):
+                comparison.wispr = run
+            case .failure(let absence):
+                comparison.wisprAbsence = absence.rawValue
             }
+            self.comparisons[0] = comparison
 
             RunLog.append(comparison)
             self.status = ""

@@ -45,23 +45,46 @@ enum WisprReader {
         FileManager.default.fileExists(atPath: databaseURL.path)
     }
 
-    /// Wait for the first Wispr row recorded around `holdStarted`.
+    /// Why there is no Wispr result, so the card can say so.
     ///
-    /// Returns nil when Wispr wasn't triggered for this utterance, isn't running, or
-    /// didn't finish in time. A missing row is the normal case when only this tool's
-    /// button was used, so it is not an error.
-    static func result(around holdStarted: Date, timeout: TimeInterval) async -> WisprRun? {
-        guard isInstalled else { return nil }
+    /// An absent row used to render as nothing at all, which is indistinguishable from
+    /// the tool being broken — and that is exactly how it read.
+    enum Absence: String, Error {
+        case notInstalled = "Wispr Flow isn't installed"
+        case notRunning = "Wispr Flow isn't running — its database can only be read while it is open"
+        case noResult = "Wispr Flow didn't transcribe this one — hold its hotkey while you talk"
+    }
+
+    /// Wait for the first Wispr row recorded around `holdStarted`.
+    static func result(around holdStarted: Date, timeout: TimeInterval) async -> Result<WisprRun, Absence> {
+        guard isInstalled else { return .failure(.notInstalled) }
 
         let lower = stamp(holdStarted.addingTimeInterval(-grace))
         let upper = stamp(holdStarted.addingTimeInterval(grace))
         let deadline = Date().addingTimeInterval(timeout)
+        var everOpened = false
 
         while Date() < deadline {
-            if let row = fetch(between: lower, and: upper) { return row }
+            switch fetch(between: lower, and: upper) {
+            case .row(let run):
+                return .success(run)
+            case .openedButNoRow:
+                everOpened = true
+            case .couldNotOpen:
+                break
+            }
             try? await Task.sleep(for: pollInterval)
         }
-        return nil
+
+        // Distinguishing these two is the whole point: one means "hold the other hotkey
+        // too", the other means "launch the app first".
+        return .failure(everOpened ? .noResult : .notRunning)
+    }
+
+    private enum FetchOutcome {
+        case row(WisprRun)
+        case openedButNoRow
+        case couldNotOpen
     }
 
     /// Their timestamps look like "2026-08-21 00:34:24.757 +00:00" — UTC with an
@@ -74,7 +97,7 @@ enum WisprReader {
         return formatter.string(from: date)
     }
 
-    private static func fetch(between lower: String, and upper: String) -> WisprRun? {
+    private static func fetch(between lower: String, and upper: String) -> FetchOutcome {
         var db: OpaquePointer?
 
         // Read-only, and via the URI form so the connection can never be upgraded to a
@@ -91,8 +114,11 @@ enum WisprReader {
         // correct — a closed Wispr has no result for this utterance anyway.
         let uri = "file:\(databaseURL.path)?mode=ro"
         guard sqlite3_open_v2(uri, &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_URI, nil) == SQLITE_OK else {
+            // Almost always SQLITE_CANTOPEN because Wispr is closed: a WAL database
+            // cannot be opened read-only unless its -shm sidecar already exists, and a
+            // read-only connection is not allowed to create one.
             sqlite3_close(db)
-            return nil
+            return .couldNotOpen
         }
         defer { sqlite3_close(db) }
 
@@ -112,7 +138,7 @@ enum WisprReader {
             """
 
         var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else { return nil }
+        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else { return .couldNotOpen }
         defer { sqlite3_finalize(statement) }
 
         sqlite3_bind_text(statement, 1, (lower as NSString).utf8String, -1, nil)
@@ -121,16 +147,16 @@ enum WisprReader {
         guard sqlite3_step(statement) == SQLITE_ROW,
               let rawText = sqlite3_column_text(statement, 0),
               let formattedText = sqlite3_column_text(statement, 1)
-        else { return nil }
+        else { return .openedButNoRow }
 
         let raw = String(cString: rawText).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !raw.isEmpty else { return nil }
+        guard !raw.isEmpty else { return .openedButNoRow }
 
         // Both latencies are milliseconds in their schema.
-        return WisprRun(
+        return .row(WisprRun(
             raw: raw,
             formatted: String(cString: formattedText).trimmingCharacters(in: .whitespacesAndNewlines),
             e2eSeconds: sqlite3_column_double(statement, 2) / 1000,
-            networkSeconds: sqlite3_column_double(statement, 3) / 1000)
+            networkSeconds: sqlite3_column_double(statement, 3) / 1000))
     }
 }

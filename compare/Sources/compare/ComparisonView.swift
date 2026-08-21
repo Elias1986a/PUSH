@@ -149,6 +149,13 @@ private struct ComparisonCard: View {
             if let wispr = comparison.wispr {
                 Divider()
                 WisprRow(wispr: wispr, audioSeconds: comparison.audioSeconds)
+            } else if let absence = comparison.wisprAbsence {
+                Divider()
+                HStack(spacing: 6) {
+                    Image(systemName: "cloud.slash").font(.caption2)
+                    Text(absence).font(.caption2)
+                }
+                .foregroundStyle(.tertiary)
             }
 
             if let cleanup = comparison.cleanup {

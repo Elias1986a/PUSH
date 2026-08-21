@@ -31,6 +31,8 @@ struct Comparison: Codable, Identifiable, Sendable {
     var cleanup: CleanupRun?
     /// Wispr Flow's result for the same utterance, when its hotkey was held too.
     var wispr: WisprRun?
+    /// Why there is no Wispr result. Rendered, so an absent row never reads as a bug.
+    var wisprAbsence: String?
 }
 
 struct CleanupRun: Codable, Sendable {
