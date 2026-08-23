@@ -1,5 +1,45 @@
 # NOTES
 
+## Current state (2026-08-23, v7.1.0 — released)
+
+Settings redesigned from four tabs into a 720x640 sidebar window: General,
+Dictation, Text, Pill, Models, Dictionary. Shipped, notarized, appcast pushed.
+
+**Things worth not re-learning:**
+
+- **`NavigationSplitView` does not work in a `Settings` scene.** It treats
+  `.frame()` as advisory and sizes from content — the window opened at 450x480,
+  then 720x720, then 900x696 across three attempts. `SettingsView` now uses a
+  plain `HStack` (sidebar 196 + detail 524 = 720). Do not "fix" this back.
+- **macOS persists the settings window frame** under
+  `NSWindow Frame com_apple_SwiftUI_Settings_window` in the app's defaults. A
+  stale frame from an older version silently overrides layout, which is what
+  the first 450x480 actually was. `defaults delete` it when testing sizing.
+- **SwiftUI `Form` aligns text field values trailing on macOS**, parking the
+  caret at the right edge of an empty field — it reads as right-to-left. Every
+  field in the window carries `.multilineTextAlignment(.leading)` for this.
+- **`TextField("placeholder", text:)` inside a `Form` renders that string as a
+  LABEL beside the field**, not as placeholder text, so it drew twice and
+  squeezed the field. Use `TextField("", text:, prompt:)` + `.labelsHidden()`.
+- **Verifying this app's UI hijacks the user's screen** (LSUIElement + menu bar
+  extra + `screencapture`). Ask first, batch every pane into one scripted pass,
+  `pkill -x PUSH` after. `osascript ... key code 53` first — a menu left open
+  blocks all System Events queries and looks like "the window never opened".
+- The caret fix is the one thing never confirmed on screen; the user was asked
+  to eyeball it after installing.
+
+**Still open:**
+
+- The app icon is a stock-looking 3D render (`ICON/AppIcon.iconset`) and is now
+  the weakest release-readiness signal. Raised, not actioned.
+- Permissions pane is new behaviour: it polls on appear and on
+  `didBecomeActive` because macOS never notifies. Watch for reports that it
+  shows stale state.
+
+---
+
+## Previous
+
 ## Current state (2026-08-18, v6.5.2 — released)
 
 Seven releases across three days: 6.4.1 (updater menu), 6.4.2 (iCloud
