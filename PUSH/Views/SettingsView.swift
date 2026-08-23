@@ -1,44 +1,345 @@
 import SwiftUI
 import AppKit
+import Combine
 import PUSHCore
 
+/// The settings window.
+///
+/// A sidebar rather than a tab bar: the four tabs this replaced put eight
+/// unrelated sections behind "General" — hotkey, sound, other apps' audio,
+/// formatting, iCloud, pill, live preview, wake word — which is more than a tab
+/// label can honestly describe and more than fits without scrolling.
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    @State private var pane: Pane = .general
+
+    enum Pane: String, CaseIterable, Identifiable {
+        case general, dictation, text, pill, models, dictionary
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .general: return "General"
+            case .dictation: return "Dictation"
+            case .text: return "Text"
+            case .pill: return "Pill"
+            case .models: return "Models"
+            case .dictionary: return "Dictionary"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .general: return "slider.horizontal.3"
+            case .dictation: return "mic"
+            case .text: return "text.alignleft"
+            case .pill: return "capsule"
+            case .models: return "cpu"
+            case .dictionary: return "character.book.closed"
+            }
+        }
+    }
 
     var body: some View {
-        TabView {
-            GeneralSettingsView()
-                .environmentObject(appState)
-                .tabItem {
-                    Label("General", systemImage: "gear")
-                }
-
-            ModelsSettingsView()
-                .environmentObject(appState)
-                .tabItem {
-                    Label("Models", systemImage: "cpu")
-                }
-
-            DictionarySettingsView()
-                .tabItem {
-                    Label("Dictionary", systemImage: "text.book.closed")
-                }
-
-            AboutView()
-                .environmentObject(appState)
-                .tabItem {
-                    Label("About", systemImage: "info.circle")
-                }
+        // A plain split rather than NavigationSplitView: inside a `Settings`
+        // scene that container treats a frame as advisory and sizes itself from
+        // content, which opened the window at 450×480, then 720×720, then
+        // 900×696 across three attempts. A settings window has exactly one
+        // right size, so it is stated here and nothing negotiates it.
+        HStack(spacing: 0) {
+            sidebar
+            Divider()
+            detail
+                .frame(width: 524)
         }
-        .frame(width: 450, height: 400)
+        .frame(width: 720, height: 640)
+        .navigationTitle(pane.title)
+    }
+
+    private var sidebar: some View {
+        List(Pane.allCases, selection: $pane) { item in
+            Label(item.title, systemImage: item.symbol)
+                .tag(item)
+        }
+        .listStyle(.sidebar)
+        .frame(width: 196)
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        switch pane {
+        case .general:
+            GeneralSettingsView().environmentObject(appState)
+        case .dictation:
+            DictationSettingsView().environmentObject(appState)
+        case .text:
+            TextSettingsView().environmentObject(appState)
+        case .pill:
+            PillSettingsView().environmentObject(appState)
+        case .models:
+            ModelsSettingsView().environmentObject(appState)
+        case .dictionary:
+            DictionarySettingsView()
+        }
     }
 }
 
-// MARK: - General Settings
+// MARK: - General
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
+    @StateObject private var permissions = PermissionsModel()
+    @ObservedObject private var updater = UpdaterManager.shared
+
+    /// Sparkle owns the stored value; this mirrors it only for the toggle's
+    /// binding, and writes straight back through on change.
+    @State private var checksAutomatically = UpdaterManager.shared.automaticallyChecksForUpdates
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                HStack(spacing: 15) {
+                    // NSApp's own icon, not a bundled asset: Bundle.module
+                    // resource lookup crashes in distribution builds.
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 56, height: 56)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("PUSH")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Version \(appVersion)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("Offline voice to text")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button(updater.isCheckingForUpdates ? "Checking…" : "Check for Updates…") {
+                        updater.checkForUpdates()
+                    }
+                    .disabled(!updater.canBeInvoked)
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section("Startup") {
+                // Not LaunchAtLogin.Toggle: its binding reads
+                // SMAppService.status synchronously from the view body, which
+                // blocks the main thread ~61ms per render pass. See
+                // LaunchAtLoginModel.
+                Toggle("Open PUSH at login", isOn: Binding(
+                    get: { launchAtLogin.isEnabled },
+                    set: { launchAtLogin.set($0) }
+                ))
+                .task { await launchAtLogin.loadIfNeeded() }
+
+                Toggle("Check for updates automatically", isOn: $checksAutomatically)
+                    .onChange(of: checksAutomatically) { _, newValue in
+                        updater.automaticallyChecksForUpdates = newValue
+                    }
+            }
+
+            Section("iCloud") {
+                Toggle("Sync settings and dictionary across my Macs", isOn: $appState.iCloudSyncEnabled)
+
+                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced. The pill's position stays per-Mac.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Permissions") {
+                PermissionRow(
+                    title: "Microphone",
+                    reason: "PUSH cannot hear you without it.",
+                    status: permissions.microphone,
+                    openSettings: permissions.openSystemSettings
+                )
+                PermissionRow(
+                    title: "Accessibility",
+                    reason: "Needed for the push-to-talk key and for pasting text.",
+                    status: permissions.accessibility,
+                    openSettings: permissions.openSystemSettings
+                )
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear(perform: permissions.refresh)
+        // The round trip to System Settings and back is the whole point: macOS
+        // never tells us the answer changed, so coming back to the front is the
+        // signal.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            permissions.refresh()
+        }
+    }
+}
+
+/// One permission's state. macOS never tells an app that its permissions
+/// changed, so the reason line and button only appear while something is
+/// actually missing — see `PermissionsModel` for when this re-reads.
+private struct PermissionRow: View {
+    let title: String
+    let reason: String
+    let status: PermissionsModel.Status
+    let openSettings: () -> Void
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                if !status.isGranted {
+                    Text(reason)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            if status.isGranted {
+                HStack(spacing: 5) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("Allowed")
+                        .foregroundStyle(.secondary)
+                }
+                .font(.caption)
+            } else {
+                Button("Open System Settings…", action: openSettings)
+            }
+        }
+    }
+}
+
+// MARK: - Dictation
+
+struct DictationSettingsView: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        Form {
+            Section("Push to talk") {
+                Toggle("Hold a key to dictate", isOn: $appState.hotkeyEnabled)
+
+                Picker("Key", selection: $appState.selectedHotkey) {
+                    ForEach(AppState.Hotkey.allCases) { hotkey in
+                        Text(hotkey.displayName).tag(hotkey)
+                    }
+                }
+                .disabled(!appState.hotkeyEnabled)
+
+                Text("Hold the key, speak, release. Press ⎋ Esc while recording to cancel without inserting text.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("While recording") {
+                Toggle("Play a sound when recording starts", isOn: $appState.playSoundOnStart)
+
+                Picker("Other apps' audio", selection: $appState.mediaBehavior) {
+                    ForEach(MediaBehavior.allCases) { behavior in
+                        Text(behavior.displayName).tag(behavior)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text("Lowers the output volume while you dictate, then restores it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Wake word") {
+                Toggle("Start recording when you say a word", isOn: $appState.wakeWordEnabled)
+                    .onChange(of: appState.wakeWordEnabled) { _, newValue in
+                        if newValue {
+                            WakeWordListener.shared.startListening()
+                        } else {
+                            WakeWordListener.shared.stopListening()
+                        }
+                    }
+
+                HStack {
+                    Text("Word")
+                    Spacer()
+                    // labelsHidden + prompt: inside a Form the first argument
+                    // becomes a *label* beside the field, so "push" was drawn
+                    // twice — once as a label, once as placeholder text.
+                    TextField("", text: $appState.wakeWord, prompt: Text("push"))
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.leading)
+                        .frame(width: 128)
+                }
+                .disabled(!appState.wakeWordEnabled)
+
+                Text("Recording stops after a second of silence. Push to talk keeps working. Listening for a wake word holds the microphone open the whole time.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Text
+
+struct TextSettingsView: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        Form {
+            Section("Formatting") {
+                Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
+            }
+
+            Section("Spoken corrections") {
+                Toggle("Act on corrections you say out loud", isOn: $appState.resolveSelfCorrections)
+
+                Text("Say “the red car, I mean the blue car” and only “the blue car” is pasted. Also recognises “no wait”, “make that” and “scratch that”.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                // Showing it beats describing it: the old copy spent a
+                // paragraph on what one example makes obvious.
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("You say")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Book the table for ")
+                        + Text("six").strikethrough().foregroundColor(.secondary)
+                        + Text(", I mean eight")
+
+                    Divider()
+
+                    Text("PUSH inserts")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Book the table for eight")
+                }
+                .padding(.vertical, 4)
+
+                Text("Words like “sorry” and “actually” are ignored on purpose — too often ordinary speech, and a wrong guess deletes words you meant to keep.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Pill
+
+struct PillSettingsView: View {
+    @EnvironmentObject var appState: AppState
 
     /// Keyed off the *selected* model rather than the active one, so the toggle
     /// greys out the moment you pick another model instead of waiting for the
@@ -49,78 +350,30 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            Section {
-                // Not LaunchAtLogin.Toggle: its binding reads
-                // SMAppService.status synchronously from the view body, which
-                // blocks the main thread ~61ms per render pass. See
-                // LaunchAtLoginModel.
-                Toggle("Start PUSH at login", isOn: Binding(
-                    get: { launchAtLogin.isEnabled },
-                    set: { launchAtLogin.set($0) }
-                ))
-                .task { await launchAtLogin.loadIfNeeded() }
-            }
-
-            Section("Hotkey") {
-                Picker("Push-to-talk key", selection: $appState.selectedHotkey) {
-                    ForEach(AppState.Hotkey.allCases) { hotkey in
-                        Text(hotkey.displayName).tag(hotkey)
-                    }
-                }
-
-                Toggle("Enable hotkey", isOn: $appState.hotkeyEnabled)
-                Toggle("Play sound when recording starts", isOn: $appState.playSoundOnStart)
-                Picker("While dictating", selection: $appState.mediaBehavior) {
-                    ForEach(MediaBehavior.allCases) { behavior in
-                        Text(behavior.displayName).tag(behavior)
-                    }
-                }
-
-                Text("Lowers output volume while recording, then restores it.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Text("Press Esc while recording to cancel without inserting text.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Section("Formatting") {
-                Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
-
-                Toggle("Act on spoken corrections", isOn: $appState.resolveSelfCorrections)
-
-                Text("Say \"the red car, I mean the blue car\" and only \"the blue car\" is pasted. Recognises \"I mean\", \"no wait\", \"make that\", \"scratch that\" and similar. Ambiguous words like \"sorry\" and \"actually\" are ignored on purpose — they're too often ordinary speech, and a wrong guess deletes words you meant to keep.\n\nThe live preview shows what you said, uncorrected. Corrections apply to the pasted text only.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Section("iCloud") {
-                Toggle("Sync settings and dictionary across my Macs", isOn: $appState.iCloudSyncEnabled)
-
-                Text("Uses the iCloud account this Mac is already signed into — no separate login. Dictionary entries are merged, never replaced, so adding a word on one Mac can't remove one added on another. The pill's position stays per-Mac, since a notched laptop and an external display want different answers.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Section("Pill") {
-                Picker("Position", selection: $appState.pillPosition) {
+            Section("Position") {
+                HStack(spacing: 26) {
+                    Spacer()
                     ForEach(AppState.PillPosition.allCases) { position in
-                        Text(position.displayName).tag(position)
+                        PillPositionThumbnail(
+                            position: position,
+                            isSelected: appState.pillPosition == position
+                        )
+                        .onTapGesture { appState.pillPosition = position }
                     }
+                    Spacer()
                 }
-                .pickerStyle(.segmented)
+                .padding(.vertical, 6)
 
-                Text("At the top the pill hangs off the screen edge under the notch, so a live transcript sits where you're already reading. At the bottom it floats as a capsule, out of the way.")
+                Text("At the bottom the pill floats as a capsule, out of the way. At the top it hangs off the screen edge under the notch, where you are already reading.")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
-            Section("Live Preview") {
+            Section("Live preview") {
                 Toggle("Show text in the pill as you speak", isOn: $appState.showLivePreview)
                     .disabled(!supportsLivePreview)
 
-                Picker("Size", selection: $appState.previewSize) {
+                Picker("Text size", selection: $appState.previewSize) {
                     ForEach(AppState.PreviewSize.allCases) { size in
                         Text(size.displayName).tag(size)
                     }
@@ -129,87 +382,257 @@ struct GeneralSettingsView: View {
                 .disabled(!supportsLivePreview || !appState.showLivePreview)
 
                 Text(supportsLivePreview
-                     ? "Rough transcript, about two seconds behind you. The final text is cleaned up before it's inserted."
-                     : "Only Parakeet Streaming transcribes while you speak — switch to it above to use the live preview.")
+                     ? "A rough transcript, about two seconds behind you — the final text is cleaned up before it is inserted."
+                     : "Only Parakeet Streaming transcribes while you speak, and \(appState.selectedWhisperModel.shortName) is selected. Switch in Models to turn this on.")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+/// A little screen showing where the pill sits. Cheaper to understand than the
+/// paragraph it replaced, and it is the one place the brand's pulse colour
+/// appears outside the pill itself.
+private struct PillPositionThumbnail: View {
+    let position: AppState.PillPosition
+    let isSelected: Bool
+
+    private static let pulse = Color(red: 0.69, green: 1.0, blue: 0.0)
+    private static let desktop = Color(red: 0.43, green: 0.49, blue: 0.55)
+
+    var body: some View {
+        VStack(spacing: 7) {
+            ZStack {
+                Rectangle().fill(Self.desktop)
+
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.22))
+                        .frame(height: 12)
+                    Spacer(minLength: 0)
+                }
+
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Color.white.opacity(0.86))
+                    .frame(width: 132, height: 60)
+            }
+            .frame(width: 176, height: 112)
+            .overlay(alignment: position == .top ? .top : .bottom) {
+                pill
+                    .padding(.bottom, position == .top ? 0 : 14)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 7))
+            .overlay {
+                RoundedRectangle(cornerRadius: 7)
+                    .strokeBorder(isSelected ? Color.accentColor : Color.black.opacity(0.12),
+                                  lineWidth: isSelected ? 2.5 : 0.5)
             }
 
-            Section("Wake Word (Hands-Free Mode)") {
-                Toggle("Enable wake word activation", isOn: $appState.wakeWordEnabled)
-                    .onChange(of: appState.wakeWordEnabled) { _, newValue in
-                        if newValue {
-                            WakeWordListener.shared.startListening()
-                        } else {
-                            WakeWordListener.shared.stopListening()
-                        }
-                    }
+            Text(position.displayName)
+                .font(.caption)
+                .fontWeight(isSelected ? .medium : .regular)
+        }
+        .contentShape(Rectangle())
+    }
 
-                if appState.wakeWordEnabled {
-                    HStack {
-                        Text("Wake word")
-                        Spacer()
-                        TextField("push", text: $appState.wakeWord)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 120)
+    @ViewBuilder
+    private var pill: some View {
+        if position == .top {
+            waveform
+                .frame(width: 96, height: 20)
+                .background(
+                    UnevenRoundedRectangle(
+                        bottomLeadingRadius: 8,
+                        bottomTrailingRadius: 8
+                    )
+                    .fill(Color(white: 0.11))
+                )
+        } else {
+            waveform
+                .frame(width: 84, height: 22)
+                .background(Capsule().fill(Color(white: 0.11).opacity(0.92)))
+        }
+    }
+
+    private var waveform: some View {
+        HStack(spacing: 3) {
+            ForEach([CGFloat(6), 10, 7, 11, 5], id: \.self) { height in
+                Capsule()
+                    .fill(Self.pulse)
+                    .frame(width: 2.5, height: height)
+            }
+        }
+    }
+}
+
+// MARK: - Models
+
+struct ModelsSettingsView: View {
+    @EnvironmentObject var appState: AppState
+
+    /// Snapshot of the filesystem check for every model — kept in @State so
+    /// download/delete actually refresh the view, and so the list does not stat
+    /// four directories on every render pass.
+    @State private var downloaded: Set<AppState.WhisperModel> = []
+    @State private var downloadingModel: AppState.WhisperModel?
+    @State private var downloadProgress: Double = 0
+    @State private var downloadStatus: String = ""
+    @State private var downloadError: String?
+    @State private var appleStatus: AppleSpeechAssetStatus = .unknown
+    @State private var storageBytes: Double = 0
+
+    var body: some View {
+        Form {
+            Section("Speech model") {
+                ForEach(AppState.WhisperModel.selectable) { model in
+                    modelRow(model)
+                }
+
+                Text("Every model runs on this Mac. Nothing you say is sent anywhere.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Storage") {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Downloaded models")
+                        Text(storageBytes > 0
+                             ? "\(Self.format(bytes: storageBytes)) in Application Support"
+                             : "Nothing downloaded yet")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    Text("Say \"\(appState.wakeWord)\" to start recording. Recording stops automatically after 1 second of silence. Push-to-talk hotkey still works.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.selectFile(
+                            nil,
+                            inFileViewerRootedAtPath: ParakeetUnifiedEngine.modelDirectory
+                                .deletingLastPathComponent().path
+                        )
+                    }
+                    .disabled(storageBytes == 0)
                 }
             }
         }
         .formStyle(.grouped)
-        .padding()
-    }
-}
-
-// MARK: - Models Settings
-
-struct ModelsSettingsView: View {
-    @EnvironmentObject var appState: AppState
-    @State private var isDownloading = false
-    @State private var downloadProgress: Double = 0
-    @State private var downloadStatus: String = ""
-    @State private var downloadError: String?
-    /// Snapshot of the filesystem check — kept in @State so delete/download
-    /// actually refresh the view (a computed property wouldn't re-render).
-    @State private var isDownloaded = false
-    @State private var appleStatus: AppleSpeechAssetStatus = .unknown
-
-    private var selectedModel: AppState.WhisperModel {
-        appState.selectedWhisperModel
-    }
-
-    private var modelFolderPath: URL {
-        switch selectedModel.engineType {
-        case .parakeet:
-            return ParakeetEngine.modelDirectory
-        case .parakeetUnified:
-            return ParakeetUnifiedEngine.modelDirectory
-        case .parakeetStreaming:
-            return ParakeetStreamingEngine.modelDirectory
-        case .appleSpeech:
-            // The OS owns these assets; there is no folder of ours to reveal. Never
-            // reached — the Apple row shows no "Show in Finder" button.
-            return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .onAppear {
+            refreshDownloaded()
+            refreshAppleStatus()
+            refreshStorage()
         }
     }
 
-    private static func checkDownloaded(_ model: AppState.WhisperModel) -> Bool {
-        switch model.engineType {
-        case .parakeet:
-            return ParakeetEngine.isModelDownloaded()
-        case .parakeetUnified:
-            return ParakeetUnifiedEngine.isModelDownloaded()
-        case .parakeetStreaming:
-            return ParakeetStreamingEngine.isModelDownloaded()
-        case .appleSpeech:
-            // Nothing for us to download — the system installs on demand. Reporting
-            // "downloaded" is what lets the picker activate it immediately.
-            return true
+    // MARK: Rows
+
+    @ViewBuilder
+    private func modelRow(_ model: AppState.WhisperModel) -> some View {
+        let isSelected = appState.selectedWhisperModel == model
+
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 7) {
+                    Text(model.shortName)
+                        .fontWeight(.medium)
+                    if let badge = model.badge {
+                        Text(badge)
+                            .font(.caption2)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color.secondary.opacity(0.15)))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Text(model.modelDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(metaLine(for: model))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if downloadingModel == model {
+                    if downloadProgress > 0 {
+                        ProgressView(value: downloadProgress, total: 1.0)
+                            .progressViewStyle(.linear)
+                    } else {
+                        ProgressView()
+                            .progressViewStyle(.linear)
+                    }
+                    Text(downloadStatus.isEmpty ? "Downloading…" : downloadStatus)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if isSelected, let downloadError {
+                    Text(downloadError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            trailing(for: model)
+                .padding(.top, 2)
+        }
+        .padding(.vertical, 3)
+        .contentShape(Rectangle())
+        .onTapGesture { select(model) }
+    }
+
+    @ViewBuilder
+    private func trailing(for model: AppState.WhisperModel) -> some View {
+        if model == .appleSpeech {
+            // No download button: these assets belong to the OS. A progress bar
+            // we neither drive nor can cancel would be a fiction, so this
+            // reports the system's own state instead.
+            HStack(spacing: 5) {
+                Image(systemName: appleStatusIcon)
+                    .foregroundStyle(appleStatusColor)
+                Text(appleStatusLabel)
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption)
+        } else if downloadingModel == model {
+            EmptyView()
+        } else if downloaded.contains(model) {
+            if model == appState.activeModel {
+                HStack(spacing: 5) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("Active")
+                        .foregroundStyle(.secondary)
+                }
+                .font(.caption)
+            } else {
+                Button("Delete") { deleteModel(model) }
+                    .foregroundStyle(.red)
+            }
+        } else {
+            Button("Download") { downloadModel(model) }
+                .disabled(downloadingModel != nil)
         }
     }
+
+    private func metaLine(for model: AppState.WhisperModel) -> String {
+        if model == .appleSpeech {
+            return "No download · managed by macOS"
+        }
+        return downloaded.contains(model)
+            ? "\(model.downloadSizeLabel) · on this Mac"
+            : "\(model.downloadSizeLabel) · not downloaded"
+    }
+
+    // MARK: Apple asset status
 
     private var appleStatusLabel: String {
         switch appleStatus {
@@ -217,7 +640,7 @@ struct ModelsSettingsView: View {
         case .installed: return "Ready"
         case .willInstall: return "Installs on first use"
         case .installing: return "Installing…"
-        case .unsupported: return "Not available on this Mac"
+        case .unsupported: return "Not available"
         }
     }
 
@@ -240,9 +663,9 @@ struct ModelsSettingsView: View {
     }
 
     /// Ask the system what state its speech assets are in. Only meaningful for
-    /// `.appleSpeech`, so it's a no-op for every other model.
+    /// `.appleSpeech`, which `selectable` already filters out below macOS 26.
     private func refreshAppleStatus() {
-        guard appState.selectedWhisperModel == .appleSpeech else { return }
+        guard AppState.WhisperModel.selectable.contains(.appleSpeech) else { return }
         guard #available(macOS 26, *) else {
             appleStatus = .unsupported
             return
@@ -262,7 +685,19 @@ struct ModelsSettingsView: View {
         }
     }
 
-    /// Load the model and swap it in as the active one, surfacing errors inline.
+    // MARK: Selection
+
+    /// Picking a row records the preference; the swap only happens once the
+    /// model is actually on disk, so dictation keeps working meanwhile.
+    private func select(_ model: AppState.WhisperModel) {
+        guard appState.selectedWhisperModel != model else { return }
+        downloadError = nil
+        appState.selectedWhisperModel = model
+        if downloaded.contains(model) || model == .appleSpeech {
+            activate(model)
+        }
+    }
+
     private func activate(_ model: AppState.WhisperModel) {
         Task {
             do {
@@ -273,113 +708,51 @@ struct ModelsSettingsView: View {
         }
     }
 
-    var body: some View {
-        Form {
-            Section("Speech Model") {
-                Picker("Model", selection: $appState.selectedWhisperModel) {
-                    ForEach(AppState.WhisperModel.selectable) { model in
-                        Text(model.displayName).tag(model)
-                    }
-                }
+    // MARK: Filesystem
 
-                Text(selectedModel.modelDescription)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                if selectedModel == .appleSpeech {
-                    // No download button: these assets belong to the OS. A progress bar
-                    // we neither drive nor can cancel would be a fiction, so this row
-                    // reports the system's own state instead.
-                    HStack(spacing: 8) {
-                        Label(appleStatusLabel, systemImage: appleStatusIcon)
-                            .foregroundColor(appleStatusColor)
-                        Spacer()
-                    }
-                    Text("macOS manages this model. The first dictation in a new language may pause while the system installs it.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    HStack(spacing: 8) {
-                        if isDownloaded {
-                            Label("Downloaded", systemImage: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        } else {
-                            Label("Not downloaded", systemImage: "icloud.and.arrow.down")
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-
-                        if isDownloading {
-                            // No button while downloading
-                        } else if isDownloaded {
-                            Button("Delete") {
-                                deleteModel()
-                            }
-                            .foregroundColor(.red)
-                        } else {
-                            Button("Download") {
-                                downloadModel()
-                            }
-                        }
-                    }
-
-                    if isDownloading {
-                        VStack(alignment: .leading, spacing: 4) {
-                            if downloadProgress > 0 {
-                                ProgressView(value: downloadProgress, total: 1.0)
-                                    .progressViewStyle(.linear)
-                            } else {
-                                ProgressView()
-                                    .progressViewStyle(.linear)
-                            }
-                            Text(downloadStatus.isEmpty ? "Downloading..." : downloadStatus)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    if let downloadError {
-                        Text(downloadError)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
-
-                    if !isDownloading && isDownloaded {
-                        Button {
-                            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: modelFolderPath.path)
-                        } label: {
-                            Label("Show in Finder", systemImage: "folder")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.secondary)
-                    }
-
-                    if !isDownloading && !isDownloaded {
-                        Text("PUSH keeps using \(appState.activeModel.displayName) until this model is downloaded.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
+    private nonisolated static func folder(for model: AppState.WhisperModel) -> URL? {
+        switch model.engineType {
+        case .parakeet: return ParakeetEngine.modelDirectory
+        case .parakeetUnified: return ParakeetUnifiedEngine.modelDirectory
+        case .parakeetStreaming: return ParakeetStreamingEngine.modelDirectory
+        case .appleSpeech: return nil  // the OS owns these; nothing of ours to show
         }
-        .formStyle(.grouped)
-        .padding()
-        .onAppear {
-            isDownloaded = Self.checkDownloaded(selectedModel)
-            refreshAppleStatus()
+    }
+
+    private static func checkDownloaded(_ model: AppState.WhisperModel) -> Bool {
+        switch model.engineType {
+        case .parakeet: return ParakeetEngine.isModelDownloaded()
+        case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
+        case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
+        case .appleSpeech:
+            // Nothing for us to download — the system installs on demand.
+            return true
         }
-        .onChange(of: appState.selectedWhisperModel) { _, newModel in
-            downloadError = nil
-            isDownloaded = Self.checkDownloaded(newModel)
-            refreshAppleStatus()
-            // Swap immediately when the model is already on disk; otherwise the
-            // user downloads explicitly and the swap happens after that.
-            if isDownloaded {
-                activate(newModel)
-            }
+    }
+
+    private func refreshDownloaded() {
+        downloaded = Set(
+            AppState.WhisperModel.selectable.filter { $0 != .appleSpeech && Self.checkDownloaded($0) }
+        )
+    }
+
+    /// Walks the model directories, so it runs off the main thread — blocking it
+    /// is how this app loses its event tap.
+    private func refreshStorage() {
+        let folders = AppState.WhisperModel.selectable.compactMap(Self.folder(for:))
+        Task {
+            let total = await Task.detached(priority: .utility) {
+                folders.reduce(0) { $0 + Self.directorySize(at: $1) }
+            }.value
+            await MainActor.run { storageBytes = total }
         }
+    }
+
+    private static func format(bytes: Double) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(bytes))
     }
 
     /// Rough on-disk sizes used to derive download progress (engines don't report it).
@@ -391,24 +764,45 @@ struct ModelsSettingsView: View {
         }
     }
 
-    private func downloadModel() {
-        let model = appState.selectedWhisperModel
-        let folder = modelFolderPath
-        isDownloading = true
+    private nonisolated static func directorySize(at url: URL) -> Double {
+        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey]) else {
+            return 0
+        }
+        var total: Double = 0
+        for case let fileURL as URL in enumerator {
+            if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                total += Double(size)
+            }
+        }
+        return total
+    }
+
+    // MARK: Download / delete
+
+    private func downloadModel(_ model: AppState.WhisperModel) {
+        guard let folder = Self.folder(for: model) else { return }
+        // Downloading is also choosing: nobody fetches 600 MB they don't intend
+        // to use.
+        appState.selectedWhisperModel = model
+        downloadingModel = model
         downloadProgress = 0
-        downloadStatus = "Downloading..."
+        downloadStatus = "Downloading…"
         downloadError = nil
+
         Task {
             // Poll the download directory for coarse progress.
             let expected = Self.expectedSize(of: model)
             let pollTask = Task {
                 while !Task.isCancelled {
                     try? await Task.sleep(for: .seconds(1))
-                    let progress = min(Self.directorySize(at: folder) / expected, 0.95)
+                    let onDisk = await Task.detached(priority: .utility) {
+                        Self.directorySize(at: folder)
+                    }.value
+                    let progress = min(onDisk / expected, 0.95)
                     await MainActor.run {
                         downloadProgress = progress
                         if progress > 0.01 {
-                            downloadStatus = "Downloading... \(Int(progress * 100))%"
+                            downloadStatus = "Downloading… \(Int(progress * 100))%"
                         }
                     }
                 }
@@ -423,32 +817,19 @@ struct ModelsSettingsView: View {
                 pollTask.cancel()
                 downloadError = error.localizedDescription
             }
-            isDownloading = false
-            isDownloaded = Self.checkDownloaded(model)
+            downloadingModel = nil
+            refreshDownloaded()
+            refreshStorage()
         }
     }
 
-    private static func directorySize(at url: URL) -> Double {
-        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey]) else {
-            return 0
-        }
-        var total: Double = 0
-        for case let fileURL as URL in enumerator {
-            if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                total += Double(size)
-            }
-        }
-        return total
-    }
-
-    private func deleteModel() {
-        let model = appState.selectedWhisperModel
+    private func deleteModel(_ model: AppState.WhisperModel) {
+        guard let folder = Self.folder(for: model) else { return }
         downloadError = nil
-        let urlToDelete = modelFolderPath
 
         do {
-            if FileManager.default.fileExists(atPath: urlToDelete.path) {
-                try FileManager.default.removeItem(at: urlToDelete)
+            if FileManager.default.fileExists(atPath: folder.path) {
+                try FileManager.default.removeItem(at: folder)
             }
             // Deleting the model that's currently serving: unload it too, so the
             // UI doesn't claim a model that no longer exists on disk.
@@ -458,191 +839,251 @@ struct ModelsSettingsView: View {
         } catch {
             downloadError = "Failed to delete: \(error.localizedDescription)"
         }
-        isDownloaded = Self.checkDownloaded(model)
+        refreshDownloaded()
+        refreshStorage()
     }
 }
 
-// MARK: - Dictionary Settings
+// MARK: - Dictionary
 
 struct DictionarySettingsView: View {
     @ObservedObject private var store = CorrectionsStore.shared
-    @State private var newWrong: String = ""
-    @State private var newRight: String = ""
-    @State private var newContextual: Bool = false
-    @State private var newEntity: String = ""
-    /// True once the user changes the mode control by hand, so auto-defaulting
-    /// (Context for common words) stops overriding their choice.
-    @State private var modeManuallySet: Bool = false
 
-    private var canAdd: Bool {
-        !newWrong.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !newRight.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    /// A row being typed, held here rather than in the store: `addCorrection`
+    /// refuses a half-empty entry, and it is right to — an entry with an empty
+    /// "heard as" would match everything, and the dictionary syncs to iCloud.
+    /// So the new row is a draft until it has both halves.
+    @State private var draft: Draft?
+    @FocusState private var draftFieldFocused: Bool
+
+    private struct Draft {
+        var wrong: String = ""
+        var right: String = ""
+        var contextual: Bool = false
+        var entity: String = ""
+        /// True once the mode control is changed by hand, so auto-defaulting
+        /// (Context for common words) stops overriding that choice.
+        var modeManuallySet: Bool = false
+
+        var isComplete: Bool {
+            !wrong.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !right.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
     }
-
-    private var wrongIsCommonWord: Bool { WordChecker.isCommonWord(newWrong) }
 
     var body: some View {
         Form {
-            Section("Add a Correction") {
-                HStack(spacing: 8) {
-                    TextField("Heard as (e.g. Hammer)", text: $newWrong)
-                        .textFieldStyle(.roundedBorder)
-                        .labelsHidden()
-                        .onChange(of: newWrong) { _, value in
-                            // Default new common-word entries to Context (safer),
-                            // unless the user already picked a mode themselves.
-                            if !modeManuallySet {
-                                newContextual = WordChecker.isCommonWord(value)
-                            }
-                        }
-                    Image(systemName: "arrow.right").foregroundColor(.secondary)
-                    TextField("Should be (e.g. Hamer)", text: $newRight)
-                        .textFieldStyle(.roundedBorder)
-                        .labelsHidden()
-                    Button("Add") {
-                        store.addCorrection(
-                            wrong: newWrong,
-                            right: newRight,
-                            kind: newContextual ? .contextual : .always,
-                            entity: newContextual ? newEntity : nil
-                        )
-                        newWrong = ""
-                        newRight = ""
-                        newEntity = ""
-                        newContextual = false
-                        modeManuallySet = false
-                    }
-                    .disabled(!canAdd)
+            Section("Your dictionary") {
+                if let draft {
+                    draftRow(draft)
                 }
 
-                Picker("Replace", selection: Binding(
-                    get: { newContextual },
-                    set: { newContextual = $0; modeManuallySet = true }
-                )) {
-                    Text("Always").tag(false)
-                    Text("Only in context").tag(true)
-                }
-                .pickerStyle(.segmented)
-
-                if newContextual {
-                    TextField("What is it? (e.g. a person named Hamer)", text: $newEntity)
-                        .textFieldStyle(.roundedBorder)
-                        .labelsHidden()
+                ForEach($store.corrections) { $correction in
+                    correctionRow($correction)
                 }
 
-                if wrongIsCommonWord && !newContextual {
-                    Label("“\(newWrong)” is also a common word — “Only in context” avoids over-correcting it.",
-                          systemImage: "exclamationmark.triangle.fill")
+                if store.corrections.isEmpty && draft == nil {
+                    Text("No corrections yet. Add one with +.")
                         .font(.caption)
-                        .foregroundColor(.orange)
+                        .foregroundStyle(.secondary)
                 }
 
-                Text(newContextual
-                     ? "Replaced only when the surrounding words suggest the entity is meant."
-                     : "Replaced every time it’s heard.")
+                HStack {
+                    Button {
+                        draft = Draft()
+                        draftFieldFocused = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 14)
+                    }
+                    .disabled(draft != nil)
+                    .help("Add a correction")
+                    Spacer()
+                }
+
+                Text(footnote)
                     .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Section("Your Dictionary") {
-                if store.corrections.isEmpty {
-                    Text("No corrections yet.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    ForEach($store.corrections) { $correction in
-                        let entityText = Binding<String>(
-                            get: { correction.entity ?? "" },
-                            set: { $correction.entity.wrappedValue = $0.isEmpty ? nil : $0 }
-                        )
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 8) {
-                                TextField("", text: $correction.wrong)
-                                    .textFieldStyle(.roundedBorder)
-                                    .labelsHidden()
-                                Image(systemName: "arrow.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                TextField("", text: $correction.right)
-                                    .textFieldStyle(.roundedBorder)
-                                    .labelsHidden()
-                                Picker("", selection: $correction.kind) {
-                                    Text("Always").tag(CorrectionsStore.Correction.Kind.always)
-                                    Text("Context").tag(CorrectionsStore.Correction.Kind.contextual)
-                                }
-                                .pickerStyle(.segmented)
-                                .labelsHidden()
-                                .fixedSize()
-                                .help("Always replace, or only when the context fits")
-                                Button {
-                                    store.remove(correction)
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
-                                .buttonStyle(.borderless)
-                                .help("Remove this correction")
-                            }
-                            if correction.kind == .contextual {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "arrow.turn.down.right")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                    TextField("what is it? (e.g. a person named Hamer)", text: entityText)
-                                        .textFieldStyle(.roundedBorder)
-                                        .labelsHidden()
-                                        .font(.caption)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-
-                    Text("Switch any row between Always and Context, edit inline, or remove with the trash icon.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
-        .padding()
-    }
-}
-
-// MARK: - About View
-
-struct AboutView: View {
-    @EnvironmentObject var appState: AppState
-
-    private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        .onDisappear(perform: commitDraft)
     }
 
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "mic.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.accentColor)
-
-            Text("PUSH")
-                .font(.title)
-                .fontWeight(.bold)
-
-            Text("Version \(appVersion)")
-                .foregroundColor(.secondary)
-
-            Text("Voice to text with offline AI")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            Spacer()
-
-            Text("Hold \(appState.selectedHotkey.displayName) to speak · Esc to cancel")
-                .font(.caption)
-                .foregroundColor(.secondary)
+    private var footnote: String {
+        if draft != nil {
+            return "Type what PUSH hears, then what it should insert. Choose “In context” for words that are also ordinary English, so they are replaced when you mean the name and left alone otherwise."
         }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        let count = store.corrections.count
+        return count == 0
+            ? "Corrections are applied to every transcription before it is inserted."
+            : "\(count) correction\(count == 1 ? "" : "s") · applied to every transcription before it is inserted."
+    }
+
+    // MARK: Rows
+
+    @ViewBuilder
+    private func draftRow(_ current: Draft) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                // prompt:, not the first argument — inside a Form that
+                // argument becomes a label beside the field, which both drew
+                // the placeholder twice and squeezed the field to ~65pt.
+                TextField("", text: Binding(
+                    get: { draft?.wrong ?? "" },
+                    set: { value in
+                        draft?.wrong = value
+                        // Default new common-word entries to Context (safer),
+                        // unless the mode was already picked by hand.
+                        if draft?.modeManuallySet == false {
+                            draft?.contextual = WordChecker.isCommonWord(value)
+                        }
+                    }
+                ), prompt: Text("Heard as"))
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity)
+                .focused($draftFieldFocused)
+                .onSubmit(commitDraft)
+                // Focus has to wait for the field to exist; setting it in the
+                // + action lands before this row is in the hierarchy.
+                .onAppear { draftFieldFocused = true }
+
+                Image(systemName: "arrow.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                TextField("", text: Binding(
+                    get: { draft?.right ?? "" },
+                    set: { draft?.right = $0 }
+                ), prompt: Text("Should be"))
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity)
+                .onSubmit(commitDraft)
+
+                modePicker(
+                    isContextual: Binding(
+                        get: { draft?.contextual ?? false },
+                        set: { draft?.contextual = $0; draft?.modeManuallySet = true }
+                    )
+                )
+
+                Button {
+                    draft = nil
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+                .help("Discard this row")
+            }
+
+            if current.contextual {
+                entityField(text: Binding(
+                    get: { draft?.entity ?? "" },
+                    set: { draft?.entity = $0 }
+                ))
+            }
+
+            if WordChecker.isCommonWord(current.wrong) && !current.contextual {
+                Label("“\(current.wrong)” is also a common word — “In context” avoids over-correcting it.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private func correctionRow(_ correction: Binding<CorrectionsStore.Correction>) -> some View {
+        let entityText = Binding<String>(
+            get: { correction.wrappedValue.entity ?? "" },
+            set: { correction.entity.wrappedValue = $0.isEmpty ? nil : $0 }
+        )
+
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                TextField("", text: correction.wrong)
+                    .textFieldStyle(.roundedBorder)
+                    .labelsHidden()
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity)
+
+                Image(systemName: "arrow.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                TextField("", text: correction.right)
+                    .textFieldStyle(.roundedBorder)
+                    .labelsHidden()
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity)
+
+                modePicker(isContextual: Binding(
+                    get: { correction.wrappedValue.kind == .contextual },
+                    set: { correction.kind.wrappedValue = $0 ? .contextual : .always }
+                ))
+
+                Button {
+                    store.remove(correction.wrappedValue)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.red)
+                .help("Remove this correction")
+            }
+
+            if correction.wrappedValue.kind == .contextual {
+                entityField(text: entityText)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func modePicker(isContextual: Binding<Bool>) -> some View {
+        Picker("", selection: isContextual) {
+            Text("Always").tag(false)
+            Text("In context").tag(true)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .fixedSize()
+        .help("Always replace, or only when the context fits")
+    }
+
+    private func entityField(text: Binding<String>) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "arrow.turn.down.right")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            TextField("", text: text, prompt: Text("what is it? (e.g. a person named Hamer)"))
+                .textFieldStyle(.roundedBorder)
+                .labelsHidden()
+                .multilineTextAlignment(.leading)
+                .font(.caption)
+        }
+    }
+
+    // MARK: Draft
+
+    /// Turns a complete draft into a real entry. An incomplete one is dropped —
+    /// leaving a half-typed row behind would be worse than losing it, since it
+    /// cannot be saved anyway.
+    private func commitDraft() {
+        guard let current = draft else { return }
+        if current.isComplete {
+            store.addCorrection(
+                wrong: current.wrong,
+                right: current.right,
+                kind: current.contextual ? .contextual : .always,
+                entity: current.contextual ? current.entity : nil
+            )
+        }
+        draft = nil
     }
 }
 

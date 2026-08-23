@@ -46,7 +46,7 @@ enum ModelLoader {
         let previous = state.activeModel
         let hadModel = state.isModelReady
         state.isWarmingUp = true
-        state.statusMessage = hadModel ? "Loading \(model.displayName)…" : "Loading AI model…"
+        state.statusMessage = hadModel ? "Loading \(model.shortName)…" : "Loading AI model…"
         PushLogger.log("ModelLoader: Activating \(model.rawValue)...")
         let loadStart = Date()
 

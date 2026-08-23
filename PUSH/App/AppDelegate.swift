@@ -31,7 +31,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Pre-load Whisper model in background (will download if needed)
         preloadModels()
+
+        #if DEBUG
+        openSettingsIfRequested()
+        #endif
     }
+
+    #if DEBUG
+    /// `PUSH_OPEN_SETTINGS=1 swift run` opens the settings window on launch.
+    ///
+    /// This app is `LSUIElement`, so its only door to Settings is the menu bar
+    /// extra — which means checking a settings change costs a menu click, and
+    /// scripting that click is unreliable because the window closes again as
+    /// soon as the app loses focus. DEBUG-only: it cannot reach a release build.
+    private func openSettingsIfRequested() {
+        guard ProcessInfo.processInfo.environment["PUSH_OPEN_SETTINGS"] == "1" else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            NSApp.activate(ignoringOtherApps: true)
+            // Renamed in macOS 14; try the modern selector first and fall back
+            // so this keeps working either way.
+            let opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                || NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+            PushLogger.log("AppDelegate: PUSH_OPEN_SETTINGS opened settings = \(opened)")
+        }
+    }
+    #endif
 
     func applicationWillTerminate(_ notification: Notification) {
         hotkeyManager?.stopListening()

@@ -35,6 +35,19 @@ final class UpdaterManager: ObservableObject {
     /// than greying out with no explanation.
     var isCheckingForUpdates: Bool { hasStarted && !canCheckForUpdates }
 
+    /// Whether Sparkle checks on its own schedule (daily, per
+    /// `SUScheduledCheckInterval`). Sparkle owns the storage — the Info.plist
+    /// `SUEnableAutomaticChecks` is only the first-run default — so this is a
+    /// pass-through, not a mirrored copy that could drift.
+    ///
+    /// Readable and writable before `startUpdater()`: `SPUUpdater` keeps this
+    /// in user defaults rather than in started-updater state, which matters
+    /// because the settings window can be opened inside the pre-start minute.
+    var automaticallyChecksForUpdates: Bool {
+        get { controller.updater.automaticallyChecksForUpdates }
+        set { controller.updater.automaticallyChecksForUpdates = newValue }
+    }
+
     private init() {
         // startingUpdater: false is load-bearing. `startUpdater` can put up a
         // modal (permission request, update prompt, error), and a modal runs
