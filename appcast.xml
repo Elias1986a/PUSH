@@ -5,12 +5,12 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 7.1.0</title>
-            <pubDate>Sun, 23 Aug 2026 00:28:06 -0700</pubDate>
-            <sparkle:version>72</sparkle:version>
-            <sparkle:shortVersionString>7.1.0</sparkle:shortVersionString>
+            <title>Version 7.1.1</title>
+            <pubDate>Sun, 23 Aug 2026 01:01:32 -0700</pubDate>
+            <sparkle:version>73</sparkle:version>
+            <sparkle:shortVersionString>7.1.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v7.1.0/PUSH-v7.1.0.zip" type="application/octet-stream" sparkle:edSignature="sK5CTnr6G8QL4hlY3YST1hSqeY5sGLhTEwPu2zxCc08IjAAIyCN4qIHEBXpXz1eFazT3zdvmyaYDQAilN987Cg==" length="6563590" />
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v7.1.1/PUSH-v7.1.1.zip" type="application/octet-stream" sparkle:edSignature="NvYqyxnj47YzxUhwl2meGikyK4+nsNfL0p/opGjMnhNaeNlvSwWji3RFCxutyUv6EyUS//n6na6AKp33uCelDA==" length="5841354" />
         </item>
     </channel>
 </rss>
