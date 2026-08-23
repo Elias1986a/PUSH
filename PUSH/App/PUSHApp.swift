@@ -15,7 +15,12 @@ struct PUSHApp: App {
             // so it carries the loading state: an hourglass until a model is
             // actually serving. The pill says "Loading model…" too, but it only
             // appears over the active app and is easy to miss at login.
-            Image(systemName: appState.isModelReady ? "music.mic" : "hourglass")
+            if appState.isModelReady {
+                // Matches the app icon's microphone; see MicGlyph.
+                Image(nsImage: MicGlyph.menuBarImage)
+            } else {
+                Image(systemName: "hourglass")
+            }
         }
         .menuBarExtraStyle(.menu)
 

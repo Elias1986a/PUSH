@@ -627,9 +627,17 @@ struct ModelsSettingsView: View {
         if model == .appleSpeech {
             return "No download · managed by macOS"
         }
-        return downloaded.contains(model)
-            ? "\(model.downloadSizeLabel) · on this Mac"
-            : "\(model.downloadSizeLabel) · not downloaded"
+        let state = downloaded.contains(model) ? "on this Mac" : "not downloaded"
+        // Trimming the size out of `modelDescription` also removed the only
+        // place that said Streaming and Unified are one download. Deleting
+        // either removes both, so the row has to admit it.
+        if model == .parakeetStreaming || model == .parakeetUnified {
+            let other: AppState.WhisperModel = model == .parakeetStreaming ? .parakeetUnified : .parakeetStreaming
+            if AppState.WhisperModel.selectable.contains(other) {
+                return "\(model.downloadSizeLabel) · shared with \(other.shortName) · \(state)"
+            }
+        }
+        return "\(model.downloadSizeLabel) · \(state)"
     }
 
     // MARK: Apple asset status
@@ -739,7 +747,14 @@ struct ModelsSettingsView: View {
     /// Walks the model directories, so it runs off the main thread — blocking it
     /// is how this app loses its event tap.
     private func refreshStorage() {
-        let folders = AppState.WhisperModel.selectable.compactMap(Self.folder(for:))
+        // Deduplicated: Parakeet Streaming and Parakeet Unified are the same
+        // weights in the same directory, so summing per-model counted 1.21 GB
+        // twice and reported 2.41.
+        let folders = Set(
+            AppState.WhisperModel.selectable
+                .compactMap(Self.folder(for:))
+                .map(\.standardizedFileURL)
+        )
         Task {
             let total = await Task.detached(priority: .utility) {
                 folders.reduce(0) { $0 + Self.directorySize(at: $1) }
@@ -831,9 +846,12 @@ struct ModelsSettingsView: View {
             if FileManager.default.fileExists(atPath: folder.path) {
                 try FileManager.default.removeItem(at: folder)
             }
-            // Deleting the model that's currently serving: unload it too, so the
-            // UI doesn't claim a model that no longer exists on disk.
-            if model == appState.activeModel {
+            // Compare FOLDERS, not models. Streaming and Unified share one
+            // directory, so deleting Streaming while Unified is serving pulls
+            // the active model's files out from under it — and `model ==
+            // activeModel` is false in exactly that case.
+            if let activeFolder = Self.folder(for: appState.activeModel),
+               activeFolder.standardizedFileURL == folder.standardizedFileURL {
                 Task { await ModelLoader.deactivate() }
             }
         } catch {
@@ -878,8 +896,12 @@ struct DictionarySettingsView: View {
                     draftRow(draft)
                 }
 
-                ForEach($store.corrections) { $correction in
-                    correctionRow($correction)
+                ForEach(newestFirst) { correction in
+                    // Look the binding back up by id: the display order is not
+                    // the storage order, and rows must stay editable.
+                    if let index = store.corrections.firstIndex(where: { $0.id == correction.id }) {
+                        correctionRow($store.corrections[index])
+                    }
                 }
 
                 if store.corrections.isEmpty && draft == nil {
@@ -908,6 +930,18 @@ struct DictionarySettingsView: View {
         }
         .formStyle(.grouped)
         .onDisappear(perform: commitDraft)
+    }
+
+    /// Newest first. Storage order is not display order: a merge re-sorts the
+    /// whole list by `modifiedAt` ascending (`CloudSync.mergeCorrections`), so
+    /// inserting locally at the top would survive only until the next sync.
+    /// Sorting the view instead holds either way.
+    private var newestFirst: [CorrectionsStore.Correction] {
+        store.corrections.sorted {
+            $0.modifiedAt == $1.modifiedAt
+                ? $0.id.uuidString > $1.id.uuidString
+                : $0.modifiedAt > $1.modifiedAt
+        }
     }
 
     private var footnote: String {
@@ -970,6 +1004,11 @@ struct DictionarySettingsView: View {
                         set: { draft?.contextual = $0; draft?.modeManuallySet = true }
                     )
                 )
+
+                Button("Add", action: commitDraft)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!current.isComplete)
+                    .help("Add this correction")
 
                 Button {
                     draft = nil
