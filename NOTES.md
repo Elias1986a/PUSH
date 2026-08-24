@@ -1,5 +1,39 @@
 # NOTES
 
+## Current state (2026-08-24, v7.1.2 — clipboard latency)
+
+Fixed slow injection into Outlook on a managed work Mac. `TextInjector` used to
+back up the clipboard by deep-copying every flavor of every pasteboard item
+immediately before pasting — a synchronous cross-process read, on the main
+thread, sitting inside the latency between the user finishing a sentence and
+the text appearing. The snapshot now happens when recording *starts*, on a
+background queue, and is reused at inject time when `changeCount` says the
+clipboard hasn't moved.
+
+**Things worth not re-learning:**
+
+- **`NSPasteboard` is lazy.** `item.data(forType:)` asks the *owning app* to
+  render that flavor on demand, synchronously. Apps that advertise many rich
+  flavors (Outlook, Word, Excel) make that slow; endpoint DLP agents that scan
+  every clipboard access make it much slower. Never do it on a latency path.
+- **Snapshots cross an isolation boundary**, so they're held as
+  `[[String: Data]]` rather than `NSPasteboardItem` (which isn't `Sendable`).
+  Items are rebuilt from memory at restore time — cheap, no IPC.
+- The fix is reasoned, not measured. The user could not run diagnostics on the
+  work Mac (locked down, `CB`-prefixed fleet machine), so the log was never
+  read. If Outlook is still slow after 7.1.2, the remaining suspect is
+  Outlook's *own* paste handling after Cmd+V, which PUSH cannot influence.
+
+**Still open:**
+
+- The app icon is a stock-looking 3D render (`ICON/AppIcon.iconset`) and is now
+  the weakest release-readiness signal. Raised, not actioned.
+- Permissions pane is new behaviour: it polls on appear and on
+  `didBecomeActive` because macOS never notifies. Watch for reports that it
+  shows stale state.
+
+---
+
 ## Current state (2026-08-23, v7.1.0 — released)
 
 Settings redesigned from four tabs into a 720x640 sidebar window: General,
