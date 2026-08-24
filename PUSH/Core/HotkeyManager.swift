@@ -370,6 +370,10 @@ final class HotkeyManager: @unchecked Sendable {
 
             // Start audio recording
             await AudioRecorder.shared.startRecording()
+
+            // Snapshot the clipboard now, while the user is speaking, so the
+            // expensive read is off the path between speech ending and text landing.
+            TextInjector.shared.prepareClipboardSnapshot()
         }
 
         let hotkeyName = AppState.shared.selectedHotkey.displayName
@@ -477,6 +481,9 @@ final class HotkeyManager: @unchecked Sendable {
 
             // Start audio recording WITH VAD enabled
             await AudioRecorder.shared.startRecording(withVAD: true)
+
+            // See above — keep the clipboard read out of the felt latency.
+            TextInjector.shared.prepareClipboardSnapshot()
         }
 
         PushLogger.log("HotkeyManager: Wake word activated - listening with VAD")
