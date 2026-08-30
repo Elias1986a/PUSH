@@ -1,213 +1,115 @@
 # PUSH
 
-Push-to-talk voice to text for macOS with offline AI.
+**Offline voice-to-text for macOS.** Hold a key, speak, release — the text lands
+in whatever you were typing in. Nothing leaves your Mac.
 
-## Features
+**[Download the latest release](https://github.com/Elias1986a/PUSH/releases/latest)** · macOS 15+ · Apple silicon · MIT
 
-- **Push-to-talk**: Hold Right Option (⌥) to speak, release to insert text
-- **Offline AI**: Uses OpenAI Whisper for accurate speech recognition
-- **Works everywhere**: Injects text into any app's text field
-- **Privacy-first**: All processing happens locally, no cloud APIs
-- **Menu bar app**: Unobtrusive - lives in your menu bar with floating pill UI
+---
 
-## Requirements
+## What it does
 
-- macOS 14.0+
-- ~500MB disk space for Whisper model
-- Microphone
-- Accessibility permissions (for global hotkey + text injection)
-
-## Installation
-
-### Option 1: Download Pre-built App ⭐ Recommended
-
-**[Download the latest version](https://github.com/Elias1986a/PUSH/releases/latest)**
-
-1. Download `PUSH-vX.X.X.dmg` from the latest release
-2. Open the downloaded DMG file
-3. Drag PUSH.app to your Applications folder
-4. Done! Launch PUSH from Applications
-
-The app is properly signed and notarized - no security warnings!
-
-### Option 2: Build from Source
-
-**You'll need:**
-- Xcode installed (free from the Mac App Store)
-
-**Steps:**
-
-1. **Download the code:**
-   - Click the green "Code" button at the top of this page
-   - Select "Download ZIP"
-   - Unzip the downloaded file
-
-2. **Open in Xcode:**
-   - Double-click `Package.swift` in the unzipped folder
-   - Wait for Xcode to load the project
-
-3. **Build the app:**
-   - In Xcode, click Product → Run (or press ⌘R)
-   - The app will build and launch automatically
-
-### First Launch Setup
-
-When you run PUSH for the first time:
-
-1. **Grant Microphone Permission:**
-   - A popup will ask for microphone access
-   - Click "OK" to allow
-
-2. **Grant Accessibility Permission:**
-   - Go to  → System Settings → Privacy & Security → Accessibility
-   - Click the lock icon and enter your password
-   - Find "PUSH" in the list and enable the checkbox
-   - If PUSH isn't in the list, click the "+" button and add it
-
-3. **Download the Whisper Model:**
-   - Click the PUSH icon in your menu bar (top-right of screen)
-   - Select "Settings"
-   - Go to the "Models" tab
-   - Choose a model size (Small is recommended for best quality)
-   - Click "Download" - this may take a few minutes
-
-4. **You're ready!**
-   - Click anywhere in a text field (Notes, Messages, email, etc.)
-   - Hold the Right Option (⌥) key
-   - Speak your text
-   - Release the key and your text will appear!
-
-## How to Use
-
-**Basic Usage:**
-1. Click in any text field where you want text to appear
-2. Hold down the **Right Option (⌥)** key (bottom-right of keyboard)
-3. Speak clearly into your microphone
-4. Release the key when done
-5. Wait a moment - your transcribed text will appear!
-
-**Visual Feedback:**
-- While holding the key, you'll see a floating pill with animated dots
-- This shows PUSH is listening to you
-
-**Changing the Hotkey:**
-- Click the PUSH menu bar icon
-- Go to Settings → General
-- Choose a different key from the dropdown
-
-**Choosing a Different Model:**
-- Click the PUSH menu bar icon
-- Go to Settings → Models
-- Select and download the model you prefer
+- **Hold to talk.** Hold Right Option (or any key you pick), speak, release. Esc cancels.
+- **Or say a wake word.** Hands-free start, with voice activity detection ending the take on silence.
+- **Lands anywhere.** Text is inserted into the focused field of any app.
+- **Fully offline.** Speech recognition runs on the Neural Engine. No accounts, no API keys, no network.
+- **Fixes itself as you speak.** "The red car, I mean the blue car" pastes *the blue car*.
+- **Personal dictionary.** Teach it names and jargon it keeps mishearing — globally, or only in context.
+- **Live pill.** A floating capsule shows it is listening; Parakeet Streaming draws the words as you say them.
+- **Menu bar only.** No dock icon, no window. iCloud syncs your dictionary across Macs; Sparkle handles updates.
 
 ## Models
 
-PUSH supports multiple speech recognition engines. Choose the model that fits your hardware:
+All four run on-device. Parakeet Unified is the default.
 
-### WhisperKit Models
+| Model | Download | Notes |
+|---|---|---|
+| **Parakeet Unified** ⭐ | ~600 MB | Most accurate and fastest. Transcribes on release. |
+| Parakeet Streaming | ~600 MB | Transcribes while you speak — long takes land instantly. |
+| Parakeet TDT v2 | ~400 MB | Older English model, smaller download. |
+| Apple Speech | — | Built into macOS 26. Nothing to download. |
 
-| Model | Size | Speed | Accuracy | Best For |
-|-------|------|-------|----------|----------|
-| Whisper Base | ~150 MB | Fast | Good | Balanced speed and accuracy |
-| Whisper Small | ~250 MB | Moderate | Better | Good quality on any Mac |
-| Distil-Large V3 | ~600 MB | Fast | Great | Fast and accurate, English-only |
-| Distil-Large V3 Turbo | ~600 MB | Very Fast | Great | Speed and accuracy, English-only |
-| Whisper Large V3 Turbo | ~632 MB | Fast | Excellent | High accuracy, 99+ languages |
+Whisper and Moonshine were removed in v7.0.0. The numbers below are why.
 
-### Parakeet (NEW in v4.0)
+---
 
-| Model | Size | Speed | Accuracy | Best For |
-|-------|------|-------|----------|----------|
-| **Parakeet TDT v2** | **~400 MB** | **Fastest** | **Best English** | **⭐ Best English accuracy + native punctuation** |
+## Benchmark — measured 18 August 2026
 
-### Qwen3-ASR (NEW in v4.0)
+**8.3 seconds of speech. Seconds to transcript, per engine.**
 
-| Model | Size | Speed | Accuracy | Best For |
-|-------|------|-------|----------|----------|
-| **Qwen3-ASR** | **~680 MB** | **Fast** | **Excellent** | **⭐ Best grammar quality, 52 languages** |
+| PUSH · Parakeet Unified | PUSH · Parakeet TDT v2 | PUSH · Parakeet Streaming | Wispr Flow (cloud) |
+|:---:|:---:|:---:|:---:|
+| **0.061 s** | **0.074 s** | **0.161 s** | **0.492 s** |
+| 136× realtime | 112× realtime | 52× realtime | 17× realtime |
+| on device | on device | on device | + 0.095 s network |
 
-### Moonshine Models
+PUSH's default engine finished the same utterance **8× faster than Wispr Flow's
+server-side processing** — before their round trip is counted at all.
 
-| Model | Size | Speed | Accuracy | Best For |
-|-------|------|-------|----------|----------|
-| Moonshine Tiny | ~45 MB | Ultra-fast | Good | Quick transcription, short speech |
-| Moonshine Base | ~134 MB | Fast | Better | Accurate, variable-length audio |
+<details>
+<summary>Every engine measured that day, including the ones PUSH dropped</summary>
 
-> **Tip:** Parakeet and Qwen3-ASR produce text with native punctuation and grammar — no post-processing needed. Other models benefit from automatic cleanup (filler word removal, capitalization, punctuation).
+Times are release → transcript on one Apple silicon Mac, model loading excluded.
 
-**Which should I choose?**
-- **Parakeet TDT v2** — Best choice for English. Fastest inference, highest accuracy (1.69% WER), and native punctuation. Requires 16 GB+ unified memory.
-- **Qwen3-ASR** — Best grammar and punctuation quality. Supports 52 languages. Requires 16 GB+ unified memory.
-- **Whisper Large V3 Turbo** — Best multilingual model (99+ languages) with good accuracy on 8 GB+ Macs.
-- **Whisper Small** — Great all-rounder for Macs with 8 GB memory.
-- **Moonshine Tiny** — Ultra-lightweight, good for older Macs or when you need instant results.
+| Engine | Transcribe | × realtime |
+|---|---|---|
+| **Parakeet Unified** | **0.061 s** | **136×** |
+| Parakeet TDT v2 | 0.074 s | 112× |
+| Apple Speech | 0.118 s | 70× |
+| Parakeet Streaming | 0.161 s | 52× |
+| Wispr Flow (cloud) | 0.492 s + 0.095 s network | 17× |
+| Whisper Small * | 0.947 s | 8.8× |
+| Whisper Large v3 Turbo * | 1.106 s | 7.5× |
+| Moonshine Tiny | failed to load | — |
 
-**Where are models stored?**
-```
-~/Library/Application Support/PUSH/models/
-```
+Parakeet Unified is **18× faster than Whisper Large v3 Turbo** on the same
+machine. That gap is why Whisper and Moonshine came out in v7.0.0.
 
-You can delete models you're not using to free up disk space.
+</details>
 
-## Permissions Explained
+> These are the figures from that date, on that machine, on that one recording.
+> Every engine here keeps shipping new versions; if you re-run this today you
+> should expect different numbers. The comparison tool that produced them lives
+> in `compare/` — build it with `./compare/build_compare.sh` and measure your
+> own hardware.
 
-PUSH needs two permissions to work:
+<sub>\* **How the Whisper numbers were taken.** Every engine transcribed the
+*same* recorded audio buffer, one at a time — never in parallel, since two
+models competing for the Neural Engine would corrupt each other's timings.
+Whisper ran through WhisperKit's CoreML builds on the Neural Engine, the same
+path PUSH itself used when it shipped Whisper, not a CPU or `whisper.cpp`
+fallback. Each model was loaded **and warmed up before the clock started**, so
+Whisper Large v3 Turbo's ~2-minute first-run CoreML compile is excluded rather
+than charged against it — the timing is a warm, steady-state transcription, the
+best case for Whisper. Output went through the same post-processing for all
+engines. Moonshine Tiny is listed as a failure, not a slow result: its weights
+only ever existed in the upstream package's test resources and never shipped,
+so it could not load at all.</sub>
 
-### Microphone Access
-- **Why?** To record your voice when you hold the hotkey
-- **When?** Only while you're holding the Right Option key
-- **Privacy:** Audio never leaves your computer
+---
 
-### Accessibility Access
-- **Why?** To detect when you press the hotkey and to insert text into apps
-- **When?** Required for the app to work
-- **Privacy:** PUSH only monitors the specific hotkey you choose
+## Setup
 
-**Your privacy is protected:** All voice processing happens on your Mac. Nothing is sent to the internet.
+1. Download the DMG from [Releases](https://github.com/Elias1986a/PUSH/releases/latest), drag PUSH to Applications, launch it. It is signed and notarized.
+2. Allow **Microphone** when asked.
+3. Allow **Accessibility** (System Settings → Privacy & Security → Accessibility) — needed for the global hotkey and for inserting text.
+4. Menu bar icon → Settings → Models → download Parakeet Unified.
+5. Click into any text field, hold Right Option, talk.
 
-## Troubleshooting
+**Build from source:** `swift build` · `swift run` · `swift test`.
+Release builds go through `./build_distribution.sh` (see [DISTRIBUTION.md](DISTRIBUTION.md)).
 
-### Upgrading from v1.0.0: Permissions Not Working
+## Privacy
 
-If you upgraded from v1.0.0 and the hotkey doesn't work:
+Audio is recorded only while the key is held (or after the wake word) and is
+transcribed on this Mac. No audio, no transcripts, and no telemetry are ever
+sent anywhere. Models live in `~/Library/Application Support/PUSH/models/` and
+can be deleted any time.
 
-1. Open System Settings → Privacy & Security
-2. Remove PUSH from:
-   - Accessibility
-   - Microphone
-   - Full Disk Access (if present)
-3. Quit PUSH completely
-4. Relaunch PUSH from Applications
-5. Accept permission prompts when they appear
+## Tech
 
-This is only needed when upgrading from v1.0.0 due to signature changes. Fresh installs work normally.
-
-### Other Issues
-
-- **No permission prompts appear:** Open System Settings manually and add PUSH to Accessibility and Microphone
-- **Hotkey not responding:** Make sure PUSH is enabled in Accessibility settings
-- **No transcription:** Check that a Whisper model is downloaded in Settings → Models
-
-## Tech Stack
-
-Built with:
-- **Swift + SwiftUI** — Native macOS app
-- **[WhisperKit](https://github.com/argmaxinc/WhisperKit)** — Whisper and Distil-Whisper speech recognition
-- **[FluidAudio](https://github.com/FluidInference/FluidAudio)** — NVIDIA Parakeet TDT v2 on CoreML/ANE
-- **[speech-swift](https://github.com/soniqo/speech-swift)** — Qwen3-ASR with MLX + CoreML hybrid inference
-- **[Moonshine](https://github.com/usefulsensors/moonshine)** — Ultra-lightweight speech recognition
-- **Metal acceleration** — Uses your Mac's GPU for fast processing
+Swift · SwiftUI · [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet + Silero VAD on CoreML/ANE) · Apple SpeechAnalyzer · Sparkle
 
 ## Contributing
 
-PUSH is open source and free! Contributions are welcome:
-
-- 🐛 **Report bugs** - [Open an issue](https://github.com/Elias1986a/PUSH/issues)
-- 💡 **Suggest features** - [Start a discussion](https://github.com/Elias1986a/PUSH/discussions)
-- 🔧 **Submit pull requests** - Fork and improve!
-
-## License
-
-MIT - See [LICENSE](LICENSE) file for details.
-
-Free to use, modify, and distribute!
+[Issues](https://github.com/Elias1986a/PUSH/issues) and pull requests welcome. MIT licensed.
