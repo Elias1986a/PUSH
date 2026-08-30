@@ -35,8 +35,21 @@ Whisper and Moonshine were removed in v7.0.0. The numbers below are why.
 
 ## Benchmark — measured 18 August 2026
 
-One 8.3-second utterance, run through every engine on one Apple silicon Mac.
-Times are release → transcript, model loading excluded.
+**8.3 seconds of speech. Seconds to transcript, per engine.**
+
+| PUSH · Parakeet Unified | PUSH · Parakeet TDT v2 | PUSH · Parakeet Streaming | Wispr Flow (cloud) |
+|:---:|:---:|:---:|:---:|
+| **0.061 s** | **0.074 s** | **0.161 s** | **0.492 s** |
+| 136× realtime | 112× realtime | 52× realtime | 17× realtime |
+| on device | on device | on device | + 0.095 s network |
+
+PUSH's default engine finished the same utterance **8× faster than Wispr Flow's
+server-side processing** — before their round trip is counted at all.
+
+<details>
+<summary>Every engine measured that day, including the ones PUSH dropped</summary>
+
+Times are release → transcript on one Apple silicon Mac, model loading excluded.
 
 | Engine | Transcribe | × realtime |
 |---|---|---|
@@ -49,9 +62,10 @@ Times are release → transcript, model loading excluded.
 | Whisper Large v3 Turbo * | 1.106 s | 7.5× |
 | Moonshine Tiny | failed to load | — |
 
-PUSH's default engine finished **8× faster than Wispr Flow's server-side
-processing**, before counting their round trip — and **18× faster than Whisper
-Large v3 Turbo** running locally on the same machine.
+Parakeet Unified is **18× faster than Whisper Large v3 Turbo** on the same
+machine. That gap is why Whisper and Moonshine came out in v7.0.0.
+
+</details>
 
 > These are the figures from that date, on that machine, on that one recording.
 > Every engine here keeps shipping new versions; if you re-run this today you
