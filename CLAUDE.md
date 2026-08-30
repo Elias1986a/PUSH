@@ -7,7 +7,9 @@ text field of any app. All speech recognition runs on-device.
 
 ## Tech Stack
 - Swift, Swift Package Manager executable target (no Xcode project)
-- ASR engines: WhisperKit (CoreML), Moonshine, FluidAudio Parakeet TDT v2
+- ASR engines: FluidAudio Parakeet (TDT v2 / Unified / Streaming) + Apple Speech
+  (macOS 26+). WhisperKit and Moonshine were removed in v7.0.0 — don't reinstate
+  them without re-measuring; Parakeet won on the ANE, not on CPU.
 - Silero VAD via FluidAudio; Sparkle auto-updates; LaunchAtLogin
 
 ## Commands
@@ -19,9 +21,11 @@ text field of any app. All speech recognition runs on-device.
 
 ## Project Structure
 - `PUSH/App` — entry point, AppDelegate, shared AppState
-- `PUSH/Core` — TranscriptionPipeline, HotkeyManager, AudioRecorder, SileroVAD,
+- `PUSH/Core` — TranscriptionPipeline+App, HotkeyManager, AudioRecorder, SileroVAD,
   WakeWordListener, ModelLoader, CorrectionsStore/ContextGate, TextInjector
-- `PUSH/ML` — engine wrappers (WhisperEngine, MoonshineEngine, ParakeetEngine)
+- `PUSHCore` — library target: engine wrappers (ParakeetEngine, ParakeetUnified,
+  ParakeetStreaming, AppleSpeechEngine), TextProcessing, WhisperModel, PushLogger.
+  No SwiftUI, no resources (Bundle.module fatal-asserts in distribution builds).
 - `PUSH/Views` — MenuBarView, SettingsView, FloatingPillView
 - `docs/` — design docs and plans
 
