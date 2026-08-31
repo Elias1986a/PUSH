@@ -18,6 +18,20 @@ public actor AppleSpeechEngine {
     /// The locale whose assets are installed and reserved. `nil` until `loadModel()` succeeds.
     private var readyLocale: Locale?
 
+    /// The user's explicit language choice, or `nil` when they have never picked one.
+    ///
+    /// Actor-isolated instance state rather than a `static var`, for two reasons. It has
+    /// to be read and written from several tasks (settings, the pipeline, warmup) and a
+    /// bare static would be unsynchronised shared mutable state. More importantly, a
+    /// language change has to invalidate `readyLocale` — and only the actor can do both
+    /// atomically. Storing the preference beside the locale it selects keeps "which
+    /// language did we ask for" and "which language is actually loaded" from drifting.
+    ///
+    /// Persistence is deliberately not here: the engine is handed a code, it does not
+    /// know about UserDefaults. Whoever owns the preference restores it and calls
+    /// `setPreferredLanguage(_:)` on launch.
+    private var preferredLanguageCode: String?
+
     /// PUSH hands every engine 16 kHz mono Float32 (see `AudioRecorder`).
     private static let inputSampleRate: Double = 16000
 
@@ -35,13 +49,61 @@ public actor AppleSpeechEngine {
     /// download button — the OS manages these assets, and a progress bar we don't
     /// control would be a fiction.
     public static func installStatus() async -> AssetInventory.Status {
-        guard let locale = await resolveLocale() else { return .unsupported }
+        let preferred = await shared.preferredLanguageCode
+        guard let locale = await resolveLocale(preferred: preferred) else { return .unsupported }
         return await AssetInventory.status(forModules: [SpeechTranscriber(locale: locale, preset: .transcription)])
     }
 
-    /// The user's own locale when the transcriber supports it, else en-US. Returns nil
-    /// when neither is supported, which is the one case the caller must surface.
-    private static func resolveLocale() async -> Locale? {
+    /// Languages this system's transcriber actually supports. Queried from the OS
+    /// rather than listed here, so it tracks whatever Apple ships and can never
+    /// drift from what will really load.
+    ///
+    /// `DictationLanguage.init` does the canonicalisation: Apple hands back
+    /// `Locale.identifier`, which is underscored ("pt_BR"), while Nemotron reports
+    /// hyphenated BCP-47 for the same language. Both lists feed one picker, so they
+    /// have to be spelled the same or the user sees each language twice.
+    public static func supportedLanguages() async -> [DictationLanguage] {
+        await SpeechTranscriber.supportedLocales
+            .map { DictationLanguage(code: $0.identifier) }
+            .sorted()
+    }
+
+    /// Record the user's explicit language choice.
+    ///
+    /// A change drops the loaded locale: without that, someone who switches to
+    /// Portuguese mid-session keeps dictating in English until the app restarts,
+    /// because `transcribe` only loads when `readyLocale` is nil. Unloading also
+    /// releases the old reservation, which matters — the OS caps how many locales
+    /// may be reserved at once, so leaking one per switch would eventually start
+    /// failing the reserve for the language the user actually wants.
+    ///
+    /// The reload itself is left to the next `loadModel()`/`transcribe()` rather than
+    /// done here, so a settings click never waits on an asset install.
+    public func setPreferredLanguage(_ code: String?) async {
+        guard code != preferredLanguageCode else { return }
+        preferredLanguageCode = code
+        if readyLocale != nil {
+            await unloadModel()
+        }
+    }
+
+    /// The locale to transcribe in: the user's explicit choice when the system
+    /// supports it, then their system locale, then en-US. Returns nil only when
+    /// the transcriber supports none of the three — the one case the caller must
+    /// surface rather than silently substituting.
+    ///
+    /// The system-locale guess used to be the whole of this function. It stays as the
+    /// fallback rather than being replaced, so a user who never opens the picker gets
+    /// exactly the behaviour they had before.
+    ///
+    /// Internal rather than private so the tests can check that every language the
+    /// picker offers actually resolves — an offered-but-unresolvable entry would seat
+    /// a choice that then fails to load.
+    static func resolveLocale(preferred: String?) async -> Locale? {
+        if let preferred,
+           let match = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: preferred)) {
+            return match
+        }
         if let match = await SpeechTranscriber.supportedLocale(equivalentTo: Locale.current) {
             return match
         }
@@ -61,8 +123,11 @@ public actor AppleSpeechEngine {
         guard SpeechTranscriber.isAvailable else {
             throw AppleSpeechEngineError.unsupportedSystem
         }
-        guard let locale = await Self.resolveLocale() else {
-            throw AppleSpeechEngineError.unsupportedLocale(Locale.current.identifier)
+        guard let locale = await Self.resolveLocale(preferred: preferredLanguageCode) else {
+            // Name the code that failed, which is the chosen one when there is a choice —
+            // "doesn't support pt-BR" is actionable, "doesn't support en-GB" (the system
+            // locale the user never asked for) sends them looking in the wrong place.
+            throw AppleSpeechEngineError.unsupportedLocale(preferredLanguageCode ?? Locale.current.identifier)
         }
 
         PushLogger.log("AppleSpeechEngine: Preparing \(locale.identifier)...")
