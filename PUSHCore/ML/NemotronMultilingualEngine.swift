@@ -32,7 +32,15 @@ public actor NemotronMultilingualEngine {
     /// a genuine model swap.
     private var loadedVariant: String?
 
-    private init() {}
+    /// Bumped by every `loadModel` call. Actors are reentrant, so this is how a
+    /// load that has been overtaken finds out before it commits — see the
+    /// comment in `loadModel`.
+    private var loadGeneration = 0
+
+    /// Internal rather than private purely so tests can build a known-unloaded
+    /// instance. The app has exactly one engine and must go through `shared`;
+    /// a second instance would mean a second ~600 MB model resident.
+    init() {}
 
     // MARK: - Model Variants
 
@@ -42,16 +50,42 @@ public actor NemotronMultilingualEngine {
     /// bake-off may well revisit this — it is the one number here worth tuning.
     private static let chunkMs = 2240
 
+    /// The language this engine will actually load for.
+    ///
+    /// The app never asks for `"auto"` — the user always picks a language — but
+    /// a stored preference or the comparison tool can still hand us one, so it
+    /// gets resolved rather than trusted. Resolving it *here*, once, before
+    /// anything downstream sees it, is what keeps our own bookkeeping and
+    /// FluidAudio's download path pointed at the same build: see the divergence
+    /// described on `vocabVariant(for:)`.
+    ///
+    /// English is the landing spot rather than the full-vocab build because the
+    /// alternative — letting the model pick — is auto-detection by the back
+    /// door, and this app does not do that.
+    nonisolated static func effectiveLanguageCode(_ languageCode: String) -> String {
+        languageCode.lowercased() == "auto" ? "en-US" : languageCode
+    }
+
     /// Which of the two published model builds serves a language.
     ///
     /// Deliberately duplicates `StreamingNemotronMultilingualAsrManager
     /// .languageDirectory(for:)` rather than calling it, for one difference:
     /// FluidAudio routes `"auto"` to the full-vocab `multilingual` build so
     /// that auto-detection can reach every language. We never want detection,
-    /// so an `"auto"` that somehow reaches this engine lands on English's
-    /// build instead — the smaller, faster one, and the sane default for this
-    /// app's users. Everything else matches FluidAudio exactly; getting the
-    /// mapping wrong downloads the wrong ~600 MB.
+    /// so `"auto"` maps to English's build here — the smaller, faster one.
+    ///
+    /// That divergence is only safe because no raw `"auto"` ever reaches
+    /// FluidAudio: every path through this file resolves it with
+    /// `effectiveLanguageCode(_:)` first, so the build we record and the build
+    /// FluidAudio downloads are always the same one. Forwarding the raw string
+    /// instead loads `multilingual` while recording `latin`, which then makes
+    /// every later latin language take the cheap-switch path onto the wrong,
+    /// slower build with no way back.
+    ///
+    /// Everything other than `"auto"` matches FluidAudio exactly, and
+    /// `testVocabVariantMatchesFluidAudioExceptForAuto` holds us to that on
+    /// every dependency bump — getting the mapping wrong downloads the wrong
+    /// ~600 MB.
     public nonisolated static func vocabVariant(for languageCode: String) -> String {
         let code = languageCode.lowercased()
         if code == "auto" { return "latin" }
@@ -85,7 +119,14 @@ public actor NemotronMultilingualEngine {
 
     /// Where a given language's models land on disk.
     public nonisolated static func modelDirectory(for languageCode: String) -> URL {
-        variantDirectory(vocabVariant(for: languageCode))
+        variantDirectory(vocabVariant(for: effectiveLanguageCode(languageCode)))
+    }
+
+    /// Whether one build is on disk, i.e. whether it can load without a download.
+    private nonisolated static func hasBuild(_ variant: String) -> Bool {
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            atPath: variantDirectory(variant).path)) ?? []
+        return contents.contains { $0.hasSuffix(".mlmodelc") }
     }
 
     /// Everything this engine owns on disk, both builds.
@@ -102,11 +143,21 @@ public actor NemotronMultilingualEngine {
     /// "downloaded" has to mean "at least one language is ready to run" — a
     /// per-language answer would need a per-language row.
     public nonisolated static func isModelDownloaded() -> Bool {
-        ["latin", "multilingual"].contains { variant in
-            let contents = (try? FileManager.default.contentsOfDirectory(
-                atPath: variantDirectory(variant).path)) ?? []
-            return contents.contains { $0.hasSuffix(".mlmodelc") }
-        }
+        ["latin", "multilingual"].contains(where: hasBuild)
+    }
+
+    /// True when the build serving `languageCode` specifically is on disk.
+    ///
+    /// The either-variant answer above is right for the Settings row, but it
+    /// will happily say "Downloaded" immediately before a surprise second
+    /// ~600 MB pull: a user who downloaded Japanese and then picks Spanish
+    /// crosses vocab groups, and on a slow connection that reads as an
+    /// unexplained multi-minute stall while the UI insists the model is already
+    /// there. Anything about to switch language should ask this one and warn.
+    ///
+    /// Built on the same two helpers as the row above so the two cannot drift.
+    public nonisolated static func isModelDownloaded(for languageCode: String) -> Bool {
+        hasBuild(vocabVariant(for: effectiveLanguageCode(languageCode)))
     }
 
     /// Removes both builds — deleting one language's models while leaving the
@@ -153,27 +204,49 @@ public actor NemotronMultilingualEngine {
     /// skipped. Crossing builds (Spanish to Japanese) is a genuine model swap
     /// and has to tear down first.
     public func loadModel(languageCode: String) async throws {
-        let variant = Self.vocabVariant(for: languageCode)
+        // Resolve once, forward the resolved value everywhere below. Passing the
+        // caller's raw string to FluidAudio while deriving `variant` from our own
+        // mapping is how the two end up describing different builds.
+        let code = Self.effectiveLanguageCode(languageCode)
+        let variant = Self.vocabVariant(for: code)
+
+        // Claim this request before the first suspension point. A second
+        // loadModel can start while this one is parked on a ~600 MB download,
+        // and with no token the *slower* call commits its manager last, leaving
+        // the engine transcribing in a language nobody asked for — the exact
+        // silent failure this file's header says it refuses.
+        //
+        // Chosen over a stored `Task` that later callers await: coalescing only
+        // helps identical requests, whereas the dangerous case here is two
+        // *different* languages, and a serial chain would make the second
+        // language sit out the first language's entire download before starting.
+        loadGeneration &+= 1
+        let generation = loadGeneration
 
         if let manager, loadedVariant == variant {
-            await manager.setLanguage(languageCode)
+            await manager.setLanguage(code)
+            guard generation == loadGeneration else { return }
             await manager.setForcedPrefix(true)
-            PushLogger.log("NemotronMultilingualEngine: Switched to \(languageCode) within the \(variant) build")
+            PushLogger.log("NemotronMultilingualEngine: Switched to \(code) within the \(variant) build")
             return
         }
 
         if manager != nil {
-            unloadModel()
+            // Torn down inline rather than through `unloadModel()`, which bumps
+            // the generation to cancel in-flight loads — and would therefore
+            // cancel this one.
+            manager = nil
+            loadedVariant = nil
         }
 
-        PushLogger.log("NemotronMultilingualEngine: Loading \(variant) build (\(Self.chunkMs)ms) for \(languageCode)...")
+        PushLogger.log("NemotronMultilingualEngine: Loading \(variant) build (\(Self.chunkMs)ms) for \(code)...")
 
         do {
             // No `to:` — FluidAudio picks its own cache root, and
             // `variantDirectory(_:)` above mirrors that path rather than
             // dictating it, so the download and the on-disk check cannot drift.
             let shared = try await StreamingNemotronMultilingualAsrManager.downloadAndPreloadShared(
-                languageCode: languageCode,
+                languageCode: code,
                 chunkMs: Self.chunkMs
             )
 
@@ -182,19 +255,33 @@ public actor NemotronMultilingualEngine {
 
             // Order matters: the forced prefix is seeded from the language set
             // just above, so language first, then prefix.
-            await manager.setLanguage(languageCode)
+            await manager.setLanguage(code)
             await manager.setForcedPrefix(true)
+
+            // Overtaken while we were downloading or loading: drop this manager
+            // rather than clobber a newer one. The two commits below stay
+            // adjacent and await-free so the pair can never be seen half-applied.
+            guard generation == loadGeneration else {
+                PushLogger.log("NemotronMultilingualEngine: Discarded a superseded \(variant) load")
+                return
+            }
 
             self.manager = manager
             self.loadedVariant = variant
-            PushLogger.log("NemotronMultilingualEngine: ✅ \(variant) build loaded for \(languageCode)")
+            PushLogger.log("NemotronMultilingualEngine: ✅ \(variant) build loaded for \(code)")
         } catch {
             PushLogger.log("NemotronMultilingualEngine: ❌ Failed to load model: \(error)")
             throw ParakeetEngineError.loadFailed(error.localizedDescription)
         }
     }
 
+    /// Drops the resident model.
+    ///
+    /// Bumps the generation as well, so a load still parked on its download
+    /// discards itself instead of quietly re-loading the engine moments after
+    /// `ModelLoader` asked for it to go away.
     public func unloadModel() {
+        loadGeneration &+= 1
         manager = nil
         loadedVariant = nil
         PushLogger.log("NemotronMultilingualEngine: Model unloaded")
@@ -221,13 +308,6 @@ public actor NemotronMultilingualEngine {
 
     // MARK: - Transcription
 
-    /// Transcribes one utterance of 16 kHz mono float samples.
-    ///
-    /// Resets first: `finish()` clears the accumulated tokens but not the
-    /// encoder's cache-aware state, so without this each utterance would decode
-    /// with the tail of the previous one still in context. `reset()` also
-    /// re-seeds the forced language prefix, which is exactly what a new
-    /// utterance wants.
     /// Batch entry point: one utterance of 16 kHz mono Float32, as `Data`.
     ///
     /// This is what `TranscriptionPipeline` routes to. The engine streams during
@@ -256,6 +336,18 @@ public actor NemotronMultilingualEngine {
         return samples
     }
 
+    /// Transcribes one utterance of 16 kHz mono float samples.
+    ///
+    /// Resets first: `finish()` clears the accumulated tokens but not the
+    /// encoder's cache-aware state, so without this each utterance would decode
+    /// with the tail of the previous one still in context. `reset()` also
+    /// re-seeds the forced language prefix, which is exactly what a new
+    /// utterance wants.
+    ///
+    /// Not serialized against `loadModel`/`unloadModel`, by choice — the
+    /// invariant `ModelLoader` has to honour instead is that no language switch
+    /// or unload is issued mid-utterance. Guarding it here would mean an
+    /// utterance could block a model swap, which is the worse failure.
     public func transcribeFloats(_ samples: [Float]) async throws -> String {
         guard let manager else {
             throw ParakeetEngineError.notInitialized
@@ -270,8 +362,10 @@ public actor NemotronMultilingualEngine {
         let text = try await manager.finish().trimmingCharacters(in: .whitespacesAndNewlines)
         let elapsed = Date().timeIntervalSince(start)
 
-        // Duration + inference time only — never the transcript, and never the
-        // language alongside it.
+        // Duration and inference time only — never the transcript. The chosen
+        // language is logged on the load path as a settings-style event, but
+        // deliberately not here: next to an utterance's length and timing it
+        // starts describing what was said, which a load line never does.
         PushLogger.log(String(
             format: "NemotronMultilingualEngine: Transcribed %.2fs audio in %.3fs (%d chars)",
             Double(samples.count) / 16000.0, elapsed, text.count))
