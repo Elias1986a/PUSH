@@ -35,6 +35,27 @@ enum ModelLoader {
         PushLogger.log("ModelLoader: Deactivated \(state.activeModel.rawValue)")
     }
 
+    /// Point the streaming engine's partials back at the live dictation preview.
+    ///
+    /// The engine no longer knows about AppState; it just reports partials. The
+    /// decision about whether a partial should be shown is the app's, and it is
+    /// asked here rather than inside the engine.
+    ///
+    /// Named rather than inlined into `load` because `setOnPartial` is a single
+    /// slot: the teleprompter borrows it for the length of a take and has to be
+    /// able to give it back. Restoring by re-activating the model wouldn't do —
+    /// `performActivation` early-returns when the model is already active, which
+    /// is exactly the case when the user was on streaming to begin with.
+    static func installDictationPartialHandler() async {
+        await ParakeetStreamingEngine.shared.setOnPartial { partial in
+            Task { @MainActor in
+                guard AppState.shared.showLivePreview,
+                      AppState.shared.isListening else { return }
+                AppState.shared.livePartialText = partial
+            }
+        }
+    }
+
     // MARK: - Private
 
     private static func performActivation(_ model: AppState.WhisperModel) async throws {
@@ -92,16 +113,7 @@ enum ModelLoader {
         case .parakeet: try await ParakeetEngine.shared.loadModel()
         case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
         case .parakeetStreaming:
-            // The engine no longer knows about AppState; it just reports partials. The
-            // decision about whether a partial should be shown is the app's, and it is
-            // asked here rather than inside the engine.
-            await ParakeetStreamingEngine.shared.setOnPartial { partial in
-                Task { @MainActor in
-                    guard AppState.shared.showLivePreview,
-                          AppState.shared.isListening else { return }
-                    AppState.shared.livePartialText = partial
-                }
-            }
+            await installDictationPartialHandler()
             try await ParakeetStreamingEngine.shared.loadModel()
         case .appleSpeech:
             guard #available(macOS 26, *) else { throw PipelineError.requiresNewerSystem }

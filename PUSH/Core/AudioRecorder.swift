@@ -118,7 +118,23 @@ final class AudioRecorder: @unchecked Sendable {
         audioEngine = engine
     }
 
-    func startRecording(withVAD: Bool = false) async {
+    /// What the capture is for. Dictation captures a short utterance and keeps
+    /// the bytes to transcribe on release; the teleprompter runs for the length
+    /// of a take and only ever consumes partials.
+    enum CaptureMode {
+        case dictation
+        /// Minutes, not seconds. Keeps no buffer, and periodically resets the
+        /// ASR utterance so a long take doesn't accumulate context nobody reads.
+        case continuous
+    }
+
+    /// How long a `.continuous` segment runs before the streaming utterance is
+    /// reset. The prompter's aligner matches on the *trailing* few tokens
+    /// against a window near its cursor, so a partial that restarts from empty
+    /// re-matches immediately — resetting costs nothing and bounds the context.
+    private static let continuousSegment: TimeInterval = 15
+
+    func startRecording(withVAD: Bool = false, mode: CaptureMode = .dictation) async {
         guard !isRecording, !isStarting else { return }
         isStarting = true
         defer { isStarting = false }
@@ -132,13 +148,19 @@ final class AudioRecorder: @unchecked Sendable {
         PressTiming.mark("engine ready")
 
         // The key can be released while the capture path is still warming; don't
-        // strand a recording nobody is waiting for.
-        guard AppState.shared.isListening else {
-            PushLogger.log("AudioRecorder: press ended before the capture path was ready")
-            return
+        // strand a recording nobody is waiting for. Continuous capture has no
+        // key behind it, so there is no press to have ended.
+        if mode == .dictation {
+            guard AppState.shared.isListening else {
+                PushLogger.log("AudioRecorder: press ended before the capture path was ready")
+                return
+            }
         }
 
-        audioData = Data()
+        // Nil in continuous mode: the prompter reads partials as they arrive and
+        // never transcribes a buffer, so retaining one would cost ~4MB/minute to
+        // hold bytes nobody reads.
+        audioData = mode == .dictation ? Data() : nil
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
         PressTiming.mark("inputFormat")
@@ -163,16 +185,32 @@ final class AudioRecorder: @unchecked Sendable {
         // task is ready, so no leading audio is lost.
         let isStreamingModel = AppState.shared.activeModel.engineType == .parakeetStreaming
 
+        let segmentSamples = Int(sampleRate * Self.continuousSegment)
+
         drainTask = Task { [weak self] in
             if isStreamingModel {
                 await ParakeetStreamingEngine.shared.beginUtterance()
             }
+            var samplesThisSegment = 0
             for await samples in stream {
                 guard let self else { return }
                 self.audioData?.append(samples.withUnsafeBufferPointer { Data(buffer: $0) })
-                await self.sileroVAD.processSamples(samples)
+                // Continuous capture has nothing to auto-stop, and Silero is a
+                // CoreML inference per buffer — not worth running for the length
+                // of a take to answer a question nobody asked.
+                if mode == .dictation {
+                    await self.sileroVAD.processSamples(samples)
+                }
                 if isStreamingModel {
                     await ParakeetStreamingEngine.shared.feed(samples)
+
+                    if mode == .continuous {
+                        samplesThisSegment += samples.count
+                        if samplesThisSegment >= segmentSamples {
+                            await ParakeetStreamingEngine.shared.beginUtterance()
+                            samplesThisSegment = 0
+                        }
+                    }
                 }
             }
         }

@@ -90,6 +90,11 @@ public struct ScriptAligner: Sendable {
         /// rather than observed.
         public let cursor: Double
         public let state: Tracking
+
+        public init(cursor: Double, state: Tracking) {
+            self.cursor = cursor
+            self.state = state
+        }
     }
 
     // MARK: - Stored state
