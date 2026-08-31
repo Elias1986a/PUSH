@@ -24,6 +24,62 @@ enum ModelLoader {
         try await task.value
     }
 
+    /// Whether changing `changed`'s dictation language has to reload an engine now.
+    ///
+    /// Only the *active* engine is holding a language in memory. Every other
+    /// engine reads `AppState.language(for:)` on its way up, so a preference
+    /// recorded for a model the user isn't running needs nothing more than the
+    /// write — reloading it would download and warm a model to serve nobody.
+    ///
+    /// `nonisolated` and parameterised rather than reading `AppState.shared`
+    /// itself so the decision can be tested without standing up the singleton;
+    /// `reloadForLanguageChange` and the picker both route through this one
+    /// predicate so the view's "should I even start a task" question and the
+    /// loader's guard can never answer differently.
+    nonisolated static func languageChangeNeedsReload(
+        changed: AppState.WhisperModel,
+        activeModel: AppState.WhisperModel,
+        isModelReady: Bool
+    ) -> Bool {
+        isModelReady && changed == activeModel
+    }
+
+    /// Re-load `model` so a language change takes effect on the running engine.
+    ///
+    /// Exists because `activate(_:)` deliberately early-returns when the model
+    /// is already active — the right call for a repeated row tap, and exactly
+    /// wrong here. Without this path a user switches to Portuguese, watches the
+    /// picker update, and keeps dictating in English until they quit the app.
+    ///
+    /// Not folded into `activate` as a `force:` flag: the two differ in more
+    /// than a guard. There is no previous engine to keep serving and no
+    /// engine-family swap to unload, and the failure state is different — a
+    /// half-completed language reload leaves *nothing* resident (both engines
+    /// tear down before they rebuild), so it has to report the model as
+    /// unavailable rather than "the old one is still fine".
+    ///
+    /// Errors are absorbed rather than thrown: the caller is a picker whose
+    /// choice has already been recorded, `AppState` carries the outcome, and
+    /// there is no useful "undo the user's language" to perform.
+    static func reloadForLanguageChange(_ model: AppState.WhisperModel) async {
+        let state = AppState.shared
+        guard languageChangeNeedsReload(changed: model,
+                                        activeModel: state.activeModel,
+                                        isModelReady: state.isModelReady) else { return }
+
+        // Queued behind any in-flight activation on the same chain as
+        // `activate`. A language reload racing a model switch would otherwise
+        // let the slower of the two commit last and leave the engine serving a
+        // language nobody asked for.
+        let previousTask = currentActivation
+        let task = Task {
+            _ = await previousTask?.result
+            try await performLanguageReload(model)
+        }
+        currentActivation = task
+        _ = await task.result
+    }
+
     /// Unload the active model and mark the app as having no model (used when
     /// the user deletes the active model's files).
     static func deactivate() async {
@@ -100,6 +156,63 @@ enum ModelLoader {
 
         // Warm shaders in the background — the app is already usable; the
         // indicator just explains why the first transcription may be slower.
+        state.statusMessage = "Warming up AI model…"
+        await warmup(model)
+        state.isWarmingUp = false
+        if state.statusMessage == "Warming up AI model…" {
+            state.statusMessage = "Ready"
+        }
+    }
+
+    /// Reloads the already-active `model`, picking up whatever language
+    /// `AppState` now holds for it.
+    ///
+    /// `load(_:)` is reused rather than reimplemented, and that is the whole
+    /// trick: its `.nemotronMultilingual` arm already reads the saved code and
+    /// hands it to the engine (which decides for itself whether that is a cheap
+    /// prompt swap or a genuine build swap), and its `.appleSpeech` arm already
+    /// pushes the code through `setPreferredLanguage(_:)`, which drops
+    /// `readyLocale` so the `loadModel()` on the next line actually re-resolves.
+    /// A second copy of that routing here would be one more place to forget an
+    /// engine.
+    ///
+    /// `isModelReady` is left true across the load, matching `activate`'s
+    /// same-family switch: the flag means "this app has a model", and the
+    /// engine's own reentrancy guard is what protects the swap. `isWarmingUp`
+    /// and the status message are what tell the user something is happening.
+    private static func performLanguageReload(_ model: AppState.WhisperModel) async throws {
+        let state = AppState.shared
+
+        // Re-checked after the queue wait: the activation we queued behind may
+        // have been a switch to a different model, in which case this reload is
+        // now about an engine that is no longer running.
+        guard state.activeModel == model else { return }
+
+        state.isWarmingUp = true
+        state.statusMessage = "Loading \(model.shortName)…"
+        PushLogger.log("ModelLoader: Reloading \(model.rawValue) for a language change...")
+        let loadStart = Date()
+
+        do {
+            try await load(model)
+        } catch {
+            // Unlike a failed activation there is no previous model still
+            // serving to fall back on — both language-taking engines release
+            // what they had before they load the new language — so this reports
+            // the honest state rather than a reassuring one.
+            state.isWarmingUp = false
+            state.isModelReady = false
+            state.modelUnavailable = true
+            state.statusMessage = "Model failed to load"
+            PushLogger.log("ModelLoader: ❌ Failed to reload \(model.rawValue): \(error)")
+            NotificationManager.shared.showModelError()
+            throw error
+        }
+
+        PushLogger.log("ModelLoader: Reloaded in \(String(format: "%.2f", Date().timeIntervalSince(loadStart)))s")
+        state.modelUnavailable = false
+        state.isModelReady = true
+
         state.statusMessage = "Warming up AI model…"
         await warmup(model)
         state.isWarmingUp = false
