@@ -49,8 +49,15 @@ struct TeleprompterView: View {
                        height: lineHeight * CGFloat(Self.visibleLines))
                 .overlay(alignment: .topLeading) {
                     ZStack(alignment: .topLeading) {
-                        ForEach(Array(layout.lines.enumerated()), id: \.offset) { index, line in
-                            Text(line.text)
+                        // Only the lines that can be seen. Building a Text for
+                        // every line of the script and hiding all but three
+                        // costs the whole script on every one of the 20 renders
+                        // a second — work that grows with script length, on the
+                        // main actor, in an app where blocking the main thread
+                        // makes macOS disable the event tap and silently kill
+                        // the hotkey. Slicing keeps a render constant-cost.
+                        ForEach(visibleLineRange(in: layout, current: current), id: \.self) { index in
+                            Text(layout.lines[index].text)
                                 .font(Font(font))
                                 .foregroundStyle(.white)
                                 .opacity(opacity(for: index, current: current))
@@ -84,6 +91,15 @@ struct TeleprompterView: View {
             bottomTrailingRadius: 16,
             style: .continuous
         )
+    }
+
+    /// The slice of lines that can actually be on screen: the pinned line and
+    /// its one neighbour either side, clamped to the script.
+    private func visibleLineRange(in layout: ScriptLayout, current: Int) -> Range<Int> {
+        guard !layout.lines.isEmpty else { return 0..<0 }
+        let lower = max(0, current - Self.linesAbove)
+        let upper = min(layout.lines.count, current + Self.linesBelow + 1)
+        return lower..<max(lower, upper)
     }
 
     /// Read line bright, the line just read dim, the line coming next in
