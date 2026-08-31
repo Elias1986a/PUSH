@@ -46,6 +46,7 @@ enum EngineComparison {
             case .parakeet: return ParakeetEngine.isModelDownloaded()
             case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
             case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
+            case .nemotronMultilingual: return NemotronMultilingualEngine.isModelDownloaded()
             }
         }
     }
@@ -131,9 +132,25 @@ enum EngineComparison {
         case .parakeet: await ParakeetEngine.shared.warmup()
         case .parakeetUnified: await ParakeetUnifiedEngine.shared.warmup()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.warmup()
+        case .nemotronMultilingual:
+            await NemotronMultilingualEngine.shared.warmup(
+                languageCode: storedLanguage(for: model).code)
         case .appleSpeech:
             if #available(macOS 26, *) { await AppleSpeechEngine.shared.warmup() }
         }
+    }
+
+    /// The language a multilingual engine should be benchmarked in.
+    ///
+    /// Read from the same key the app writes (`WhisperModel.languageDefaultsKey`,
+    /// derived in PUSHCore so the two packages cannot drift), but note this tool
+    /// is its own signed bundle with its own defaults domain — so unless someone
+    /// has run `defaults write <this bundle id> language.nemotron-multilingual
+    /// <code>`, it is English. That is the right default for a timing tool: the
+    /// point is comparing engines on the same utterance, not comparing languages.
+    private static func storedLanguage(for model: WhisperModel) -> DictationLanguage {
+        DictationLanguage(
+            code: UserDefaults.standard.string(forKey: model.languageDefaultsKey) ?? "en-US")
     }
 
     private struct TimeoutError: Error {}
@@ -161,8 +178,14 @@ enum EngineComparison {
         case .parakeet: try await ParakeetEngine.shared.loadModel()
         case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
         case .parakeetStreaming: try await ParakeetStreamingEngine.shared.loadModel()
+        case .nemotronMultilingual:
+            try await NemotronMultilingualEngine.shared.loadModel(
+                languageCode: storedLanguage(for: model).code)
         case .appleSpeech:
             guard #available(macOS 26, *) else { throw ComparisonError.needsNewerSystem }
+            // The engine does not persist its language, so it has to be pushed in
+            // before every load — same reason `ModelLoader` does it in the app.
+            await AppleSpeechEngine.shared.setPreferredLanguage(storedLanguage(for: model).code)
             try await AppleSpeechEngine.shared.loadModel()
         }
     }

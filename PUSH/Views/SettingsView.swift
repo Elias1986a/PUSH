@@ -727,6 +727,9 @@ struct ModelsSettingsView: View {
         case .parakeet: return ParakeetEngine.modelDirectory
         case .parakeetUnified: return ParakeetUnifiedEngine.modelDirectory
         case .parakeetStreaming: return ParakeetStreamingEngine.modelDirectory
+        // The repo root, covering both vocab builds — a user who has dictated in
+        // two language groups has two of them down.
+        case .nemotronMultilingual: return NemotronMultilingualEngine.modelDirectory
         case .appleSpeech: return nil  // the OS owns these; nothing of ours to show
         }
     }
@@ -736,6 +739,7 @@ struct ModelsSettingsView: View {
         case .parakeet: return ParakeetEngine.isModelDownloaded()
         case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
         case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
+        case .nemotronMultilingual: return NemotronMultilingualEngine.isModelDownloaded()
         case .appleSpeech:
             // Nothing for us to download — the system installs on demand.
             return true
@@ -778,7 +782,7 @@ struct ModelsSettingsView: View {
     private static func expectedSize(of model: AppState.WhisperModel) -> Double {
         switch model {
         case .parakeetV2: return 400_000_000
-        case .parakeetUnified, .parakeetStreaming: return 600_000_000
+        case .parakeetUnified, .parakeetStreaming, .nemotronMultilingual: return 600_000_000
         case .appleSpeech: return 0  // never downloaded through us
         }
     }

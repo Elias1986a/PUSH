@@ -88,6 +88,14 @@ public actor NemotronMultilingualEngine {
         variantDirectory(vocabVariant(for: languageCode))
     }
 
+    /// Everything this engine owns on disk, both builds.
+    ///
+    /// The per-language directory above is the wrong answer for Settings, which
+    /// asks one question about one engine: a user who has dictated in Japanese
+    /// and Spanish has two builds down, and reporting only the current
+    /// language's would under-count the storage and offer to delete half of it.
+    public nonisolated static var modelDirectory: URL { repoDirectory }
+
     /// True when *either* build is on disk.
     ///
     /// The Settings row asks one yes/no question about one engine, so
@@ -220,6 +228,34 @@ public actor NemotronMultilingualEngine {
     /// with the tail of the previous one still in context. `reset()` also
     /// re-seeds the forced language prefix, which is exactly what a new
     /// utterance wants.
+    /// Batch entry point: one utterance of 16 kHz mono Float32, as `Data`.
+    ///
+    /// This is what `TranscriptionPipeline` routes to. The engine streams during
+    /// recording when it is driven live, but the pipeline's contract is a whole
+    /// buffer after release, and it has to be honoured — a wake-word trigger and
+    /// the comparison tool both arrive here with audio that was never fed in.
+    ///
+    /// No implicit load: unlike the Parakeet engines, loading needs a language
+    /// this call doesn't carry, and guessing one would download the wrong 600 MB.
+    /// `ModelLoader` has already loaded the right build by the time audio lands.
+    public func transcribe(audioData: Data) async throws -> String {
+        let samples = Self.floatArray(from: audioData)
+        guard !samples.isEmpty else { throw ParakeetEngineError.emptyAudio }
+        return try await transcribeFloats(samples)
+    }
+
+    /// 16 kHz mono Float32, as `AudioRecorder` hands it to every engine.
+    private nonisolated static func floatArray(from data: Data) -> [Float] {
+        let count = data.count / MemoryLayout<Float>.size
+        guard count > 0 else { return [] }
+        var samples = [Float](repeating: 0, count: count)
+        data.withUnsafeBytes { raw in
+            let floats = raw.bindMemory(to: Float.self)
+            for i in 0..<count { samples[i] = floats[i] }
+        }
+        return samples
+    }
+
     public func transcribeFloats(_ samples: [Float]) async throws -> String {
         guard let manager else {
             throw ParakeetEngineError.notInitialized

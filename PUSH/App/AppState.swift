@@ -371,6 +371,46 @@ class AppState: ObservableObject {
     typealias WhisperModel = PUSHCore.WhisperModel
     typealias EngineType = PUSHCore.EngineType
 
+    // MARK: - Dictation Language
+
+    /// The store the per-engine language preferences read and write.
+    ///
+    /// The only injectable defaults store in this class, and deliberately so.
+    /// `UserDefaults.standard` here is the user's live app configuration: a test
+    /// that wrote a language through `AppState.shared` would leave the real PUSH
+    /// dictating in whatever language the test happened to pick, with nothing on
+    /// screen connecting the two. Tests point this at a throwaway suite instead.
+    ///
+    /// Threading a store through every stored property above would be a much
+    /// larger change than the reason for it justifies — those are all written
+    /// from `didSet` on properties the user drives, not from tests.
+    var languageDefaults: UserDefaults = .standard
+
+    /// The language `model` should dictate in, English when never chosen.
+    ///
+    /// Stored per engine because each supports a different set — Nemotron reads
+    /// its own `prompt_dictionary`, Apple queries `SpeechTranscriber
+    /// .supportedLocales`. One shared key would seat an unsupported language the
+    /// moment the user switched engines.
+    ///
+    /// The stored string is *constructed into* a `DictationLanguage` rather than
+    /// compared as a raw string, and that is load-bearing: `init` canonicalizes,
+    /// so a preference persisted in Apple's underscore form ("en_US") only
+    /// matches an offered hyphenated code ("en-US") after construction. Compare
+    /// the raw value and a saved choice silently fails to select in the picker.
+    func language(for model: WhisperModel) -> DictationLanguage {
+        DictationLanguage(code: languageDefaults.string(forKey: model.languageDefaultsKey) ?? "en-US")
+    }
+
+    /// Records the user's language choice for one engine.
+    ///
+    /// Hand-published rather than backed by a `@Published` property: the value
+    /// is keyed by engine, so there is nothing for one stored property to hold,
+    /// and the picker still needs the view to redraw.
+    func setLanguage(_ language: DictationLanguage, for model: WhisperModel) {
+        languageDefaults.set(language.code, forKey: model.languageDefaultsKey)
+        objectWillChange.send()
+    }
 
     // MARK: - Private
 

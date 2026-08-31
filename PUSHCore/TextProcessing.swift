@@ -27,6 +27,8 @@ public actor TranscriptionPipeline {
             return try await ParakeetUnifiedEngine.shared.transcribe(audioData: audioData)
         case .parakeetStreaming:
             return try await ParakeetStreamingEngine.shared.transcribe(audioData: audioData)
+        case .nemotronMultilingual:
+            return try await NemotronMultilingualEngine.shared.transcribe(audioData: audioData)
         case .appleSpeech:
             guard #available(macOS 26, *) else { throw PipelineError.requiresNewerSystem }
             return try await AppleSpeechEngine.shared.transcribe(audioData: audioData)
