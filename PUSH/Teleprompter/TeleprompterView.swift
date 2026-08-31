@@ -26,29 +26,12 @@ struct TeleprompterView: View {
         NSFont.systemFont(ofSize: settings.size.fontSize, weight: .semibold, width: .condensed)
     }
 
-    /// While running, lay out the session's own copy of the script — token
-    /// ranges are `String.Index` values and mean nothing against a different
-    /// instance. Idle, there is no cursor to place, so the settings text is
-    /// safe to show as a preview.
-    private var displayScript: String {
-        session.isRunning ? session.script : settings.script
-    }
-
-    private var layout: ScriptLayout {
-        ScriptLayout(script: displayScript, font: font, width: settings.size.width)
-    }
-
-    /// The display line the speaker is on.
-    private func currentLine(in layout: ScriptLayout) -> Int {
-        guard session.isRunning else { return 0 }
-        let token = Int(session.position.cursor.rounded())
-        guard let range = session.tokenRange(at: token) else { return 0 }
-        return layout.lineIndex(containing: range.lowerBound)
-    }
-
     var body: some View {
-        let layout = layout
-        let current = currentLine(in: layout)
+        // Both the line breaks and the current line come from the session, so
+        // the text drawn here and the line the arrow keys count against can
+        // never disagree.
+        let layout = session.layout
+        let current = session.currentLine
         let lineHeight = settings.size.lineHeight
 
         VStack(spacing: 0) {
@@ -88,15 +71,19 @@ struct TeleprompterView: View {
                 .padding(.bottom, 12)
         }
         .frame(width: settings.size.width + 32)
-        .background(
-            UnevenRoundedRectangle(
-                bottomLeadingRadius: 16,
-                bottomTrailingRadius: 16,
-                style: .continuous
-            )
-            .fill(.black)
+        .background(tabShape.fill(.black))
+        // State is carried by the edge glow rather than an indicator of its
+        // own: green while it is following your voice, amber once it has lost
+        // you and is guessing. One less thing in shot.
+        .overlay(NotchEdgePulse(shape: tabShape, color: stateColor))
+    }
+
+    private var tabShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            bottomLeadingRadius: 16,
+            bottomTrailingRadius: 16,
+            style: .continuous
         )
-        .overlay(alignment: .bottom) { stateBar }
     }
 
     /// Read line bright, the line just read dim, the line coming next in
@@ -111,25 +98,11 @@ struct TeleprompterView: View {
         }
     }
 
-    /// A short capsule at the bottom saying whether it is following you: acid
-    /// green while it has you, amber once it is guessing.
-    ///
-    /// Short and centred rather than a full-width rule. This sits in shot on a
-    /// talking-head take, and a bright bar spanning the notch reads as a
-    /// progress meter and pulls the eye; a small mark reads as an indicator and
-    /// doesn't. Inset from the bottom so the rounded corners don't clip it.
-    private var stateBar: some View {
-        Capsule()
-            .fill(stateColor)
-            .frame(width: 36, height: 3)
-            .opacity(session.isRunning ? 0.9 : 0)
-            .padding(.bottom, 5)
-    }
-
     private var stateColor: Color {
         switch session.position.state {
-        case .tracking: return Color(red: 0.69, green: 1.0, blue: 0.0)
-        case .idle, .adrift: return Color(red: 0.69, green: 1.0, blue: 0.0).opacity(0.4)
+        case .tracking, .idle, .adrift: return NotchEdgePulse.Tuning.defaultColor
+        // Running on the timer, or drifting because it lost the thread. Either
+        // way it is guessing where you are rather than hearing it.
         case .lost: return .orange
         }
     }

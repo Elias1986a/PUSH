@@ -14,7 +14,7 @@ struct SettingsView: View {
     @State private var pane: Pane = .general
 
     enum Pane: String, CaseIterable, Identifiable {
-        case general, dictation, text, pill, models, dictionary
+        case general, dictation, text, pill, teleprompter, models, dictionary
 
         var id: String { rawValue }
 
@@ -24,6 +24,7 @@ struct SettingsView: View {
             case .dictation: return "Dictation"
             case .text: return "Text"
             case .pill: return "Pill"
+            case .teleprompter: return "Teleprompter"
             case .models: return "Models"
             case .dictionary: return "Dictionary"
             }
@@ -35,6 +36,7 @@ struct SettingsView: View {
             case .dictation: return "mic"
             case .text: return "text.alignleft"
             case .pill: return "capsule"
+            case .teleprompter: return "text.viewfinder"
             case .models: return "cpu"
             case .dictionary: return "character.book.closed"
             }
@@ -77,6 +79,8 @@ struct SettingsView: View {
             TextSettingsView().environmentObject(appState)
         case .pill:
             PillSettingsView().environmentObject(appState)
+        case .teleprompter:
+            TeleprompterSettingsView()
         case .models:
             ModelsSettingsView().environmentObject(appState)
         case .dictionary:

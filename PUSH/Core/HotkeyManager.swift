@@ -132,6 +132,20 @@ final class HotkeyManager: @unchecked Sendable {
                     return nil  // Swallow the event
                 }
 
+                // Arrow keys drive the teleprompter while a take is running,
+                // and are swallowed so they don't also scroll whatever is
+                // behind it. Only while running: a global tap that ate the
+                // arrow keys the rest of the time would break every app.
+                if type == .keyDown,
+                   MainActor.assumeIsolated({ TeleprompterSession.shared.isRunning }),
+                   let arrow = PrompterArrow(
+                       keyCode: event.getIntegerValueField(.keyboardEventKeycode)) {
+                    Task { @MainActor in
+                        manager.handlePrompterArrow(arrow)
+                    }
+                    return nil  // Swallow the event
+                }
+
                 Task { @MainActor in
                     manager.handleEvent(event)
                 }
@@ -527,5 +541,37 @@ final class HotkeyManager: @unchecked Sendable {
         }
 
         PushLogger.log("HotkeyManager: VAD triggered stop - processing")
+    }
+}
+
+/// The four arrows, while the teleprompter is running.
+///
+/// Up/down move by a line; left/right trim the timed pace. Deliberately not
+/// user-configurable: they are only live during a take, so they can't collide
+/// with anything, and the obvious mapping needs no explaining.
+enum PrompterArrow {
+    case up, down, slower, faster
+
+    init?(keyCode: Int64) {
+        switch keyCode {
+        case 126: self = .up
+        case 125: self = .down
+        case 123: self = .slower
+        case 124: self = .faster
+        default: return nil
+        }
+    }
+}
+
+extension HotkeyManager {
+    @MainActor
+    func handlePrompterArrow(_ arrow: PrompterArrow) {
+        let session = TeleprompterSession.shared
+        switch arrow {
+        case .up: session.nudge(lines: -1)
+        case .down: session.nudge(lines: 1)
+        case .slower: session.adjustSpeed(by: -10)
+        case .faster: session.adjustSpeed(by: 10)
+        }
     }
 }

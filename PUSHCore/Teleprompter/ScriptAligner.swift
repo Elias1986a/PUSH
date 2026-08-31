@@ -172,6 +172,20 @@ public struct ScriptAligner: Sendable {
         return Position(cursor: extrapolatedCursor(at: now), state: state)
     }
 
+    /// Move the cursor by hand, when the speaker corrects it.
+    ///
+    /// Treated as ground truth: matching resumes from the new position, so the
+    /// windowed search looks around where the speaker says they are rather than
+    /// where it last thought they were. Clears the lost-drift anchor, since a
+    /// deliberate correction is a better anchor than an extrapolation.
+    public mutating func seek(to index: Int, at now: TimeInterval) {
+        guard !tokens.isEmpty else { return }
+        cursor = min(max(index, 0), tokens.count - 1)
+        lastMatchTime = now
+        lostAnchor = nil
+        state = .tracking
+    }
+
     /// The speaker's own pace, measured from tokens actually matched. Nil until
     /// there is enough of a run to mean anything.
     public var measuredWordsPerMinute: Double? {

@@ -1,3 +1,5 @@
+import AppKit
+import Combine
 import Foundation
 import PUSHCore
 
@@ -38,6 +40,9 @@ final class TeleprompterSession: ObservableObject {
     // MARK: - Private state
 
     private var aligner = ScriptAligner(script: "")
+    /// Line breaks for the script currently on screen. See `script`.
+    @Published private(set) var layout = ScriptLayout(script: "", font: .systemFont(ofSize: 12), width: 1)
+    private var cancellables = Set<AnyCancellable>()
     /// The model to put back when the take ends. Nil if we never swapped.
     private var restoreModel: AppState.WhisperModel?
     private var ticker: Task<Void, Never>?
@@ -45,7 +50,14 @@ final class TeleprompterSession: ObservableObject {
     private var timedCursor: Double = 0
     private var lastTick: TimeInterval = 0
 
-    private init() {}
+    private init() {
+        // Both settings change the line breaks, so both have to rebuild them.
+        let settings = TeleprompterState.shared
+        settings.$size.combineLatest(settings.$script)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _, _ in self?.rebuildLayout() }
+            .store(in: &cancellables)
+    }
 
     // MARK: - Readiness
 
@@ -59,14 +71,75 @@ final class TeleprompterSession: ObservableObject {
 
     /// The exact string the aligner tokenized.
     ///
-    /// The view must lay *this* out rather than its own copy of the settings
-    /// text: token ranges are `String.Index` values, which are only meaningful
-    /// against the instance they came from.
+    /// Laid out here rather than in the view, for two reasons: token ranges are
+    /// `String.Index` values that only mean anything against the instance they
+    /// came from, so one owner keeps them honest; and the view's body runs on
+    /// every one of the 20 position updates a second, which is no place to
+    /// re-run CoreText over the whole script.
     var script: String { aligner.script }
 
     func tokenRange(at index: Int) -> Range<String.Index>? {
         guard aligner.tokens.indices.contains(index) else { return nil }
         return aligner.tokens[index].range
+    }
+
+    /// The display line the speaker is on, against the same line breaks the
+    /// view draws.
+    var currentLine: Int {
+        guard isRunning, !layout.lines.isEmpty else { return 0 }
+        let token = Int(position.cursor.rounded())
+        guard let range = tokenRange(at: token) else { return 0 }
+        return layout.lineIndex(containing: range.lowerBound)
+    }
+
+    /// Rebuild the line breaks. Driven by the settings that change them, and by
+    /// the start of a take.
+    func rebuildLayout() {
+        let settings = TeleprompterState.shared
+        let text = isRunning ? aligner.script : settings.script
+        layout = ScriptLayout(
+            script: text,
+            font: NSFont.systemFont(
+                ofSize: settings.size.fontSize, weight: .semibold, width: .condensed),
+            width: settings.size.width
+        )
+    }
+
+    // MARK: - Manual control
+
+    /// Move by whole display lines — what the arrow keys do.
+    ///
+    /// A correction, not a scroll offset: it moves where the prompter believes
+    /// the speaker is, so voice-following carries on from the corrected place
+    /// instead of yanking back to its own guess.
+    func nudge(lines: Int) {
+        guard isRunning, !layout.lines.isEmpty else { return }
+        let target = min(max(currentLine + lines, 0), layout.lines.count - 1)
+        let token = firstToken(onLine: target)
+
+        if isFollowingVoice {
+            aligner.seek(to: token, at: Date().timeIntervalSinceReferenceDate)
+            position = aligner.tick(at: Date().timeIntervalSinceReferenceDate)
+        } else {
+            timedCursor = Double(token)
+            position = ScriptAligner.Position(cursor: timedCursor, state: .lost)
+        }
+    }
+
+    /// First token starting at or after the given line's first character.
+    private func firstToken(onLine line: Int) -> Int {
+        guard layout.lines.indices.contains(line) else { return 0 }
+        let start = layout.lines[line].range.lowerBound
+        return aligner.tokens.firstIndex { $0.range.lowerBound >= start }
+            ?? max(aligner.tokens.count - 1, 0)
+    }
+
+    /// Nudge the timed pace. Only meaningful when not following your voice —
+    /// when it is, the pace is measured from you rather than dialled in.
+    func adjustSpeed(by delta: Double) {
+        let settings = TeleprompterState.shared
+        settings.wordsPerMinute = min(max(settings.wordsPerMinute + delta, 60), 400)
+        timedWordsPerMinute = settings.wordsPerMinute
     }
 
     // MARK: - Lifecycle
@@ -80,7 +153,9 @@ final class TeleprompterSession: ObservableObject {
         timedCursor = 0
         position = ScriptAligner.Position(cursor: 0, state: .idle)
         isRunning = true
+        rebuildLayout()
 
+        timedWordsPerMinute = TeleprompterState.shared.wordsPerMinute
         let canFollow = followVoice && Self.readiness == .ready
         isFollowingVoice = canFollow
 

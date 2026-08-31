@@ -10,21 +10,6 @@ struct FloatingPillView: View {
     @State private var dotPhase2: CGFloat = 0
     @State private var dotPhase3: CGFloat = 0
 
-    /// The travelling edge pulse.
-    private enum Pulse {
-        static let color = Color(red: 0.69, green: 1.0, blue: 0.0)
-        /// Seconds for one crossing. Slow enough to read as a sweep rather
-        /// than a blink, at the edge of what still looks deliberate.
-        static let period: TimeInterval = 3.2
-        /// How much of the width the bright band covers, either side of centre.
-        static let halfWidth: CGFloat = 0.22
-        static let lineWidth: CGFloat = 2
-        /// The edge is never fully dark: the sweep rides on a dim constant so
-        /// the outline stays legible as an outline between passes.
-        static let floorOpacity: Double = 0.16
-        static let peakOpacity: Double = 0.95
-    }
-
     /// Width the preview reserves, from the chosen size. It is a fixed width,
     /// not a maximum: the pill claims the whole box up front and keeps it, so
     /// the window stops resizing (and re-centering) per word and the text
@@ -115,88 +100,13 @@ struct FloatingPillView: View {
         )
     }
 
-    /// A two-point acid-green outline with a bright band sweeping across it,
-    /// running the three open sides — left flank, bottom, right flank. The top
-    /// edge is left bare: it is where the shape meets the screen edge (and, on
-    /// a MacBook, emerges from the notch), so an outline across it would draw
-    /// a lid on something meant to read as open at the top.
+    /// The tab's edge treatment, shared with the teleprompter.
     ///
-    /// Inset rather than centred on the path: the window is sized to the shape
-    /// exactly, so half of a centred stroke — and all of an outer glow — would
-    /// be clipped. The bloom is a blurred copy of the same stroke clipped back
-    /// to the silhouette, which reads as a glow while staying inside the frame.
-    @ViewBuilder
+    /// Drawn *inside* the silhouette: the window is sized to the shape exactly,
+    /// so half of a centred stroke — and all of an outer glow — would be
+    /// clipped. See `NotchEdgePulse`.
     private var edgePulse: some View {
-        if reduceMotion {
-            // A sweep is motion for its own sake; hold it at a steady outline.
-            openEdgeStroke(Pulse.color.opacity(Pulse.peakOpacity * 0.6))
-        } else {
-            TimelineView(.animation) { context in
-                let gradient = pulseGradient(at: context.date)
-                ZStack {
-                    // Trimmed before it is blurred, and trimmed again after.
-                    // Blurring the full outline first spreads the top run
-                    // downward past the trim line, which leaves a faint green
-                    // bar across the top — dimmer than the stroke it came
-                    // from, but exactly the line the trim exists to remove.
-                    // The second trim catches the flanks' bloom reaching back
-                    // up into the same band.
-                    openEdgeStroke(gradient)
-                        .blur(radius: 3)
-                        .clipShape(tabShape)
-                        .mask(alignment: .bottom) { openEdgeMask }
-                    openEdgeStroke(gradient)
-                }
-            }
-        }
-    }
-
-    /// The outline with its top run cut off, leaving the three open sides.
-    ///
-    /// Trimmed from the finished stroke rather than traced as an open path:
-    /// this keeps the flanks and bottom corners on exactly the fill's
-    /// geometry, where a hand-built path would have to re-approximate the
-    /// continuous corner curve and would show a seam against the black. The
-    /// flanks simply begin a couple of points down, which is invisible against
-    /// the screen edge.
-    private func openEdgeStroke(_ style: some ShapeStyle) -> some View {
-        tabShape
-            .strokeBorder(style, lineWidth: Pulse.lineWidth)
-            .mask(alignment: .bottom) { openEdgeMask }
-    }
-
-    private var openEdgeMask: some View {
-        Rectangle().padding(.top, Pulse.lineWidth + 1)
-    }
-
-    /// The outline's colour along its width at this instant. The band travels
-    /// from off one edge to off the other, so it enters and leaves rather than
-    /// snapping back to the start.
-    private func pulseGradient(at date: Date) -> LinearGradient {
-        let cycle = date.timeIntervalSinceReferenceDate
-            .truncatingRemainder(dividingBy: Pulse.period) / Pulse.period
-        // Travels across 1.5 widths, starting a quarter-width off the leading
-        // edge, so the band is fully outside the shape at both ends.
-        let phase = CGFloat(cycle) * 1.5 - 0.25
-
-        let floor = Pulse.color.opacity(Pulse.floorOpacity)
-        let peak = Pulse.color.opacity(Pulse.peakOpacity)
-        // Clamped in order: gradient stops have to be non-decreasing.
-        let lead = min(max(phase - Pulse.halfWidth, 0), 1)
-        let mid = min(max(phase, 0), 1)
-        let trail = min(max(phase + Pulse.halfWidth, 0), 1)
-
-        return LinearGradient(
-            stops: [
-                .init(color: floor, location: 0),
-                .init(color: floor, location: lead),
-                .init(color: peak, location: mid),
-                .init(color: floor, location: trail),
-                .init(color: floor, location: 1)
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
+        NotchEdgePulse(shape: tabShape)
     }
 
     /// The original floating capsule, shown at the bottom of the screen.

@@ -184,6 +184,35 @@ final class ScriptAlignerTests: XCTestCase {
         XCTAssertEqual(wpm ?? 0, 120, accuracy: 20)
     }
 
+    // MARK: - Manual correction
+
+    func testSeekMovesTheCursorAndMatchingResumesFromThere() {
+        let words = ["one", "two", "three", "four", "five", "six", "seven",
+                     "eight", "nine", "ten", "eleven", "twelve"]
+        var aligner = ScriptAligner(script: words.joined(separator: " "))
+        _ = read(&aligner, words: ["one", "two", "three"])
+
+        aligner.seek(to: 8, at: 5.0)
+        XCTAssertEqual(aligner.cursor, 8)
+        XCTAssertEqual(aligner.state, .tracking)
+
+        // Matching continues around the corrected position, not the old one.
+        _ = aligner.consume(partial: "ten eleven twelve", at: 5.5)
+        XCTAssertGreaterThanOrEqual(aligner.cursor, 10)
+    }
+
+    func testSeekClampsAndIgnoresAnEmptyScript() {
+        var empty = ScriptAligner(script: "")
+        empty.seek(to: 5, at: 0)
+        XCTAssertEqual(empty.cursor, -1, "seek on an empty script should do nothing")
+
+        var aligner = ScriptAligner(script: "one two three")
+        aligner.seek(to: 99, at: 0)
+        XCTAssertEqual(aligner.cursor, 2)
+        aligner.seek(to: -7, at: 0)
+        XCTAssertEqual(aligner.cursor, 0)
+    }
+
     // MARK: - Degenerate input
 
     func testStateStartsIdleAndSurvivesEmptyInput() {
