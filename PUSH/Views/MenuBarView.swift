@@ -4,6 +4,7 @@ import PUSHCore
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject private var updater = UpdaterManager.shared
+    @ObservedObject private var session = TeleprompterSession.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -42,6 +43,19 @@ struct MenuBarView: View {
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            // Teleprompter
+            Button(action: toggleTeleprompter) {
+                HStack {
+                    Image(systemName: "text.alignleft")
+                    Text(session.isRunning ? "Stop Teleprompter" : "Teleprompter")
+                }
+            }
+            .buttonStyle(.plain)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
 
@@ -99,6 +113,19 @@ struct MenuBarView: View {
             return .green
         } else {
             return .blue
+        }
+    }
+
+    private func toggleTeleprompter() {
+        Task {
+            if session.isRunning {
+                await session.stop()
+                TeleprompterWindow.shared.hide()
+            } else {
+                let settings = TeleprompterState.shared
+                TeleprompterWindow.shared.show()
+                await session.start(script: settings.script, followVoice: settings.followVoice)
+            }
         }
     }
 

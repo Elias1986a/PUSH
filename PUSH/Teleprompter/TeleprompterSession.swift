@@ -57,6 +57,18 @@ final class TeleprompterSession: ObservableObject {
 
     func text(at index: Int) -> String? { aligner.text(at: index) }
 
+    /// The exact string the aligner tokenized.
+    ///
+    /// The view must lay *this* out rather than its own copy of the settings
+    /// text: token ranges are `String.Index` values, which are only meaningful
+    /// against the instance they came from.
+    var script: String { aligner.script }
+
+    func tokenRange(at index: Int) -> Range<String.Index>? {
+        guard aligner.tokens.indices.contains(index) else { return nil }
+        return aligner.tokens[index].range
+    }
+
     // MARK: - Lifecycle
 
     /// Begin a take. `followVoice` false runs the timer instead, which is also
