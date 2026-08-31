@@ -293,9 +293,8 @@ final class CloudSync: ObservableObject {
         _ remote: [CorrectionsStore.Correction]
     ) -> Bool {
         guard merged.count == remote.count else { return false }
-        let byID = { (list: [CorrectionsStore.Correction]) in
-            list.sorted { $0.id.uuidString < $1.id.uuidString }
-        }
-        return byID(merged) == byID(remote)
+        let ours = merged.sorted { $0.id.uuidString < $1.id.uuidString }
+        let theirs = remote.sorted { $0.id.uuidString < $1.id.uuidString }
+        return ours == theirs
     }
 }
