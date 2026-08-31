@@ -19,8 +19,43 @@ final class TextInjector: @unchecked Sendable {
         let changeCount: Int
     }
 
+    /// A copy that is still being read on the background queue. Kept so that a
+    /// dictation shorter than the read can wait for the answer it already asked
+    /// for, instead of starting a second copy of the same expensive work on the
+    /// main thread while the user waits for their text.
+    private final class PendingCopy: @unchecked Sendable {
+        let changeCount: Int
+        private let finished = DispatchSemaphore(value: 0)
+        private let lock = NSLock()
+        private var items: [[String: Data]]?
+
+        init(changeCount: Int) { self.changeCount = changeCount }
+
+        func fulfill(_ items: [[String: Data]]) {
+            lock.lock()
+            self.items = items
+            lock.unlock()
+            finished.signal()
+        }
+
+        /// Blocks up to `timeout` for the read to land. Returns nil if it is
+        /// still out — the caller then has to copy inline.
+        func wait(timeout: TimeInterval) -> [[String: Data]]? {
+            guard finished.wait(timeout: .now() + timeout) == .success else { return nil }
+            lock.lock()
+            defer { lock.unlock() }
+            return items
+        }
+    }
+
     private var snapshot: Snapshot?
+    private var pendingCopy: PendingCopy?
     private static let snapshotQueue = DispatchQueue(label: "push.textinjector.clipboard")
+
+    /// How long injection will wait for an in-flight background copy before
+    /// giving up and reading the pasteboard itself. Long enough for a normal
+    /// read to land, short enough that it beats doing the read twice.
+    private static let pendingCopyWait: TimeInterval = 0.35
 
     // MARK: - Public API
 
@@ -38,11 +73,23 @@ final class TextInjector: @unchecked Sendable {
     /// thread so a stall can't cost us the CGEvent tap.
     func prepareClipboardSnapshot() {
         let changeCount = NSPasteboard.general.changeCount
+
+        // Nothing has touched the clipboard since we last read it — including
+        // the restore at the end of the previous dictation, which puts back
+        // bytes we already hold. Re-reading here would ask Outlook to render
+        // every flavor again for an answer we have.
+        if let snapshot, snapshot.changeCount == changeCount { return }
+        if let pendingCopy, pendingCopy.changeCount == changeCount { return }
+
         snapshot = nil
+        let copy = PendingCopy(changeCount: changeCount)
+        pendingCopy = copy
 
         Self.snapshotQueue.async {
             let items = Self.copyItems(from: NSPasteboard.general)
+            copy.fulfill(items)
             Task { @MainActor in
+                if self.pendingCopy === copy { self.pendingCopy = nil }
                 // Discard it if anything landed on the clipboard while we read.
                 guard NSPasteboard.general.changeCount == changeCount else { return }
                 self.snapshot = Snapshot(items: items, changeCount: changeCount)
@@ -95,11 +142,20 @@ final class TextInjector: @unchecked Sendable {
         let savedFlavorSets: [[String: Data]]
         if let snapshot, snapshot.changeCount == pasteboard.changeCount {
             savedFlavorSets = snapshot.items
+        } else if let pendingCopy, pendingCopy.changeCount == pasteboard.changeCount,
+                  let items = pendingCopy.wait(timeout: Self.pendingCopyWait) {
+            savedFlavorSets = items
         } else {
-            PushLogger.log("TextInjector: no usable clipboard snapshot — copying inline")
+            // The slow path: a synchronous cross-process read, on the main
+            // thread, inside the latency the user feels. Timed so a machine
+            // that keeps landing here says so in the log.
+            let start = DispatchTime.now()
             savedFlavorSets = Self.copyItems(from: pasteboard)
+            let ms = Double(DispatchTime.now().uptimeNanoseconds &- start.uptimeNanoseconds) / 1_000_000
+            PushLogger.log("TextInjector: no usable clipboard snapshot — copied inline in \(String(format: "%.0f", ms))ms")
         }
         snapshot = nil
+        pendingCopy = nil
         let savedItems = Self.pasteboardItems(from: savedFlavorSets)
         let originalChangeCount = pasteboard.changeCount
 
@@ -115,16 +171,24 @@ final class TextInjector: @unchecked Sendable {
 
         // Restore clipboard after a longer delay (1s to let slow apps finish pasting)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            // Only restore if user hasn't modified the clipboard since we injected.
-            guard pasteboard.changeCount == injectedChangeCount else { return }
-            guard !savedItems.isEmpty else {
-                if pasteboard.changeCount == injectedChangeCount && originalChangeCount == injectedChangeCount {
-                    pasteboard.clearContents()
+            MainActor.assumeIsolated {
+                // Only restore if user hasn't modified the clipboard since we injected.
+                guard pasteboard.changeCount == injectedChangeCount else { return }
+                guard !savedItems.isEmpty else {
+                    if pasteboard.changeCount == injectedChangeCount && originalChangeCount == injectedChangeCount {
+                        pasteboard.clearContents()
+                    }
+                    return
                 }
-                return
+                pasteboard.clearContents()
+                pasteboard.writeObjects(savedItems)
+
+                // We wrote these bytes, so we already know what is on the
+                // clipboard: keep them as the snapshot for the next dictation.
+                // Without this, every dictation after the first found a moved
+                // changeCount and paid for a full re-read of a rich clipboard.
+                self.snapshot = Snapshot(items: savedFlavorSets, changeCount: pasteboard.changeCount)
             }
-            pasteboard.clearContents()
-            pasteboard.writeObjects(savedItems)
         }
     }
 

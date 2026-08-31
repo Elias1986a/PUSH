@@ -43,6 +43,24 @@ final class CorrectionsStore: ObservableObject {
             "\(wrong.lowercased())→\(right.lowercased())|\(kind.rawValue)"
         }
 
+        /// `entity` with the field's incidental whitespace removed, and blank
+        /// treated as absent — what the user typed, not how they typed it.
+        var normalizedEntity: String? {
+            guard let trimmed = entity?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !trimmed.isEmpty else { return nil }
+            return trimmed
+        }
+
+        /// Everything the user can edit. Deliberately excludes `id` and the
+        /// timestamps: this is what decides whether an entry *changed*, which
+        /// is what has to re-stamp `modifiedAt` so the edit can win a merge.
+        func hasSameContent(as other: Correction) -> Bool {
+            wrong == other.wrong
+                && right == other.right
+                && kind == other.kind
+                && normalizedEntity == other.normalizedEntity
+        }
+
         init(
             id: UUID = UUID(),
             wrong: String,
@@ -84,8 +102,29 @@ final class CorrectionsStore: ObservableObject {
     /// The live dictionary. Unchanged in meaning for every consumer: tombstones
     /// never appear here.
     @Published var corrections: [Correction] = [] {
-        didSet { save() }
+        didSet {
+            // Rows in Settings bind straight into this array, so an edit
+            // arrives here as a mutated element and nothing else. Without a
+            // fresh `modifiedAt` the edit looks no newer than the other Mac's
+            // copy, and the merge keeps that stale copy — which is exactly how
+            // adding context to an existing entry failed to sync.
+            guard !isReplacingWholeList else { save(); return }
+            let stamped = Self.restamped(corrections, previous: oldValue)
+            if stamped != corrections {
+                isReplacingWholeList = true
+                corrections = stamped   // the nested didSet saves
+                isReplacingWholeList = false
+                return
+            }
+            save()
+        }
     }
+
+    /// Set while the whole list is being replaced wholesale — a load or a sync
+    /// merge — so those assignments are never mistaken for user edits and
+    /// re-stamped. Re-stamping a merge result would make every pull look like a
+    /// brand-new edit and ping-pong between machines forever.
+    private var isReplacingWholeList = false
 
     /// Deleted entries, kept so the deletion can reach the other machine.
     /// Not published — nothing in the UI or the pipeline should see these.
@@ -129,7 +168,33 @@ final class CorrectionsStore: ObservableObject {
     /// `corrections`' own `didSet` persists it.
     func applyMerged(alive: [Correction], tombstones: [Correction]) {
         self.tombstones = tombstones
+        isReplacingWholeList = true
         self.corrections = alive
+        isReplacingWholeList = false
+    }
+
+    /// Stamp `modifiedAt` on entries whose content the user just changed.
+    ///
+    /// Only entries that were already present and whose timestamp the caller
+    /// left alone are touched, so a merge result or a load passes through
+    /// untouched and an edit that already carries its own timestamp is kept.
+    nonisolated static func restamped(
+        _ updated: [Correction],
+        previous: [Correction],
+        now: Date = Date()
+    ) -> [Correction] {
+        guard !previous.isEmpty else { return updated }
+        let before = Dictionary(previous.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+
+        return updated.map { entry in
+            guard let old = before[entry.id],
+                  !old.hasSameContent(as: entry),
+                  old.modifiedAt == entry.modifiedAt
+            else { return entry }
+            var stamped = entry
+            stamped.modifiedAt = now
+            return stamped
+        }
     }
 
     /// Everything the sync layer needs to publish: live entries and tombstones.

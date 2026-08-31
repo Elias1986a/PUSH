@@ -111,8 +111,19 @@ final class CloudSync: ObservableObject {
     /// `dispatch_once` and traps.
     func dictionaryDidChange(_ entries: [CorrectionsStore.Correction]) {
         guard started, !isApplyingRemote else { return }
-        push(entries)
+        // Coalesced like the settings push: a row in Settings saves on every
+        // keystroke, and iCloud's key-value store is not something to write to
+        // once per letter typed.
+        pendingDictionaryPush?.cancel()
+        pendingDictionaryPush = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+            guard let self, !self.isApplyingRemote else { return }
+            self.push(entries)
+        }
     }
+
+    private var pendingDictionaryPush: Task<Void, Never>?
 
     private func pushAll() {
         for key in Self.mirroredSettingKeys { pushSetting(key) }
@@ -178,9 +189,10 @@ final class CloudSync: ObservableObject {
 
         PushLogger.log("CloudSync: merged dictionary — \(merged.alive.count) live, \(merged.tombstones.count) tombstone(s)")
 
-        // The merge can be a superset of what iCloud holds (this machine had
-        // entries the other didn't), so publish the result back.
-        if merged.alive.count + merged.tombstones.count != remote.count {
+        // The merge can hold more than iCloud does, or the same entries with a
+        // newer edit this machine made while offline, so publish it back
+        // whenever the result is not already what iCloud has.
+        if !Self.payloadMatches(merged.alive + merged.tombstones, remote) {
             pushDictionary()
         }
     }
@@ -231,14 +243,18 @@ final class CloudSync: ObservableObject {
             .filter { now.timeIntervalSince($0.deletedAt ?? now) < tombstoneLifetime }
 
         // 3 — collapse independent duplicates, oldest kept so the surviving id
-        // is the one that has been around longest.
+        // is the one that has been around longest, but never at the cost of the
+        // context one of them carries: `contentKey` ignores `entity`, so the
+        // older copy is routinely the one that was never given a hint.
         var seen: [String: CorrectionsStore.Correction] = [:]
         for entry in winners where !entry.isDeleted {
-            if let existing = seen[entry.contentKey] {
-                seen[entry.contentKey] = entry.modifiedAt < existing.modifiedAt ? entry : existing
-            } else {
+            guard let existing = seen[entry.contentKey] else {
                 seen[entry.contentKey] = entry
+                continue
             }
+            let older = entry.modifiedAt < existing.modifiedAt ? entry : existing
+            let newer = entry.modifiedAt < existing.modifiedAt ? existing : entry
+            seen[entry.contentKey] = carryingContext(into: older, from: newer)
         }
 
         // Stable order so the encoded blob doesn't churn between machines.
@@ -254,5 +270,32 @@ final class CloudSync: ObservableObject {
         }
 
         return (alive, sortedTombstones)
+    }
+
+    /// Fill in a missing hint from the copy that has one. Only ever adds
+    /// information: a context the user typed on one Mac is never overwritten by
+    /// the other Mac's silence.
+    private nonisolated static func carryingContext(
+        into base: CorrectionsStore.Correction,
+        from other: CorrectionsStore.Correction
+    ) -> CorrectionsStore.Correction {
+        guard base.normalizedEntity == nil, let entity = other.normalizedEntity else { return base }
+        var merged = base
+        merged.entity = entity
+        return merged
+    }
+
+    /// Whether a merge result is already what iCloud holds. Compared by content
+    /// and not by count: a machine that comes back online holding the newer
+    /// edit produces a same-sized list that the other Mac still needs.
+    nonisolated static func payloadMatches(
+        _ merged: [CorrectionsStore.Correction],
+        _ remote: [CorrectionsStore.Correction]
+    ) -> Bool {
+        guard merged.count == remote.count else { return false }
+        let byID = { (list: [CorrectionsStore.Correction]) in
+            list.sorted { $0.id.uuidString < $1.id.uuidString }
+        }
+        return byID(merged) == byID(remote)
     }
 }
