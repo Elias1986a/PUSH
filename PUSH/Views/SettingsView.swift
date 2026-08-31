@@ -873,6 +873,8 @@ struct DictionarySettingsView: View {
     /// So the new row is a draft until it has both halves.
     @State private var draft: Draft?
     @FocusState private var draftFieldFocused: Bool
+    /// Row order, held still while the list is on screen — see `displayed`.
+    @State private var order: [UUID] = []
 
     private struct Draft {
         var wrong: String = ""
@@ -896,7 +898,7 @@ struct DictionarySettingsView: View {
                     draftRow(draft)
                 }
 
-                ForEach(newestFirst) { correction in
+                ForEach(displayed) { correction in
                     // Look the binding back up by id: the display order is not
                     // the storage order, and rows must stay editable.
                     if let index = store.corrections.firstIndex(where: { $0.id == correction.id }) {
@@ -929,7 +931,28 @@ struct DictionarySettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear(perform: refreshOrder)
+        // Ids only: the order settles when entries arrive or leave, never on a
+        // keystroke. Editing a row re-stamps `modifiedAt`, and re-sorting on
+        // that would slide the row out from under the cursor mid-word.
+        .onChange(of: store.corrections.map(\.id)) { _, _ in refreshOrder() }
         .onDisappear(perform: commitDraft)
+    }
+
+    /// The rows as drawn: `order` while it holds, with anything it hasn't seen
+    /// yet (a fresh add, entries arriving from another Mac) at the top.
+    private var displayed: [CorrectionsStore.Correction] {
+        let byID = Dictionary(store.corrections.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let known = order.compactMap { byID[$0] }
+        let knownIDs = Set(order)
+        return newestFirst.filter { !knownIDs.contains($0.id) } + known
+    }
+
+    private func refreshOrder() {
+        let live = Set(store.corrections.map(\.id))
+        let kept = order.filter { live.contains($0) }
+        let keptIDs = Set(kept)
+        order = newestFirst.map(\.id).filter { !keptIDs.contains($0) } + kept
     }
 
     /// Newest first. Storage order is not display order: a merge re-sorts the

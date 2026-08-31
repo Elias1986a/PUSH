@@ -116,6 +116,47 @@ final class CloudSyncMergeTests: XCTestCase {
                        "kind is part of the meaning; collapsing them would silently change behaviour")
     }
 
+    func testContextSurvivesWhenTheOlderDuplicateNeverHadAny() {
+        // `contentKey` ignores `entity`, so the two copies collapse — and the
+        // older survivor is exactly the one that was never given a hint.
+        let bare = Correction(wrong: "Hamer", right: "Hammer", kind: .contextual,
+                              entity: nil, modifiedAt: t0.addingTimeInterval(10))
+        let described = Correction(wrong: "Hamer", right: "Hammer", kind: .contextual,
+                                   entity: "a person named Hamer", modifiedAt: t0.addingTimeInterval(20))
+
+        XCTAssertEqual(merge([bare], [described]).alive.first?.entity, "a person named Hamer",
+                       "collapsing duplicates must not drop the context one of them carries")
+        XCTAssertEqual(merge([described], [bare]).alive.first?.entity, "a person named Hamer")
+    }
+
+    func testAContextAddedToAnExistingEntryTravels() {
+        // The reported bug: context added on one Mac, absent on the other.
+        // It only reaches the second machine if the edit is stamped newer.
+        let id = UUID()
+        let stale = Correction(id: id, wrong: "Hamer", right: "Hammer", kind: .contextual,
+                               entity: nil, modifiedAt: t0)
+        let after = Correction(id: id, wrong: "Hamer", right: "Hammer", kind: .contextual,
+                               entity: "a person named Hamer", modifiedAt: t0.addingTimeInterval(30))
+
+        XCTAssertEqual(merge([stale], [after]).alive.first?.entity, "a person named Hamer")
+    }
+
+    // MARK: - Publishing the result back
+
+    func testASameSizedButDifferentResultIsPublishedBack() {
+        let id = UUID()
+        let remote = [Correction(id: id, wrong: "Hamer", right: "Hammer", modifiedAt: t0)]
+        let mine = [Correction(id: id, wrong: "Hamer", right: "Hamer",
+                               modifiedAt: t0.addingTimeInterval(10))]
+
+        let merged = merge(mine, remote)
+
+        XCTAssertFalse(CloudSync.payloadMatches(merged.alive + merged.tombstones, remote),
+                       "an edit made while offline must still reach iCloud, even though the count matches")
+        XCTAssertTrue(CloudSync.payloadMatches(merged.alive + merged.tombstones, merged.alive),
+                      "a result iCloud already holds must not be pushed again")
+    }
+
     // MARK: - Degenerate inputs
 
     func testEmptySidesAreHandled() {
