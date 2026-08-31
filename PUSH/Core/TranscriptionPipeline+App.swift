@@ -20,6 +20,28 @@ extension TranscriptionPipeline {
         "thank you", "thanks for"
     ]
 
+    // MARK: - Active language
+
+    /// The language the *active* engine is actually transcribing in.
+    ///
+    /// Deliberately not just `AppState.language(for:)`. The English-only
+    /// engines (`.parakeetUnified`, `.parakeetStreaming`, `.parakeetV2`) are
+    /// English by construction — their FluidAudio repos are literally named
+    /// `-en-` — and `supportsLanguageSelection` is false for them, so no picker
+    /// can ever write their `language.*` defaults key. A key left there by an
+    /// earlier build, a hand-edited plist or a synced defaults domain would
+    /// otherwise turn off English post-processing for the *default* engine, and
+    /// the user would have no setting anywhere to point at as the cause.
+    ///
+    /// One function rather than the same two lines at each call site: the two
+    /// consumers (the post-processing chain and the contextual dictionary gate)
+    /// must never disagree about what language is being spoken.
+    @MainActor
+    static func activeLanguage(for model: WhisperModel) -> DictationLanguage {
+        guard model.supportsLanguageSelection else { return DictationLanguage(code: "en-US") }
+        return AppState.shared.language(for: model)
+    }
+
     // MARK: - Pipeline
 
     /// Process audio data through the full pipeline
@@ -29,7 +51,13 @@ extension TranscriptionPipeline {
             // Step 1: Transcribe with the active (loaded) engine — the selected
             // preference may still be downloading; ModelLoader swaps activeModel
             // only once the new model is ready.
-            let activeModel = await MainActor.run { AppState.shared.activeModel }
+            // Both read in the one hop that was already here. The language is a
+            // property of the *active* model, not the selected preference, so it
+            // has to be resolved from the same value transcription uses.
+            let (activeModel, language) = await MainActor.run { () -> (WhisperModel, DictationLanguage) in
+                let model = AppState.shared.activeModel
+                return (model, Self.activeLanguage(for: model))
+            }
             PushLogger.log("TranscriptionPipeline: Using \(activeModel.engineType) engine...")
             let rawText = try await Self.transcribe(audioData: audioData, using: activeModel)
 
@@ -104,8 +132,22 @@ extension TranscriptionPipeline {
             // Apply user-defined dictionary corrections (e.g. names Whisper consistently mishears).
             // `.always` entries replace unconditionally; `.contextual` entries are gated so
             // homophones (the tool "hammer" vs. the person "Hamer") aren't corrupted.
+            //
+            // The `.always` lane is language-neutral by construction — literal
+            // strings the user typed — and runs in every language. The
+            // `.contextual` gate is not: its cues are an English word list and a
+            // mid-sentence capital, and German capitalises every noun. Off
+            // English it is handed a gate that knows the language and so never
+            // fires, which is the verdict (`.keep`) the lane already falls back
+            // to whenever it is unsure. English keeps the store's *configured*
+            // source untouched, so a future Phase 2 judge still lands here
+            // without this line having to learn about it.
             let corrections = await MainActor.run { CorrectionsStore.shared.corrections }
-            filteredText = await CorrectionsStore.applyContextAware(corrections, to: filteredText)
+            let verdictSource: VerdictSource = language.isEnglish
+                ? CorrectionsStore.defaultVerdictSource
+                : HeuristicVerdictSource(language: language)
+            filteredText = await CorrectionsStore.applyContextAware(
+                corrections, to: filteredText, using: verdictSource)
 
             // Act on spoken self-corrections before formatting, while the
             // markers are still intact — the formatting pipeline rewrites
@@ -122,8 +164,13 @@ extension TranscriptionPipeline {
             // Post-processing pipeline varies by model capability:
             // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.
+            // ...and by language: the whole chain is English (number grammar,
+            // "i" → "I", an English filler list), so anything else takes the
+            // neutral path and is pasted as the engine wrote it.
             var formattedText = Self.postProcess(
-                filteredText, hasNativePunctuation: activeModel.hasNativePunctuation)
+                filteredText,
+                hasNativePunctuation: activeModel.hasNativePunctuation,
+                language: language)
 
             // Typographic preference — off by request via Settings → General.
             if await MainActor.run(body: { AppState.shared.doubleSpaceAfterSentence }) {

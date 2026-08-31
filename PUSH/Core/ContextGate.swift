@@ -1,7 +1,7 @@
 import Foundation
+import PUSHCore
 #if canImport(AppKit)
 import AppKit
-import PUSHCore
 #endif
 
 // MARK: - Candidate & verdict
@@ -49,7 +49,23 @@ enum CorrectionHeuristics {
 
     /// Confident the entity (not the common word) is meant?
     /// `true` → apply. `false` → not confident, keep (fail-safe).
-    static func entityLikely(sentence: String, candidate: CorrectionCandidate) -> Bool {
+    ///
+    /// `language` defaults to English so every existing call site is unchanged.
+    static func entityLikely(sentence: String,
+                             candidate: CorrectionCandidate,
+                             language: DictationLanguage = DictationLanguage(code: "en-US")) -> Bool {
+        // Both signals below are English. Signal 1 is literally an English word
+        // list. Signal 2 looks language-neutral and is not: German capitalises
+        // every noun, so "Ich habe den Hammer gekauft" would read as a proper
+        // name and rewrite an ordinary word the user said correctly.
+        //
+        // Costs nothing to gate, because `false` here means `.keep` — already
+        // the verdict this whole lane falls back to on any uncertainty, error or
+        // timeout. So off English the contextual lane simply does what it does
+        // when it is unsure: leaves the transcript alone. The `.always` lane is
+        // untouched and keeps working in every language.
+        guard language.isEnglish else { return false }
+
         let ns = sentence as NSString
         let matchLen = (candidate.matchedText as NSString).length
         guard candidate.location >= 0, candidate.location + matchLen <= ns.length else {
@@ -80,9 +96,21 @@ enum CorrectionHeuristics {
 /// heuristics are confident the entity is meant. Ships today; also serves as the
 /// pre-filter that shrinks what a future LLM lane must judge.
 struct HeuristicVerdictSource: VerdictSource {
+    /// The language being dictated.
+    let language: DictationLanguage
+
+    /// Defaults to English, so `HeuristicVerdictSource()` still means what it
+    /// always did; the pipeline is the one place that knows better and says so.
+    /// Spelled out rather than left to the memberwise init, which omits a `let`
+    /// that already has a value and so would not take the argument at all.
+    init(language: DictationLanguage = DictationLanguage(code: "en-US")) {
+        self.language = language
+    }
+
     func judge(sentence: String, candidates: [CorrectionCandidate]) async -> [CorrectionVerdict] {
         candidates.map {
-            CorrectionHeuristics.entityLikely(sentence: sentence, candidate: $0) ? .apply : .keep
+            CorrectionHeuristics.entityLikely(sentence: sentence, candidate: $0, language: language)
+                ? .apply : .keep
         }
     }
 }

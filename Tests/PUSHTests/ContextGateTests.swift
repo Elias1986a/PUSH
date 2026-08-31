@@ -96,6 +96,50 @@ final class ContextGateTests: XCTestCase {
         XCTAssertEqual(result, "ACME sells a hammer")
     }
 
+    // MARK: - Non-English
+
+    /// The heuristic reads English cues: an English trigger-word list ("email
+    /// **to** Hammer") and a mid-sentence capital taken as a proper name. Both
+    /// are wrong elsewhere — German capitalises every noun, so signal 2 alone
+    /// would fire on an ordinary word in every German sentence.
+    ///
+    /// So the gate never fires off English. That is a no-op path rather than
+    /// new risk: `false` means `.keep`, which is already the verdict the whole
+    /// contextual lane falls back to on any uncertainty.
+    func testEntityHeuristicNeverFiresForNonEnglish() {
+        let sentence = "Ich habe den Hammer gekauft"
+        let candidate = CorrectionCandidate(
+            matchedText: "Hammer",
+            location: (sentence as NSString).range(of: "Hammer").location,
+            replacement: "Hamer",
+            entity: "a person named Hamer")
+
+        // English would fire here on the mid-sentence capital — and be wrong.
+        XCTAssertTrue(CorrectionHeuristics.entityLikely(sentence: sentence, candidate: candidate))
+        XCTAssertFalse(CorrectionHeuristics.entityLikely(
+            sentence: sentence, candidate: candidate,
+            language: DictationLanguage(code: "de-DE")))
+    }
+
+    /// End to end through the lane the pipeline actually calls, with the
+    /// language-aware source the pipeline hands it.
+    func testContextualLaneKeepsEverythingForNonEnglish() async {
+        let corrections = [Correction(wrong: "Hammer", right: "Hamer",
+                                      kind: .contextual, entity: "a person named Hamer")]
+        let result = await CorrectionsStore.applyContextAware(
+            corrections, to: "Ich habe den Hammer gekauft",
+            using: HeuristicVerdictSource(language: DictationLanguage(code: "de-DE")))
+        XCTAssertEqual(result, "Ich habe den Hammer gekauft")
+
+        // The `.always` lane is untouched by the language: those are literal
+        // strings the user typed, carrying no language assumption of their own.
+        let always = [Correction(wrong: "acme", right: "ACME")]
+        let alwaysResult = await CorrectionsStore.applyContextAware(
+            always, to: "Ich arbeite bei acme",
+            using: HeuristicVerdictSource(language: DictationLanguage(code: "de-DE")))
+        XCTAssertEqual(alwaysResult, "Ich arbeite bei ACME")
+    }
+
     // MARK: - Removed models
 
     func testRetiredModelIdentifiersNoLongerResolve() {
