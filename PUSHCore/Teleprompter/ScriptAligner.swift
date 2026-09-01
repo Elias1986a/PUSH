@@ -49,7 +49,10 @@ public struct ScriptAligner: Sendable {
         /// tokens. Bounds how wrong prediction can be: if the reader stops
         /// dead, this is the most the prompter can run on before the state
         /// falls to adrift and it stops entirely.
-        public var predictionCap = 3.0
+        /// Matched to the line-change lead in the session: prediction should be
+        /// able to cover the reporting delay, not to carry a line change on
+        /// its own.
+        public var predictionCap = 2.0
 
         /// Silence, or unmatched speech, before we admit we've lost the thread.
         public var adriftAfter: TimeInterval = 1.5

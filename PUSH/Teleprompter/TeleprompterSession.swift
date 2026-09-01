@@ -75,6 +75,10 @@ final class TeleprompterSession: ObservableObject {
     /// How many words from the end of a line the scroll starts moving to the
     /// next one. The line holds still until then.
     private static let lineChangeLeadTokens: Double = 2
+
+    /// Keeps the scroll from rewinding when prediction overshoots and the next
+    /// partial lands behind it. See `ForwardOnlyPosition`.
+    private var scrollTarget = ForwardOnlyPosition()
     private var lastTick: TimeInterval = 0
 
     private init() {
@@ -151,6 +155,9 @@ final class TeleprompterSession: ObservableObject {
             timedCursor = Double(token)
             position = ScriptAligner.Position(cursor: timedCursor, state: .lost)
         }
+        // The reader saying where they are outranks the ratchet, in both
+        // directions — otherwise pressing up would do nothing.
+        scrollTarget.reset(to: fractionalLine(forCursor: position.cursor))
     }
 
     /// The end of the last word matched, as a position in the script.
@@ -229,6 +236,7 @@ final class TeleprompterSession: ObservableObject {
         position = ScriptAligner.Position(cursor: 0, state: .idle)
         displayLine = 0
         scrollVelocity = 0
+        scrollTarget = ForwardOnlyPosition()
         isRunning = true
         hasHeardPartial = false
         rebuildLayout()
@@ -333,14 +341,16 @@ final class TeleprompterSession: ObservableObject {
                 Double(max(aligner.tokens.count - 1, 0))
             )
             position = ScriptAligner.Position(cursor: timedCursor, state: .lost)
-            ease(towards: fractionalLine(forCursor: timedCursor), over: elapsed)
+            ease(towards: scrollTarget.advance(to: fractionalLine(forCursor: timedCursor)),
+                 over: elapsed)
             return
         }
         position = aligner.tick(at: now)
         // The display follows the predicted position; matching still works off
         // observed matches only. Prediction is for where to draw, never for
         // where to search.
-        ease(towards: fractionalLine(forCursor: aligner.predictedCursor(at: now)), over: elapsed)
+        ease(towards: scrollTarget.advance(to: fractionalLine(forCursor: aligner.predictedCursor(at: now))),
+             over: elapsed)
     }
 
     /// Advance the critically damped follower toward `target`.
