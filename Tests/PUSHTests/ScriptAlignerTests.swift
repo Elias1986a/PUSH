@@ -184,6 +184,38 @@ final class ScriptAlignerTests: XCTestCase {
         XCTAssertEqual(wpm ?? 0, 120, accuracy: 20)
     }
 
+    /// A take where the microphone never delivers anything must not look
+    /// healthy. Regression for the wiring bug where every partial was posted to
+    /// the dictation handler and dropped, leaving the prompter parked at the top
+    /// of the script with a green light.
+    func testNeverHearingAnythingReportsLostRatherThanIdlingForever() {
+        var aligner = ScriptAligner(script: "one two three four five six seven eight")
+
+        // Early on, silence is just a reader who has not started.
+        XCTAssertEqual(aligner.tick(at: 0).state, .idle)
+        XCTAssertEqual(aligner.tick(at: 2).state, .idle)
+
+        // Past the lost threshold it has to admit it is hearing nothing.
+        let lost = aligner.tick(at: 6)
+        XCTAssertEqual(lost.state, .lost)
+
+        // But it must not drift: there is no measured pace, and walking the
+        // script away from someone who hasn't spoken is worse than holding.
+        XCTAssertEqual(lost.cursor, 0)
+        XCTAssertEqual(aligner.tick(at: 30).cursor, 0)
+    }
+
+    func testAFirstMatchClearsTheNeverHeardAnythingState() {
+        var aligner = ScriptAligner(script: "one two three four five six seven eight")
+        // The first tick starts the take's clock, as the 20Hz ticker does.
+        XCTAssertEqual(aligner.tick(at: 0).state, .idle)
+        XCTAssertEqual(aligner.tick(at: 6).state, .lost)
+
+        _ = aligner.consume(partial: "one two three", at: 7)
+        XCTAssertEqual(aligner.state, .tracking)
+        XCTAssertGreaterThan(aligner.cursor, 0)
+    }
+
     // MARK: - Manual correction
 
     func testSeekMovesTheCursorAndMatchingResumesFromThere() {

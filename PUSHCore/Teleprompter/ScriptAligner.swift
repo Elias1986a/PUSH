@@ -110,6 +110,9 @@ public struct ScriptAligner: Sendable {
 
     private var lastMatchTime: TimeInterval?
     private var firstMatchTime: TimeInterval?
+    /// When this take began, so a prompter that has never heard a word can say
+    /// so rather than sitting at the top looking healthy.
+    private var startedAt: TimeInterval?
     /// Tokens advanced through since the first match, for the pace estimate.
     private var advancedTokens: Int = 0
     /// Cursor and time at the moment we gave up, so drift extrapolates from
@@ -150,11 +153,28 @@ public struct ScriptAligner: Sendable {
 
     /// Advance time without a new partial — silence, or speech that matched
     /// nothing. This is what demotes tracking to adrift to lost.
+    ///
+    /// The first call establishes when the take began, which is what the
+    /// never-heard-anything timeout is measured from. The session ticks at 20Hz
+    /// from the moment it starts, so that is the start; a caller that ticks late
+    /// is telling this type the take began late.
     @discardableResult
     public mutating func tick(at now: TimeInterval) -> Position {
+        if startedAt == nil { startedAt = now }
+
         guard let last = lastMatchTime else {
-            state = .idle
-            return Position(cursor: Double(max(cursor, 0)), state: .idle)
+            // Nothing has ever matched. Wait quietly at first — the reader may
+            // simply not have started — but past the lost threshold, say so.
+            // Silence here is indistinguishable from a dead microphone, and a
+            // prompter that looks healthy while hearing nothing is worse than
+            // one that admits it.
+            //
+            // Reported as lost but deliberately not drifting: there is no
+            // measured pace to drift at, and guessing forward would walk the
+            // script away from a reader who has not said a word.
+            let waited = now - (startedAt ?? now)
+            state = waited >= tuning.lostAfter ? .lost : .idle
+            return Position(cursor: Double(max(cursor, 0)), state: state)
         }
 
         let quiet = now - last

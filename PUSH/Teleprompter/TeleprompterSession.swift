@@ -153,6 +153,7 @@ final class TeleprompterSession: ObservableObject {
         timedCursor = 0
         position = ScriptAligner.Position(cursor: 0, state: .idle)
         isRunning = true
+        hasHeardPartial = false
         rebuildLayout()
 
         timedWordsPerMinute = TeleprompterState.shared.wordsPerMinute
@@ -212,8 +213,17 @@ final class TeleprompterSession: ObservableObject {
         }
     }
 
+    /// Whether any partial has arrived this take, so the first one can be
+    /// logged. Silence here used to be indistinguishable from a working take.
+    private var hasHeardPartial = false
+
     private func consume(partial: String) {
         guard isRunning else { return }
+        if !hasHeardPartial {
+            hasHeardPartial = true
+            // Length only, never the text (privacy).
+            PushLogger.log("Teleprompter: first partial received (\(partial.count) chars)")
+        }
         position = aligner.consume(partial: partial, at: Date().timeIntervalSinceReferenceDate)
     }
 

@@ -28,6 +28,14 @@ public actor ParakeetStreamingEngine {
         onPartial = handler
     }
 
+    /// Hand a partial to the handler registered *now*.
+    ///
+    /// The indirection is the point: see `loadModel`. Without it, swapping the
+    /// handler after the model is loaded has no effect on a running manager.
+    private func deliver(_ partial: String) {
+        onPartial?(partial)
+    }
+
     private var manager: StreamingUnifiedAsrManager?
     private var isLoaded = false
 
@@ -59,12 +67,20 @@ public actor ParakeetStreamingEngine {
         do {
             let manager = StreamingUnifiedAsrManager()
             try await manager.loadModels()
-            // Feed the rough in-flight transcript to the pill. Fires off-main
-            // roughly once per 1.04s chunk, so it hops to the main actor to
-            // publish. Display only — this text is never injected or logged.
-            let onPartial = self.onPartial
-            await manager.setPartialTranscriptCallback { partial in
-                onPartial?(partial)
+            // Feed the rough in-flight transcript to whoever is currently
+            // registered. Fires off-main roughly once per 1.04s chunk, so it
+            // hops to the actor to read the handler and the handler hops on to
+            // the main actor to publish. Display only — this text is never
+            // injected or logged.
+            //
+            // Read at emission time, never snapshotted here. The manager
+            // outlives any one handler, and the teleprompter swaps the handler
+            // for the length of a take; a copy taken at load time kept
+            // delivering to whoever was installed when the model loaded, which
+            // silently posted every prompter partial into the dictation
+            // handler's disabled guard and dropped it.
+            await manager.setPartialTranscriptCallback { [weak self] partial in
+                Task { await self?.deliver(partial) }
             }
             self.manager = manager
             isLoaded = true
