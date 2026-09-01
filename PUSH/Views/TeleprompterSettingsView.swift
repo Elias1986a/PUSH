@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct TeleprompterSettingsView: View {
     @ObservedObject private var settings = TeleprompterState.shared
     @ObservedObject private var session = TeleprompterSession.shared
+    @ObservedObject private var appState = AppState.shared
 
     @State private var loadError: String?
 
@@ -93,7 +94,8 @@ struct TeleprompterSettingsView: View {
             Section("While the prompter is running") {
                 shortcut("↑ / ↓", "Move back or forward one line")
                 shortcut("← / →", "Slower or faster, by 10 wpm")
-                Text("The arrow keys only belong to the prompter while it is running, so they work normally the rest of the time.")
+                shortcut(appState.selectedHotkey.displayName, "Stop the take")
+                Text("These belong to the prompter only while it is running. The arrow keys work normally the rest of the time, and \(appState.selectedHotkey.displayName) goes back to starting dictation.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

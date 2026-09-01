@@ -29,6 +29,10 @@ final class HotkeyManager: @unchecked Sendable {
     // Needed separately from AppState.isProcessing because the event tap callback
     // can't access @MainActor-isolated AppState. Same threading rationale as above.
     nonisolated(unsafe) private var isCurrentlyProcessing = false
+    /// Set when a press stopped a teleprompter take instead of starting
+    /// dictation, so the matching release is ignored rather than tearing down a
+    /// recording that never started.
+    private var pressStoppedTeleprompter = false
 
     // Right Option key code
     private let rightOptionKeyCode: CGKeyCode = 61
@@ -363,6 +367,19 @@ final class HotkeyManager: @unchecked Sendable {
             PushLogger.log("HotkeyManager: Model still loading — recording ahead of it")
         }
 
+        // While a take is running the hotkey means "stop the prompter", not
+        // "dictate". You are on camera, not dictating — and letting the press
+        // through would be actively destructive: `startRecording` no-ops
+        // because the prompter already holds the microphone, and the matching
+        // release would then call `stopRecording` and take the mic away,
+        // leaving the prompter on screen and permanently deaf.
+        if TeleprompterSession.shared.isRunning {
+            pressStoppedTeleprompter = true
+            PushLogger.log("HotkeyManager: press stopped the teleprompter")
+            Task { @MainActor in await Teleprompter.stop() }
+            return
+        }
+
         isCurrentlyRecording = true
         PressTiming.begin()
         startReleaseWatchdog()
@@ -398,6 +415,13 @@ final class HotkeyManager: @unchecked Sendable {
         PushLogger.log("HotkeyManager: handleKeyUp called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
         stopReleaseWatchdog()
         guard AppState.shared.hotkeyEnabled else { return }
+
+        // The press that stopped a take ends here and goes no further; there is
+        // no recording behind it to finish.
+        if pressStoppedTeleprompter {
+            pressStoppedTeleprompter = false
+            return
+        }
 
         isCurrentlyRecording = false
         isCurrentlyProcessing = true

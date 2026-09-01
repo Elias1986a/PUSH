@@ -117,16 +117,7 @@ struct MenuBarView: View {
     }
 
     private func toggleTeleprompter() {
-        Task {
-            if session.isRunning {
-                await session.stop()
-                TeleprompterWindow.shared.hide()
-            } else {
-                let settings = TeleprompterState.shared
-                TeleprompterWindow.shared.show()
-                await session.start(script: settings.script, followVoice: settings.followVoice)
-            }
-        }
+        Task { await Teleprompter.toggle() }
     }
 
     private func quitApp() {
