@@ -82,10 +82,12 @@ final class TeleprompterState: ObservableObject {
     /// Dim the words already spoken on the line being read, so the exact place
     /// in the sentence is visible rather than just the line.
     ///
-    /// A toggle rather than a fixed behaviour: word-level feedback is only
-    /// worth having when alignment is right, and a wrong word marked as read is
-    /// far more distracting than a whole line being slightly off.
-    @Published var highlightSpokenWords: Bool = true {
+    /// Off by default: tried and it competed with reading the line rather than
+    /// helping. Kept because it costs nothing and is worth another look once
+    /// the pacing is settled — a wrong word marked as read is far more
+    /// distracting than a whole line being slightly off, so it earns its place
+    /// only when alignment is reliably tight.
+    @Published var highlightSpokenWords: Bool = false {
         didSet { UserDefaults.standard.set(highlightSpokenWords, forKey: Keys.highlightSpoken) }
     }
 

@@ -18,14 +18,20 @@ struct TeleprompterView: View {
     /// behind the camera housing / menu bar strip rather than under it.
     var topInset: CGFloat
 
-    /// One line of context above the reading slot, four of runway below.
+    /// One line either side of the reading slot: three rows, one line lit at a
+    /// time.
     ///
-    /// Six rather than three: reading a line well needs the shape of the
-    /// sentence you are heading into, not just the next few words. The line
-    /// above earns its place too — with continuous scrolling, text appearing
-    /// out of nothing at the top edge pulls the eye every time.
+    /// A deep block of runway was tried and read badly — too much text to hold
+    /// while also judging whether the scroll was keeping up with you.
+    ///
+    /// The line above is not decoration, it is required. With continuous
+    /// scrolling the read line travels upward through its slot as you speak it,
+    /// so with nothing above, the line you are currently reading would be
+    /// clipped by the top edge just as you finish it. That was survivable when
+    /// the scroll snapped line to line and the read line sat still; it is not
+    /// now that it moves.
     private static let linesAbove = 1
-    private static let linesBelow = 4
+    private static let linesBelow = 1
     private static var visibleLines: Int { linesAbove + 1 + linesBelow }
 
     private var font: NSFont {
@@ -133,11 +139,15 @@ struct TeleprompterView: View {
     /// Short fades: long enough to dissolve a part-line, short enough that the
     /// reading slot and the first lines of runway are never touched by it.
     private var edgeFade: LinearGradient {
-        LinearGradient(
+        // Expressed as a fraction of a line rather than of the panel, so it
+        // stays a soft edge and never reaches the reading slot whatever the
+        // row count is.
+        let fade = 0.36 / Double(Self.visibleLines)
+        return LinearGradient(
             stops: [
                 .init(color: .clear, location: 0),
-                .init(color: .black, location: 0.11),
-                .init(color: .black, location: 0.87),
+                .init(color: .black, location: fade),
+                .init(color: .black, location: 1 - fade),
                 .init(color: .clear, location: 1)
             ],
             startPoint: .top,
