@@ -76,6 +76,11 @@ struct TeleprompterSettingsView: View {
                     .foregroundStyle(.orange)
                 }
 
+                Toggle("Dim words as I say them", isOn: $settings.highlightSpokenWords)
+                Text("Marks your exact place in the line, not just which line. Worth turning off if the word it marks is ever ahead of or behind where you actually are — a wrong word is more distracting than none.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 LabeledContent("Speed") {
                     HStack {
                         Slider(value: $settings.wordsPerMinute, in: 60...400, step: 10)

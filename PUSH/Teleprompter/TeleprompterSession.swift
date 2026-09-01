@@ -57,10 +57,20 @@ final class TeleprompterSession: ObservableObject {
     private var ticker: Task<Void, Never>?
     /// Position at the last timed step, for the no-voice fallback.
     private var timedCursor: Double = 0
-    /// How quickly `displayLine` closes on its target, as a time constant.
-    /// Short enough to keep up with a reader, long enough to smooth the
-    /// once-a-second arrival of partials into continuous motion.
-    private static let scrollTau: TimeInterval = 0.28
+    /// Current scroll speed, in lines per second.
+    ///
+    /// The scroll is a critically damped second-order follower rather than an
+    /// exponential ease. An ease sets speed proportional to the error, so when
+    /// a partial lands and moves the target several tokens at once, the speed
+    /// jumps with it and the text surges — the residual jumpiness after the
+    /// first pass at this. Carrying velocity means acceleration is what
+    /// changes, and the motion stays smooth through a burst.
+    private var scrollVelocity: Double = 0
+
+    /// Stiffness, in radians per second. Critically damped, so it closes on the
+    /// target without overshooting text the reader is mid-sentence on.
+    /// Roughly a half-second to settle.
+    private static let scrollStiffness: Double = 5.5
     private var lastTick: TimeInterval = 0
 
     private init() {
@@ -139,6 +149,16 @@ final class TeleprompterSession: ObservableObject {
         }
     }
 
+    /// The end of the last word matched, as a position in the script.
+    ///
+    /// Nil before anything has been heard, so nothing is marked as read at the
+    /// top of a take.
+    var spokenThrough: String.Index? {
+        guard isRunning, position.state != .idle else { return nil }
+        let index = Int(position.cursor.rounded(.down))
+        return tokenRange(at: index)?.upperBound
+    }
+
     /// Where the cursor is in fractional display lines: the line it is on, plus
     /// how far through that line's words it has got. The within-line fraction is
     /// what lets the script move while a reader crosses a single line, instead
@@ -184,6 +204,7 @@ final class TeleprompterSession: ObservableObject {
         timedCursor = 0
         position = ScriptAligner.Position(cursor: 0, state: .idle)
         displayLine = 0
+        scrollVelocity = 0
         isRunning = true
         hasHeardPartial = false
         rebuildLayout()
@@ -295,11 +316,18 @@ final class TeleprompterSession: ObservableObject {
         ease(towards: fractionalLine(forCursor: position.cursor), over: elapsed)
     }
 
-    /// Exponential ease, framed in elapsed time rather than per-tick so the
-    /// motion is the same whatever the tick rate happens to be.
+    /// Advance the critically damped follower toward `target`.
+    ///
+    /// Integrated against real elapsed time so the feel does not depend on the
+    /// tick rate. The step is clamped because a stalled main actor can hand us
+    /// a long `elapsed`, and integrating that in one go would fling the script
+    /// past the reader.
     private func ease(towards target: Double, over elapsed: TimeInterval) {
         guard elapsed > 0 else { return }
-        let k = 1 - exp(-elapsed / Self.scrollTau)
-        displayLine += (target - displayLine) * k
+        let dt = min(elapsed, 0.1)
+        let w = Self.scrollStiffness
+        let acceleration = w * w * (target - displayLine) - 2 * w * scrollVelocity
+        scrollVelocity += acceleration * dt
+        displayLine += scrollVelocity * dt
     }
 }

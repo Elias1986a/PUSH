@@ -12,6 +12,7 @@ final class TeleprompterState: ObservableObject {
         static let size = "prompterSize"
         static let hideFromRecording = "prompterHideFromRecording"
         static let followVoice = "prompterFollowVoice"
+        static let highlightSpoken = "prompterHighlightSpoken"
         static let wordsPerMinute = "prompterWordsPerMinute"
     }
 
@@ -78,6 +79,16 @@ final class TeleprompterState: ObservableObject {
         didSet { UserDefaults.standard.set(followVoice, forKey: Keys.followVoice) }
     }
 
+    /// Dim the words already spoken on the line being read, so the exact place
+    /// in the sentence is visible rather than just the line.
+    ///
+    /// A toggle rather than a fixed behaviour: word-level feedback is only
+    /// worth having when alignment is right, and a wrong word marked as read is
+    /// far more distracting than a whole line being slightly off.
+    @Published var highlightSpokenWords: Bool = true {
+        didSet { UserDefaults.standard.set(highlightSpokenWords, forKey: Keys.highlightSpoken) }
+    }
+
     /// Pace for the timed fallback, used when voice-following is off or the
     /// model isn't available.
     @Published var wordsPerMinute: Double = 150 {
@@ -93,6 +104,9 @@ final class TeleprompterState: ObservableObject {
         }
         if d.object(forKey: Keys.followVoice) != nil {
             followVoice = d.bool(forKey: Keys.followVoice)
+        }
+        if d.object(forKey: Keys.highlightSpoken) != nil {
+            highlightSpokenWords = d.bool(forKey: Keys.highlightSpoken)
         }
         let wpm = d.double(forKey: Keys.wordsPerMinute)
         if wpm > 0 { wordsPerMinute = wpm }

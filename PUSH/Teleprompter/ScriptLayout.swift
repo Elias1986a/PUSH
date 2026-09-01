@@ -11,7 +11,13 @@ struct ScriptLayout {
 
     struct Line {
         let text: String
+        /// The line's span in the script, as CoreText broke it.
         let range: Range<String.Index>
+        /// The span of `text` itself — `range` minus the whitespace trimmed off
+        /// the ends. Character offsets into `text` are only meaningful against
+        /// this, which is what word-level highlighting needs to map a token's
+        /// position in the script onto a position in the drawn string.
+        let trimmedRange: Range<String.Index>
     }
 
     let lines: [Line]
@@ -35,14 +41,33 @@ struct ScriptLayout {
             guard count > 0 else { break }
             let utf16Range = NSRange(location: start, length: count)
             if let range = Range(utf16Range, in: script) {
-                let text = String(script[range])
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                result.append(Line(text: text, range: range))
+                let trimmed = Self.trimmed(range, in: script)
+                result.append(Line(
+                    text: String(script[trimmed]),
+                    range: range,
+                    trimmedRange: trimmed
+                ))
             }
             start += count
         }
 
         self.lines = result
+    }
+
+    /// `range` with leading and trailing whitespace excluded, so the result
+    /// indexes exactly the characters that get drawn.
+    private static func trimmed(_ range: Range<String.Index>, in script: String) -> Range<String.Index> {
+        var lower = range.lowerBound
+        var upper = range.upperBound
+        while lower < upper, script[lower].isWhitespace {
+            lower = script.index(after: lower)
+        }
+        while upper > lower {
+            let previous = script.index(before: upper)
+            guard script[previous].isWhitespace else { break }
+            upper = previous
+        }
+        return lower..<upper
     }
 
     /// Which display line the given character index falls on.

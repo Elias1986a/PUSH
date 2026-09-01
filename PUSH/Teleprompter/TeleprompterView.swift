@@ -60,7 +60,7 @@ struct TeleprompterView: View {
                         // the main actor — where a stall makes macOS disable
                         // the event tap and kill the hotkey.
                         ForEach(visibleLineRange(in: layout, at: position), id: \.self) { index in
-                            Text(layout.lines[index].text)
+                            Text(styled(layout.lines[index]))
                                 .font(Font(font))
                                 .foregroundStyle(.white)
                                 .opacity(opacity(forLine: index, at: position))
@@ -71,6 +71,12 @@ struct TeleprompterView: View {
                     .offset(y: (CGFloat(Self.linesAbove) - CGFloat(position)) * lineHeight)
                 }
                 .clipped()
+                // Dissolve at the edges instead of slicing. Continuous
+                // scrolling means there is always a part-line at the top and
+                // bottom, and a hard cut through the middle of letterforms is
+                // the most eye-catching thing on the panel — the opposite of
+                // what a prompter wants. Text now arrives and leaves.
+                .mask(edgeFade)
                 // Interpolates between the session's 20Hz updates so the travel
                 // is continuous rather than twenty steps a second. Linear on
                 // purpose: a spring would overshoot text the reader is
@@ -88,6 +94,55 @@ struct TeleprompterView: View {
         // own: green while it is following your voice, amber once it has lost
         // you. One less thing in shot.
         .overlay(NotchEdgePulse(shape: tabShape, color: stateColor))
+    }
+
+    /// The line's text, with anything already spoken dimmed.
+    ///
+    /// Only the line the reader is part-way through can be split, so this is at
+    /// most one `AttributedString` per frame; the lines behind and ahead fall
+    /// straight through to plain text.
+    private func styled(_ line: ScriptLayout.Line) -> AttributedString {
+        var text = AttributedString(line.text)
+        guard settings.highlightSpokenWords,
+              let spoken = session.spokenThrough,
+              spoken > line.trimmedRange.lowerBound
+        else { return text }
+
+        // Wholly behind the reader: the line-level fade already says so, and
+        // dimming twice would black it out.
+        guard spoken < line.trimmedRange.upperBound else { return text }
+
+        // Clamped rather than trusted: the script the layout was built from and
+        // the one the aligner tokenized are the same instance, but an offset
+        // past the end of the drawn line would trap rather than misdraw.
+        let offset = session.script.distance(from: line.trimmedRange.lowerBound, to: spoken)
+        let spokenCount = min(max(offset, 0), line.text.count)
+        guard spokenCount > 0 else { return text }
+
+        let split = text.index(text.startIndex, offsetByCharacters: spokenCount)
+
+        // Dimmed, not coloured. On camera this sits in shot, and a colour
+        // change reads as decoration where a brightness change reads as
+        // progress.
+        text[text.startIndex..<split].foregroundColor = .white.opacity(0.45)
+        return text
+    }
+
+    /// Softens the top and bottom edges of the scrolling window.
+    ///
+    /// Short fades: long enough to dissolve a part-line, short enough that the
+    /// reading slot and the first lines of runway are never touched by it.
+    private var edgeFade: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: .clear, location: 0),
+                .init(color: .black, location: 0.11),
+                .init(color: .black, location: 0.87),
+                .init(color: .clear, location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 
     private var tabShape: UnevenRoundedRectangle {
