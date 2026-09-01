@@ -71,6 +71,10 @@ final class TeleprompterSession: ObservableObject {
     /// target without overshooting text the reader is mid-sentence on.
     /// Roughly a half-second to settle.
     private static let scrollStiffness: Double = 5.5
+
+    /// How many words from the end of a line the scroll starts moving to the
+    /// next one. The line holds still until then.
+    private static let lineChangeLeadTokens: Double = 2
     private var lastTick: TimeInterval = 0
 
     private init() {
@@ -173,8 +177,28 @@ final class TeleprompterSession: ObservableObject {
             ? firstToken(onLine: line + 1)
             : aligner.tokens.count
         let span = max(1, next - first)
-        let fraction = min(max((c - Double(first)) / Double(span), 0), 1)
-        return Double(line) + fraction
+        let within = c - Double(first)
+
+        // Dwell, then move — rather than creeping across the whole line.
+        //
+        // A line that drifts upward for the entire time you are reading it
+        // never gives the eye a fixed thing to track, and the text is moving
+        // most while you most need it still. Holding the line put and then
+        // sliding once you are near its end matches how reading actually
+        // works: you finish a line, then you want the next one.
+        //
+        // The move is spread over the last couple of words rather than snapped,
+        // so it is still continuous — the follower smooths it into a glide.
+        let lead = Self.lineChangeLeadTokens
+        let progress: Double
+        if Double(span) <= lead {
+            // Too short to hold: just cross it.
+            progress = min(max(within / Double(span), 0), 1)
+        } else {
+            let holdUntil = Double(span) - lead
+            progress = min(max((within - holdUntil) / lead, 0), 1)
+        }
+        return Double(line) + progress
     }
 
     /// First token starting at or after the given line's first character.
@@ -313,7 +337,10 @@ final class TeleprompterSession: ObservableObject {
             return
         }
         position = aligner.tick(at: now)
-        ease(towards: fractionalLine(forCursor: position.cursor), over: elapsed)
+        // The display follows the predicted position; matching still works off
+        // observed matches only. Prediction is for where to draw, never for
+        // where to search.
+        ease(towards: fractionalLine(forCursor: aligner.predictedCursor(at: now)), over: elapsed)
     }
 
     /// Advance the critically damped follower toward `target`.

@@ -245,6 +245,57 @@ final class ScriptAlignerTests: XCTestCase {
         XCTAssertEqual(aligner.cursor, 0)
     }
 
+    // MARK: - Prediction
+
+    /// Partials land about a chunk behind the speech they describe, so a
+    /// display driven off the last observed match is structurally late however
+    /// fast the animation chasing it. Prediction spends the measured pace on
+    /// closing that gap.
+    func testPredictionLeadsTheLastMatchWhileTracking() {
+        let words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
+                     "golf", "hotel", "india", "juliet", "kilo", "lima"]
+        var aligner = ScriptAligner(script: words.joined(separator: " "))
+        // One token every 0.5s = 120wpm = 2 tokens/sec.
+        _ = read(&aligner, words: words, interval: 0.5)
+        let observed = Double(aligner.cursor)
+        let lastMatch = 0.5 * Double(words.count - 1)
+
+        // Immediately after a match there is nothing to predict.
+        XCTAssertEqual(aligner.predictedCursor(at: lastMatch), observed, accuracy: 0.01)
+
+        // Half a second later the reader has most likely said another word.
+        let ahead = aligner.predictedCursor(at: lastMatch + 0.5)
+        XCTAssertGreaterThan(ahead, observed)
+        XCTAssertEqual(ahead - observed, 1.0, accuracy: 0.3)
+    }
+
+    func testPredictionIsCappedSoAPauseCannotRunAway() {
+        let words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
+                     "golf", "hotel", "india", "juliet", "kilo", "lima"]
+        var aligner = ScriptAligner(script: words.joined(separator: " "))
+        _ = read(&aligner, words: words, interval: 0.5)
+        let observed = Double(aligner.cursor)
+        let lastMatch = 0.5 * Double(words.count - 1)
+
+        let far = aligner.predictedCursor(at: lastMatch + 30)
+        XCTAssertEqual(far - observed, aligner.tuning.predictionCap, accuracy: 0.01)
+    }
+
+    func testPredictionStopsOnceTheReaderHasStopped() {
+        let words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
+                     "golf", "hotel", "india", "juliet", "kilo", "lima"]
+        var aligner = ScriptAligner(script: words.joined(separator: " "))
+        _ = read(&aligner, words: words, interval: 0.5)
+        let observed = Double(aligner.cursor)
+
+        // Past the adrift threshold the reader has clearly stopped, and
+        // inventing motion for someone who is not speaking is the bug this
+        // whole design avoids.
+        _ = aligner.tick(at: 100)
+        XCTAssertEqual(aligner.state, .lost)
+        XCTAssertEqual(aligner.predictedCursor(at: 100), observed, accuracy: 0.01)
+    }
+
     // MARK: - Degenerate input
 
     func testStateStartsIdleAndSurvivesEmptyInput() {

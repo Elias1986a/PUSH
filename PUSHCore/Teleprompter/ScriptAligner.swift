@@ -45,6 +45,12 @@ public struct ScriptAligner: Sendable {
         /// words rather than one word an engine spelled badly.
         public var fuzzyThreshold = 0.75
 
+        /// How far ahead of the last match the display may be extrapolated, in
+        /// tokens. Bounds how wrong prediction can be: if the reader stops
+        /// dead, this is the most the prompter can run on before the state
+        /// falls to adrift and it stops entirely.
+        public var predictionCap = 3.0
+
         /// Silence, or unmatched speech, before we admit we've lost the thread.
         public var adriftAfter: TimeInterval = 1.5
         public var lostAfter: TimeInterval = 5.0
@@ -194,13 +200,38 @@ public struct ScriptAligner: Sendable {
         state = .tracking
     }
 
+    /// Where the reader has most likely got to *now*, rather than where they
+    /// were when the last partial landed.
+    ///
+    /// Streaming partials arrive about a chunk behind the speech they describe,
+    /// so a display driven straight off `cursor` is structurally late — it
+    /// cannot help but lag, however fast the animation chasing it. Spending the
+    /// measured pace on closing that gap is the whole reason for measuring it.
+    ///
+    /// Only extrapolates while tracking, and only up to `predictionCap`. A
+    /// reader who stops gets at most that much invented motion before the state
+    /// falls to adrift and this returns the plain cursor again — which is what
+    /// keeps a pause from moving the script.
+    public func predictedCursor(at now: TimeInterval) -> Double {
+        let base = Double(max(cursor, 0))
+        guard state == .tracking,
+              let last = lastMatchTime,
+              let wpm = measuredWordsPerMinute
+        else { return base }
+
+        let ahead = (wpm / 60.0) * max(now - last, 0)
+        return base + min(ahead, tuning.predictionCap)
+    }
+
     /// The speaker's own pace, measured from tokens actually matched. Nil until
     /// there is enough of a run to mean anything.
     public var measuredWordsPerMinute: Double? {
         guard let first = firstMatchTime, let last = lastMatchTime else { return nil }
         let elapsed = last - first
         guard elapsed > 1.0, advancedTokens > 3 else { return nil }
-        return Double(advancedTokens) / elapsed * 60.0
+        // Clamped: a burst of matches over a short window can imply an absurd
+        // pace, and prediction multiplies whatever it is told.
+        return min(max(Double(advancedTokens) / elapsed * 60.0, 60), 400)
     }
 
     /// Text of the token at `index`, for highlighting.
