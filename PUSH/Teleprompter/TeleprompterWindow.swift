@@ -14,7 +14,14 @@ final class TeleprompterWindow {
     static let shared = TeleprompterWindow()
 
     private var panel: NSPanel?
-    private var settingsObserver: NSObjectProtocol?
+    /// Where the panel is anchored, captured when it is shown.
+    ///
+    /// Held rather than recomputed on every resize: `targetScreen()` follows the
+    /// pointer, so re-deriving it mid-take would let the panel jump displays
+    /// because the mouse happened to be elsewhere when the type size changed.
+    private var anchorCenterX: CGFloat?
+    private var anchorTopY: CGFloat?
+    private var resizeObserver: NSObjectProtocol?
 
     private init() {}
 
@@ -49,8 +56,26 @@ final class TeleprompterWindow {
     /// Re-measure after a size change or a display rearrangement.
     func reposition() {
         guard let panel else { return }
+        anchorCenterX = nil
+        anchorTopY = nil
         panel.contentViewController?.view.layoutSubtreeIfNeeded()
         position(panel)
+    }
+
+    /// Re-anchor after SwiftUI has resized the panel to fit new content.
+    ///
+    /// SwiftUI grows a window from its bottom-left corner, so a step up in type
+    /// size pushes the panel right and leaves it hanging below the screen edge
+    /// rather than growing evenly about the notch. Re-centring on the anchor it
+    /// was given keeps it pinned to the middle of the screen and to the top,
+    /// whatever size the content settles at.
+    private func reanchor() {
+        guard let panel, let centerX = anchorCenterX, let topY = anchorTopY else { return }
+        let x = centerX - panel.frame.width / 2
+        let y = topY - panel.frame.height
+        // Guard against a no-op write feeding back into another resize notice.
+        guard abs(panel.frame.minX - x) > 0.5 || abs(panel.frame.minY - y) > 0.5 else { return }
+        panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
     // MARK: - Building
@@ -83,6 +108,15 @@ final class TeleprompterWindow {
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.mainMenu.rawValue + 3)
 
         controller.view.layoutSubtreeIfNeeded()
+
+        resizeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResizeNotification,
+            object: panel,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { TeleprompterWindow.shared.reanchor() }
+        }
+
         return panel
     }
 
@@ -97,6 +131,11 @@ final class TeleprompterWindow {
 
     private func position(_ panel: NSPanel) {
         let screen = targetScreen()
+        // Centre on the physical screen, not `visibleFrame` — a Dock pinned
+        // left or right shrinks visibleFrame and would push the panel
+        // off-centre relative to the display.
+        anchorCenterX = screen.frame.midX
+        anchorTopY = screen.frame.maxY
         panel.setFrameOrigin(NSPoint(
             x: screen.frame.midX - panel.frame.width / 2,
             // Flush with the physical top edge. The panel's own top corners are

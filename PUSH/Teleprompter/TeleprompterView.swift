@@ -16,10 +16,15 @@ struct TeleprompterView: View {
     /// behind the camera housing / menu bar strip rather than under it.
     var topInset: CGFloat
 
-    /// Slots above and below the pinned line. Fixed at one each: three lines
-    /// total, regardless of size.
-    private static let linesAbove = 1
-    private static let linesBelow = 1
+    /// Slots above and below the pinned line. Three lines total either way,
+    /// regardless of size.
+    ///
+    /// Nothing above: on a take, knowing what is coming is worth more than
+    /// seeing the line you just finished. Spending both spare slots on
+    /// lookahead gives a full clause of runway to phrase against, where one
+    /// line ahead only gets you to the next few words.
+    private static let linesAbove = 0
+    private static let linesBelow = 2
     private static var visibleLines: Int { linesAbove + 1 + linesBelow }
 
     private var font: NSFont {
@@ -102,14 +107,14 @@ struct TeleprompterView: View {
         return lower..<max(lower, upper)
     }
 
-    /// Read line bright, the line just read dim, the line coming next in
-    /// between — enough lookahead to phrase a sentence, not enough to invite
-    /// the eye down the page.
+    /// Read line bright, then falling away with distance. The gradient is the
+    /// point: it says which line to read without a highlight or a caret, and it
+    /// keeps the eye from being pulled to the bottom of the block.
     private func opacity(for index: Int, current: Int) -> Double {
         switch index - current {
         case 0: return 1.0
-        case -1: return 0.35
         case 1: return 0.6
+        case 2: return 0.38
         default: return 0
         }
     }
