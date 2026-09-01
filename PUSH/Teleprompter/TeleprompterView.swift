@@ -18,11 +18,11 @@ struct TeleprompterView: View {
     /// behind the camera housing / menu bar strip rather than under it.
     var topInset: CGFloat
 
-    /// One line either side of the reading slot: three rows, one line lit at a
-    /// time.
+    /// One line of context above the reading slot, four of runway below.
     ///
-    /// A deep block of runway was tried and read badly — too much text to hold
-    /// while also judging whether the scroll was keeping up with you.
+    /// Six rows, with exactly one line lit at a time. The two are independent:
+    /// how much you can see ahead is not the same question as how much is
+    /// marked as where you are, and the answer here is "plenty" and "one line".
     ///
     /// The line above is not decoration, it is required. With continuous
     /// scrolling the read line travels upward through its slot as you speak it,
@@ -31,7 +31,7 @@ struct TeleprompterView: View {
     /// the scroll snapped line to line and the read line sat still; it is not
     /// now that it moves.
     private static let linesAbove = 1
-    private static let linesBelow = 1
+    private static let linesBelow = 4
     private static var visibleLines: Int { linesAbove + 1 + linesBelow }
 
     private var font: NSFont {
