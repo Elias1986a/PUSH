@@ -219,6 +219,42 @@ final class CorrectionsStore: ObservableObject {
         return await applyContextual(contextual, to: afterAlways, using: source)
     }
 
+    /// Characters from scripts that are written without spaces between words.
+    /// Hangul is deliberately absent: Korean *is* spaced, so `\b` works there.
+    private nonisolated static let unspacedScript =
+        "[\\p{Han}\\p{Hiragana}\\p{Katakana}\\p{Thai}\\p{Lao}\\p{Khmer}\\p{Myanmar}]"
+
+    /// What `\b` is *for*, written so it also holds where `\b` cannot.
+    ///
+    /// `\b` asserts a transition between a word character and a non-word
+    /// character. In Japanese, Chinese and Thai every character of a sentence is
+    /// a word character, so an entry sitting inside a longer run has no `\b` on
+    /// either side and its correction silently never fires — the entry saves,
+    /// and then does nothing forever.
+    ///
+    /// The rule `\b` is standing in for is that a boundary is only *needed*
+    /// where both sides belong to a script that separates words with spaces. So
+    /// keep `\b`, and let an unspaced-script character on either side of the
+    /// point stand in for it. The lookbehind sees the neighbouring character and
+    /// the lookahead the term's own edge character (and vice versa at the far
+    /// end), which is why one pattern serves both ends: it fixes a Chinese entry
+    /// inside Chinese text *and* a Latin brand name wedged between kana.
+    ///
+    /// This can only ever *add* matches, and only next to an unspaced script, so
+    /// nothing about Latin or Cyrillic terms in Latin or Cyrillic text changes.
+    /// The price is that an unspaced-script entry also fires inside a longer
+    /// compound: without word segmentation there is no way to tell "東京" the
+    /// word from "東京" inside "東京都", and a correction that fires a little too
+    /// eagerly beats one the user can never get to fire at all.
+    private nonisolated static let scriptAwareBoundary =
+        "(?:\\b|(?<=\(unspacedScript))|(?=\(unspacedScript)))"
+
+    /// The search pattern for one dictionary entry. Shared by both lanes so the
+    /// two can never disagree about what counts as a match.
+    nonisolated static func matchPattern(for term: String) -> String {
+        scriptAwareBoundary + NSRegularExpression.escapedPattern(for: term) + scriptAwareBoundary
+    }
+
     /// Case-insensitive, whole-word replacement of every "wrong" with its
     /// "right" spelling. Used for the unconditional `.always` lane.
     nonisolated static func applyReplacements(_ corrections: [Correction], to text: String) -> String {
@@ -227,7 +263,7 @@ final class CorrectionsStore: ObservableObject {
         var result = text
         for correction in corrections {
             guard !correction.wrong.isEmpty else { continue }
-            let pattern = "\\b" + NSRegularExpression.escapedPattern(for: correction.wrong) + "\\b"
+            let pattern = matchPattern(for: correction.wrong)
             guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { continue }
             let range = NSRange(result.startIndex..., in: result)
             let template = NSRegularExpression.escapedTemplate(for: correction.right)
@@ -250,7 +286,7 @@ final class CorrectionsStore: ObservableObject {
 
         for correction in corrections {
             guard !correction.wrong.isEmpty else { continue }
-            let pattern = "\\b" + NSRegularExpression.escapedPattern(for: correction.wrong) + "\\b"
+            let pattern = matchPattern(for: correction.wrong)
             guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { continue }
             let full = NSRange(text.startIndex..., in: text)
             for match in regex.matches(in: text, options: [], range: full) {
