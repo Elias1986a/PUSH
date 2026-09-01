@@ -49,10 +49,6 @@ public struct ScriptAligner: Sendable {
         public var adriftAfter: TimeInterval = 1.5
         public var lostAfter: TimeInterval = 5.0
 
-        /// Pace assumed before we've measured the speaker's own, in tokens per
-        /// second. ~150wpm, a middling read-aloud pace.
-        public var defaultTokensPerSecond = 2.5
-
         public init() {}
     }
 
@@ -79,15 +75,16 @@ public struct ScriptAligner: Sendable {
         /// Nothing has matched recently. Hold position and widen the forward
         /// search, so rejoining mid-sentence snaps back on.
         case adrift
-        /// Nothing has matched for a long time. Drift at the measured pace and
-        /// say so, rather than freezing on a line the speaker left behind.
+        /// Nothing has matched for a long time. Hold, and say so — the reader
+        /// has stopped, gone off-script, or cannot be heard, and none of those
+        /// are reasons to move the script.
         case lost
     }
 
     /// Where the prompter should be, and how much to trust it.
     public struct Position: Sendable, Equatable {
-        /// Token index. Fractional in `.lost`, where it is being extrapolated
-        /// rather than observed.
+        /// Token index. Always an observed match while voice-following; the
+        /// session's timed fallback is what produces fractional values.
         public let cursor: Double
         public let state: Tracking
 
@@ -115,9 +112,6 @@ public struct ScriptAligner: Sendable {
     private var startedAt: TimeInterval?
     /// Tokens advanced through since the first match, for the pace estimate.
     private var advancedTokens: Int = 0
-    /// Cursor and time at the moment we gave up, so drift extrapolates from
-    /// there rather than from wherever the last match happened to be.
-    private var lostAnchor: (cursor: Int, time: TimeInterval)?
 
     // MARK: - Init
 
@@ -145,7 +139,6 @@ public struct ScriptAligner: Sendable {
             if match > cursor { advancedTokens += match - cursor }
             cursor = match
             lastMatchTime = now
-            lostAnchor = nil
             state = .tracking
         }
         return tick(at: now)
@@ -179,30 +172,25 @@ public struct ScriptAligner: Sendable {
 
         let quiet = now - last
         if quiet >= tuning.lostAfter {
-            if state != .lost {
-                state = .lost
-                lostAnchor = (cursor, now)
-            }
+            state = .lost
         } else if quiet >= tuning.adriftAfter {
             state = .adrift
         } else {
             state = .tracking
         }
 
-        return Position(cursor: extrapolatedCursor(at: now), state: state)
+        return Position(cursor: Double(max(cursor, 0)), state: state)
     }
 
     /// Move the cursor by hand, when the speaker corrects it.
     ///
     /// Treated as ground truth: matching resumes from the new position, so the
     /// windowed search looks around where the speaker says they are rather than
-    /// where it last thought they were. Clears the lost-drift anchor, since a
-    /// deliberate correction is a better anchor than an extrapolation.
+    /// where it last thought they were.
     public mutating func seek(to index: Int, at now: TimeInterval) {
         guard !tokens.isEmpty else { return }
         cursor = min(max(index, 0), tokens.count - 1)
         lastMatchTime = now
-        lostAnchor = nil
         state = .tracking
     }
 
@@ -274,19 +262,6 @@ public struct ScriptAligner: Sendable {
         if !a.soundex.isEmpty, a.soundex == b.soundex { return 0.9 }
         let ratio = levenshteinRatio(a.normalized, b.normalized)
         return ratio >= 0.75 ? ratio : 0.0
-    }
-
-    // MARK: - Drift
-
-    /// In `.lost`, keep moving at the measured pace rather than freezing on a
-    /// line the speaker left behind. Everywhere else the cursor is observed.
-    private func extrapolatedCursor(at now: TimeInterval) -> Double {
-        guard state == .lost, let anchor = lostAnchor else {
-            return Double(max(cursor, 0))
-        }
-        let pace = (measuredWordsPerMinute.map { $0 / 60.0 }) ?? tuning.defaultTokensPerSecond
-        let drifted = Double(anchor.cursor) + pace * (now - anchor.time)
-        return min(drifted, Double(max(tokens.count - 1, 0)))
     }
 
     // MARK: - Tokenizing

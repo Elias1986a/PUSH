@@ -32,6 +32,15 @@ final class TeleprompterSession: ObservableObject {
     /// downloaded, or because the user turned voice-following off.
     @Published private(set) var isFollowingVoice = false
 
+    /// Where the script sits vertically, in fractional display lines.
+    ///
+    /// Fractional and eased, not a line index. Matching lands in discrete jumps
+    /// — a partial arrives about once a second and moves the cursor several
+    /// tokens — and following that directly makes the text hop a whole line at
+    /// a time, which is hard to read against. This chases the target instead,
+    /// so the script travels continuously at roughly the speed you are reading.
+    @Published private(set) var displayLine: Double = 0
+
     // MARK: - Settings
 
     /// Pace for the timed fallback, in words per minute.
@@ -48,6 +57,10 @@ final class TeleprompterSession: ObservableObject {
     private var ticker: Task<Void, Never>?
     /// Position at the last timed step, for the no-voice fallback.
     private var timedCursor: Double = 0
+    /// How quickly `displayLine` closes on its target, as a time constant.
+    /// Short enough to keep up with a reader, long enough to smooth the
+    /// once-a-second arrival of partials into continuous motion.
+    private static let scrollTau: TimeInterval = 0.28
     private var lastTick: TimeInterval = 0
 
     private init() {
@@ -126,6 +139,24 @@ final class TeleprompterSession: ObservableObject {
         }
     }
 
+    /// Where the cursor is in fractional display lines: the line it is on, plus
+    /// how far through that line's words it has got. The within-line fraction is
+    /// what lets the script move while a reader crosses a single line, instead
+    /// of standing still and then jumping.
+    private func fractionalLine(forCursor c: Double) -> Double {
+        guard !layout.lines.isEmpty, !aligner.tokens.isEmpty else { return 0 }
+        let idx = min(max(Int(c.rounded(.down)), 0), aligner.tokens.count - 1)
+        guard let range = tokenRange(at: idx) else { return 0 }
+        let line = layout.lineIndex(containing: range.lowerBound)
+        let first = firstToken(onLine: line)
+        let next = line + 1 < layout.lines.count
+            ? firstToken(onLine: line + 1)
+            : aligner.tokens.count
+        let span = max(1, next - first)
+        let fraction = min(max((c - Double(first)) / Double(span), 0), 1)
+        return Double(line) + fraction
+    }
+
     /// First token starting at or after the given line's first character.
     private func firstToken(onLine line: Int) -> Int {
         guard layout.lines.indices.contains(line) else { return 0 }
@@ -152,6 +183,7 @@ final class TeleprompterSession: ObservableObject {
         aligner = ScriptAligner(script: script)
         timedCursor = 0
         position = ScriptAligner.Position(cursor: 0, state: .idle)
+        displayLine = 0
         isRunning = true
         hasHeardPartial = false
         rebuildLayout()
@@ -256,8 +288,18 @@ final class TeleprompterSession: ObservableObject {
                 Double(max(aligner.tokens.count - 1, 0))
             )
             position = ScriptAligner.Position(cursor: timedCursor, state: .lost)
+            ease(towards: fractionalLine(forCursor: timedCursor), over: elapsed)
             return
         }
         position = aligner.tick(at: now)
+        ease(towards: fractionalLine(forCursor: position.cursor), over: elapsed)
+    }
+
+    /// Exponential ease, framed in elapsed time rather than per-tick so the
+    /// motion is the same whatever the tick rate happens to be.
+    private func ease(towards target: Double, over elapsed: TimeInterval) {
+        guard elapsed > 0 else { return }
+        let k = 1 - exp(-elapsed / Self.scrollTau)
+        displayLine += (target - displayLine) * k
     }
 }

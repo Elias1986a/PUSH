@@ -144,32 +144,32 @@ final class ScriptAlignerTests: XCTestCase {
         XCTAssertGreaterThan(aligner.cursor, held + 5)
     }
 
-    func testSilenceBecomesLostAndDriftsForward() {
+    func testSilenceBecomesLostButHoldsPosition() {
         let words = ["we", "begin", "with", "the", "simplest", "possible", "case",
                      "and", "then", "we", "add", "one", "wrinkle", "at", "a", "time"]
         var aligner = ScriptAligner(script: words.joined(separator: " "))
         _ = read(&aligner, words: Array(words.prefix(8)), interval: 0.4)
         let stopped = aligner.cursor
 
-        // Just past the adrift line: holding, not yet guessing.
+        // Just past the adrift line: holding.
         XCTAssertEqual(aligner.tick(at: 5.0).state, .adrift)
 
-        // Past the lost line: drifting at the measured pace.
+        // Past the lost line: still holding. A reader who pauses — to think, to
+        // skip a line deliberately, to drink — must not have the script walk
+        // away from them. Voice-following never invents motion.
         let lost = aligner.tick(at: 9.0)
         XCTAssertEqual(lost.state, .lost)
-        let later = aligner.tick(at: 11.0)
-        XCTAssertGreaterThan(later.cursor, Double(stopped),
-                             "lost state froze instead of drifting")
-        XCTAssertGreaterThan(later.cursor, lost.cursor)
+        XCTAssertEqual(lost.cursor, Double(stopped))
+        XCTAssertEqual(aligner.tick(at: 60.0).cursor, Double(stopped))
     }
 
-    func testDriftNeverRunsOffTheEndOfTheScript() {
+    func testALongSilenceNeverMovesTheCursor() {
         let words = ["one", "two", "three", "four", "five", "six"]
         var aligner = ScriptAligner(script: words.joined(separator: " "))
         _ = read(&aligner, words: words)
+        let reached = aligner.cursor
 
-        let far = aligner.tick(at: 10_000)
-        XCTAssertLessThanOrEqual(far.cursor, Double(aligner.tokens.count - 1))
+        XCTAssertEqual(aligner.tick(at: 10_000).cursor, Double(reached))
     }
 
     func testMeasuredPaceReflectsTheSpeaker() {
