@@ -56,17 +56,39 @@ final class NemotronPromptDictionaryTests: XCTestCase {
 
     // MARK: - The shape of the result
 
-    /// The headline: 121 keys in, one row per usable prompt out.
+    /// The prompt ids that are real languages, spelled properly, and that the
+    /// model can still not serve. See `unservablePrompts` for each one's
+    /// evidence; the two sets are kept apart here because they are dropped for
+    /// two different reasons and only one of them was measurable.
     ///
-    /// `auto` (101) is deliberately not a language, and 27 is Norwegian Bokmål
-    /// a second time — see `testNorwegianIsOfferedOnceDespiteTwoPrompts`. Every
-    /// other prompt id keeps exactly one row.
+    /// Eleven whose script has no glyphs at all in the model's 13,087-token
+    /// vocabulary, so a correct transcript cannot be spelled:
+    static let scriptlessPrompts: Set<Int> = [
+        36 /* bn */, 39 /* ta */, 40 /* te */, 42 /* gu */, 43 /* kn */,
+        44 /* ml */, 45 /* si */, 47 /* km */, 49 /* am */, 67 /* ka */,
+        68 /* hy */,
+    ]
+
+    /// And three measured mute on their own language across several voices:
+    static let mutePrompts: Set<Int> = [5 /* zh-TW */, 34 /* id */, 35 /* ms */]
+
+    static var unservablePrompts: Set<Int> { scriptlessPrompts.union(mutePrompts) }
+
+    /// The headline: 121 keys in, one row per prompt the model can actually
+    /// serve.
+    ///
+    /// `auto` (101) is deliberately not a language, 27 is Norwegian Bokmål a
+    /// second time — see `testNorwegianIsOfferedOnceDespiteTwoPrompts` — and
+    /// fourteen more are prompts the model cannot serve at all. Every other
+    /// prompt id keeps exactly one row.
     func testOneRowPerUsablePromptId() {
         let ids = Set(Self.realPromptDictionary.values)
         XCTAssertEqual(Self.realPromptDictionary.count, 121, "fixture changed")
         XCTAssertEqual(ids.count, 84, "fixture changed")
-        XCTAssertEqual(offered.count, ids.count - 2,
-                       "expected one row per prompt id, less `auto` and the duplicate Bokmål")
+        XCTAssertEqual(Self.unservablePrompts.count, 14, "fixture changed")
+        XCTAssertEqual(offered.count, ids.count - 2 - Self.unservablePrompts.count,
+                       "expected one row per servable prompt id")
+        XCTAssertEqual(offered.count, 68)
         XCTAssertEqual(offered.count, Set(offered).count, "rows must be distinct")
     }
 
@@ -105,12 +127,63 @@ final class NemotronPromptDictionaryTests: XCTestCase {
     }
 
     /// Rule 4 of the exercise, and the one that constrains everything else:
-    /// de-duplicating must not cost the user a language.
-    func testEveryPromptIdIsStillReachable() {
+    /// de-duplicating must not cost the user a language. Only the prompts with
+    /// a recorded reason may go missing — `auto`, the duplicate Bokmål, and
+    /// the fourteen the model cannot serve.
+    func testEveryServablePromptIdIsStillReachable() {
         let reachable = Set(offered.compactMap { Self.realPromptDictionary[$0.code] })
-        let expected = Set(Self.realPromptDictionary.values).subtracting([101, 27])
+        let expected = Set(Self.realPromptDictionary.values)
+            .subtracting([101, 27])
+            .subtracting(Self.unservablePrompts)
         XCTAssertEqual(reachable, expected,
                        "unreachable prompts: \(expected.subtracting(reachable).sorted())")
+    }
+
+    // MARK: - The prompts the model cannot serve
+
+    /// Eleven scripts have no glyphs in the model's vocabulary, so the decoder
+    /// can only ever reach `<unk>` for them. Four were confirmed silent
+    /// against real synthesized speech; the rest have no macOS voice and rest
+    /// on the vocabulary alone. `NemotronVocabularyTests` re-derives the list
+    /// from the shipped tokenizer so it cannot quietly go stale.
+    func testLanguagesTheModelCannotSpellAreNotOffered() {
+        for code in ["bn-IN", "ta-IN", "te-IN", "gu-IN", "kn-IN", "ml-IN",
+                     "si-LK", "km-KH", "am-ET", "ka-GE", "hy-AM"] {
+            XCTAssertFalse(codes.contains(code),
+                           "\(code) is offered but the vocabulary has no glyphs for its script")
+        }
+    }
+
+    /// The three measured mute across voices. Their scripts are the two best
+    /// covered the model has, so nothing about the vocabulary explains these —
+    /// only the measurements do; see `Candidate
+    /// .promptsThatDoNotAnswerInTheirOwnLanguage`.
+    func testPromptsMeasuredMuteOnTheirOwnLanguageAreNotOffered() {
+        for code in ["zh-TW", "id-ID", "ms-MY"] {
+            XCTAssertFalse(codes.contains(code), "\(code) is offered but transcribes nothing")
+        }
+    }
+
+    /// The other half of that rule, and the more important half. `th-TH` also
+    /// returned nothing on every Thai clip, and it stays offered: macOS ships
+    /// one Thai voice, so there is no way to separate a dead prompt from a
+    /// voice the model cannot hear — and Thai's script *is* in the vocabulary.
+    /// An unknown must stay visible as an unknown.
+    ///
+    /// `or-KE` likewise. The model almost certainly means Oromo and wrote
+    /// `or`; nothing here guesses at that, and there is no Oromo voice to
+    /// settle it with.
+    func testUnprovenLanguagesAreNotHiddenToTidyUpAnUnknown() {
+        XCTAssertTrue(codes.contains("th-TH"), "Thai was hidden on one voice's evidence")
+        XCTAssertTrue(codes.contains("or-KE"), "or-KE was hidden rather than reported")
+        for untested in ["af-ZA", "sw-KE", "ha-NG", "zu-ZA", "yo-NG", "ig-NG", "rw-RW",
+                         "so-SO", "ny-MW", "ln-CD", "mi-NZ", "haw-US", "sm-WS", "to-TO",
+                         "qu-PE", "ay-BO", "gn-PY", "nah-MX", "mt-MT", "et-EE", "lv-LV",
+                         "nn-NO", "az-AZ", "uz-UZ", "ku-TR", "ky-KG", "tg-TJ", "ur-PK",
+                         "fa-IR", "mr-IN", "ne-NP"] {
+            XCTAssertTrue(codes.contains(untested),
+                          "\(untested) has no macOS voice to test with and must stay offered")
+        }
     }
 
     // MARK: - What gets dropped
@@ -143,13 +216,19 @@ final class NemotronPromptDictionaryTests: XCTestCase {
     }
 
     /// The trap in the rule above, and the reason it tests the region rather
-    /// than the repeated letters. These eight look exactly like `zh-ZH` and are
+    /// than the repeated letters. These look exactly like `zh-ZH` and are
     /// nothing like it: the regions are real, and each is the *only* key for
     /// its prompt. A pattern match would have deleted eight languages.
+    ///
+    /// `id-ID` was the eighth and is no longer offered — but for a wholly
+    /// unrelated reason (prompt 34 transcribes nothing), so it is asserted on
+    /// below rather than dropped silently.
     func testRealRegionsThatHappenToEchoTheirLanguageSurvive() {
-        for code in ["so-SO", "th-TH", "az-AZ", "uz-UZ", "id-ID", "mt-MT", "to-TO", "rw-RW"] {
+        for code in ["so-SO", "th-TH", "az-AZ", "uz-UZ", "mt-MT", "to-TO", "rw-RW"] {
             XCTAssertTrue(codes.contains(code), "\(code) was mistaken for an invented regional")
         }
+        XCTAssertTrue(Locale.Region("ID").isISORegion,
+                      "id-ID must be dropped by the servability rule, not the region one")
     }
 
     // MARK: - Which spelling wins
@@ -200,10 +279,17 @@ final class NemotronPromptDictionaryTests: XCTestCase {
         XCTAssertEqual(Self.realPromptDictionary["pt-PT"], 13)
     }
 
-    /// Likewise the four other genuine region pairs.
+    /// Likewise the three other genuine region pairs.
+    ///
+    /// `zh-CN`/`zh-TW` was a fourth and is now a single row: prompt 5 answers
+    /// Traditional-Chinese audio with `<unk>`, so Mandarin is offered once, as
+    /// `zh-CN`. That is a loss, and it is recorded as one — not smoothed over
+    /// by collapsing the pair on purpose.
     func testGenuineRegionPairsBothSurvive() {
+        XCTAssertTrue(codes.contains("zh-CN"))
+        XCTAssertFalse(codes.contains("zh-TW"))
         for (a, b) in [("en-US", "en-GB"), ("es-ES", "es-US"),
-                       ("zh-CN", "zh-TW"), ("fr-FR", "fr-CA")] {
+                       ("fr-FR", "fr-CA")] {
             XCTAssertTrue(codes.contains(a), "\(a) went missing")
             XCTAssertTrue(codes.contains(b), "\(b) went missing")
             XCTAssertNotEqual(Self.realPromptDictionary[a], Self.realPromptDictionary[b])
@@ -250,17 +336,29 @@ final class NemotronPromptDictionaryTests: XCTestCase {
 
     /// The fixture above is a copy, and a copy can go stale — FluidAudio bumps
     /// the model, the dictionary grows a language, and every assertion here
-    /// keeps passing against last year's list. Skips rather than fails when the
-    /// build is not downloaded; nobody should need 600 MB to run the units.
-    func testFixtureStillMatchesTheModelOnDisk() throws {
-        let metadata = NemotronMultilingualEngine.modelDirectory(for: "es-ES")
-            .appendingPathComponent("metadata.json")
-        guard let data = try? Data(contentsOf: metadata) else {
-            throw XCTSkip("Nemotron latin build not on disk — cannot check the fixture")
+    /// keeps passing against last year's list. Skips rather than fails when a
+    /// build is not downloaded; nobody should need 1.2 GB to run the units.
+    ///
+    /// Checked against *both* builds, because the whole offered list rests on
+    /// them agreeing. They do: `latin` and `multilingual` ship byte-identical
+    /// `prompt_dictionary` objects — 121 keys, 84 ids, same values — and
+    /// differ only in `vocab_size` (2,828 against 13,087), `blank_idx`,
+    /// `lang_tag_token_ids` and the `vocab_pruned` flag `latin` carries. So
+    /// the picker offers the same 68 languages whichever build happens to be
+    /// resident, which is what lets a user pick Japanese *in order to*
+    /// download the build that serves it.
+    func testFixtureStillMatchesBothModelsOnDisk() throws {
+        var checked = 0
+        for language in ["es-ES" /* latin */, "ja-JP" /* multilingual */] {
+            let metadata = NemotronMultilingualEngine.modelDirectory(for: language)
+                .appendingPathComponent("metadata.json")
+            guard let data = try? Data(contentsOf: metadata) else { continue }
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            let onDisk = json?["prompt_dictionary"] as? [String: Int]
+            XCTAssertEqual(onDisk, Self.realPromptDictionary,
+                           "the \(language) build's prompt dictionary has changed — update the fixture")
+            checked += 1
         }
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        let onDisk = json?["prompt_dictionary"] as? [String: Int]
-        XCTAssertEqual(onDisk, Self.realPromptDictionary,
-                       "the shipped prompt dictionary has changed — update the fixture")
+        if checked == 0 { throw XCTSkip("no Nemotron build on disk — cannot check the fixture") }
     }
 }

@@ -431,11 +431,15 @@ public actor NemotronMultilingualEngine {
 /// choices for the same prompt, alongside `enGB` and `esES`, which the OS
 /// cannot name at all and which were therefore rendered as themselves.
 ///
-/// So: **one entry per prompt id, spelled the way a user should see it.**
+/// So: **one entry per prompt id the model can serve, spelled the way a user
+/// should see it.** Fourteen of the eighty-four cannot be served at all —
+/// eleven whose script has no glyphs in the vocabulary and three measured mute
+/// on their own language — and the two sets on `Candidate` carry the evidence.
+/// 68 rows survive.
 public enum NemotronPromptDictionary {
 
-    /// One `DictationLanguage` per distinct prompt id, most canonical spelling
-    /// first, malformed spellings dropped.
+    /// One `DictationLanguage` per servable prompt id, most canonical spelling
+    /// first, malformed spellings and unservable prompts dropped.
     ///
     /// Everything here works on the *canonicalized* code — what
     /// `DictationLanguage.init` produces — never the raw key. The raw keys
@@ -540,6 +544,23 @@ public enum NemotronPromptDictionary {
             // repeated letters is what keeps those eight languages.
             if let region, region.count == 2, !Locale.Region(region).isISORegion { return nil }
 
+            // The last two rejections are not about the spelling at all. They
+            // are about whether the model can serve the prompt behind it —
+            // fourteen of the eighty-four cannot, and a picker that offers
+            // them sends the user off for a ~600 MB download and hands back an
+            // empty transcript. See the two sets below for the evidence.
+            //
+            // Hardcoded rather than derived from the resident model, and that
+            // is the deliberate part: the `latin` build's vocabulary is Latin
+            // and Greek and nothing else, so a rule that read the loaded
+            // tokenizer would hide sixty languages whenever that build
+            // happened to be in memory — Japanese included, which the user has
+            // to be able to *pick* in order to trigger its download. The two
+            // builds ship the same `prompt_dictionary`, so the offered list is
+            // the same list either way, and it has to stay that way.
+            if Self.languagesTheVocabularyCannotWrite.contains(language) { return nil }
+            if Self.promptsThatDoNotAnswerInTheirOwnLanguage.contains(code) { return nil }
+
             self.code = code
             self.prefersLiteralKey = dictionary[code] != nil
             switch region {
@@ -549,6 +570,71 @@ public enum NemotronPromptDictionary {
                     ? .knownLocale : .unknownLocale
             }
         }
+
+        /// The eleven languages the model has no way to write down.
+        ///
+        /// The `multilingual` build's tokenizer is 13,087 tokens spelled with
+        /// 9,296 distinct characters, and eleven of the scripts its prompt
+        /// dictionary names are simply not among them. Not a reduced set —
+        /// *no* glyphs at all:
+        ///
+        ///     Ethiopic (am) 0    Bengali (bn) 0    Gujarati (gu)  0
+        ///     Armenian (hy) 0    Khmer   (km) 0    Kannada  (kn)  0
+        ///     Malayalam (ml) 0   Sinhala (si) 0    Tamil    (ta)  0
+        ///     Telugu   (te) 0    Georgian (ka) 3   ("ე", "ი", "ა")
+        ///
+        /// A correct transcript in any of them is therefore unrepresentable:
+        /// whatever the encoder hears, the decoder can only reach `<unk>`.
+        ///
+        /// Four of the eleven have a macOS voice, and all four behave exactly
+        /// as that predicts — Bengali (Piya), Tamil (Vani), Telugu (Geeta) and
+        /// Kannada (Soumya) each returned **0 characters** on two in-language
+        /// clips, while the same audio under a prompt whose script the
+        /// vocabulary does carry returned 22–63 characters. The other seven
+        /// have no voice on any Mac and were not tested; the vocabulary is the
+        /// evidence for those, and it is not circumstantial.
+        ///
+        /// Matched on the language subtag rather than the full code because
+        /// the script belongs to the language: a future dictionary that grew a
+        /// `ta-LK` alongside `ta-IN` would be just as unwritable.
+        static let languagesTheVocabularyCannotWrite: Set<String> = [
+            "am", "bn", "gu", "hy", "ka", "km", "kn", "ml", "si", "ta", "te",
+        ]
+
+        /// The three prompt ids that answer in nothing readable when they are
+        /// fed their own language.
+        ///
+        /// Unlike the eleven above, these are not vocabulary gaps — Han and
+        /// Latin are the two best-covered scripts the model has — so each had
+        /// to be measured, and measured the way the `es-ES` scare taught us
+        /// to: many clips, more than one voice, and a control prompt run over
+        /// the *same* audio to prove the clip is not simply unintelligible.
+        ///
+        /// * `zh-TW` (prompt 5): 14 clips across six Taiwanese-Mandarin `say`
+        ///   voices — Meijia, Sinji, and the Sandy / Shelley / Grandma /
+        ///   Grandpa "Chinese (Taiwan)" family. Every single one came back a
+        ///   run of `<unk>` carrying at most five readable characters, and
+        ///   those were stray Latin. `zh-CN` (prompt 4) transcribed the same
+        ///   clips into clean Han every time, 13–16 characters.
+        /// * `id-ID` (34) and `ms-MY` (35): 12 clips each, over both
+        ///   Malay-family voices macOS ships (Damayanti, id_ID; Amira, ms_MY),
+        ///   each voice reading both languages. Eight of twelve returned
+        ///   nothing at all; the other four returned `<unk>` runs carrying at
+        ///   most six readable characters. The same clips under `vi-VN`,
+        ///   `sl-SI`, `ru-RU` and `tr-TR` came back with 24–46 characters of
+        ///   ordinary text, so the audio is fine and the prompt is not.
+        ///
+        /// Deliberately *not* on this list: `th-TH` (32). It returned 0
+        /// characters on all six Thai clips — but macOS ships exactly one Thai
+        /// voice (Kanya), no prompt at all could read her audio, and Thai's
+        /// script is in the vocabulary (69 glyphs) with prompt 32 emitting
+        /// Thai characters on other audio. There is no way from here to tell a
+        /// dead prompt from a voice this model cannot hear, and one voice is
+        /// not evidence. Thai stays offered and stays unknown: a wrongly
+        /// hidden language is a bug nobody ever files.
+        static let promptsThatDoNotAnswerInTheirOwnLanguage: Set<String> = [
+            "zh-TW", "id-ID", "ms-MY",
+        ]
 
         /// Whether macOS knows of any locale pairing this language with this
         /// region — the test that separates a region worth showing from one
