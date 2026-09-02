@@ -15,10 +15,27 @@
 > - **Evaluated and rejected:** Apple SpeechAnalyzer (macOS 26+). Zero download,
 >   but benchmarks at 150–400ms vs Parakeet's sub-100ms. Only interesting as a
 >   no-download fallback.
-> - **Still open:** Parakeet TDT v3 is FluidAudio's default but is the
->   *multilingual* build (25 European languages); v2/Unified remain the English
->   choice. Parakeet EOU (120M) streaming with end-of-utterance detection is
->   untried and could replace Silero VAD for wake-word auto-stop.
+> - **Still open:** Parakeet EOU (120M) streaming with end-of-utterance detection
+>   is untried and could replace Silero VAD for wake-word auto-stop.
+
+> **Updated 2026-09-01 (multilingual).** Multilingual dictation shipped, and it
+> is **not** Parakeet TDT v3. See the 2026-09-01 review-log entries below for
+> what was measured; the short version:
+>
+> - **Nemotron 3.5 ASR Streaming Multilingual 0.6B** is the multilingual engine,
+>   via FluidAudio's `StreamingNemotronMultilingualAsrManager`. It is cache-aware
+>   *streaming*, so multilingual costs nothing in latency relative to the English
+>   streaming path. Two vocab builds: `latin` (en/es/fr/it/pt/de, pruned vocab,
+>   faster joint) and `multilingual` (full 13,087-token vocab, incl. zh/ja).
+>   **All six latin languages share one 600 MB download**; switching between them
+>   is a prompt-id swap with no reload.
+> - **Parakeet TDT v3 was evaluated and NOT given a language picker.** Its
+>   `language:` parameter is a *script* filter (Latin/Cyrillic/Greek — see
+>   `TokenLanguageFilter.swift`), so it cannot distinguish Spanish from French,
+>   and it auto-detects regardless. A 25-entry dropdown where 22 entries behave
+>   identically would be decorative. It remains a benchmark contestant.
+> - **Apple Speech gained an explicit language selector** — genuinely per-locale
+>   (`SpeechTranscriber(locale:)`), 45 locales on macOS 27.
 
 
 This file tracks the ML models / SDKs PUSH ships, the versions currently
@@ -39,13 +56,24 @@ findings table whenever a check is run** (a monthly reminder is scheduled).
 
 ## Currently pinned (see `Package.swift`)
 
+*Corrected 2026-09-01 against `Package.swift` / `Package.resolved` — the previous
+version of this table listed WhisperKit and Moonshine, both removed in v7.0.0
+(`a6a4c9d`), and claimed Parakeet TDT **v3** was in use when the code loads `.v2`.*
+
 | Component | SDK / package | Pinned | Model in use | Engine |
 |-----------|---------------|--------|--------------|--------|
-| ASR (Whisper) | WhisperKit | `from: 1.0.0` | Base / Small / Distil-Large V3(+Turbo) / Large V3 Turbo | CoreML/ANE |
-| ASR (edge) | moonshine-swift | `from: 0.0.48` | Moonshine Tiny / Base | ONNX |
-| ASR (fastest) | FluidAudio | `from: 0.15.4` | **Parakeet TDT 0.6b v3** (multilingual, 25 langs) | CoreML/ANE |
+| ASR (default, English) | FluidAudio | `from: 0.15.5` @ `19600a48` | **Parakeet Unified 0.6B** (`-en-`) offline + streaming | CoreML/ANE |
+| ASR (English, older) | FluidAudio | same | Parakeet TDT 0.6b **v2** (`.v2`, 400 MB) | CoreML/ANE |
+| ASR (multilingual) | FluidAudio | same | **Nemotron 3.5 Streaming Multilingual 0.6B** — `latin` or `multilingual` build, 2240 ms tier | CoreML/ANE |
+| ASR (OS) | — | macOS 26+ | Apple `SpeechTranscriber`, per-locale (45 locales) | system |
+| VAD | FluidAudio | same | Silero VAD | CoreML |
 | ASR (MLX) | speech-swift (Qwen3-ASR) | **disabled** | — | MLX+CoreML |
-| LLM post-proc | SwiftLlama (llama.cpp) | branch `main` | Qwen (GGUF) | llama.cpp (Metal) |
+| LLM post-proc | SwiftLlama (llama.cpp) | **not shipped** | Phase 2 gate was reverted in v5.0.3 | llama.cpp (Metal) |
+
+**Removed, do not reinstate without re-measuring:** WhisperKit and Moonshine
+(v7.0.0). Moonshine never worked — its weights only ever existed in the upstream
+package's test resources. Parakeet won on the **ANE**, not on CPU; any non-Apple
+port must re-run the bake-off.
 
 ## Upgrade opportunities (as of 2026-06-29)
 
@@ -124,16 +152,54 @@ considering, found by looking beyond what PUSH already ships.
 ## Review log
 - **2026-06-29** — Initial sweep. Found Parakeet v3 (multilingual), FluidAudio
   0.15.4, WhisperKit 1.0.0. No code changes made yet — opportunities logged above.
-- **2026-06-30** — Applied upgrades to existing models: Parakeet **v2 → v3**
-  (multilingual; `ParakeetEngine` + display strings + model dir), FluidAudio
+- **2026-06-30** — Applied upgrades to existing models: FluidAudio
   `0.13.6 → 0.15.4`, WhisperKit `0.9.0 → 1.0.0` (Package.swift floors). Needs a
   Mac build + `swift package update` to regenerate Package.resolved and verify
   the WhisperKit 1.0 API — not compile-checked on Linux. Also added a GitHub
   Actions workflow (`monthly-model-check.yml`) that opens a tracking issue
-  monthly. WhisperModel enum case `parakeetV2` kept (rawValue is a persistence
-  key) but now loads v3.
+  monthly.
+  > **Correction (2026-09-01):** this entry originally also claimed Parakeet
+  > **v2 → v3** was applied. **It never landed.** `git log -S"version: .v3"`
+  > returns nothing, and `ParakeetEngine.swift` still loads `.v2`. The entry was
+  > written in a non-building context ("not compile-checked on Linux") and the
+  > change was evidently dropped before commit. Corrected rather than deleted so
+  > the failure mode stays visible: a review log written from a context that
+  > cannot build is a record of intent, not of fact.
 - **2026-06-30** — Broadened beyond existing deps. Added Apple SpeechAnalyzer
   (native on-device, macOS 26), Qwen3-ASR (MLX path, already half-wired),
   Google Gemma 3n/4 open-weight on-device audio (MLX; could unify ASR + LLM
   post-proc), and Canary-Qwen. Excluded cloud/paid options (Chirp 3, Vercel AI
   Gateway / speech-to-speech) as off-axis vs PUSH's offline design.
+- **2026-09-01** — **Read the pinned checkout instead of the model cards.** The
+  FluidAudio revision PUSH already builds against (`19600a48`, matching
+  `Package.resolved`) ships far more than this file recorded. Everything below
+  was verified in `.build/checkouts/FluidAudio/Sources/FluidAudio/ModelNames.swift`,
+  not from release notes:
+
+  | Repo case | What it is |
+  |---|---|
+  | `nemotronMultilingual` | Nemotron 3.5 Streaming Multilingual 0.6B — `latin` + `multilingual` vocab builds, 4 chunk tiers |
+  | `senseVoiceSmall` | SenseVoiceSmall (FunASR), non-autoregressive, 50+ languages |
+  | `paraformerLargeZh` | Paraformer-large, Chinese |
+  | `parakeetJa` | Parakeet 0.6B, Japanese |
+  | `cohereTranscribeCoreml` | Cohere transcribe 03-2026, q8 |
+  | `parakeetEou160/320/1280` | Parakeet EOU 120M, cache-aware streaming w/ end-of-utterance |
+
+  Note the English-only ones are named as such: `parakeet-unified-**en**-0.6b`,
+  `nemotron-speech-streaming-**en**-0.6b`. That is why the shipping English
+  engines could never have served another language.
+
+- **2026-09-01** — **Multilingual shipped.** `NemotronMultilingualEngine`
+  (`af03fd3`, `ec823a9`) + per-engine language selector (`01095fd`, `3389f3c`) +
+  an English-only gate on the post-processing chain (`fc8f58a`), so spoken-number
+  conversion, `capitalizeI` and the `ContextGate` entity heuristic no longer run
+  over non-English transcripts. `compare/` gained audio-file input (`6eca120`) so
+  a bake-off can be run from a corpus rather than by reading aloud.
+
+  **Open, not yet measured:** no WER comparison has been run between Nemotron
+  Multilingual, TDT v3, SenseVoiceSmall and Apple Speech on the same audio. The
+  bake-off harness exists; the bake-off does not. Until then, no claim in this
+  file about which multilingual model is *better* is measured — see
+  `docs/plans/2026-08-31-multilingual-dictation-plan.md` for the three-tier
+  protocol (synthesized smoke → corpus WER → the user's own ear on pt-BR/es/fr,
+  which are the only languages available to judge by feel).
