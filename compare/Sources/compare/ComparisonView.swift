@@ -49,11 +49,34 @@ struct ComparisonView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(model.isRecording ? .red : .accentColor)
                 .controlSize(.large)
+
+                // The benchmark's way in: `say` clips and corpus audio cover the
+                // languages nobody here can dictate in or judge by ear.
+                Button {
+                    model.openFile()
+                } label: {
+                    Label("Open audio file…", systemImage: "waveform.badge.plus")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(model.isRecording)
             }
 
             Text(model.status.isEmpty ? engineSummary : model.status)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            if let loadedFile = model.loadedFile {
+                HStack(spacing: 5) {
+                    Image(systemName: "doc.badge.clock").font(.caption2)
+                    Text(loadedFile)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
         }
         .padding(18)
     }
@@ -66,8 +89,8 @@ struct ComparisonView: View {
         // Wispr can only be compared on an utterance it also heard, and it listens to
         // its own hotkey — there is no way to trigger it from here.
         return WisprReader.isInstalled
-            ? "Click Record, hold Wispr's hotkey while you talk, click Stop. " + engines + " · Wispr Flow"
-            : "Click Record, talk, click Stop. " + engines
+            ? "Record and hold Wispr's hotkey while you talk, or open an audio file. " + engines + " · Wispr Flow"
+            : "Record and talk, or open an audio file. " + engines
     }
 
     private var empty: some View {
@@ -75,7 +98,7 @@ struct ComparisonView: View {
             Image(systemName: "waveform")
                 .font(.system(size: 28))
                 .foregroundStyle(.secondary)
-            Text("Say a sentence. Every engine transcribes that same recording.")
+            Text("Say a sentence, or open an audio file. Every engine transcribes that same audio.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -113,7 +136,17 @@ private struct ComparisonCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Text(comparison.date.formatted(date: .omitted, time: .standard))
-                Text("· held \(comparison.audioSeconds, format: .number.precision(.fractionLength(1)))s")
+                // Named, never implied: a row from a file and a row from live
+                // dictation would otherwise be indistinguishable afterwards.
+                if let source = comparison.sourceFile {
+                    Label(source, systemImage: "waveform")
+                        .labelStyle(.titleAndIcon)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text("· \(comparison.audioSeconds, format: .number.precision(.fractionLength(1)))s")
+                } else {
+                    Text("· held \(comparison.audioSeconds, format: .number.precision(.fractionLength(1)))s")
+                }
                 Spacer()
                 if let verdict {
                     Text(verdict.0)

@@ -1,6 +1,7 @@
 import PUSHCore
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Forces the process to be a normal, foreground app.
 ///
@@ -38,6 +39,9 @@ final class ComparisonModel {
     var models: [WhisperModel] = EngineComparison.availableModels()
     /// Engines still running for the newest comparison, so the UI can say so.
     var pending = 0
+    /// The last file opened, name and duration, so the header says what is being
+    /// measured rather than leaving a file run looking like live dictation.
+    var loadedFile: String?
 
     private let recorder = Recorder()
 
@@ -69,15 +73,55 @@ final class ComparisonModel {
     private func finish() {
         let audio = recorder.stop()
         isRecording = false
-        let seconds = Double(audio.count / MemoryLayout<Float>.size) / 16000
+        let seconds = AudioFileLoader.seconds(of: audio)
 
         guard seconds > 0.2 else {
             status = "Too short — hold the button while you talk."
             return
         }
+        compare(audio: audio, seconds: seconds, sourceFile: nil)
+    }
 
+    /// Run an audio file through the engines instead of a live recording.
+    ///
+    /// The point of the file path is the benchmark: `say`-synthesised smoke clips and
+    /// a corpus with ground-truth transcripts cover every candidate language, which
+    /// dictating into the microphone cannot.
+    func openFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.audio]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = "Choose a recording. Every engine transcribes the same file."
+        panel.prompt = "Compare"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        let audio: Data
+        do {
+            audio = try AudioFileLoader.load(url)
+        } catch {
+            // Shown, not swallowed: a file that failed to decode and a file the engines
+            // heard nothing in must not look the same.
+            status = error.localizedDescription
+            return
+        }
+
+        let seconds = AudioFileLoader.seconds(of: audio)
+        let name = url.lastPathComponent
+        guard seconds > 0.2 else {
+            status = "\(name) holds only \(seconds.formatted(.number.precision(.fractionLength(2))))s of audio."
+            return
+        }
+        loadedFile = "\(name) · \(seconds.formatted(.number.precision(.fractionLength(1))))s"
+        compare(audio: audio, seconds: seconds, sourceFile: name)
+    }
+
+    /// The one path both inputs take, so a file and a live recording are measured
+    /// identically — same engines, same order, same sequential timing.
+    private func compare(audio: Data, seconds: Double, sourceFile: String?) {
         let models = self.models
-        var comparison = Comparison(date: Date(), audioSeconds: seconds, runs: [])
+        var comparison = Comparison(
+            date: Date(), audioSeconds: seconds, sourceFile: sourceFile, runs: [])
         comparisons.insert(comparison, at: 0)
         pending = models.count
         status = "Transcribing with \(models.count) engine\(models.count == 1 ? "" : "s")…"
@@ -98,13 +142,18 @@ final class ComparisonModel {
 
             // Wispr's cleanup is server-side, so its row lands after every local engine
             // has finished. Absent is the normal case — it only has a result if its own
-            // hotkey was held for this utterance too.
-            self.status = "Waiting for Wispr Flow…"
-            switch await WisprReader.result(around: self.holdStarted, timeout: 8) {
-            case .success(let run):
-                comparison.wispr = run
-            case .failure(let absence):
-                comparison.wisprAbsence = absence.rawValue
+            // hotkey was held for this utterance too. A file was never spoken at Wispr
+            // at all, so asking would only match some unrelated earlier utterance.
+            if sourceFile == nil {
+                self.status = "Waiting for Wispr Flow…"
+                switch await WisprReader.result(around: self.holdStarted, timeout: 8) {
+                case .success(let run):
+                    comparison.wispr = run
+                case .failure(let absence):
+                    comparison.wisprAbsence = absence.rawValue
+                }
+            } else {
+                comparison.wisprAbsence = "Wispr Flow can only be compared on live dictation"
             }
             self.comparisons[0] = comparison
 

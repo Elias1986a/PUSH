@@ -25,6 +25,12 @@ struct Comparison: Codable, Identifiable, Sendable {
     var id = UUID()
     let date: Date
     let audioSeconds: Double
+    /// The audio file this was run on, or nil for live dictation. A benchmark row
+    /// whose audio source is unknown can't be reproduced, and a `say`-synthesised
+    /// clip and a spoken one must never be mistaken for each other.
+    ///
+    /// Optional so rows written before it existed still decode.
+    var sourceFile: String?
     var runs: [EngineRun]
     /// Wispr Flow's result for the same utterance, when its hotkey was held too.
     var wispr: WisprRun?
