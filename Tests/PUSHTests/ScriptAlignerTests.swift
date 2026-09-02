@@ -251,7 +251,7 @@ final class ScriptAlignerTests: XCTestCase {
     /// display driven off the last observed match is structurally late however
     /// fast the animation chasing it. Prediction spends the measured pace on
     /// closing that gap.
-    func testPredictionLeadsTheLastMatchWhileTracking() {
+    func testPredictionLeadsByTheReportingLatencyImmediately() {
         let words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
                      "golf", "hotel", "india", "juliet", "kilo", "lima"]
         var aligner = ScriptAligner(script: words.joined(separator: " "))
@@ -259,26 +259,42 @@ final class ScriptAlignerTests: XCTestCase {
         _ = read(&aligner, words: words, interval: 0.5)
         let observed = Double(aligner.cursor)
         let lastMatch = 0.5 * Double(words.count - 1)
+        let perSecond = (aligner.measuredWordsPerMinute ?? 0) / 60
 
-        // Immediately after a match there is nothing to predict.
-        XCTAssertEqual(aligner.predictedCursor(at: lastMatch), observed, accuracy: 0.01)
+        // A partial describes audio from about a chunk ago, so even the instant
+        // it lands the reader is already past it. Predicting from elapsed time
+        // alone misses this and leaves a permanent deficit.
+        let immediate = aligner.predictedCursor(at: lastMatch)
+        XCTAssertEqual(immediate - observed,
+                       perSecond * aligner.tuning.reportLatency,
+                       accuracy: 0.3)
 
-        // Half a second later the reader has most likely said another word.
-        let ahead = aligner.predictedCursor(at: lastMatch + 0.5)
-        XCTAssertGreaterThan(ahead, observed)
-        XCTAssertEqual(ahead - observed, 1.0, accuracy: 0.3)
+        // And it keeps extending while the reader is presumably still going.
+        let later = aligner.predictedCursor(at: lastMatch + 0.4)
+        XCTAssertGreaterThan(later, immediate)
     }
 
-    func testPredictionIsCappedSoAPauseCannotRunAway() {
+    func testTheLeadStopsGrowingSoAPauseCannotRunAway() {
         let words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
                      "golf", "hotel", "india", "juliet", "kilo", "lima"]
         var aligner = ScriptAligner(script: words.joined(separator: " "))
         _ = read(&aligner, words: words, interval: 0.5)
         let observed = Double(aligner.cursor)
         let lastMatch = 0.5 * Double(words.count - 1)
+        // Derived, not assumed: the pace estimate counts the step off the
+        // initial -1 cursor, so it is not simply one token per interval.
+        let perSecond = (aligner.measuredWordsPerMinute ?? 0) / 60
+        let tuning = aligner.tuning
 
-        let far = aligner.predictedCursor(at: lastMatch + 30)
-        XCTAssertEqual(far - observed, aligner.tuning.predictionCap, accuracy: 0.01)
+        // Past the coast window the lead is fixed, however long nothing
+        // arrives. Whether the reader is still going has stopped being a
+        // reasonable guess.
+        let ceiling = perSecond * min(tuning.reportLatency + tuning.predictionCoast,
+                                      tuning.maxPredictionSeconds)
+        XCTAssertEqual(aligner.predictedCursor(at: lastMatch + 1.2) - observed,
+                       ceiling, accuracy: 0.01)
+        XCTAssertEqual(aligner.predictedCursor(at: lastMatch + 1.4) - observed,
+                       ceiling, accuracy: 0.01)
     }
 
     func testPredictionStopsOnceTheReaderHasStopped() {

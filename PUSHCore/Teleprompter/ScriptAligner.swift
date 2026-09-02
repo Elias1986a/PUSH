@@ -45,14 +45,24 @@ public struct ScriptAligner: Sendable {
         /// words rather than one word an engine spelled badly.
         public var fuzzyThreshold = 0.75
 
-        /// How far ahead of the last match the display may be extrapolated, in
-        /// tokens. Bounds how wrong prediction can be: if the reader stops
-        /// dead, this is the most the prompter can run on before the state
-        /// falls to adrift and it stops entirely.
-        /// Matched to the line-change lead in the session: prediction should be
-        /// able to cover the reporting delay, not to carry a line change on
-        /// its own.
-        public var predictionCap = 2.0
+        /// How far behind the speech a partial is by the time it arrives.
+        ///
+        /// The streaming encoder reports on roughly one-second chunks, so a
+        /// freshly delivered match already describes audio from about a second
+        /// ago. Predicting only from time-since-delivery misses this entirely
+        /// and leaves a constant deficit — worse the faster the reader goes,
+        /// because the deficit is fixed in seconds but felt in words.
+        public var reportLatency: TimeInterval = 0.9
+
+        /// How long after a partial to keep extending the lead.
+        ///
+        /// Short: once nothing has arrived for this long, whether the reader is
+        /// still going is a guess, and guessing forward is how a pause turns
+        /// into the script running away.
+        public var predictionCoast: TimeInterval = 0.6
+
+        /// Hard ceiling on the lead, in seconds of reading.
+        public var maxPredictionSeconds: TimeInterval = 1.6
 
         /// Silence, or unmatched speech, before we admit we've lost the thread.
         public var adriftAfter: TimeInterval = 1.5
@@ -211,10 +221,11 @@ public struct ScriptAligner: Sendable {
     /// cannot help but lag, however fast the animation chasing it. Spending the
     /// measured pace on closing that gap is the whole reason for measuring it.
     ///
-    /// Only extrapolates while tracking, and only up to `predictionCap`. A
-    /// reader who stops gets at most that much invented motion before the state
-    /// falls to adrift and this returns the plain cursor again — which is what
-    /// keeps a pause from moving the script.
+    /// Only extrapolates while tracking, and the lead stops growing once
+    /// nothing has arrived for `predictionCoast`. A reader who stops gets a
+    /// bounded nudge and then nothing, before the state falls to adrift and
+    /// this returns the plain cursor — which is what keeps a pause from moving
+    /// the script.
     public func predictedCursor(at now: TimeInterval) -> Double {
         let base = Double(max(cursor, 0))
         guard state == .tracking,
@@ -222,8 +233,12 @@ public struct ScriptAligner: Sendable {
               let wpm = measuredWordsPerMinute
         else { return base }
 
-        let ahead = (wpm / 60.0) * max(now - last, 0)
-        return base + min(ahead, tuning.predictionCap)
+        // Two parts: the fixed delay built into how partials are reported, and
+        // the time since this one arrived. Only the second is allowed to run
+        // out, and not for long.
+        let coasted = min(max(now - last, 0), tuning.predictionCoast)
+        let seconds = min(tuning.reportLatency + coasted, tuning.maxPredictionSeconds)
+        return base + (wpm / 60.0) * seconds
     }
 
     /// The speaker's own pace, measured from tokens actually matched. Nil until

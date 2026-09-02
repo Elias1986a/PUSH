@@ -69,8 +69,10 @@ final class TeleprompterSession: ObservableObject {
 
     /// Stiffness, in radians per second. Critically damped, so it closes on the
     /// target without overshooting text the reader is mid-sentence on.
-    /// Roughly a half-second to settle.
-    private static let scrollStiffness: Double = 5.5
+    /// Roughly a third of a second to settle — a spring's settling time does
+    /// not depend on how big the error is, so this is about how promptly a
+    /// line change lands, not about catching up from a long way behind.
+    private static let scrollStiffness: Double = 7.0
 
     /// How many words from the end of a line the scroll starts moving to the
     /// next one. The line holds still until then.

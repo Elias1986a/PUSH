@@ -63,7 +63,7 @@ struct TeleprompterSettingsView: View {
 
             Section("Scrolling") {
                 Toggle("Follow my voice", isOn: $settings.followVoice)
-                Text("PUSH listens as you read and moves the script to keep up. It holds still if you go off-script, and falls back to the speed below if it loses you.")
+                Text("PUSH listens as you read and moves the script to keep up, at whatever pace you happen to be reading. It holds still if you go off-script or stop, and never moves on its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -84,14 +84,15 @@ struct TeleprompterSettingsView: View {
                 LabeledContent("Speed") {
                     HStack {
                         Slider(value: $settings.wordsPerMinute, in: 60...400, step: 10)
+                            .disabled(settings.followVoice)
                         Text("\(Int(settings.wordsPerMinute)) wpm")
                             .font(.caption.monospacedDigit())
                             .frame(width: 64, alignment: .trailing)
                     }
                 }
                 Text(settings.followVoice
-                     ? "Used only when voice-following loses the thread."
-                     : "The pace the script scrolls at.")
+                     ? "Not used while Follow my voice is on — the pace comes from your voice. Turn that off to scroll at a set speed instead."
+                     : "The pace the script scrolls at, regardless of what you say.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
