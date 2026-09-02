@@ -272,7 +272,10 @@ public struct ScriptAligner: Sendable {
         // out, and not for long.
         let coasted = min(max(now - last, 0), tuning.predictionCoast)
         let seconds = min(tuning.reportLatency + coasted, tuning.maxPredictionSeconds)
-        return base + (wpm / 60.0) * seconds
+        // Never past the end. Without this the lead runs off the last token —
+        // seen in a trace as pred=57.4 on a 52-token script — which on the
+        // final line walks the display to the end before the reader gets there.
+        return min(base + (wpm / 60.0) * seconds, Double(max(tokens.count - 1, 0)))
     }
 
     /// The speaker's own pace, measured from tokens actually matched. Nil until

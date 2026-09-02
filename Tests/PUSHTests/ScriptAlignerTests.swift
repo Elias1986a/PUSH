@@ -289,13 +289,18 @@ final class ScriptAlignerTests: XCTestCase {
     /// fast the animation chasing it. Prediction spends the measured pace on
     /// closing that gap.
     func testPredictionLeadsByTheReportingLatencyImmediately() {
-        let words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
-                     "golf", "hotel", "india", "juliet", "kilo", "lima"]
-        var aligner = ScriptAligner(script: words.joined(separator: " "))
+        // The script runs well past where the reader gets to: prediction is
+        // clamped to the last token, so measuring a lead needs somewhere to
+        // lead to.
+        let spoken = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
+                      "golf", "hotel", "india", "juliet", "kilo", "lima"]
+        let script = (spoken + ["mike", "november", "oscar", "papa", "quebec",
+                                "romeo", "sierra", "tango"]).joined(separator: " ")
+        var aligner = ScriptAligner(script: script)
         // One token every 0.5s = 120wpm = 2 tokens/sec.
-        _ = read(&aligner, words: words, interval: 0.5)
+        _ = read(&aligner, words: spoken, interval: 0.5)
         let observed = Double(aligner.cursor)
-        let lastMatch = 0.5 * Double(words.count - 1)
+        let lastMatch = 0.5 * Double(spoken.count - 1)
         let perSecond = (aligner.measuredWordsPerMinute ?? 0) / 60
 
         // A partial describes audio from about a chunk ago, so even the instant
@@ -312,14 +317,14 @@ final class ScriptAlignerTests: XCTestCase {
     }
 
     func testTheLeadStopsGrowingSoAPauseCannotRunAway() {
-        let words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
-                     "golf", "hotel", "india", "juliet", "kilo", "lima"]
-        var aligner = ScriptAligner(script: words.joined(separator: " "))
-        _ = read(&aligner, words: words, interval: 0.5)
+        let spoken = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
+                      "golf", "hotel", "india", "juliet", "kilo", "lima"]
+        let script = (spoken + ["mike", "november", "oscar", "papa", "quebec",
+                                "romeo", "sierra", "tango"]).joined(separator: " ")
+        var aligner = ScriptAligner(script: script)
+        _ = read(&aligner, words: spoken, interval: 0.5)
         let observed = Double(aligner.cursor)
-        let lastMatch = 0.5 * Double(words.count - 1)
-        // Derived, not assumed: the pace estimate counts the step off the
-        // initial -1 cursor, so it is not simply one token per interval.
+        let lastMatch = 0.5 * Double(spoken.count - 1)
         let perSecond = (aligner.measuredWordsPerMinute ?? 0) / 60
         let tuning = aligner.tuning
 
@@ -373,6 +378,17 @@ final class ScriptAlignerTests: XCTestCase {
         // One token per 0.5s is 120wpm. Counting the opening jump of four
         // tokens would push this far above it.
         XCTAssertEqual(wpm ?? 0, 120, accuracy: 25)
+    }
+
+    func testPredictionNeverRunsPastTheEndOfTheScript() {
+        let words = ["one", "two", "three", "four", "five", "six"]
+        var aligner = ScriptAligner(script: words.joined(separator: " "))
+        _ = read(&aligner, words: words, interval: 0.4)
+
+        // On the last line the lead has nowhere to go. Without the clamp it
+        // walks the display to the end before the reader gets there.
+        let last = Double(aligner.tokens.count - 1)
+        XCTAssertLessThanOrEqual(aligner.predictedCursor(at: 100), last)
     }
 
     // MARK: - Degenerate input

@@ -78,8 +78,7 @@ final class TeleprompterSession: ObservableObject {
     /// next one. The line holds still until then.
     private static let lineChangeLeadTokens: Double = 2
 
-    /// Keeps the scroll from rewinding when prediction overshoots and the next
-    /// partial lands behind it. See `ForwardOnlyPosition`.
+    /// Keeps the scroll from ever rewinding. See `ForwardOnlyPosition`.
     private var scrollTarget = ForwardOnlyPosition()
     private var lastTick: TimeInterval = 0
 
