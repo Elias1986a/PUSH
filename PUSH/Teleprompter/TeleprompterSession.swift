@@ -116,17 +116,20 @@ final class TeleprompterSession: ObservableObject {
         return aligner.tokens[index].range
     }
 
-    /// The line to light: the one the reader is on, as a whole line.
+    /// The line to light: whichever one is actually sitting in the reading slot.
     ///
-    /// Taken from the ratcheted scroll target, whose fractional part is zero
-    /// for most of a line because of the dwell — so this holds steady while a
-    /// line is being read and changes over once at its end. That is the point:
-    /// the scroll should travel smoothly, but the highlight should not slide
-    /// between lines. Brightness that creeps from one line to the next tracks
-    /// words rather than lines, which is unreadable.
+    /// Derived from `displayLine`, not from the scroll target. The follower
+    /// deliberately lags the target, so lighting the target's line lights a row
+    /// one or two below the one the text has actually travelled to — and the
+    /// gap changes as the follower catches up, so the lit row appears to jump
+    /// around independently of the text.
+    ///
+    /// Rounded rather than floored: a line occupies the reading slot from half
+    /// a line before it arrives to half a line after, so the hand-over belongs
+    /// at the midpoint of the travel, not at its end.
     var highlightLine: Int {
         guard isRunning else { return 0 }
-        return max(Int(scrollTarget.value.rounded(.down)), 0)
+        return max(Int(displayLine.rounded()), 0)
     }
 
     /// The display line the speaker is on, against the same line breaks the
