@@ -12,13 +12,21 @@ import FluidAudio
 /// non-English language therefore does not cost the user the streaming
 /// behaviour they already have in English.
 ///
-/// **The language is always explicit.** `setLanguage(_:)` selects the encoder's
-/// `prompt_id` embedding and `setForcedPrefix(true)` additionally seeds the
-/// decoder with that language's `<xx-XX>` tag token — together, as close to
-/// "transcribe this as Portuguese" as the model offers. The manager also
-/// exposes `detectedLanguage()`; we never call it. Auto-detection is not a
-/// feature of this app: the user picked a language, and silently transcribing
-/// as something else is worse than transcribing their accent imperfectly.
+/// **The language is always explicit**, and `setLanguage(_:)` — which selects
+/// the encoder's `prompt_id` embedding — is the whole of how we say so. This is
+/// a `…ModelWithPrompt` model: the prompt id *is* its language control, and it
+/// is a hard one. Fed audio in a language the prompt id does not name, the model
+/// emits nothing at all rather than guessing, which is precisely the behaviour
+/// this app wants. The manager also exposes `detectedLanguage()`; we never call
+/// it. Auto-detection is not a feature of this app: the user picked a language,
+/// and silently transcribing as something else is worse than transcribing their
+/// accent imperfectly.
+///
+/// FluidAudio additionally offers `setForcedPrefix(true)`, a Whisper-style
+/// second lock that seeds the decoder with the language's `<xx-XX>` tag token.
+/// **We deliberately leave it off** — see `setForcedPrefix(false)` in
+/// `loadModel` for the measurements. It is not a second opinion on the same
+/// question; it corrupts the first word of every utterance.
 ///
 /// Apple Silicon only — the models are int8/ANE exports and FluidAudio throws
 /// `unsupportedPlatform` on Intel.
@@ -226,7 +234,7 @@ public actor NemotronMultilingualEngine {
         if let manager, loadedVariant == variant {
             await manager.setLanguage(code)
             guard generation == loadGeneration else { return }
-            await manager.setForcedPrefix(true)
+            await manager.setForcedPrefix(false)
             PushLogger.log("NemotronMultilingualEngine: Switched to \(code) within the \(variant) build")
             return
         }
@@ -253,10 +261,30 @@ public actor NemotronMultilingualEngine {
             let manager = StreamingNemotronMultilingualAsrManager()
             try await manager.loadFromShared(shared)
 
-            // Order matters: the forced prefix is seeded from the language set
-            // just above, so language first, then prefix.
             await manager.setLanguage(code)
-            await manager.setForcedPrefix(true)
+
+            // Off, and said out loud rather than left to FluidAudio's default,
+            // because the default is the only thing standing between us and a
+            // bug that reads as "the model is bad at Portuguese".
+            //
+            // `setForcedPrefix(true)` runs the decoder once on the `<pt-BR>` tag
+            // token and keeps the resulting LSTM state as the utterance's
+            // starting point. On a Whisper-style decoder that is a language
+            // lock. On this model it is an off-distribution prediction-network
+            // state, and the tokens it emits first are garbage: over eight
+            // `say -v Luciana` pt-BR phrases the utterance's own first word
+            // survived 0/8 times with the prefix on — usually replaced by a
+            // spurious "a" or "a gente" — against 8/8 with it off. No amount of
+            // lead-in silence rescues it; only turning it off does.
+            //
+            // Nor is it a useful second lock. `prompt_id` alone is already
+            // strict: on audio whose language the prompt id does not name, the
+            // model returns an empty transcript. Enabling the forced prefix
+            // *weakens* that — mismatched prompts start emitting mangled
+            // wrong-language text instead of nothing, which is the failure this
+            // file's header refuses. So it costs the first word and buys
+            // negative language safety.
+            await manager.setForcedPrefix(false)
 
             // Overtaken while we were downloading or loading: drop this manager
             // rather than clobber a newer one. The two commits below stay
@@ -336,13 +364,28 @@ public actor NemotronMultilingualEngine {
         return samples
     }
 
+    /// Milliseconds of digital silence prepended to every utterance.
+    ///
+    /// The encoder is cache-aware streaming, and at the start of a session its
+    /// left context is a zeroed cache with `cache_len` seeded to 1 — it is told
+    /// it has one frame of history that it does not really have. The opening
+    /// ~100 ms of real speech is therefore encoded against a cold cache, and the
+    /// user's first word is what pays for it. Handing the encoder silence to
+    /// warm up on instead is the cheapest fix that treats the cause: over eight
+    /// `say -v Luciana` pt-BR phrases the utterance's own first word survived
+    /// 4/8 times with no lead-in and 8/8 with one; French went 5/6 to 6/6.
+    ///
+    /// 80, 160 and 240 ms all scored identically, so this sits in the middle of
+    /// that plateau rather than on an edge where a slightly different clip could
+    /// fall off it. The cost is 2560 samples — inaudible in the transcript, and
+    /// it only occasionally pushes an utterance across a 2240 ms chunk boundary.
+    private static let leadInSilence = [Float](repeating: 0, count: 160 * 16)
+
     /// Transcribes one utterance of 16 kHz mono float samples.
     ///
     /// Resets first: `finish()` clears the accumulated tokens but not the
     /// encoder's cache-aware state, so without this each utterance would decode
-    /// with the tail of the previous one still in context. `reset()` also
-    /// re-seeds the forced language prefix, which is exactly what a new
-    /// utterance wants.
+    /// with the tail of the previous one still in context.
     ///
     /// Not serialized against `loadModel`/`unloadModel`, by choice — the
     /// invariant `ModelLoader` has to honour instead is that no language switch
@@ -358,7 +401,7 @@ public actor NemotronMultilingualEngine {
 
         let start = Date()
         await manager.reset()
-        _ = try await manager.process(samples: samples)
+        _ = try await manager.process(samples: Self.leadInSilence + samples)
         let text = try await manager.finish().trimmingCharacters(in: .whitespacesAndNewlines)
         let elapsed = Date().timeIntervalSince(start)
 
