@@ -190,15 +190,13 @@ public actor NemotronMultilingualEngine {
     /// discover it only by dictating into it. An empty picker is a bug the user
     /// can report; a wrong picker is one they cannot.
     ///
-    /// `"auto"` is filtered out — it is a real key in the dictionary, and it is
-    /// the one option this app never offers.
+    /// The dictionary is a lookup table, not a menu: it holds 121 keys for 84
+    /// prompts, and the spare 37 are aliases, misspellings and invented
+    /// regions. `NemotronPromptDictionary.offeredLanguages(in:)` reduces it to
+    /// the menu; see there for what is dropped and why.
     public func supportedLanguages() async -> [DictationLanguage] {
         guard let manager else { return [] }
-        let codes = await manager.config.promptDictionary.keys
-        return codes
-            .filter { $0.lowercased() != "auto" }
-            .map { DictationLanguage(code: $0) }
-            .sorted()
+        return NemotronPromptDictionary.offeredLanguages(in: await manager.config.promptDictionary)
     }
 
     // MARK: - Lifecycle
@@ -413,5 +411,201 @@ public actor NemotronMultilingualEngine {
             format: "NemotronMultilingualEngine: Transcribed %.2fs audio in %.3fs (%d chars)",
             Double(samples.count) / 16000.0, elapsed, text.count))
         return text
+    }
+}
+
+// MARK: - The prompt dictionary as a menu
+
+/// Reduces a Nemotron model's raw `prompt_dictionary` to the list of languages
+/// the picker offers.
+///
+/// Separate from the actor, and pure, because it is the one part of the
+/// language story that can be checked without a 600 MB model: it is a function
+/// from the JSON the model ships to the strings a user reads, and
+/// `NemotronPromptDictionaryTests` runs it against the real dictionary's shape.
+///
+/// The dictionary is a *lookup table*. It is meant to be forgiving of whatever
+/// a caller types, so it carries several spellings of the same prompt — the
+/// `latin` build has 121 keys for 84 distinct prompt ids. Handing those keys to
+/// a picker showed the user "English" and "English (United States)" as separate
+/// choices for the same prompt, alongside `enGB` and `esES`, which the OS
+/// cannot name at all and which were therefore rendered as themselves.
+///
+/// So: **one entry per prompt id, spelled the way a user should see it.**
+public enum NemotronPromptDictionary {
+
+    /// One `DictationLanguage` per distinct prompt id, most canonical spelling
+    /// first, malformed spellings dropped.
+    ///
+    /// Everything here works on the *canonicalized* code — what
+    /// `DictationLanguage.init` produces — never the raw key. The raw keys
+    /// disagree with each other before canonicalization and agree after it
+    /// (`no-NO` and `nb-NO` are both `nb-NO`), so de-duplicating on the raw key
+    /// leaves pairs that look distinct here and collapse in the picker.
+    public static func offeredLanguages(in dictionary: [String: Int]) -> [DictationLanguage] {
+        // Best spelling for each prompt id.
+        var best: [Int: Candidate] = [:]
+        for (rawKey, promptId) in dictionary {
+            guard let candidate = Candidate(rawKey: rawKey, dictionary: dictionary) else { continue }
+            if let incumbent = best[promptId], !candidate.isPreferred(over: incumbent) { continue }
+            best[promptId] = candidate
+        }
+
+        // Then across prompt ids, because canonicalization can make two of them
+        // collide: the model carries Norwegian Bokmål twice, as `no`/`no-NO`
+        // (27) and `nb`/`nb-NO` (103), and ICU folds the deprecated `no` onto
+        // `nb`. Both ids would render "Norwegian Bokmål (Norway)", and the two
+        // rows would be `==` — which breaks the Picker's identity-based tag and
+        // the UserDefaults round-trip, not merely the look of the list.
+        //
+        // Only one of the two can be offered, and there is no choice about
+        // which prompt it drives: whatever we offer goes back through
+        // FluidAudio's own lookup, and `nb-NO` is a literal key of 103. Hence
+        // `prefersLiteralKey` in the ordering — the survivor is the id that
+        // actually answers to the code we hand out.
+        var chosen: [String: (promptId: Int, candidate: Candidate)] = [:]
+        for (promptId, candidate) in best {
+            if let incumbent = chosen[candidate.code] {
+                let wins = candidate.isPreferred(over: incumbent.candidate)
+                    || (candidate.prefersLiteralKey == incumbent.candidate.prefersLiteralKey
+                        && promptId < incumbent.promptId)
+                if !wins { continue }
+            }
+            chosen[candidate.code] = (promptId, candidate)
+        }
+
+        return chosen.keys.map { DictationLanguage(code: $0) }.sorted()
+    }
+
+    /// One surviving spelling of one prompt id, with what is needed to rank it
+    /// against the other spellings of the same prompt.
+    struct Candidate {
+        /// Canonicalized, i.e. exactly what `DictationLanguage` would hold.
+        let code: String
+        /// Lower is better; see `Rank`.
+        let rank: Rank
+        /// Whether `code` is a key of the dictionary verbatim, and so resolves
+        /// back to this prompt id rather than to a neighbour's.
+        let prefersLiteralKey: Bool
+
+        enum Rank: Int, Comparable {
+            /// `en-US`, `pt-PT`, `fr-CA` — a language and a region ICU has
+            /// heard of together. The best spelling: it is the one that tells
+            /// a user which Portuguese or which French a row means.
+            case knownLocale = 0
+            /// `en`, `pt`, `ar` — no region. Correct, just less specific than
+            /// the sibling spelling usually sitting beside it.
+            case languageOnly = 1
+            /// `ar-AR` — a well-formed code for a locale that does not exist.
+            /// Last choice; see `isKnownToICU`.
+            case unknownLocale = 2
+
+            static func < (a: Self, b: Self) -> Bool { a.rawValue < b.rawValue }
+        }
+
+        /// Returns nil for a key that must never be offered.
+        init?(rawKey: String, dictionary: [String: Int]) {
+            // A real key (id 101) and the one option this app never offers —
+            // see the engine's header. It would also fail the shape check
+            // below, but dropping it on purpose beats dropping it by accident.
+            guard rawKey.caseInsensitiveCompare("auto") != .orderedSame else { return nil }
+
+            let code = DictationLanguage(code: rawKey).code
+            let subtags = code.split(separator: "-").map(String.init)
+
+            // The primary subtag is an ISO 639 language: two or three letters.
+            // This is what rejects `enGB` and `esES` — canonicalization does
+            // not repair them (they come out `engb` and `eses`), and ICU has no
+            // name for either, so the picker showed the user the raw string.
+            guard let language = subtags.first,
+                  (2...3).contains(language.count),
+                  language.allSatisfy({ $0.isASCII && $0.isLetter && $0.isLowercase })
+            else { return nil }
+
+            let region = subtags.dropFirst().first(where: Self.looksLikeRegion)
+
+            // A two-letter region has to be a real country. This is what
+            // rejects the invented regionals — `zh-ZH`, `ja-JA`, `ko-KO`,
+            // `hi-HI` — where the "region" is the language code shouted: none
+            // of ZH, JA, KO, HI is an ISO 3166 country, macOS cannot name them
+            // either, and all four reached the picker as raw codes. Each
+            // shares its prompt with a proper spelling (`zh-CN`, `ja-JP`,
+            // `ko-KR`, `hi-IN`), so nothing is lost with them.
+            //
+            // Careful: `so-SO`, `th-TH`, `az-AZ`, `uz-UZ`, `id-ID`, `mt-MT`,
+            // `to-TO` and `rw-RW` look like exactly the same mistake and are
+            // not — Somalia, Thailand, Azerbaijan, Uzbekistan, Indonesia,
+            // Malta, Tonga and Rwanda are real, and each of those eight is the
+            // *only* key for its prompt. Testing the region rather than the
+            // repeated letters is what keeps those eight languages.
+            if let region, region.count == 2, !Locale.Region(region).isISORegion { return nil }
+
+            self.code = code
+            self.prefersLiteralKey = dictionary[code] != nil
+            switch region {
+            case .none: self.rank = .languageOnly
+            case .some(let region):
+                self.rank = Self.isKnownToICU(language: language, region: region)
+                    ? .knownLocale : .unknownLocale
+            }
+        }
+
+        /// Whether macOS knows of any locale pairing this language with this
+        /// region — the test that separates a region worth showing from one
+        /// that is merely well-formed.
+        ///
+        /// It exists for `ar-AR`. `AR` *is* Argentina, so it passes the ISO
+        /// check above, and macOS names that prompt "Arabic (Argentina)" with
+        /// a straight face. The model plainly means Arabic; `ar` shares the
+        /// prompt, so ranking `ar-AR` last picks up the honest spelling.
+        ///
+        /// A tempting shortcut is to look for a region that repeats its
+        /// language, since `ar-AR` does. Do not: so do `fr-FR`, `pt-PT`,
+        /// `de-DE`, `it-IT`, `nl-NL`, `pl-PL`, `tr-TR`, `ru-RU`, `ro-RO`,
+        /// `hu-HU`, `sk-SK`, `hr-HR`, `bg-BG`, `lt-LT`, `lv-LV` and `fi-FI`.
+        /// That rule was written, and it demoted all sixteen — leaving
+        /// "Portuguese" sitting next to "Portuguese (Brazil)", where a reader
+        /// has no way to tell that the first one is the European model.
+        ///
+        /// This is a demotion and never a rejection, because it also fires on
+        /// three regions the model gets right and ICU simply does not ship:
+        /// `ay-BO` (Aymara/Bolivia), `nah-MX` (Nahuatl/Mexico) and `or-KE`.
+        /// Each is the only key for its prompt, so rejecting would delete
+        /// three languages to tidy up one.
+        private static func isKnownToICU(language: String, region: String) -> Bool {
+            knownLocales.contains("\(language)-\(region)")
+        }
+
+        /// Every language–region pair macOS ships a locale for. Built once:
+        /// `Locale.availableIdentifiers` is ~900 strings to parse and the
+        /// answer cannot change while the process runs.
+        private static let knownLocales: Set<String> = {
+            var pairs = Set<String>()
+            for identifier in Locale.availableIdentifiers {
+                let locale = Locale(identifier: identifier)
+                guard let language = locale.language.languageCode?.identifier,
+                      let region = locale.region?.identifier else { continue }
+                pairs.insert("\(language)-\(region)")
+            }
+            return pairs
+        }()
+
+        /// Region subtags are two letters or three digits (`es-419`). Script
+        /// subtags (`zh-Hant`) and variants are neither and are passed over
+        /// rather than rejected — no build ships one today, and a future one
+        /// would be a spelling to keep, not to drop.
+        private static func looksLikeRegion(_ subtag: String) -> Bool {
+            (subtag.count == 2 && subtag.allSatisfy { $0.isASCII && $0.isLetter && $0.isUppercase })
+                || (subtag.count == 3 && subtag.allSatisfy(\.isNumber))
+        }
+
+        /// Total and deterministic: a dictionary has no order, so ties broken
+        /// by anything less would let the offered list change between runs.
+        func isPreferred(over other: Self) -> Bool {
+            if rank != other.rank { return rank < other.rank }
+            if prefersLiteralKey != other.prefersLiteralKey { return prefersLiteralKey }
+            if code.count != other.code.count { return code.count < other.code.count }
+            return code < other.code
+        }
     }
 }
