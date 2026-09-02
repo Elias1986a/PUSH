@@ -748,6 +748,14 @@ struct ModelsSettingsView: View {
         Task {
             do {
                 try await ModelLoader.activate(model)
+                // Cleared on success, not merely when the next attempt starts.
+                // A failed load followed by a successful retry otherwise leaves
+                // the red text sitting under a row that is simultaneously
+                // showing the green "Active" badge — the state the first
+                // multilingual download actually reached, where a transient
+                // mid-download failure was still on screen minutes after the
+                // model had loaded and was transcribing fine.
+                downloadError = nil
             } catch {
                 downloadError = error.localizedDescription
             }

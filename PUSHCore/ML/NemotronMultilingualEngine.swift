@@ -132,9 +132,36 @@ public actor NemotronMultilingualEngine {
 
     /// Whether one build is on disk, i.e. whether it can load without a download.
     private nonisolated static func hasBuild(_ variant: String) -> Bool {
-        let contents = (try? FileManager.default.contentsOfDirectory(
-            atPath: variantDirectory(variant).path)) ?? []
-        return contents.contains { $0.hasSuffix(".mlmodelc") }
+        isBuildComplete(at: variantDirectory(variant))
+    }
+
+    /// Whether `directory` holds every file `preloadShared` actually opens.
+    ///
+    /// The old test — "contains anything ending in .mlmodelc" — went true the
+    /// moment the first of seven files landed, so a download still minutes from
+    /// finishing already read as "600 MB · on this Mac", and a load attempted
+    /// against it died on FluidAudio's "No decode path". Completeness is the
+    /// only honest answer to "can this load without a download".
+    ///
+    /// Deliberately *not* FluidAudio's `getRequiredModelNames`, which also lists
+    /// `preprocessor.mlmodelc`: this manager computes log-mel natively in Swift
+    /// and never opens a CoreML preprocessor, so requiring it would report a
+    /// perfectly loadable build as broken. The decode path is the same either/or
+    /// the loader enforces — a fused `decoder_joint` in any of its three
+    /// exports, or both bare `decoder` + `joint`.
+    nonisolated static func isBuildComplete(at directory: URL) -> Bool {
+        typealias Names = ModelNames.NemotronMultilingualStreaming
+        func has(_ name: String) -> Bool {
+            FileManager.default.fileExists(
+                atPath: directory.appendingPathComponent(name).path)
+        }
+        guard has(Names.metadata), has(Names.tokenizer), has(Names.encoderFile) else {
+            return false
+        }
+        return has("decoder_joint.mlmodelc")
+            || has("decoder_joint_argmax.mlmodelc")
+            || has("decoder_joint_noencproj.mlmodelc")
+            || (has(Names.decoderFile) && has(Names.jointFile))
     }
 
     /// Everything this engine owns on disk, both builds.
@@ -248,6 +275,24 @@ public actor NemotronMultilingualEngine {
         PushLogger.log("NemotronMultilingualEngine: Loading \(variant) build (\(Self.chunkMs)ms) for \(code)...")
 
         do {
+            // A half-finished download wedges permanently if left alone.
+            // FluidAudio calls the variant fully cached the moment
+            // `metadata.json` exists, so it skips the fetch entirely and
+            // `preloadShared` then throws on whatever never arrived — the same
+            // failure on every retry, with nothing in the UI able to clear it.
+            // Dropping that one 3 KB file forces the repair pass. It re-fetches
+            // only what is missing: everything already on disk comes back
+            // `.alreadyPresent`.
+            let variantDir = Self.variantDirectory(variant)
+            if FileManager.default.fileExists(atPath: variantDir.path),
+               !Self.isBuildComplete(at: variantDir) {
+                try? FileManager.default.removeItem(
+                    at: variantDir.appendingPathComponent(
+                        ModelNames.NemotronMultilingualStreaming.metadata))
+                PushLogger.log(
+                    "NemotronMultilingualEngine: \(variant) build on disk is incomplete — forcing a repair download")
+            }
+
             // No `to:` — FluidAudio picks its own cache root, and
             // `variantDirectory(_:)` above mirrors that path rather than
             // dictating it, so the download and the on-disk check cannot drift.

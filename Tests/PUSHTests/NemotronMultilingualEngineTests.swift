@@ -97,4 +97,91 @@ final class NemotronMultilingualEngineTests: XCTestCase {
             XCTAssertTrue(NemotronMultilingualEngine.isModelDownloaded())
         }
     }
+
+    // MARK: - Build completeness
+
+    /// The seven files the repo ships for one build.
+    private static let fullBuild = [
+        "metadata.json", "tokenizer.json", "encoder.mlmodelc",
+        "decoder.mlmodelc", "joint.mlmodelc", "decoder_joint.mlmodelc",
+        "preprocessor.mlmodelc",
+    ]
+
+    /// Builds a variant directory holding exactly `names`, faithful to the real
+    /// layout: `.mlmodelc` are directories on disk, the rest are files.
+    private func makeBuild(_ names: [String]) throws -> URL {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("nemotron-build-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
+        for name in names {
+            let url = dir.appendingPathComponent(name)
+            if name.hasSuffix(".mlmodelc") {
+                try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            } else {
+                try Data().write(to: url)
+            }
+        }
+        return dir
+    }
+
+    func testAFullyDownloadedBuildIsComplete() throws {
+        XCTAssertTrue(NemotronMultilingualEngine.isBuildComplete(at: try makeBuild(Self.fullBuild)))
+    }
+
+    /// The v7.5.0 bug, pinned. The files arrive one at a time over minutes, and
+    /// the old check ("contains any .mlmodelc") was satisfied by the first of
+    /// the seven — so Settings reported "600 MB · on this Mac" while a load
+    /// against that directory was still certain to fail.
+    func testABuildWithOnlyTheFirstFileIsNotComplete() throws {
+        XCTAssertFalse(
+            NemotronMultilingualEngine.isBuildComplete(at: try makeBuild(["decoder.mlmodelc"])),
+            "one .mlmodelc out of seven is a download in progress, not a usable build")
+    }
+
+    func testAnEmptyOrAbsentDirectoryIsNotComplete() throws {
+        let dir = try makeBuild([])
+        XCTAssertFalse(NemotronMultilingualEngine.isBuildComplete(at: dir))
+        XCTAssertFalse(NemotronMultilingualEngine.isBuildComplete(
+            at: dir.appendingPathComponent("never-downloaded")))
+    }
+
+    /// Each file the loader opens unconditionally, removed one at a time.
+    func testEveryRequiredFileIsActuallyRequired() throws {
+        for missing in ["metadata.json", "tokenizer.json", "encoder.mlmodelc"] {
+            let dir = try makeBuild(Self.fullBuild.filter { $0 != missing })
+            XCTAssertFalse(NemotronMultilingualEngine.isBuildComplete(at: dir),
+                           "a build missing \(missing) cannot load")
+        }
+    }
+
+    /// The decode path is an either/or, mirroring the guard in `preloadShared`.
+    /// A lean ship carries only the fused bundle; an older export only the bare
+    /// pair. Both load, so both must count as complete.
+    func testEitherDecodePathAloneIsEnough() throws {
+        let fused = try makeBuild(
+            ["metadata.json", "tokenizer.json", "encoder.mlmodelc", "decoder_joint.mlmodelc"])
+        XCTAssertTrue(NemotronMultilingualEngine.isBuildComplete(at: fused))
+
+        let bare = try makeBuild(
+            ["metadata.json", "tokenizer.json", "encoder.mlmodelc",
+             "decoder.mlmodelc", "joint.mlmodelc"])
+        XCTAssertTrue(NemotronMultilingualEngine.isBuildComplete(at: bare))
+    }
+
+    /// Half of the bare pair is no decode path — the exact on-disk shape that
+    /// produced the shipped "No decode path" error.
+    func testHalfOfTheBareDecodePairIsNotEnough() throws {
+        let dir = try makeBuild(
+            ["metadata.json", "tokenizer.json", "encoder.mlmodelc", "decoder.mlmodelc"])
+        XCTAssertFalse(NemotronMultilingualEngine.isBuildComplete(at: dir))
+    }
+
+    /// `preprocessor.mlmodelc` is downloaded but never opened — the manager
+    /// computes log-mel natively in Swift. Requiring it would call a perfectly
+    /// loadable build broken.
+    func testTheCoreMLPreprocessorIsNotRequired() throws {
+        let dir = try makeBuild(Self.fullBuild.filter { $0 != "preprocessor.mlmodelc" })
+        XCTAssertTrue(NemotronMultilingualEngine.isBuildComplete(at: dir))
+    }
 }
