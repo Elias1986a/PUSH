@@ -4,11 +4,12 @@ import PUSHCore
 /// The script hanging off the notch, travelling continuously past a fixed
 /// reading position.
 ///
-/// Nothing here snaps. The script's position and every line's brightness are
-/// both continuous functions of a fractional line, so a line does not jump into
-/// place and then sit there — it drifts up through the reading slot and dims as
-/// it passes. A whole-line hop is easy to implement and unpleasant to read
-/// against: the eye has to re-acquire the text on every move.
+/// Two different granularities, on purpose. The script's *position* is a
+/// continuous function of a fractional line, so the text travels rather than
+/// hopping — a hop makes the eye re-acquire the text on every move. Its
+/// *brightness* is not: the line being read is lit as a whole and hands over to
+/// the next in one crossfade. Sliding brightness between lines tracks words
+/// rather than the line you are on, which is unreadable however smooth it is.
 struct TeleprompterView: View {
     @ObservedObject var settings: TeleprompterState
     @ObservedObject var session: TeleprompterSession
@@ -44,6 +45,9 @@ struct TeleprompterView: View {
         // The reading position, in fractional lines. Eased in the session, so
         // this arrives already smooth.
         let position = session.isRunning ? session.displayLine : 0
+        // Whole lines, not a fraction. The scroll travels smoothly; the
+        // highlight hands over from one line to the next in one go.
+        let lit = session.highlightLine
 
         VStack(spacing: 0) {
             Color.clear.frame(height: topInset)
@@ -69,12 +73,18 @@ struct TeleprompterView: View {
                             Text(styled(layout.lines[index]))
                                 .font(Font(font))
                                 .foregroundStyle(.white)
-                                .opacity(opacity(forLine: index, at: position))
+                                .opacity(opacity(forLine: index, lit: lit))
                                 .frame(width: settings.size.width, alignment: .leading)
                                 .offset(y: CGFloat(index) * lineHeight)
                         }
                     }
                     .offset(y: (CGFloat(Self.linesAbove) - CGFloat(position)) * lineHeight)
+                    // Crossfade the hand-over so the change of lit line is not
+                    // itself a hard step.
+                    .animation(
+                        reduceMotion ? nil : .easeInOut(duration: 0.18),
+                        value: lit
+                    )
                 }
                 .clipped()
                 // Dissolve at the edges instead of slicing. Continuous
@@ -173,28 +183,23 @@ struct TeleprompterView: View {
         return lower..<max(lower, upper)
     }
 
-    /// Brightness as a continuous function of distance from the reading slot.
+    /// Brightness by whole lines from the line being read.
     ///
-    /// Continuous is the point. Stepping opacity per whole line makes a line
-    /// change brightness all at once as the reader crosses into it, which reads
-    /// as a flicker; this crossfades as the text travels. Falls off faster
-    /// behind than ahead — what you have already read is worth almost nothing,
-    /// what is coming is worth a lot.
-    private func opacity(forLine index: Int, at position: Double) -> Double {
-        let distance = Double(index) - position
-
-        // Full brightness across the whole line, not at a single point. The
-        // reading position moves continuously through a line, so a falloff
-        // measured from it alone would leave *no* line fully lit whenever the
-        // reader is mid-line — brightness would dip and recover once per line,
-        // which is a pulse rather than a scroll. The line straddling the slot
-        // stays lit for its entire traverse and crossfades with the next.
-        if distance >= -1, distance <= 0 { return 1.0 }
-
+    /// Measured against the lit line rather than the scroll position. Driving
+    /// this from the fractional position instead made brightness slide between
+    /// lines as the reader crossed one — the whole line was never lit at once,
+    /// and what you saw was the highlight tracking words rather than the line
+    /// you were on.
+    ///
+    /// Falls off faster behind than ahead: what you have already read is worth
+    /// almost nothing, what is coming is worth a lot.
+    private func opacity(forLine index: Int, lit: Int) -> Double {
+        let distance = index - lit
+        if distance == 0 { return 1.0 }
         if distance > 0 {
-            return 1.0 / (1.0 + 0.55 * distance)
+            return 1.0 / (1.0 + 0.55 * Double(distance))
         }
-        return 1.0 / (1.0 + 2.4 * (-distance - 1))
+        return 1.0 / (1.0 + 2.4 * Double(-distance))
     }
 
     private var stateColor: Color {

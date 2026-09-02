@@ -122,6 +122,39 @@ final class ScriptAlignerTests: XCTestCase {
         XCTAssertEqual(aligner.state, .tracking)
     }
 
+    /// Voice must never move the cursor backwards. Scripts repeat their own
+    /// phrasing, so saying something that resembles a line already passed used
+    /// to drag the cursor back to it — which reads as the prompter losing its
+    /// place mid-sentence.
+    func testEchoingAnEarlierLineDoesNotDragTheCursorBack() {
+        let script = """
+        we should ship it today because the build is green and the tests pass         so let us go over the plan one more time we should ship it today
+        """
+        var aligner = ScriptAligner(script: script)
+        _ = read(&aligner, words: ["we", "should", "ship", "it", "today", "because",
+                                   "the", "build", "is", "green", "and", "the",
+                                   "tests", "pass", "so", "let", "us", "go"])
+        let reached = aligner.cursor
+        XCTAssertGreaterThan(reached, 12)
+
+        // Now say something that echoes the opening. The words genuinely match
+        // back there; they must not win.
+        _ = aligner.consume(partial: "we should ship it today", at: 20)
+        XCTAssertGreaterThanOrEqual(aligner.cursor, reached,
+                                    "voice dragged the cursor backwards")
+    }
+
+    func testTheArrowKeysCanStillGoBack() {
+        let words = ["one", "two", "three", "four", "five", "six", "seven", "eight"]
+        var aligner = ScriptAligner(script: words.joined(separator: " "))
+        _ = read(&aligner, words: words)
+        XCTAssertEqual(aligner.cursor, words.count - 1)
+
+        // Matching is forward-only; a deliberate correction is not matching.
+        aligner.seek(to: 2, at: 10)
+        XCTAssertEqual(aligner.cursor, 2)
+    }
+
     // MARK: - Adrift and lost
 
     func testAdLibGoesAdriftThenSnapsBackOnRejoin() {

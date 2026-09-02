@@ -22,10 +22,21 @@ public struct ScriptAligner: Sendable {
         /// short enough to stay inside one clause.
         public var tailLength = 6
 
-        /// How far back the search may look. Non-zero because a speaker who
-        /// repeats a word should not drag the cursor forward off a false match
-        /// they never actually reached.
-        public var lookBehind = 4
+        /// How far back the search may look. Zero: voice never moves the cursor
+        /// backwards.
+        ///
+        /// A reader works forward through a script, so a match behind where
+        /// they already are is a false one — and scripts are full of material
+        /// for false matches, because writing repeats its own phrasing. Saying
+        /// something that resembles a line already passed used to drag the
+        /// cursor back to it, which read as the prompter losing its place.
+        ///
+        /// Going back is still possible, but only when the reader says so with
+        /// the arrow keys, which set the cursor directly rather than matching
+        /// for it. The cost of this is that a wrong forward jump cannot be
+        /// recovered by voice — but that is one arrow press, where a cursor
+        /// that slides backwards mid-sentence is unreadable.
+        public var lookBehind = 0
 
         /// How far ahead the search may look while tracking. Covers a skipped
         /// clause without opening the window wide enough for a repeated phrase
