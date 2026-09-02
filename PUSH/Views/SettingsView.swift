@@ -487,6 +487,11 @@ struct ModelsSettingsView: View {
     @State private var appleStatus: AppleSpeechAssetStatus = .unknown
     @State private var storageBytes: Double = 0
 
+    /// Measured on-disk size per model, filled by `refreshStorage`. Empty until
+    /// the first walk finishes, which is why `metaLine` falls back to the
+    /// download estimate rather than rendering a confident "Zero KB".
+    @State private var modelBytes: [AppState.WhisperModel: Double] = [:]
+
     var body: some View {
         Form {
             Section("Speech model") {
@@ -644,17 +649,29 @@ struct ModelsSettingsView: View {
         if model == .appleSpeech {
             return "No download · managed by macOS"
         }
-        let state = downloaded.contains(model) ? "on this Mac" : "not downloaded"
+        let isDownloaded = downloaded.contains(model)
+        let state = isDownloaded ? "on this Mac" : "not downloaded"
+
+        // Once it is on disk, say what is actually there. `downloadSizeLabel` is
+        // one build's download, and Nemotron ships one per language group: a
+        // user who has picked Arabic as well as Spanish has two, so the constant
+        // described a 1.2 GB row as 600 MB. Before the download that constant is
+        // still the right number — it is what the user is about to fetch — and
+        // it also stands in until the first size walk finishes.
+        let measured = isDownloaded
+            ? modelBytes[model].flatMap { $0 > 0 ? Self.format(bytes: $0) : nil }
+            : nil
+        let size = measured ?? model.downloadSizeLabel
         // Trimming the size out of `modelDescription` also removed the only
         // place that said Streaming and Unified are one download. Deleting
         // either removes both, so the row has to admit it.
         if model == .parakeetStreaming || model == .parakeetUnified {
             let other: AppState.WhisperModel = model == .parakeetStreaming ? .parakeetUnified : .parakeetStreaming
             if AppState.WhisperModel.selectable.contains(other) {
-                return "\(model.downloadSizeLabel) · shared with \(other.shortName) · \(state)"
+                return "\(size) · shared with \(other.shortName) · \(state)"
             }
         }
-        return "\(model.downloadSizeLabel) · \(state)"
+        return "\(size) · \(state)"
     }
 
     // MARK: Language
@@ -871,16 +888,22 @@ struct ModelsSettingsView: View {
         // Deduplicated: Parakeet Streaming and Parakeet Unified are the same
         // weights in the same directory, so summing per-model counted 1.21 GB
         // twice and reported 2.41.
-        let folders = Set(
-            AppState.WhisperModel.selectable
-                .compactMap(Self.folder(for:))
-                .map(\.standardizedFileURL)
-        )
+        let foldersByModel: [AppState.WhisperModel: URL] = Dictionary(
+            uniqueKeysWithValues: AppState.WhisperModel.selectable.compactMap { model in
+                Self.folder(for: model).map { (model, $0.standardizedFileURL) }
+            })
+        let folders = Set(foldersByModel.values)
         Task {
-            let total = await Task.detached(priority: .utility) {
-                folders.reduce(0) { $0 + Self.directorySize(at: $1) }
+            // One walk per distinct folder, reused for both the total and the
+            // per-row figure — the rows and the Storage line must not be able
+            // to disagree about the same bytes.
+            let sizes = await Task.detached(priority: .utility) {
+                Dictionary(uniqueKeysWithValues: folders.map { ($0, Self.directorySize(at: $0)) })
             }.value
-            await MainActor.run { storageBytes = total }
+            await MainActor.run {
+                storageBytes = sizes.values.reduce(0, +)
+                modelBytes = foldersByModel.compactMapValues { sizes[$0] }
+            }
         }
     }
 
