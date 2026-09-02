@@ -166,13 +166,15 @@ final class ScriptAlignerTests: XCTestCase {
         _ = read(&aligner, words: ["welcome", "back", "everyone", "today"])
         let held = aligner.cursor
 
-        // Off-script for a few seconds. Nothing matches, so nothing moves.
-        _ = aligner.consume(partial: "welcome back everyone today oh hang on my coffee", at: 3.0)
+        // Off-script for longer than the adrift threshold. Nothing matches, so
+        // nothing moves.
+        let adriftAt = 1.2 + aligner.tuning.adriftAfter + 0.1
+        _ = aligner.consume(partial: "welcome back everyone today oh hang on my coffee", at: adriftAt)
         XCTAssertEqual(aligner.cursor, held, "cursor moved while off-script")
         XCTAssertEqual(aligner.state, .adrift)
 
         // Rejoining mid-sentence snaps onto the right place.
-        _ = aligner.consume(partial: "the three things that changed", at: 4.0)
+        _ = aligner.consume(partial: "the three things that changed", at: adriftAt + 1)
         XCTAssertEqual(aligner.state, .tracking)
         XCTAssertGreaterThan(aligner.cursor, held + 5)
     }
@@ -184,16 +186,18 @@ final class ScriptAlignerTests: XCTestCase {
         _ = read(&aligner, words: Array(words.prefix(8)), interval: 0.4)
         let stopped = aligner.cursor
 
+        let lastMatch = 0.4 * 7
         // Just past the adrift line: holding.
-        XCTAssertEqual(aligner.tick(at: 5.0).state, .adrift)
+        XCTAssertEqual(aligner.tick(at: lastMatch + aligner.tuning.adriftAfter + 0.1).state,
+                       .adrift)
 
         // Past the lost line: still holding. A reader who pauses — to think, to
         // skip a line deliberately, to drink — must not have the script walk
         // away from them. Voice-following never invents motion.
-        let lost = aligner.tick(at: 9.0)
+        let lost = aligner.tick(at: lastMatch + aligner.tuning.lostAfter + 0.1)
         XCTAssertEqual(lost.state, .lost)
         XCTAssertEqual(lost.cursor, Double(stopped))
-        XCTAssertEqual(aligner.tick(at: 60.0).cursor, Double(stopped))
+        XCTAssertEqual(aligner.tick(at: 600.0).cursor, Double(stopped))
     }
 
     func testALongSilenceNeverMovesTheCursor() {
@@ -324,9 +328,10 @@ final class ScriptAlignerTests: XCTestCase {
         // reasonable guess.
         let ceiling = perSecond * min(tuning.reportLatency + tuning.predictionCoast,
                                       tuning.maxPredictionSeconds)
-        XCTAssertEqual(aligner.predictedCursor(at: lastMatch + 1.2) - observed,
+        let pastCoast = tuning.predictionCoast + 0.1
+        XCTAssertEqual(aligner.predictedCursor(at: lastMatch + pastCoast) - observed,
                        ceiling, accuracy: 0.01)
-        XCTAssertEqual(aligner.predictedCursor(at: lastMatch + 1.4) - observed,
+        XCTAssertEqual(aligner.predictedCursor(at: lastMatch + pastCoast + 0.5) - observed,
                        ceiling, accuracy: 0.01)
     }
 

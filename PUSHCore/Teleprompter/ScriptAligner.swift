@@ -67,17 +67,31 @@ public struct ScriptAligner: Sendable {
 
         /// How long after a partial to keep extending the lead.
         ///
-        /// Short: once nothing has arrived for this long, whether the reader is
-        /// still going is a guess, and guessing forward is how a pause turns
-        /// into the script running away.
-        public var predictionCoast: TimeInterval = 0.3
+        /// This is what carries the display between partials. Stop coasting
+        /// before the next one arrives and the scroll freezes and then jumps;
+        /// the gaps are routinely over a second, so a short coast means the
+        /// text is stationary for most of the time the reader is talking.
+        ///
+        /// Coasting is guessing, and it is only affordable because the scroll
+        /// cannot rewind: a guess that ran too far simply waits for the reader
+        /// rather than snapping back. `adriftAfter` is the real backstop — once
+        /// that fires the lead is withdrawn and nothing moves.
+        public var predictionCoast: TimeInterval = 1.5
 
         /// Hard ceiling on the lead, in seconds of reading.
-        public var maxPredictionSeconds: TimeInterval = 0.8
+        public var maxPredictionSeconds: TimeInterval = 2.0
 
         /// Silence, or unmatched speech, before we admit we've lost the thread.
-        public var adriftAfter: TimeInterval = 1.5
-        public var lostAfter: TimeInterval = 5.0
+        ///
+        /// Measured against how often partials actually arrive, not against how
+        /// long a pause feels. A traced take showed gaps of 0.8s to 3.0s
+        /// between partials while the reader was talking continuously — the
+        /// engine reports when its transcript changes, not on a clock. At 1.5s
+        /// this fired mid-sentence, which switched prediction off and froze the
+        /// display until the next partial, so the scroll moved in stops and
+        /// starts.
+        public var adriftAfter: TimeInterval = 2.5
+        public var lostAfter: TimeInterval = 6.0
 
         public init() {}
     }
