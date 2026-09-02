@@ -564,10 +564,15 @@ struct ModelsSettingsView: View {
                     .foregroundStyle(.secondary)
 
                 if Self.showsLanguagePicker(for: model, selectedModel: appState.selectedWhisperModel) {
-                    DictationLanguagePicker(model: model, onModelsChanged: {
-                        refreshDownloaded()
-                        refreshStorage()
-                    })
+                    DictationLanguagePicker(
+                        model: model,
+                        onModelsChanged: {
+                            refreshDownloaded()
+                            refreshStorage()
+                        },
+                        reload: { willDownload in
+                            await reloadForLanguage(model, willDownload: willDownload)
+                        })
                     .padding(.top, 2)
                 }
 
@@ -762,6 +767,72 @@ struct ModelsSettingsView: View {
         }
     }
 
+    /// Runs a language change with the row's own progress bar and error line.
+    ///
+    /// Choosing a language can fetch a second ~600 MB build with nobody having
+    /// pressed Download — picking Arabic while the latin build is resident does
+    /// exactly that — and until this existed the app just went quiet for the
+    /// length of the transfer. No bar, no percentage, and on failure nothing at
+    /// all, because the reload swallowed its own error. Measured at 43 seconds
+    /// of silence on a fast connection; minutes on a slow one, which reads as a
+    /// hung app rather than a download.
+    ///
+    /// Progress is measured against a baseline taken before the transfer starts,
+    /// not against the folder's absolute size: the folder already holds the
+    /// build being switched away from, so an absolute measure would sit at 100%
+    /// from the first sample and never move.
+    private func reloadForLanguage(_ model: AppState.WhisperModel, willDownload: Bool) async {
+        downloadError = nil
+
+        // A same-build switch is a prompt swap. Nothing to show, but a failure
+        // still has to surface rather than disappear.
+        guard willDownload, let folder = Self.folder(for: model) else {
+            do {
+                try await ModelLoader.reloadForLanguageChange(model)
+            } catch {
+                downloadError = error.localizedDescription
+            }
+            return
+        }
+
+        let language = appState.language(for: model).displayName
+        downloadingModel = model
+        downloadProgress = 0
+        downloadStatus = "Downloading \(language)…"
+
+        let expected = Self.expectedSize(of: model)
+        let baseline = await Task.detached(priority: .utility) {
+            Self.directorySize(at: folder)
+        }.value
+
+        let pollTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                let onDisk = await Task.detached(priority: .utility) {
+                    Self.directorySize(at: folder)
+                }.value
+                let progress = min(max(0, onDisk - baseline) / expected, 0.95)
+                await MainActor.run {
+                    downloadProgress = progress
+                    if progress > 0.01 {
+                        downloadStatus = "Downloading \(language)… \(Int(progress * 100))%"
+                    }
+                }
+            }
+        }
+
+        do {
+            try await ModelLoader.reloadForLanguageChange(model)
+            pollTask.cancel()
+            downloadProgress = 1.0
+            downloadStatus = "Complete!"
+        } catch {
+            pollTask.cancel()
+            downloadError = error.localizedDescription
+        }
+        downloadingModel = nil
+    }
+
     // MARK: Filesystem
 
     private nonisolated static func folder(for model: AppState.WhisperModel) -> URL? {
@@ -930,6 +1001,16 @@ struct DictationLanguagePicker: View {
     /// "on this Mac" line and the Storage total would otherwise both go stale.
     var onModelsChanged: () -> Void = {}
 
+    /// Performs the reload. `willDownload` says whether it is about to pull
+    /// another ~600 MB build.
+    ///
+    /// Supplied by the parent rather than run here because the progress bar and
+    /// the error line belong to the model row, not to this control — and
+    /// because the flag matters: a same-build language change is a prompt swap
+    /// that finishes in about 0.15s, and putting a progress bar on that would
+    /// only flicker.
+    var reload: @MainActor (_ willDownload: Bool) async -> Void = { _ in }
+
     @EnvironmentObject private var appState: AppState
 
     /// `nil` means "not asked yet", which is a genuinely different state from
@@ -1095,8 +1176,10 @@ struct DictationLanguagePicker: View {
         // this app loses its CGEvent tap and starts silently dropping hotkey
         // presses. The status the reload writes into `AppState` is already read
         // by the menu bar and the pill, so there is nothing to wait for here.
+        let willDownload = needsAnotherDownload
+
         Task {
-            await ModelLoader.reloadForLanguageChange(model)
+            await reload(willDownload)
             // Re-ask rather than assume: the build is on disk now, unless the
             // load failed, in which case the warning is still true.
             needsAnotherDownload = Self.currentNeedsAdditionalDownload(for: model, language: language)

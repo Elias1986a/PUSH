@@ -58,10 +58,12 @@ enum ModelLoader {
     /// tear down before they rebuild), so it has to report the model as
     /// unavailable rather than "the old one is still fine".
     ///
-    /// Errors are absorbed rather than thrown: the caller is a picker whose
-    /// choice has already been recorded, `AppState` carries the outcome, and
-    /// there is no useful "undo the user's language" to perform.
-    static func reloadForLanguageChange(_ model: AppState.WhisperModel) async {
+    /// Throws on failure. There is still no useful "undo the user's language" —
+    /// the choice is recorded and `AppState` carries the outcome — but the
+    /// caller now draws a progress bar for this, and a bar that cannot report a
+    /// failure only replaces a silent stall with a spinner that lies. Crossing
+    /// vocab groups fetches ~600 MB, so this is a failure worth showing.
+    static func reloadForLanguageChange(_ model: AppState.WhisperModel) async throws {
         let state = AppState.shared
         guard languageChangeNeedsReload(changed: model,
                                         activeModel: state.activeModel,
@@ -77,7 +79,7 @@ enum ModelLoader {
             try await performLanguageReload(model)
         }
         currentActivation = task
-        _ = await task.result
+        try await task.value
     }
 
     /// Unload the active model and mark the app as having no model (used when
