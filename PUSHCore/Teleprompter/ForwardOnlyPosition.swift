@@ -8,35 +8,27 @@ import Foundation
 /// per partial. Reading against text that moves backwards is worse than reading
 /// against text that is slightly late.
 ///
-/// So small backward corrections hold instead of rewinding. A large one is a
-/// different thing entirely — the reader went back to re-read, or pressed the
-/// up arrow — and that must be followed, or the prompter would refuse to go
-/// where it is told.
+/// So it never goes backwards at all. There is no tolerance below which a
+/// retreat is believed: a tolerance was tried, and prediction being *withdrawn*
+/// — when tracking lapses to adrift, the lead vanishes and the target drops by
+/// however far it had run ahead — produced a fall bigger than any threshold set
+/// for jitter. The text rewound a line and a half.
+///
+/// Going back happens through `reset` instead, which is what the arrow keys and
+/// a new take use. That is the honest distinction: matching never moves
+/// backwards, and a reader saying where they are is not matching.
 public struct ForwardOnlyPosition: Sendable {
-
-    /// How far back the target may fall before it is believed, in lines.
-    ///
-    /// Above the jitter that prediction produces, below a deliberate move. A
-    /// prediction that ran two tokens ahead lands well inside a line; a reader
-    /// going back to re-read lands a line or more behind.
-    public var tolerance: Double
 
     public private(set) var value: Double
 
-    public init(tolerance: Double = 0.75, value: Double = 0) {
-        self.tolerance = tolerance
+    public init(value: Double = 0) {
         self.value = value
     }
 
     /// Take a freshly computed target and return the position to actually use.
     @discardableResult
     public mutating func advance(to target: Double) -> Double {
-        if target < value - tolerance {
-            // Far enough back to be meant.
-            value = target
-        } else {
-            value = max(value, target)
-        }
+        value = max(value, target)
         return value
     }
 

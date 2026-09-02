@@ -63,17 +63,17 @@ public struct ScriptAligner: Sendable {
         /// ago. Predicting only from time-since-delivery misses this entirely
         /// and leaves a constant deficit — worse the faster the reader goes,
         /// because the deficit is fixed in seconds but felt in words.
-        public var reportLatency: TimeInterval = 0.9
+        public var reportLatency: TimeInterval = 0.6
 
         /// How long after a partial to keep extending the lead.
         ///
         /// Short: once nothing has arrived for this long, whether the reader is
         /// still going is a guess, and guessing forward is how a pause turns
         /// into the script running away.
-        public var predictionCoast: TimeInterval = 0.6
+        public var predictionCoast: TimeInterval = 0.3
 
         /// Hard ceiling on the lead, in seconds of reading.
-        public var maxPredictionSeconds: TimeInterval = 1.6
+        public var maxPredictionSeconds: TimeInterval = 0.8
 
         /// Silence, or unmatched speech, before we admit we've lost the thread.
         public var adriftAfter: TimeInterval = 1.5
@@ -165,8 +165,17 @@ public struct ScriptAligner: Sendable {
 
         let tail = Array(spoken.suffix(tuning.tailLength))
         if let match = bestMatch(for: tail) {
-            if firstMatchTime == nil { firstMatchTime = now }
-            if match > cursor { advancedTokens += match - cursor }
+            if firstMatchTime == nil {
+                // The step onto the first match is not travel — the reader was
+                // always there, we just did not know it yet. Counting it made
+                // the pace estimate enormous over the first second or two, and
+                // prediction multiplies whatever it is told: it was leaping
+                // most of a line and, near the end of a script, pointing past
+                // the last token.
+                firstMatchTime = now
+            } else if match > cursor {
+                advancedTokens += match - cursor
+            }
             cursor = match
             lastMatchTime = now
             state = .tracking

@@ -345,6 +345,31 @@ final class ScriptAlignerTests: XCTestCase {
         XCTAssertEqual(aligner.predictedCursor(at: 100), observed, accuracy: 0.01)
     }
 
+    /// The step onto the first match is not travel — the reader was always
+    /// there, we just did not know it. Counting it made the pace estimate
+    /// enormous over the first seconds, and prediction multiplies whatever it
+    /// is told: in a real take it leapt most of a line and, near the end of a
+    /// script, pointed past the last token.
+    func testTheFirstMatchDoesNotInflateThePace() {
+        let words = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot",
+                     "golf", "hotel", "india", "juliet", "kilo", "lima"]
+        var aligner = ScriptAligner(script: words.joined(separator: " "))
+
+        // Land the first match several tokens in, as a first partial does, then
+        // read on at a steady one token per half second.
+        _ = aligner.consume(partial: "alpha bravo charlie delta", at: 0)
+        for (i, word) in words.dropFirst(4).enumerated() {
+            let partial = words.prefix(5 + i).joined(separator: " ")
+            _ = aligner.consume(partial: partial, at: 0.5 * Double(i + 1))
+        }
+
+        let wpm = try? XCTUnwrap(aligner.measuredWordsPerMinute)
+        XCTAssertNotNil(wpm)
+        // One token per 0.5s is 120wpm. Counting the opening jump of four
+        // tokens would push this far above it.
+        XCTAssertEqual(wpm ?? 0, 120, accuracy: 25)
+    }
+
     // MARK: - Degenerate input
 
     func testStateStartsIdleAndSurvivesEmptyInput() {
