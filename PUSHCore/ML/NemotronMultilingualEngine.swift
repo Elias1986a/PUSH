@@ -164,6 +164,18 @@ public actor NemotronMultilingualEngine {
             || (has(Names.decoderFile) && has(Names.jointFile))
     }
 
+    /// The two vocab builds, in the order they should be shown.
+    public static let buildVariants = ["latin", "multilingual"]
+
+    /// Where one build's files live, whether or not it has been downloaded.
+    ///
+    /// Exposed so Settings can account for the two ~600 MB downloads separately:
+    /// a single total tells a user who has crossed language groups that they are
+    /// using 1.28 GB, but not that it arrived as two distinct fetches.
+    public nonisolated static func buildDirectory(_ variant: String) -> URL {
+        variantDirectory(variant)
+    }
+
     /// Everything this engine owns on disk, both builds.
     ///
     /// The per-language directory above is the wrong answer for Settings, which

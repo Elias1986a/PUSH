@@ -492,6 +492,9 @@ struct ModelsSettingsView: View {
     /// download estimate rather than rendering a confident "Zero KB".
     @State private var modelBytes: [AppState.WhisperModel: Double] = [:]
 
+    /// Measured size of each Nemotron vocab build, keyed by variant.
+    @State private var buildBytes: [String: Double] = [:]
+
     var body: some View {
         Form {
             Section("Speech model") {
@@ -568,12 +571,24 @@ struct ModelsSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                ForEach(buildBreakdown(for: model), id: \.self) { line in
+                    Text(line)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 10)
+                }
+
                 if Self.showsLanguagePicker(for: model, selectedModel: appState.selectedWhisperModel) {
                     DictationLanguagePicker(
                         model: model,
                         onModelsChanged: {
                             refreshDownloaded()
                             refreshStorage()
+                            // Apple installs its assets per locale, so the
+                            // answer to "is this installed" changes with the
+                            // language. Without this the row keeps showing the
+                            // status of whichever locale was current on appear.
+                            refreshAppleStatus()
                         },
                         reload: { willDownload in
                             await reloadForLanguage(model, willDownload: willDownload)
@@ -613,36 +628,73 @@ struct ModelsSettingsView: View {
 
     @ViewBuilder
     private func trailing(for model: AppState.WhisperModel) -> some View {
-        if model == .appleSpeech {
+        if downloadingModel == model {
+            EmptyView()
+        } else if showsActiveBadge(for: model) {
+            // The engine that is loaded says so, whichever engine it is. Apple
+            // Speech used to be answered by a short-circuit above this check, so
+            // the one engine needing no download was also the only one that
+            // never said "Active": it sat reading "Installs on first use" while
+            // it was loaded and transcribing, which reads as "not working yet".
+            statusBadge(icon: "checkmark.circle.fill", color: .green, text: "Active")
+        } else if model == .appleSpeech {
             // No download button: these assets belong to the OS. A progress bar
             // we neither drive nor can cancel would be a fiction, so this
             // reports the system's own state instead.
-            HStack(spacing: 5) {
-                Image(systemName: appleStatusIcon)
-                    .foregroundStyle(appleStatusColor)
-                Text(appleStatusLabel)
-                    .foregroundStyle(.secondary)
-            }
-            .font(.caption)
-        } else if downloadingModel == model {
-            EmptyView()
+            statusBadge(icon: appleStatusIcon, color: appleStatusColor, text: appleStatusLabel)
         } else if downloaded.contains(model) {
-            if model == appState.activeModel {
-                HStack(spacing: 5) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Active")
-                        .foregroundStyle(.secondary)
-                }
-                .font(.caption)
-            } else {
-                Button("Delete") { deleteModel(model) }
-                    .foregroundStyle(.red)
-            }
+            Button("Delete") { deleteModel(model) }
+                .foregroundStyle(.red)
         } else {
             Button("Download") { downloadModel(model) }
                 .disabled(downloadingModel != nil)
         }
+    }
+
+    /// Whether `model` is the engine currently serving dictation.
+    ///
+    /// Apple Speech has no files of ours, so `downloaded` is the wrong question
+    /// for it — but "still installing" is worth saying in preference to
+    /// "Active", since that install is the one thing that would stop it working.
+    private func showsActiveBadge(for model: AppState.WhisperModel) -> Bool {
+        guard model == appState.activeModel else { return false }
+        if model == .appleSpeech { return appleStatus != .installing }
+        return downloaded.contains(model)
+    }
+
+    private func statusBadge(icon: String, color: Color, text: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .foregroundStyle(color)
+            Text(text)
+                .foregroundStyle(.secondary)
+        }
+        .font(.caption)
+    }
+
+    /// One line per Nemotron build actually on disk, shown only when there are
+    /// two of them.
+    ///
+    /// Nemotron ships one ~600 MB build per language group, so picking Arabic
+    /// while holding the Latin build silently doubles what the engine occupies.
+    /// A lone "1.28 GB" hides that a second download ever happened — and hides
+    /// that Delete reclaims both. With one build the total already says it, and
+    /// a sub-line repeating itself is noise.
+    private func buildBreakdown(for model: AppState.WhisperModel) -> [String] {
+        guard model == .nemotronMultilingual else { return [] }
+        let present = NemotronMultilingualEngine.buildVariants.compactMap { variant in
+            (buildBytes[variant] ?? 0) > 0 ? (variant, buildBytes[variant]!) : nil
+        }
+        guard present.count > 1 else { return [] }
+        return present.map { "\(Self.buildName($0.0)) · \(Self.format(bytes: $0.1))" }
+    }
+
+    /// Named by what the build can transcribe, not by the language that
+    /// happened to pull it: the second build serves Arabic, Chinese, Japanese,
+    /// Russian and every other non-Latin script, so calling it "Arabic" would
+    /// suggest deleting it costs only Arabic.
+    private static func buildName(_ variant: String) -> String {
+        variant == "latin" ? "Latin-script languages" : "All other languages"
     }
 
     private func metaLine(for model: AppState.WhisperModel) -> String {
@@ -892,7 +944,10 @@ struct ModelsSettingsView: View {
             uniqueKeysWithValues: AppState.WhisperModel.selectable.compactMap { model in
                 Self.folder(for: model).map { (model, $0.standardizedFileURL) }
             })
-        let folders = Set(foldersByModel.values)
+        let builds = NemotronMultilingualEngine.buildVariants.map {
+            ($0, NemotronMultilingualEngine.buildDirectory($0).standardizedFileURL)
+        }
+        let folders = Set(foldersByModel.values).union(builds.map(\.1))
         Task {
             // One walk per distinct folder, reused for both the total and the
             // per-row figure — the rows and the Storage line must not be able
@@ -901,8 +956,13 @@ struct ModelsSettingsView: View {
                 Dictionary(uniqueKeysWithValues: folders.map { ($0, Self.directorySize(at: $0)) })
             }.value
             await MainActor.run {
-                storageBytes = sizes.values.reduce(0, +)
+                // Summed over the model folders only: the build directories
+                // live inside the Nemotron folder, so counting both would
+                // report its bytes twice.
+                storageBytes = Set(foldersByModel.values).compactMap { sizes[$0] }.reduce(0, +)
                 modelBytes = foldersByModel.compactMapValues { sizes[$0] }
+                buildBytes = Dictionary(uniqueKeysWithValues:
+                    builds.compactMap { variant, url in sizes[url].map { (variant, $0) } })
             }
         }
     }
