@@ -19,22 +19,49 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // ducked, put the user's volume back rather than leaving it quiet.
         MediaController.shared.restoreVolumeIfInterrupted()
 
-        // Request permissions
-        requestMicrophonePermission()
+        // On a first launch the welcome wizard owns both permission prompts, so
+        // that neither arrives as a bare system dialog from an app with no Dock
+        // icon and no window — the state the audit found reads as a crash.
+        // Every later launch behaves exactly as before.
+        let showingWizard = OnboardingWindowController.isPending
+        HotkeyManager.suppressesAccessibilityPrompt = showingWizard
 
-        // Initialize hotkey manager (will handle accessibility permission itself)
+        if !showingWizard {
+            requestMicrophonePermission()
+        }
+
+        // Initialize hotkey manager (will handle accessibility permission itself
+        // unless the wizard has taken that over for this launch). Started either
+        // way: its retry timer is what picks the permission up once granted, so
+        // the hotkey comes alive the moment the user flips the switch on step 2,
+        // without a relaunch.
         hotkeyManager = HotkeyManager.shared
         hotkeyManager?.startListening()
 
         // Setup floating pill window
         setupFloatingPillWindow()
 
-        // Pre-load Whisper model in background (will download if needed)
+        // Pre-load the speech model in background (will download if needed)
         preloadModels()
+
+        if showingWizard {
+            showOnboarding()
+        }
 
         #if DEBUG
         openSettingsIfRequested()
         #endif
+    }
+
+    /// Show the welcome wizard once the app has finished coming up.
+    ///
+    /// Deferred a beat rather than shown inline: `applicationDidFinishLaunching`
+    /// is still on the launch path, and activating a window from inside it
+    /// races the menu bar extra's own setup.
+    private func showOnboarding() {
+        DispatchQueue.main.async {
+            OnboardingWindowController.shared.show()
+        }
     }
 
     #if DEBUG

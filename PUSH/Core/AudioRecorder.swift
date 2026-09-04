@@ -194,6 +194,12 @@ final class AudioRecorder: @unchecked Sendable {
             var samplesThisSegment = 0
             for await samples in stream {
                 guard let self else { return }
+                // Before the VAD await below, not after: this is what the pill's
+                // waveform draws, and it should reflect the buffer that just
+                // arrived rather than the one before it. The arithmetic is a
+                // sum over ~1300 floats — cheaper than the CoreML inference it
+                // is sitting in front of.
+                AudioLevelMonitor.shared.consume(samples)
                 self.audioData?.append(samples.withUnsafeBufferPointer { Data(buffer: $0) })
                 // Continuous capture has nothing to auto-stop, and Silero is a
                 // CoreML inference per buffer — not worth running for the length
@@ -271,6 +277,9 @@ final class AudioRecorder: @unchecked Sendable {
         audioEngine?.stop()
         isRecording = false
         AppState.shared.isCapturing = false
+        // The waveform reads the level without checking isCapturing, so silence
+        // has to be published here rather than left at the last buffer's value.
+        AudioLevelMonitor.shared.reset()
 
         // Unconditional and synchronous: a no-op unless we actually changed
         // something, so it stays correct even if the setting changed mid-take.

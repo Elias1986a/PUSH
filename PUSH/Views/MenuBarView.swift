@@ -61,6 +61,22 @@ struct MenuBarView: View {
 
             Divider()
 
+            // Reachable after the first launch too: the permissions walkthrough
+            // and the try-it sandbox are the fastest way to answer "why is
+            // nothing happening when I hold the key?", which is otherwise a
+            // support email.
+            Button(action: showWelcome) {
+                HStack {
+                    Image(systemName: "sparkles")
+                    Text("Welcome to PUSH...")
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
             // Settings button
             SettingsLink {
                 HStack {
@@ -114,6 +130,10 @@ struct MenuBarView: View {
         } else {
             return .blue
         }
+    }
+
+    private func showWelcome() {
+        OnboardingWindowController.shared.show()
     }
 
     private func toggleTeleprompter() {
