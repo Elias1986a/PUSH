@@ -127,14 +127,20 @@ final class PermissionsModel: ObservableObject {
         // Weak, and self-invalidating: a repeating Timer is retained by the run
         // loop, so a strong capture here would keep the model — and the window
         // that owns it — alive for the life of the process, still polling.
+        //
+        // The `timer` argument stays out of the `assumeIsolated` block on
+        // purpose: `Timer` is not Sendable, so capturing the closure's own
+        // task-isolated parameter inside a main-actor closure is a data-race
+        // warning today and an error under the Swift 6 language mode. Asking
+        // the isolated part whether the model is still there, and invalidating
+        // outside it, keeps the same behaviour with nothing sent across.
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] timer in
-            MainActor.assumeIsolated {
-                guard let self else {
-                    timer.invalidate()
-                    return
-                }
+            let isAlive = MainActor.assumeIsolated { () -> Bool in
+                guard let self else { return false }
                 self.refresh()
+                return true
             }
+            if !isAlive { timer.invalidate() }
         }
         RunLoop.main.add(timer, forMode: .common)
         pollTimer = timer
