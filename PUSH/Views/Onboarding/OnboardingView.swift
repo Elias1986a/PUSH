@@ -34,7 +34,7 @@ struct OnboardingView: View {
     @FocusState private var sandboxFocused: Bool
 
     enum Step: Int, CaseIterable {
-        case welcome, permissions, tryIt, finish
+        case welcome, permissions, tryIt, pill, more, finish
     }
 
     var body: some View {
@@ -62,6 +62,8 @@ struct OnboardingView: View {
         case .welcome: welcomeStep
         case .permissions: permissionsStep
         case .tryIt: tryItStep
+        case .pill: pillStep
+        case .more: moreStep
         case .finish: finishStep
         }
     }
@@ -98,6 +100,11 @@ struct OnboardingView: View {
                     icon: "lock.fill",
                     title: "Nothing leaves your Mac",
                     detail: "No account, no upload, no transcript stored anywhere. It works on a plane."
+                )
+                highlight(
+                    icon: "text.alignleft",
+                    title: "And a teleprompter",
+                    detail: "Read a script off your screen while you record — invisible to the recording itself."
                 )
             }
             .padding(.top, 4)
@@ -258,7 +265,125 @@ struct OnboardingView: View {
         .font(.callout)
     }
 
-    // MARK: - Step 4 · keep it around
+    // MARK: - Step 4 · where the pill lives
+
+    /// Asked with the same picture Settings uses, so the two read as one
+    /// setting rather than two. The choice is genuinely a matter of taste and
+    /// of hardware — a notch to hang from, or not — which makes it worth a
+    /// step rather than a line of prose nobody reads.
+    private var pillStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            stepHeader(
+                title: "Where the pill lives",
+                subtitle: "While you dictate, a small pill shows that PUSH is listening — and a live waveform of your voice."
+            )
+
+            HStack(spacing: 18) {
+                ForEach(AppState.PillPosition.allCases) { position in
+                    PillPositionThumbnail(
+                        position: position,
+                        isSelected: appState.pillPosition == position
+                    )
+                    .onTapGesture { appState.pillPosition = position }
+                }
+                Spacer(minLength: 0)
+            }
+
+            Text("At the bottom it floats as a capsule, out of the way. At the top it hangs off the screen edge under the notch, where you are already reading. You can change this any time in Settings.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: - Step 5 · the rest of the app
+
+    private var moreStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            stepHeader(
+                title: "Two more things it does",
+                subtitle: "Neither is on by default. Both are in Settings whenever you want them."
+            )
+
+            // Wake word ships off and must stay off by default: it holds the
+            // microphone open continuously, which is a materially different
+            // privacy posture from push-to-talk and deserves saying out loud.
+            featureCard(
+                icon: "waveform.badge.mic",
+                title: "Wake word",
+                detail: "Say a word instead of holding a key, and PUSH starts recording — stopping on its own after a second of silence."
+            ) {
+                Toggle("Start recording when I say “\(appState.wakeWord)”", isOn: $appState.wakeWordEnabled)
+                    .onChange(of: appState.wakeWordEnabled) { _, on in
+                        if on {
+                            WakeWordListener.shared.startListening()
+                        } else {
+                            WakeWordListener.shared.stopListening()
+                        }
+                    }
+                Text("Off by default on purpose: listening for a wake word holds the microphone open the whole time, where push-to-talk only opens it while you hold the key.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            featureCard(
+                icon: "text.alignleft",
+                title: "Teleprompter",
+                detail: "Paste a script and read it off the top of your screen. PUSH listens as you read and moves the text to keep up with you — it holds still if you pause or go off-script, and never scrolls on its own."
+            ) {
+                Label(
+                    "It is excluded from screen capture, so it never appears in your recording or on a shared screen. You are reading; nobody else can tell.",
+                    systemImage: "eye.slash.fill"
+                )
+                .font(.callout)
+                .foregroundStyle(Color.accentColor)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// One feature: icon, name, what it is, and whatever control or aside it
+    /// needs underneath.
+    private func featureCard<Extra: View>(
+        icon: String,
+        title: String,
+        detail: String,
+        @ViewBuilder extra: () -> Extra
+    ) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 15))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title).font(.system(size: 13, weight: .medium))
+                Text(detail)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                extra()
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    // MARK: - Step 6 · keep it around
 
     private var finishStep: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -288,8 +413,9 @@ struct OnboardingView: View {
                     .font(.system(size: 13, weight: .medium))
 
                 bullet("Click the ", symbol: "music.mic", rest: " in the menu bar for settings, the teleprompter, and to quit.")
-                bullet("Change the push-to-talk key, the language and the pill's position in Settings.")
+                bullet("Change the push-to-talk key, the dictation language and the pill's position in Settings.")
                 bullet("Teach PUSH names and jargon it keeps mishearing under Settings → Dictionary.")
+                bullet("Start a prompter take from the menu bar; its script and type size live in Settings → Teleprompter.")
             }
 
             Spacer(minLength: 0)

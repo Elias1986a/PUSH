@@ -99,6 +99,12 @@ final class TextInjector: @unchecked Sendable {
 
     /// Insert text at the current cursor position in any app
     func insertText(_ text: String) {
+        // Which app is about to receive the Cmd+V. The paste goes wherever the
+        // system says is frontmost, so when text lands in the wrong window this
+        // is the only line that says why — worth carrying permanently, since
+        // "it pasted somewhere else" is otherwise unfalsifiable from a log.
+        let target = NSWorkspace.shared.frontmostApplication
+        PushLogger.log("TextInjector: frontmost app is \(target?.bundleIdentifier ?? target?.localizedName ?? "unknown"), PUSH isActive=\(NSApp.isActive), policy=\(NSApp.activationPolicy().rawValue)")
         PushLogger.log("TextInjector: Inserting text via clipboard paste (\(text.count) chars)")
         insertViaClipboard(text)
         PushLogger.log("TextInjector: ✅ Inserted via clipboard paste")

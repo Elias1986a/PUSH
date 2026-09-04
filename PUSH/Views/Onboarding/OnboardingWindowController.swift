@@ -15,7 +15,7 @@ final class OnboardingWindowController {
 
     /// Fixed size — the wizard is laid out for it and there is nothing here
     /// worth resizing.
-    static let contentSize = CGSize(width: 620, height: 470)
+    static let contentSize = CGSize(width: 640, height: 560)
 
     private static let seenKey = "hasSeenOnboarding"
 
