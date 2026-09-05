@@ -15,26 +15,73 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var positionedPlacement: AppState.PillPosition?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Say out loud what `LSUIElement` says in the shipped app's Info.plist:
+        // a menu bar app with no Dock icon that can still be brought to the
+        // front when it has something to show.
+        //
+        // Load-bearing for `swift run`. SwiftPM builds a bare executable with
+        // no Info.plist, so `LSUIElement` never applies and macOS assigns the
+        // process `.prohibited` — an app that cannot be activated and whose
+        // windows cannot become key, measured as
+        // `policy=2 isActive=false isKey=false`. Everything that needs focus
+        // then fails silently in development only: the welcome wizard's
+        // dictation sandbox never receives its own paste, and the text lands in
+        // whatever app really is frontmost (Terminal, typically) — which reads
+        // as "dictation is broken" rather than "this build has no bundle".
+        //
+        // A no-op in the distribution build, which is already `.accessory`.
+        if NSApp.activationPolicy() != .accessory {
+            let promoted = NSApp.setActivationPolicy(.accessory)
+            PushLogger.log("AppDelegate: activation policy set to .accessory (\(promoted)) — unbundled build")
+        }
+
         // If a previous run died mid-dictation while the output volume was
         // ducked, put the user's volume back rather than leaving it quiet.
         MediaController.shared.restoreVolumeIfInterrupted()
 
-        // Request permissions
-        requestMicrophonePermission()
+        // On a first launch the welcome wizard owns both permission prompts, so
+        // that neither arrives as a bare system dialog from an app with no Dock
+        // icon and no window — the state the audit found reads as a crash.
+        // Every later launch behaves exactly as before.
+        let showingWizard = OnboardingWindowController.isPending
+        HotkeyManager.suppressesAccessibilityPrompt = showingWizard
 
-        // Initialize hotkey manager (will handle accessibility permission itself)
+        if !showingWizard {
+            requestMicrophonePermission()
+        }
+
+        // Initialize hotkey manager (will handle accessibility permission itself
+        // unless the wizard has taken that over for this launch). Started either
+        // way: its retry timer is what picks the permission up once granted, so
+        // the hotkey comes alive the moment the user flips the switch on step 2,
+        // without a relaunch.
         hotkeyManager = HotkeyManager.shared
         hotkeyManager?.startListening()
 
         // Setup floating pill window
         setupFloatingPillWindow()
 
-        // Pre-load Whisper model in background (will download if needed)
+        // Pre-load the speech model in background (will download if needed)
         preloadModels()
+
+        if showingWizard {
+            showOnboarding()
+        }
 
         #if DEBUG
         openSettingsIfRequested()
         #endif
+    }
+
+    /// Show the welcome wizard once the app has finished coming up.
+    ///
+    /// Deferred a beat rather than shown inline: `applicationDidFinishLaunching`
+    /// is still on the launch path, and activating a window from inside it
+    /// races the menu bar extra's own setup.
+    private func showOnboarding() {
+        DispatchQueue.main.async {
+            OnboardingWindowController.shared.show()
+        }
     }
 
     #if DEBUG

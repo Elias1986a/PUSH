@@ -73,7 +73,7 @@ When users download and open PUSH:
 ✅ **No scary warnings** - App is notarized by Apple
 ✅ **First launch** - macOS asks for Microphone permission
 ✅ **Accessibility** - Users grant in System Settings → Privacy & Security
-✅ **Download models** - Users choose and download Whisper model in app
+✅ **Download models** - Users choose and download a speech recognition model in app
 ✅ **Ready to use!**
 
 ## Troubleshooting
@@ -141,5 +141,5 @@ If you want to add automatic update checking in the future, consider:
 
 If users have issues:
 - Check they granted Microphone and Accessibility permissions
-- Verify they downloaded a Whisper model
+- Verify they downloaded a speech recognition model
 - Direct them to GitHub Issues for bug reports

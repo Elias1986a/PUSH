@@ -6,9 +6,17 @@ struct FloatingPillView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var revealer = PreviewRevealer()
+    // Observed separately from AppState so the level's ~12Hz churn stays
+    // inside this view. See AudioLevelMonitor.
+    @ObservedObject private var audioLevel = AudioLevelMonitor.shared
     @State private var dotPhase1: CGFloat = 0
     @State private var dotPhase2: CGFloat = 0
     @State private var dotPhase3: CGFloat = 0
+
+    /// Recent microphone levels, oldest first, one per capture buffer. Drawn as
+    /// bars so the waveform scrolls leftward the way a level meter does, rather
+    /// than every bar rising and falling together.
+    @State private var levels = [Double](repeating: 0, count: FloatingPillView.barCount)
 
     /// Width the preview reserves, from the chosen size. It is a fixed width,
     /// not a maximum: the pill claims the whole box up front and keeps it, so
@@ -61,6 +69,12 @@ struct FloatingPillView: View {
         }
         .onChange(of: appState.livePartialText) { _, text in
             revealer.setTarget(text)
+        }
+        // On the root rather than on `waveform`: the waveform is removed from
+        // the hierarchy at the moment capture ends, so its own onChange would
+        // never see the transition that has to clear it.
+        .onChange(of: appState.isCapturing) { _, _ in
+            levels = [Double](repeating: 0, count: FloatingPillView.barCount)
         }
     }
 
@@ -154,7 +168,12 @@ struct FloatingPillView: View {
             Text(baseStatusText)
                 .font(.system(size: 11, weight: .medium))
 
-            if appState.isListening {
+            if appState.isCapturing {
+                // The mic is open, so there is something real to show. The dots
+                // are an "I am busy" placeholder; this is the user's own voice.
+                waveform
+                    .padding(.bottom, 1)  // Align with text baseline
+            } else if appState.isListening {
                 bouncingDots
                     .padding(.bottom, 1)  // Align with text baseline
             }
@@ -198,6 +217,42 @@ struct FloatingPillView: View {
     private var previewOverflows: Bool {
         (revealer.revealed as NSString)
             .size(withAttributes: [.font: previewFont]).width > previewWidth
+    }
+
+    /// Live level meter, matching the mini-waveform `PillPositionThumbnail`
+    /// draws in Settings so the picker looks like the thing it is picking.
+    ///
+    /// Each bar is one capture buffer (~85ms), newest at the trailing edge.
+    /// Bars are capsules with a floor height so a silent moment reads as a row
+    /// of dots rather than the waveform disappearing mid-sentence.
+    private var waveform: some View {
+        HStack(alignment: .center, spacing: 1.5) {
+            ForEach(levels.indices, id: \.self) { index in
+                Capsule()
+                    .fill(contentColor)
+                    .frame(width: 2.5, height: Self.barHeight(for: levels[index]))
+            }
+        }
+        .frame(height: Self.maxBarHeight, alignment: .center)
+        .padding(.leading, 3)
+        // Buffers land about twelve times a second; interpolating between them
+        // is what turns a stepped readout into something that looks like sound.
+        .animation(reduceMotion ? nil : Animation.easeOut(duration: 0.09), value: levels)
+        .onChange(of: audioLevel.level) { _, level in
+            levels.removeFirst()
+            levels.append(level)
+        }
+        .accessibilityHidden(true)
+    }
+
+    /// Five bars, like the thumbnail. At buffer rate that is a ~0.4s window —
+    /// long enough to show the shape of a word, short enough to feel immediate.
+    private static let barCount = 5
+    private static let minBarHeight: CGFloat = 2.5
+    private static let maxBarHeight: CGFloat = 11
+
+    private static func barHeight(for level: Double) -> CGFloat {
+        minBarHeight + (maxBarHeight - minBarHeight) * CGFloat(min(max(level, 0), 1))
     }
 
     private var bouncingDots: some View {

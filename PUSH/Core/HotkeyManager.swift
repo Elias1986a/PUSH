@@ -271,12 +271,24 @@ final class HotkeyManager: @unchecked Sendable {
         NSApp.terminate(nil)
     }
 
+    /// Set for the duration of a first launch, while the welcome wizard is the
+    /// thing asking for Accessibility.
+    ///
+    /// Suppresses only the *dialog*. The retry timer below still runs, which is
+    /// what makes the hotkey start working the instant the user flips the switch
+    /// on the wizard's permissions step — no relaunch, no second prompt.
+    static var suppressesAccessibilityPrompt = false
+
     private func requestAccessibilityAndRetry() {
         PushLogger.log("HotkeyManager: requestAccessibilityAndRetry called")
-        // Request permission with prompt
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-        _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
-        PushLogger.log("HotkeyManager: Requested accessibility permission, starting retry timer")
+        // Request permission with prompt, unless the wizard is doing the asking.
+        if Self.suppressesAccessibilityPrompt {
+            PushLogger.log("HotkeyManager: accessibility prompt suppressed (welcome wizard owns it)")
+        } else {
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+            _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        }
+        PushLogger.log("HotkeyManager: starting accessibility retry timer")
 
         // Retry every 2 seconds until we can create the event tap
         retryTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in

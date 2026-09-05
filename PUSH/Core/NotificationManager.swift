@@ -60,7 +60,7 @@ class NotificationManager {
     func showModelError() {
         showError(
             title: "Model Error",
-            message: "Failed to load the Whisper model. Please check Settings."
+            message: "PUSH could not load the speech recognition model. Open Settings to choose or re-download one."
         )
     }
 }
