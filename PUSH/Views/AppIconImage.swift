@@ -1,51 +1,57 @@
 import SwiftUI
 import AppKit
+import PUSHCore
 
-/// The app's icon, with a stand-in for builds that do not have one.
+/// PUSH's own icon, wherever it can be found.
 ///
-/// `NSApp.applicationIconImage` is the right source in the shipped app: the
-/// icon comes from the bundle, and reading the asset catalog through
-/// `Bundle.module` instead crashes distribution builds — which is why every
-/// call site here asks AppKit rather than looking the file up itself.
+/// Two sources, in order:
 ///
-/// But `swift run` produces a bare executable with no `Info.plist` and so no
-/// icon, and AppKit answers that with the generic executable placeholder: a
-/// grey folder sitting in the middle of the welcome screen, which reads as a
-/// missing asset rather than as a dev build. Substitute the app's own menu bar
-/// glyph on the brand colour, so the wizard looks deliberate either way.
+/// 1. `NSApp.applicationIconImage` — right in the shipped app. macOS has
+///    already masked and rounded it, so it matches the icon in the Dock, in
+///    Finder and in the update dialog.
+/// 2. The bundled `AppIcon512.png` — for `swift run`, which produces a bare
+///    executable with no `Info.plist` and therefore no icon at all. AppKit
+///    answers that with the generic executable placeholder: a grey folder in
+///    the middle of the welcome screen, which reads as a missing asset.
 ///
-/// Keyed on the bundle identifier because that is the thing actually missing —
-/// a real `.app` always has one, and it is exactly the condition under which
-/// AppKit has no icon to give.
+/// Deliberately NOT `Bundle.module`, which fatal-asserts in distribution
+/// builds. This walks to the resource bundle by name and falls back to
+/// `Bundle.main`, the same way `SoundPlayer` finds the start chirp — a path
+/// already proven in a shipped build.
 struct AppIconImage: View {
     let size: CGFloat
 
-    /// The pill's pulse colour, shared with `PillPositionThumbnail`.
-    private static let pulse = Color(red: 0.69, green: 1.0, blue: 0.0)
-
-    private var isBundled: Bool { Bundle.main.bundleIdentifier != nil }
-
     var body: some View {
-        if isBundled {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: size, height: size)
-        } else {
-            RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color(white: 0.16), Color(white: 0.06)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
-                    Image(systemName: "music.mic")
-                        .font(.system(size: size * 0.46, weight: .semibold))
-                        .foregroundStyle(Self.pulse)
-                )
-                .frame(width: size, height: size)
-                .accessibilityLabel("PUSH")
+        Image(nsImage: Self.icon)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: size, height: size)
+            .accessibilityLabel("PUSH")
+    }
+
+    /// Resolved once — this is a file read, and the wizard re-renders on every
+    /// keystroke in its sandbox.
+    private static let icon: NSImage = resolve()
+
+    private static func resolve() -> NSImage {
+        // A real .app always has a bundle identifier, and that is exactly the
+        // condition under which AppKit has an icon to give.
+        if Bundle.main.bundleIdentifier != nil {
+            return NSApp.applicationIconImage
         }
+        if let url = resourceURL(), let image = NSImage(contentsOf: url) {
+            return image
+        }
+        PushLogger.log("AppIconImage: no bundled icon found, falling back to the system image")
+        return NSApp.applicationIconImage
+    }
+
+    private static func resourceURL() -> URL? {
+        if let bundleURL = Bundle.main.url(forResource: "PUSH_PUSH", withExtension: "bundle"),
+           let resourceBundle = Bundle(url: bundleURL),
+           let url = resourceBundle.url(forResource: "AppIcon512", withExtension: "png") {
+            return url
+        }
+        return Bundle.main.url(forResource: "AppIcon512", withExtension: "png")
     }
 }
