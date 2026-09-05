@@ -7,22 +7,13 @@ struct PUSHApp: App {
     @StateObject private var appState = AppState.shared
 
     var body: some Scene {
-        MenuBarExtra {
-            MenuBarView()
-                .environmentObject(appState)
-        } label: {
-            // The menu bar item is the one piece of UI that's always on screen,
-            // so it carries the loading state: an hourglass until a model is
-            // actually serving. The pill says "Loading model…" too, but it only
-            // appears over the active app and is easy to miss at login.
-            Image(systemName: appState.isModelReady ? "music.mic" : "hourglass")
-        }
-        .menuBarExtraStyle(.menu)
-
+        // No `MenuBarExtra`: the status item and its popover are AppKit's, in
+        // `MenuBarController`, because SwiftUI's version cannot produce the
+        // system's own rounded panel chrome. This scene exists so the Settings
+        // window keeps its standard behaviour and ⌘, shortcut.
         Settings {
             SettingsView()
                 .environmentObject(appState)
         }
-
     }
 }

@@ -448,21 +448,11 @@ struct ModelsSettingsView: View {
     }
 
     private static func checkDownloaded(_ model: AppState.WhisperModel) -> Bool {
-        switch model.engineType {
-        case .parakeet: return ParakeetEngine.isModelDownloaded()
-        case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
-        case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
-        case .nemotronMultilingual: return NemotronMultilingualEngine.isModelDownloaded()
-        case .appleSpeech:
-            // Nothing for us to download — the system installs on demand.
-            return true
-        }
+        ModelAvailability.isDownloaded(model)
     }
 
     private func refreshDownloaded() {
-        downloaded = Set(
-            AppState.WhisperModel.selectable.filter { $0 != .appleSpeech && Self.checkDownloaded($0) }
-        )
+        downloaded = ModelAvailability.downloaded().subtracting([.appleSpeech])
     }
 
     /// Walks the model directories, so it runs off the main thread — blocking it

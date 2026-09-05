@@ -58,6 +58,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager = HotkeyManager.shared
         hotkeyManager?.startListening()
 
+        // The menu bar status item and its popover.
+        MenuBarController.shared.install()
+
         // Setup floating pill window
         setupFloatingPillWindow()
 
