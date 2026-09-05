@@ -223,11 +223,28 @@ struct OnboardingView: View {
     /// between "still loading", "I am hearing you", and "nothing is happening".
     @ViewBuilder
     private var sandboxStatus: some View {
-        if !appState.isModelReady {
+        // A missing permission is checked before anything else, because it is
+        // the only thing here that makes the step outright impossible — and the
+        // only one the user can do something about. A model still downloading
+        // is a wait; no Accessibility is a dead end. Both are true at once on a
+        // genuine first run, and reporting the wait instead left someone
+        // holding a key that could never fire: exactly the silent failure this
+        // wizard exists to prevent.
+        //
+        // Neither can be true during a live dictation anyway — the hotkey needs
+        // Accessibility and capture needs the microphone — so nothing below
+        // gets starved by putting them first.
+        if !permissions.accessibility.isGranted {
             statusLine(
-                icon: "arrow.down.circle",
-                text: "Getting the speech model ready — this is a one-time download. You can carry on and come back to this.",
-                tint: .secondary
+                icon: "exclamationmark.triangle.fill",
+                text: "The push-to-talk key needs Accessibility, which is not granted yet. Go back a step to turn it on — nothing will happen when you hold the key until you do.",
+                tint: .orange
+            )
+        } else if !permissions.microphone.isGranted {
+            statusLine(
+                icon: "exclamationmark.triangle.fill",
+                text: "PUSH cannot hear you without microphone access. Go back a step to turn it on.",
+                tint: .orange
             )
         } else if appState.isCapturing {
             statusLine(icon: "waveform", text: "Listening… keep talking, then let go of the key.", tint: .green)
@@ -237,11 +254,11 @@ struct OnboardingView: View {
             statusLine(icon: "hourglass", text: "Transcribing…", tint: .orange)
         } else if !sandboxText.isEmpty {
             statusLine(icon: "checkmark.circle.fill", text: "That is it. It works the same in every other app.", tint: .green)
-        } else if !permissions.accessibility.isGranted {
+        } else if !appState.isModelReady {
             statusLine(
-                icon: "exclamationmark.triangle.fill",
-                text: "The push-to-talk key needs Accessibility, which is not granted yet. Go back a step to turn it on.",
-                tint: .orange
+                icon: "arrow.down.circle",
+                text: "Getting the speech model ready — this is a one-time download. You can carry on and come back to this.",
+                tint: .secondary
             )
         } else {
             statusLine(
