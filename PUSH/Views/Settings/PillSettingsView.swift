@@ -5,7 +5,7 @@ import PUSHCore
 // MARK: - Pill
 
 struct PillSettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
 
     /// Keyed off the *selected* model rather than the active one, so the toggle
     /// greys out the moment you pick another model instead of waiting for the
@@ -15,6 +15,10 @@ struct PillSettingsView: View {
     }
 
     var body: some View {
+        // `@Observable` has no projected value of its own; `@Bindable`
+        // is what gives the controls below their `$appState` bindings.
+        @Bindable var appState = appState
+
         Form {
             Section("Position") {
                 HStack(spacing: 26) {

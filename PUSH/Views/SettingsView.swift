@@ -10,7 +10,7 @@ import PUSHCore
 /// formatting, iCloud, pill, live preview, wake word — which is more than a tab
 /// label can honestly describe and more than fits without scrolling.
 struct SettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
     @State private var pane: Pane = .general
 
     enum Pane: String, CaseIterable, Identifiable {
@@ -69,22 +69,19 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    /// No per-pane `.environment(appState)`: the scene root injects it and the
+    /// environment flows down. Repeating it on five of the seven panes was
+    /// redundant, and the two without it read as an oversight rather than as
+    /// the panes that happen not to need their own copy.
     private var detail: some View {
         switch pane {
-        case .general:
-            GeneralSettingsView().environmentObject(appState)
-        case .dictation:
-            DictationSettingsView().environmentObject(appState)
-        case .text:
-            TextSettingsView().environmentObject(appState)
-        case .pill:
-            PillSettingsView().environmentObject(appState)
-        case .teleprompter:
-            TeleprompterSettingsView()
-        case .models:
-            ModelsSettingsView().environmentObject(appState)
-        case .dictionary:
-            DictionarySettingsView()
+        case .general: GeneralSettingsView()
+        case .dictation: DictationSettingsView()
+        case .text: TextSettingsView()
+        case .pill: PillSettingsView()
+        case .teleprompter: TeleprompterSettingsView()
+        case .models: ModelsSettingsView()
+        case .dictionary: DictionarySettingsView()
         }
     }
 }

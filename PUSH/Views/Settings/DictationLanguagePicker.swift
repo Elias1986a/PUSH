@@ -30,7 +30,7 @@ struct DictationLanguagePicker: View {
     /// only flicker.
     var reload: @MainActor (_ willDownload: Bool) async -> Void = { _ in }
 
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
 
     /// `nil` means "not asked yet", which is a genuinely different state from
     /// "this engine offers nothing" and must not draw the same UI. Collapsing

@@ -12,7 +12,7 @@ import PUSHCore
 /// panel. The three genuinely menu-shaped commands keep their standard
 /// shortcuts at the bottom.
 struct MenuBarView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
     @ObservedObject private var updater = UpdaterManager.shared
     @ObservedObject private var session = TeleprompterSession.shared
     @ObservedObject private var audioLevel = AudioLevelMonitor.shared
@@ -34,6 +34,10 @@ struct MenuBarView: View {
     @State private var hasUndownloadedLanguages = false
 
     var body: some View {
+        // `@Observable` has no projected value of its own; `@Bindable`
+        // is what gives the controls below their `$appState` bindings.
+        @Bindable var appState = appState
+
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider()
@@ -98,7 +102,10 @@ struct MenuBarView: View {
     // MARK: - Quick controls
 
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        // Not `body`, so this needs its own `@Bindable` shadow for the pill and
+        // wake word bindings below.
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 9) {
             labelled("Model") {
                 Picker("", selection: modelBinding) {
                     ForEach(offeredModels) { model in
@@ -319,14 +326,16 @@ struct MenuBarView: View {
     /// not a real menu. Dismissing first also hands focus to whatever opens.
     private func run(_ action: @escaping () -> Void) {
         MenuBarController.shared.dismiss()
-        action()
+        // Next runloop, not inline. `performClose` tears the popover's window
+        // down and hands focus back as it goes, and an action sent during that
+        // finds a responder chain still rooted in the window that is closing —
+        // which is why Settings silently did nothing. By the next turn the
+        // popover is gone and NSApp is the responder again.
+        DispatchQueue.main.async { action() }
     }
 
     private static func openSettings() {
-        NSApp.activate(ignoringOtherApps: true)
-        if !NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) {
-            _ = NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
+        SettingsWindowController.shared.show()
     }
 
     // MARK: - Derived
@@ -367,15 +376,29 @@ private struct CommandRow: View {
     }
 
     @State private var isHovering = false
+    @Environment(\.isEnabled) private var isEnabled
+
+    /// Only a live row highlights. A disabled one that lit up on hover would
+    /// promise a click that does nothing.
+    private var isHighlighted: Bool { isHovering && isEnabled }
 
     var body: some View {
         Button(action: action) {
-            Label(title: title, symbol: symbol, shortcut: shortcut)
+            Label(
+                title: title,
+                symbol: symbol,
+                shortcut: shortcut,
+                isHighlighted: isHighlighted
+            )
         }
         .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: 5)
-                .fill(isHovering ? Color.accentColor.opacity(0.15) : .clear)
+                // A solid accent fill, the way AppKit highlights a menu item.
+                // At 15% opacity it was almost invisible against the vibrancy
+                // behind it — the material is already a mid grey, so a wash
+                // that light has nowhere to read against.
+                .fill(isHighlighted ? Color.accentColor : .clear)
         )
         .onHover { isHovering = $0 }
     }
@@ -386,17 +409,23 @@ private struct CommandRow: View {
         let title: String
         let symbol: String
         var shortcut: String?
+        var isHighlighted = false
 
         var body: some View {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
                     .frame(width: 15)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isHighlighted ? Color.white : .secondary)
                 Text(title)
+                    .foregroundStyle(isHighlighted ? Color.white : .primary)
                 Spacer()
                 if let shortcut {
                     Text(shortcut)
-                        .foregroundStyle(.tertiary)
+                        // White at 70% rather than `.tertiary`: hierarchical
+                        // styles resolve against the *background* they think
+                        // they are on, and on a filled accent row that leaves
+                        // the shortcut nearly invisible.
+                        .foregroundStyle(isHighlighted ? Color.white.opacity(0.7) : Color.secondary.opacity(0.75))
                 }
             }
             .font(.system(size: 12))
@@ -434,6 +463,6 @@ private struct MenuLevelMeter: View {
 #if DEBUG
 #Preview {
     MenuBarView()
-        .environmentObject(AppState.shared)
+        .environment(AppState.shared)
 }
 #endif

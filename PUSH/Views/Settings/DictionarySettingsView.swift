@@ -292,7 +292,7 @@ struct DictionarySettingsView: View {
 #if DEBUG
 #Preview {
     SettingsView()
-        .environmentObject(AppState.shared)
+        .environment(AppState.shared)
 }
 #endif
 

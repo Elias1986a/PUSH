@@ -97,12 +97,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func openSettingsIfRequested() {
         guard ProcessInfo.processInfo.environment["PUSH_OPEN_SETTINGS"] == "1" else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            NSApp.activate(ignoringOtherApps: true)
-            // Renamed in macOS 14; try the modern selector first and fall back
-            // so this keeps working either way.
-            let opened = NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                || NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-            PushLogger.log("AppDelegate: PUSH_OPEN_SETTINGS opened settings = \(opened)")
+            SettingsWindowController.shared.show()
         }
     }
     #endif
@@ -144,7 +139,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupFloatingPillWindow() {
         let pillView = FloatingPillView()
-            .environmentObject(AppState.shared)
+            .environment(AppState.shared)
 
         let hostingController = NSHostingController(rootView: pillView)
         // Let AppKit follow SwiftUI's own ideal size instead of us re-measuring

@@ -6,7 +6,7 @@ import PUSHCore
 // MARK: - Dictation
 
 struct DictationSettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
 
     /// Snapshot of the attached input devices. Held in @State rather than
     /// enumerated from `body`: each refresh is a handful of synchronous
@@ -16,6 +16,10 @@ struct DictationSettingsView: View {
     @State private var systemDefaultName: String?
 
     var body: some View {
+        // `@Observable` has no projected value of its own; `@Bindable`
+        // is what gives the controls below their `$appState` bindings.
+        @Bindable var appState = appState
+
         Form {
             Section("Microphone") {
                 Picker("Input device", selection: $appState.inputDeviceUID) {

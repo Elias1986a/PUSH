@@ -22,7 +22,7 @@ struct OnboardingView: View {
     /// user has seen this.
     let onFinish: () -> Void
 
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @StateObject private var permissions = PermissionsModel()
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
 
@@ -38,6 +38,10 @@ struct OnboardingView: View {
     }
 
     var body: some View {
+        // `@Observable` has no projected value of its own; `@Bindable`
+        // is what gives the controls below their `$appState` bindings.
+        @Bindable var appState = appState
+
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -316,7 +320,10 @@ struct OnboardingView: View {
     // MARK: - Step 5 · the rest of the app
 
     private var moreStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        // This step is not `body`, so it needs its own `@Bindable` shadow for
+        // the wake word toggle's binding.
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 16) {
             stepHeader(
                 title: "Two more things it does",
                 subtitle: "Neither is on by default. Both are in Settings whenever you want them."
@@ -569,6 +576,6 @@ private struct OnboardingPermissionRow: View {
 #if DEBUG
 #Preview("Onboarding") {
     OnboardingView(onFinish: {})
-        .environmentObject(AppState.shared)
+        .environment(AppState.shared)
 }
 #endif

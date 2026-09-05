@@ -6,7 +6,7 @@ import Combine
 // MARK: - General
 
 struct GeneralSettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
     @StateObject private var permissions = PermissionsModel()
     @ObservedObject private var updater = UpdaterManager.shared
@@ -20,6 +20,10 @@ struct GeneralSettingsView: View {
     }
 
     var body: some View {
+        // `@Observable` has no projected value of its own; `@Bindable`
+        // is what gives the controls below their `$appState` bindings.
+        @Bindable var appState = appState
+
         Form {
             Section {
                 HStack(spacing: 15) {
