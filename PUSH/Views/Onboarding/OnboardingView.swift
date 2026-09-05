@@ -72,9 +72,7 @@ struct OnboardingView: View {
 
     private var welcomeStep: some View {
         VStack(spacing: 18) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 84, height: 84)
+            AppIconImage(size: 84)
 
             VStack(spacing: 8) {
                 Text("Meet PUSH")

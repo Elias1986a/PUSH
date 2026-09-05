@@ -111,9 +111,8 @@ struct GeneralSettingsView: View {
                 HStack(spacing: 15) {
                     // NSApp's own icon, not a bundled asset: Bundle.module
                     // resource lookup crashes in distribution builds.
-                    Image(nsImage: NSApp.applicationIconImage)
-                        .resizable()
-                        .frame(width: 56, height: 56)
+                    // See AppIconImage for the unbundled-build stand-in.
+                    AppIconImage(size: 56)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("PUSH")
