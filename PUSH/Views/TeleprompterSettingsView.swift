@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 struct TeleprompterSettingsView: View {
     @ObservedObject private var settings = TeleprompterState.shared
     @ObservedObject private var session = TeleprompterSession.shared
-    @ObservedObject private var appState = AppState.shared
+    private var appState = AppState.shared
 
     @State private var loadError: String?
 

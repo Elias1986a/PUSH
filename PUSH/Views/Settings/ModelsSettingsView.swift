@@ -5,7 +5,7 @@ import PUSHCore
 // MARK: - Models
 
 struct ModelsSettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
 
     /// Snapshot of the filesystem check for every model — kept in @State so
     /// download/delete actually refresh the view, and so the list does not stat

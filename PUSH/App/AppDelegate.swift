@@ -144,7 +144,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupFloatingPillWindow() {
         let pillView = FloatingPillView()
-            .environmentObject(AppState.shared)
+            .environment(AppState.shared)
 
         let hostingController = NSHostingController(rootView: pillView)
         // Let AppKit follow SwiftUI's own ideal size instead of us re-measuring

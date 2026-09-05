@@ -49,7 +49,7 @@ final class OnboardingWindowController {
 
         let hosting = NSHostingController(
             rootView: OnboardingView(onFinish: { [weak self] in self?.finish() })
-                .environmentObject(AppState.shared)
+                .environment(AppState.shared)
         )
 
         let window = NSWindow(contentViewController: hosting)

@@ -1,10 +1,18 @@
 import SwiftUI
-import Combine
+import Observation
 import PUSHCore
 
 /// Shared application state
+///
+/// `@Observable` rather than `ObservableObject`. Combine's version invalidates
+/// every observing view whenever *any* `@Published` property changes, and this
+/// object is in the environment of the pill, the menu bar panel and all seven
+/// settings panes — so a flag flipping on every hotkey press re-rendered the
+/// whole settings form. `@Observable` tracks reads per property, so a view is
+/// invalidated only by the values it actually uses.
 @MainActor
-class AppState: ObservableObject {
+@Observable
+final class AppState {
     static let shared = AppState()
 
     // MARK: - UserDefaults Keys
@@ -27,7 +35,7 @@ class AppState: ObservableObject {
 
     // MARK: - Published State
 
-    @Published var isListening: Bool = false {
+    var isListening: Bool = false {
         didSet {
             // Reset the preview at the start of each dictation rather than at the
             // end of the last one: clearing it on completion would shrink the pill
@@ -38,7 +46,7 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var isProcessing: Bool = false {
+    var isProcessing: Bool = false {
         didSet { notifyStateChange() }
     }
 
@@ -46,18 +54,18 @@ class AppState: ObservableObject {
     /// `isListening` — that flips the instant the key goes down, while the audio
     /// device can take seconds to come up on a cold press. The pill said
     /// "Listening" through a measured 4.2s wait and the user spoke into nothing.
-    @Published var isCapturing: Bool = false {
+    var isCapturing: Bool = false {
         didSet { notifyStateChange() }
     }
 
-    @Published var isModelReady: Bool = false {
+    var isModelReady: Bool = false {
         didSet { notifyStateChange() }
     }
 
     /// True while background shader warmup runs after the model is loaded. The
     /// app is already usable (isModelReady == true); this only drives the
     /// "Warming up…" indicator so the user knows first-use may be slightly slower.
-    @Published var isWarmingUp: Bool = false {
+    var isWarmingUp: Bool = false {
         didSet { notifyStateChange() }
     }
 
@@ -70,22 +78,22 @@ class AppState: ObservableObject {
     /// (and, before the prewarm moved off the main thread, could be dropped
     /// outright). Same trap as the menu-bar hourglass: an indicator wired to the
     /// wrong subsystem is worse than none.
-    @Published var isPrewarming: Bool = true {
+    var isPrewarming: Bool = true {
         didSet { notifyStateChange() }
     }
 
     /// True when no model is serving at all (launch load failed, or the active
     /// model's files were deleted). Drives the pill's "Model unavailable" state.
-    @Published var modelUnavailable: Bool = false {
+    var modelUnavailable: Bool = false {
         didSet { notifyStateChange() }
     }
 
     /// The model actually loaded and serving transcriptions. Differs from
     /// `selectedWhisperModel` (the persisted preference) while a newly selected
     /// model downloads/loads — dictation keeps using this one until the swap.
-    @Published var activeModel: WhisperModel = .parakeetUnified
+    var activeModel: WhisperModel = .parakeetUnified
 
-    @Published var statusMessage: String = "Ready"
+    var statusMessage: String = "Ready"
 
     /// Whether the pill should be on screen. The single source of truth for both
     /// the SwiftUI view's own visibility and AppDelegate's ordering of the panel
@@ -107,7 +115,7 @@ class AppState: ObservableObject {
     /// dictation and the only one that shows text while you talk — but at
     /// ordinary utterance length the difference is imperceptible, and in the
     /// app's own logs Streaming returned nothing at all on 4 of 86 runs.
-    @Published var selectedWhisperModel: WhisperModel = .parakeetUnified {
+    var selectedWhisperModel: WhisperModel = .parakeetUnified {
         didSet {
             UserDefaults.standard.set(selectedWhisperModel.rawValue, forKey: UserDefaultsKeys.selectedWhisperModel)
         }
@@ -122,7 +130,7 @@ class AppState: ObservableObject {
     ///
     /// nil is a real choice, not an absence: "whatever macOS is using" is what
     /// most people want, and it is the behaviour every version before this had.
-    @Published var inputDeviceUID: String? {
+    var inputDeviceUID: String? {
         didSet {
             guard inputDeviceUID != oldValue else { return }
             let defaults = UserDefaults.standard
@@ -137,27 +145,27 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var hotkeyEnabled: Bool = true
+    var hotkeyEnabled: Bool = true
 
-    @Published var selectedHotkey: Hotkey = .rightOption {
+    var selectedHotkey: Hotkey = .rightOption {
         didSet {
             UserDefaults.standard.set(selectedHotkey.rawValue, forKey: UserDefaultsKeys.selectedHotkey)
         }
     }
 
-    @Published var playSoundOnStart: Bool = false {
+    var playSoundOnStart: Bool = false {
         didSet {
             UserDefaults.standard.set(playSoundOnStart, forKey: UserDefaultsKeys.playSoundOnStart)
         }
     }
 
-    @Published var wakeWordEnabled: Bool = false {
+    var wakeWordEnabled: Bool = false {
         didSet {
             UserDefaults.standard.set(wakeWordEnabled, forKey: UserDefaultsKeys.wakeWordEnabled)
         }
     }
 
-    @Published var wakeWord: String = "push" {
+    var wakeWord: String = "push" {
         didSet {
             UserDefaults.standard.set(wakeWord, forKey: UserDefaultsKeys.wakeWord)
         }
@@ -167,7 +175,7 @@ class AppState: ObservableObject {
     /// (media key), or duck the output volume. Defaults to ducking — it works
     /// on every setup and can't mis-target the wrong app, whereas pausing
     /// depends on the media app honoring the play/pause key.
-    @Published var mediaBehavior: MediaBehavior = .duck {
+    var mediaBehavior: MediaBehavior = .duck {
         didSet {
             UserDefaults.standard.set(mediaBehavior.rawValue, forKey: UserDefaultsKeys.mediaBehavior)
         }
@@ -175,7 +183,7 @@ class AppState: ObservableObject {
 
     /// Typographic preference: two spaces after sentence-ending punctuation.
     /// Defaults to true to preserve the app's historical behavior.
-    @Published var doubleSpaceAfterSentence: Bool = true {
+    var doubleSpaceAfterSentence: Bool = true {
         didSet {
             UserDefaults.standard.set(doubleSpaceAfterSentence, forKey: UserDefaultsKeys.doubleSpaceAfterSentence)
         }
@@ -185,7 +193,7 @@ class AppState: ObservableObject {
     /// Parakeet engine emits partials; on every other engine this has no effect.
     /// Off by default: the text trails speech by ~2s, so it stays blank on short
     /// dictations and is worth opting into rather than meeting unannounced.
-    @Published var showLivePreview: Bool = false {
+    var showLivePreview: Bool = false {
         didSet {
             UserDefaults.standard.set(showLivePreview, forKey: UserDefaultsKeys.showLivePreview)
             if !showLivePreview { livePartialText = "" }
@@ -194,7 +202,7 @@ class AppState: ObservableObject {
 
     /// How large the live preview draws. Scales the text and the width of the
     /// box it reserves.
-    @Published var previewSize: PreviewSize = .medium {
+    var previewSize: PreviewSize = .medium {
         didSet {
             UserDefaults.standard.set(previewSize.rawValue, forKey: UserDefaultsKeys.previewSize)
         }
@@ -240,7 +248,7 @@ class AppState: ObservableObject {
     /// Whether settings and the dictionary follow the user across their Macs
     /// through iCloud. On by default: it needs no account and no setup, and
     /// the merge is additive — entries are unioned, never replaced wholesale.
-    @Published var iCloudSyncEnabled: Bool = true {
+    var iCloudSyncEnabled: Bool = true {
         didSet {
             UserDefaults.standard.set(iCloudSyncEnabled, forKey: UserDefaultsKeys.iCloudSyncEnabled)
             if iCloudSyncEnabled { CloudSync.shared.start() }
@@ -291,7 +299,7 @@ class AppState: ObservableObject {
     /// this is the only post-processing step that deletes words the user
     /// actually said, so its failure mode is losing meaning silently rather
     /// than formatting something oddly.
-    @Published var resolveSelfCorrections: Bool = false {
+    var resolveSelfCorrections: Bool = false {
         didSet {
             UserDefaults.standard.set(resolveSelfCorrections, forKey: UserDefaultsKeys.resolveSelfCorrections)
         }
@@ -301,7 +309,7 @@ class AppState: ObservableObject {
     /// capsule and becomes a tab hanging off the screen's top edge, continuing
     /// the notch downward — the reading position for a live transcript, rather
     /// than the corner of the eye the bottom placement asks for.
-    @Published var pillPosition: PillPosition = .bottom {
+    var pillPosition: PillPosition = .bottom {
         didSet {
             UserDefaults.standard.set(pillPosition.rawValue, forKey: UserDefaultsKeys.pillPosition)
             notifyStateChange()
@@ -326,7 +334,7 @@ class AppState: ObservableObject {
     /// when it positions the window, because only it knows which screen the
     /// pill landed on. Not persisted, and deliberately not a state-change
     /// notification — it is measured *during* positioning.
-    @Published var pillTopInset: CGFloat = 0
+    var pillTopInset: CGFloat = 0
 
     /// Width the top placement claims at minimum, so the shape is always wider
     /// than the housing it descends from. A bare "Listening" pill measures
@@ -340,7 +348,7 @@ class AppState: ObservableObject {
     ///
     /// Deliberately does NOT call `notifyStateChange()`: that notification drives
     /// pill window visibility, and this updates about once a second.
-    @Published var livePartialText: String = ""
+    var livePartialText: String = ""
 
     // MARK: - Hotkey Configuration
 
@@ -424,18 +432,30 @@ class AppState: ObservableObject {
     /// matches an offered hyphenated code ("en-US") after construction. Compare
     /// the raw value and a saved choice silently fails to select in the picker.
     func language(for model: WhisperModel) -> DictationLanguage {
-        DictationLanguage(code: languageDefaults.string(forKey: model.languageDefaultsKey) ?? "en-US")
+        // Reading the revision is what puts this call on the observation graph.
+        // The value itself is never used: `@Observable` tracks property reads,
+        // and the stored string lives in UserDefaults where the macro cannot
+        // see it, so a view calling this needs *some* tracked property to
+        // depend on or it will never redraw when the language changes.
+        _ = languageRevision
+        return DictationLanguage(code: languageDefaults.string(forKey: model.languageDefaultsKey) ?? "en-US")
     }
 
     /// Records the user's language choice for one engine.
     ///
-    /// Hand-published rather than backed by a `@Published` property: the value
-    /// is keyed by engine, so there is nothing for one stored property to hold,
-    /// and the picker still needs the view to redraw.
+    /// The value is keyed by engine and lives in UserDefaults, so there is no
+    /// single stored property for `@Observable` to watch. Bumping a revision
+    /// counter is the replacement for the `objectWillChange.send()` this used
+    /// under Combine: `language(for:)` reads it, so every view that asked for a
+    /// language is invalidated, and nothing else is.
     func setLanguage(_ language: DictationLanguage, for model: WhisperModel) {
         languageDefaults.set(language.code, forKey: model.languageDefaultsKey)
-        objectWillChange.send()
+        languageRevision &+= 1
     }
+
+    /// Bumped whenever a per-engine language changes. Wraps rather than traps
+    /// on overflow; only inequality between renders matters.
+    private var languageRevision = 0
 
     // MARK: - Private
 

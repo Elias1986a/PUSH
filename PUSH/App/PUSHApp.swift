@@ -4,7 +4,7 @@ import PUSHCore
 @main
 struct PUSHApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var appState = AppState.shared
+    @State private var appState = AppState.shared
 
     var body: some Scene {
         // No `MenuBarExtra`: the status item and its popover are AppKit's, in
@@ -13,7 +13,7 @@ struct PUSHApp: App {
         // window keeps its standard behaviour and ⌘, shortcut.
         Settings {
             SettingsView()
-                .environmentObject(appState)
+                .environment(appState)
         }
     }
 }

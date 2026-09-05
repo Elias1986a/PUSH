@@ -3,7 +3,7 @@ import AppKit
 import PUSHCore
 
 struct FloatingPillView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var revealer = PreviewRevealer()
     // Observed separately from AppState so the level's ~12Hz churn stays
@@ -356,7 +356,7 @@ struct FloatingPillView: View {
 #if DEBUG
 #Preview("Bottom · capsule") {
     FloatingPillView()
-        .environmentObject(AppState.shared)
+        .environment(AppState.shared)
         .padding(50)
         .background(Color.gray.opacity(0.3))
 }
@@ -372,7 +372,7 @@ struct FloatingPillView: View {
 
     return VStack(spacing: 0) {
         FloatingPillView()
-            .environmentObject(state)
+            .environment(state)
         Spacer()
     }
     .frame(width: 900, height: 260)

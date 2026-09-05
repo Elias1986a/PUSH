@@ -43,7 +43,7 @@ final class MenuBarController: NSObject {
         popover.behavior = .transient          // closes when you click away
         popover.animates = false               // a menu does not animate open
         popover.contentViewController = NSHostingController(
-            rootView: MenuBarView().environmentObject(AppState.shared))
+            rootView: MenuBarView().environment(AppState.shared))
         self.popover = popover
     }
 

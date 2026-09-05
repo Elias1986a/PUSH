@@ -5,9 +5,13 @@ import PUSHCore
 // MARK: - Text
 
 struct TextSettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
 
     var body: some View {
+        // `@Observable` has no projected value of its own; `@Bindable`
+        // is what gives the controls below their `$appState` bindings.
+        @Bindable var appState = appState
+
         Form {
             Section("Formatting") {
                 Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)

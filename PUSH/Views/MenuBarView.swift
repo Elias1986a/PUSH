@@ -12,7 +12,7 @@ import PUSHCore
 /// panel. The three genuinely menu-shaped commands keep their standard
 /// shortcuts at the bottom.
 struct MenuBarView: View {
-    @EnvironmentObject var appState: AppState
+    @Environment(AppState.self) private var appState
     @ObservedObject private var updater = UpdaterManager.shared
     @ObservedObject private var session = TeleprompterSession.shared
     @ObservedObject private var audioLevel = AudioLevelMonitor.shared
@@ -34,6 +34,10 @@ struct MenuBarView: View {
     @State private var hasUndownloadedLanguages = false
 
     var body: some View {
+        // `@Observable` has no projected value of its own; `@Bindable`
+        // is what gives the controls below their `$appState` bindings.
+        @Bindable var appState = appState
+
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider()
@@ -98,7 +102,10 @@ struct MenuBarView: View {
     // MARK: - Quick controls
 
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        // Not `body`, so this needs its own `@Bindable` shadow for the pill and
+        // wake word bindings below.
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 9) {
             labelled("Model") {
                 Picker("", selection: modelBinding) {
                     ForEach(offeredModels) { model in
@@ -434,6 +441,6 @@ private struct MenuLevelMeter: View {
 #if DEBUG
 #Preview {
     MenuBarView()
-        .environmentObject(AppState.shared)
+        .environment(AppState.shared)
 }
 #endif
