@@ -95,6 +95,21 @@ final class OnboardingWindowController {
     private func activate(_ window: NSWindow) {
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+
+        // Whether that actually worked. Step 3 asks the user to dictate into
+        // this window, and the paste only lands here if PUSH is genuinely the
+        // frontmost application — which an unbundled build (no Info.plist, so
+        // no LSUIElement) may never manage. Logged one run loop later, because
+        // activation is not synchronous.
+        DispatchQueue.main.async {
+            let front = NSWorkspace.shared.frontmostApplication
+            PushLogger.log(
+                "Onboarding: after activate — policy=\(NSApp.activationPolicy().rawValue) "
+                + "isActive=\(NSApp.isActive) isKey=\(window.isKeyWindow) "
+                + "canBecomeKey=\(window.canBecomeKey) "
+                + "frontmost=\(front?.bundleIdentifier ?? front?.localizedName ?? "nil") "
+                + "bundleID=\(Bundle.main.bundleIdentifier ?? "none")")
+        }
     }
 
     private func finish() {

@@ -15,6 +15,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var positionedPlacement: AppState.PillPosition?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Say out loud what `LSUIElement` says in the shipped app's Info.plist:
+        // a menu bar app with no Dock icon that can still be brought to the
+        // front when it has something to show.
+        //
+        // Load-bearing for `swift run`. SwiftPM builds a bare executable with
+        // no Info.plist, so `LSUIElement` never applies and macOS assigns the
+        // process `.prohibited` — an app that cannot be activated and whose
+        // windows cannot become key, measured as
+        // `policy=2 isActive=false isKey=false`. Everything that needs focus
+        // then fails silently in development only: the welcome wizard's
+        // dictation sandbox never receives its own paste, and the text lands in
+        // whatever app really is frontmost (Terminal, typically) — which reads
+        // as "dictation is broken" rather than "this build has no bundle".
+        //
+        // A no-op in the distribution build, which is already `.accessory`.
+        if NSApp.activationPolicy() != .accessory {
+            let promoted = NSApp.setActivationPolicy(.accessory)
+            PushLogger.log("AppDelegate: activation policy set to .accessory (\(promoted)) — unbundled build")
+        }
+
         // If a previous run died mid-dictation while the output volume was
         // ducked, put the user's volume back rather than leaving it quiet.
         MediaController.shared.restoreVolumeIfInterrupted()
