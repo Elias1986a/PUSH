@@ -22,6 +22,7 @@ class AppState: ObservableObject {
         static let pillPosition = "pillPosition"
         static let resolveSelfCorrections = "resolveSelfCorrections"
         static let iCloudSyncEnabled = "iCloudSyncEnabled"
+        static let inputDeviceUID = "inputDeviceUID"
     }
 
     // MARK: - Published State
@@ -109,6 +110,30 @@ class AppState: ObservableObject {
     @Published var selectedWhisperModel: WhisperModel = .parakeetUnified {
         didSet {
             UserDefaults.standard.set(selectedWhisperModel.rawValue, forKey: UserDefaultsKeys.selectedWhisperModel)
+        }
+    }
+
+    /// Which microphone to record from, by CoreAudio UID, or nil to follow the
+    /// system default.
+    ///
+    /// A UID rather than an `AudioDeviceID` because the numeric id is handed
+    /// out at enumeration time and is not stable across reboots or replugging
+    /// — persisting one would eventually name a different device.
+    ///
+    /// nil is a real choice, not an absence: "whatever macOS is using" is what
+    /// most people want, and it is the behaviour every version before this had.
+    @Published var inputDeviceUID: String? {
+        didSet {
+            guard inputDeviceUID != oldValue else { return }
+            let defaults = UserDefaults.standard
+            if let inputDeviceUID {
+                defaults.set(inputDeviceUID, forKey: UserDefaultsKeys.inputDeviceUID)
+            } else {
+                defaults.removeObject(forKey: UserDefaultsKeys.inputDeviceUID)
+            }
+            // The device is bound when the engine is built, so the engine has
+            // to go for a new choice to take effect.
+            AudioRecorder.shared.inputDeviceDidChange()
         }
     }
 
@@ -458,6 +483,8 @@ class AppState: ObservableObject {
            let behavior = MediaBehavior(rawValue: saved) {
             self.mediaBehavior = behavior
         }
+
+        self.inputDeviceUID = UserDefaults.standard.string(forKey: UserDefaultsKeys.inputDeviceUID)
 
         // Load wake word settings from UserDefaults
         self.wakeWordEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.wakeWordEnabled)

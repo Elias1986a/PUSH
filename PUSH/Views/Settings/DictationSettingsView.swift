@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import AVFoundation
 import PUSHCore
 
 // MARK: - Dictation
@@ -7,8 +8,45 @@ import PUSHCore
 struct DictationSettingsView: View {
     @EnvironmentObject var appState: AppState
 
+    /// Snapshot of the attached input devices. Held in @State rather than
+    /// enumerated from `body`: each refresh is a handful of synchronous
+    /// CoreAudio round-trips, and a Form re-renders on every keystroke
+    /// anywhere in the window.
+    @State private var inputDevices: [AudioInputDevices.Device] = []
+    @State private var systemDefaultName: String?
+
     var body: some View {
         Form {
+            Section("Microphone") {
+                Picker("Input device", selection: $appState.inputDeviceUID) {
+                    Text(systemDefaultName.map { "System default (\($0))" } ?? "System default")
+                        .tag(String?.none)
+                    if !inputDevices.isEmpty {
+                        Divider()
+                        ForEach(inputDevices) { device in
+                            Text(device.name).tag(String?.some(device.uid))
+                        }
+                    }
+                }
+
+                // A saved device that is not attached stays selected rather
+                // than silently resetting: unplugging an interface for the
+                // afternoon should not lose the setting. Recording falls back
+                // to the system default until it is back.
+                if let uid = appState.inputDeviceUID, !inputDevices.contains(where: { $0.uid == uid }) {
+                    Label(
+                        "That microphone is not connected right now. PUSH will use the system default until it is back.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                }
+
+                Text("System default follows whatever macOS is using, which changes when you connect AirPods or a headset. Pick a device to keep PUSH on it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Push to talk") {
                 Toggle("Hold a key to dictate", isOn: $appState.hotkeyEnabled)
 
@@ -69,5 +107,17 @@ struct DictationSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear(perform: refreshDevices)
+        // CoreAudio posts this when a device is attached or removed, so the
+        // list is right without the user reopening the pane.
+        .onReceive(NotificationCenter.default.publisher(
+            for: .AVAudioEngineConfigurationChange)) { _ in
+            refreshDevices()
+        }
+    }
+
+    private func refreshDevices() {
+        inputDevices = AudioInputDevices.available()
+        systemDefaultName = AudioInputDevices.systemDefault()?.name
     }
 }

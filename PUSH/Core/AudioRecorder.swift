@@ -64,8 +64,9 @@ final class AudioRecorder: @unchecked Sendable {
     /// the hotkey's event tap disabled by the system.
     private func readyEngine() async -> AVAudioEngine {
         if let audioEngine { return audioEngine }
+        let preferredUID = AppState.shared.inputDeviceUID
         let build = engineBuild ?? {
-            let task = Task.detached(priority: .userInitiated) { Self.buildEngine() }
+            let task = Task.detached(priority: .userInitiated) { Self.buildEngine(preferredUID: preferredUID) }
             engineBuild = task
             return task
         }()
@@ -79,7 +80,7 @@ final class AudioRecorder: @unchecked Sendable {
 
     /// Initialising the input device is the expensive part and needs no main
     /// thread, so this is callable from anywhere.
-    private nonisolated static func buildEngine() -> AVAudioEngine {
+    private nonisolated static func buildEngine(preferredUID: String?) -> AVAudioEngine {
         // Timed in parts: this is the "deaf window" on a cold press — the seconds
         // between the key going down and the mic actually hearing anything — so
         // it matters which step owns it, not just the total.
@@ -88,6 +89,10 @@ final class AudioRecorder: @unchecked Sendable {
         let t1 = Date()
         let input = engine.inputNode
         let t2 = Date()
+        // Before the format query, which is the call that actually initialises
+        // the device — binding afterwards would wake the default microphone
+        // first and then switch, paying the expensive part twice.
+        bind(input: input, toUID: preferredUID)
         _ = input.outputFormat(forBus: 0)
         let t3 = Date()
         engine.prepare()
@@ -99,6 +104,46 @@ final class AudioRecorder: @unchecked Sendable {
             t3.timeIntervalSince(t2) * 1000,
             t4.timeIntervalSince(t3) * 1000))
         return engine
+    }
+
+    /// Point the engine's input at the user's chosen microphone.
+    ///
+    /// Silently keeps the system default when the choice is nil (the default
+    /// preference) or when the device is not attached right now — a USB
+    /// interface that is simply unplugged is an ordinary state, not an error
+    /// to interrupt someone mid-press with. The log line is the record.
+    private nonisolated static func bind(input: AVAudioInputNode, toUID uid: String?) {
+        guard let uid else { return }
+        guard let deviceID = AudioInputDevices.deviceID(forUID: uid) else {
+            PushLogger.log("AudioRecorder: preferred input device is not attached, using the system default")
+            return
+        }
+        do {
+            try input.auAudioUnit.setDeviceID(deviceID)
+            PushLogger.log("AudioRecorder: input bound to the selected device")
+        } catch {
+            PushLogger.log("AudioRecorder: could not bind the selected input device (\(error.localizedDescription)), using the system default")
+        }
+    }
+
+    /// Drop the engine so the next press rebuilds it against the new device.
+    ///
+    /// The device is bound once, when the engine is built, so a live engine
+    /// would keep using the old microphone until something else happened to
+    /// invalidate it. Deliberately does nothing mid-recording: swapping the
+    /// device under a take in progress would truncate it, and the next press
+    /// is moments away.
+    func inputDeviceDidChange() {
+        guard !isRecording else {
+            PushLogger.log("AudioRecorder: input device changed mid-recording, applying it on the next press")
+            return
+        }
+        audioEngine = nil
+        engineBuild = nil
+        PushLogger.log("AudioRecorder: input device changed, engine will rebuild")
+        // Re-pay the device-init cost now rather than on the user's next press;
+        // this is the same reason `prewarm()` exists.
+        Task { _ = await readyEngine() }
     }
 
     private func adopt(_ engine: AVAudioEngine) {
