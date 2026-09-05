@@ -38,3 +38,23 @@ text field of any app. All speech recognition runs on-device.
 - Text injection is clipboard-paste only (AX APIs are unreliable across apps).
 - Never log transcript text (privacy); PushLogger events are operational only.
 - Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.
+- Every window is AppKit's, created by `AppDelegate` (pill), `MenuBarController`
+  (status item + popover), `OnboardingWindowController` and
+  `SettingsWindowController`. SwiftUI's `MenuBarExtra` cannot produce the
+  system's rounded popover chrome, and without it the `Settings` scene stops
+  materialising entirely — `showSettingsWindow:` returns true while
+  `NSApp.windows` holds no settings window. Don't reinstate either scene.
+
+## `swift run` is not the shipped app
+SwiftPM builds a bare executable with no `Info.plist`. Three consequences that
+have each cost a debugging session:
+- **Separate preferences.** No bundle id, so `UserDefaults.standard` lands in
+  domain `PUSH`, while `/Applications/PUSH.app` uses `com.push.voicetotext`.
+  Settings changed in one are invisible to the other; `defaults read PUSH`.
+- **No `LSUIElement`, no icon.** `AppDelegate` calls `setActivationPolicy(.accessory)`
+  explicitly because macOS otherwise assigns `.prohibited` — an app that cannot
+  be activated and whose windows cannot become key, which silently broke
+  dictation into PUSH's own windows. `AppIconImage` falls back to a bundled PNG.
+- **Different TCC identity** from the installed app, so permissions may need
+  granting again for the dev build.
+Test anything about focus, permissions or first launch with a real `.app`.
