@@ -23,8 +23,15 @@ final class CloudSync: ObservableObject {
     /// `pillPosition` is deliberately absent: a notched MacBook and an external
     /// monitor are exactly the case where the same person wants different
     /// answers, so it stays per-machine.
+    ///
+    /// `selectedWhisperModel` is absent for a harder reason than that one: a
+    /// model is not a preference, it is a download. Trying Nemotron
+    /// Multilingual once on a laptop used to hand every other Mac a ~600 MB
+    /// fetch, started unattended on the next launch, before dictation worked at
+    /// all — a machine whose owner had never picked that model and may not have
+    /// wanted it in the language the other Mac was set to. The models on disk
+    /// differ per machine, so the choice between them has to as well.
     static let mirroredSettingKeys = [
-        "selectedWhisperModel",
         "selectedHotkey",
         "playSoundOnStart",
         "wakeWordEnabled",
@@ -35,6 +42,15 @@ final class CloudSync: ObservableObject {
         "previewSize",
         "resolveSelfCorrections"
     ]
+
+    /// Keys this app used to mirror and no longer does.
+    ///
+    /// Cleared from iCloud on start rather than merely ignored: dropping a key
+    /// from `mirroredSettingKeys` stops this Mac from *reading* it, but the
+    /// value it already published is still sitting in the store, and a Mac
+    /// still running the older build keeps applying it. Removing it retires the
+    /// key for every machine as soon as one of them updates.
+    static let retiredSettingKeys = ["selectedWhisperModel"]
 
     private static let dictionaryKey = "sync.dictionary"
     private static let settingPrefix = "sync.setting."
@@ -84,9 +100,18 @@ final class CloudSync: ObservableObject {
         }
 
         store.synchronize()
+        clearRetiredKeys()
         pullAll()
         pushAll()
         PushLogger.log("CloudSync: started")
+    }
+
+    /// Drop keys we no longer mirror from the store. See `retiredSettingKeys`.
+    private func clearRetiredKeys() {
+        for key in Self.retiredSettingKeys where store.object(forKey: Self.settingPrefix + key) != nil {
+            store.removeObject(forKey: Self.settingPrefix + key)
+            PushLogger.log("CloudSync: retired mirrored key \(key)")
+        }
     }
 
     private var pendingSettingsPush: Task<Void, Never>?
