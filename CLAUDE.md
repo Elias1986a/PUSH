@@ -43,6 +43,12 @@ text field of any app. All speech recognition runs on-device.
   and launch never downloads: `ModelLoader.activateAtLaunch` loads what is already
   on disk when the saved preference is not, since only the user pressing Download
   should be able to spend 600 MB.
+- Nothing under `ModelLoader.load` has a timeout — FluidAudio fetches on
+  URLSession's defaults (`timeoutIntervalForResource` is 7 days), so a blocked
+  huggingface.co hangs forever without throwing. Activations therefore never wait
+  on each other: they cancel the one in flight and are ordered by
+  `activationGeneration`, and a `stallWatchdog` reports a load that has gone 90s
+  without a byte landing. Don't reintroduce awaiting the previous activation.
 - Every window is AppKit's, created by `AppDelegate` (pill), `MenuBarController`
   (status item + popover), `OnboardingWindowController` and
   `SettingsWindowController`. SwiftUI's `MenuBarExtra` cannot produce the

@@ -444,16 +444,13 @@ struct ModelsSettingsView: View {
 
     // MARK: Filesystem
 
+    /// Both of these now live on `ModelAvailability`: `ModelLoader` watches the
+    /// same folders for signs of life while a load runs, and one mapping is what
+    /// keeps its watchdog and this pane's Delete button pointed at the same
+    /// bytes. Kept as forwarders so the call sites below still read as the
+    /// filesystem section they are.
     private nonisolated static func folder(for model: AppState.WhisperModel) -> URL? {
-        switch model.engineType {
-        case .parakeet: return ParakeetEngine.modelDirectory
-        case .parakeetUnified: return ParakeetUnifiedEngine.modelDirectory
-        case .parakeetStreaming: return ParakeetStreamingEngine.modelDirectory
-        // The repo root, covering both vocab builds — a user who has dictated in
-        // two language groups has two of them down.
-        case .nemotronMultilingual: return NemotronMultilingualEngine.modelDirectory
-        case .appleSpeech: return nil  // the OS owns these; nothing of ours to show
-        }
+        ModelAvailability.folder(for: model)
     }
 
     private static func checkDownloaded(_ model: AppState.WhisperModel) -> Bool {
@@ -514,16 +511,7 @@ struct ModelsSettingsView: View {
     }
 
     private nonisolated static func directorySize(at url: URL) -> Double {
-        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey]) else {
-            return 0
-        }
-        var total: Double = 0
-        for case let fileURL as URL in enumerator {
-            if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                total += Double(size)
-            }
-        }
-        return total
+        ModelAvailability.directorySize(at: url)
     }
 
     // MARK: Download / delete
