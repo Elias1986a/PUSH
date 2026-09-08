@@ -12,5 +12,37 @@
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.0.0/PUSH-v8.0.0.zip" type="application/octet-stream" sparkle:edSignature="ivBD6ClhTxBC+0CeOT+hSCHD4Wb7L68RUz68XEASYR8oMNYoSascZMFC6MRIQKpfAjxdxwQ9QtkpfHjxPiqhAw==" length="6423738" />
         </item>
+        <item>
+            <title>Version 7.5.3</title>
+            <pubDate>Wed, 02 Sep 2026 22:07:29 -0700</pubDate>
+            <sparkle:version>79</sparkle:version>
+            <sparkle:shortVersionString>7.5.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v7.5.3/PUSH-v7.5.3.zip" type="application/octet-stream" sparkle:edSignature="Vb6bHzclvFF2SJf22+sTbzmGnTIhwW6EMZtHGEB19XlkR6bCj/BNZmWXhMqeOP7O47dwrJV0bsmuh3ir5vOYBQ==" length="6018057" />
+        </item>
+        <item>
+            <title>Version 7.5.2</title>
+            <pubDate>Wed, 02 Sep 2026 14:00:34 -0700</pubDate>
+            <sparkle:version>78</sparkle:version>
+            <sparkle:shortVersionString>7.5.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v7.5.2/PUSH-v7.5.2.zip" type="application/octet-stream" sparkle:edSignature="AxYPBKWSfeLRfChw77P0wCtTU53/lLbq19Kdi0lXTnd7CSXrJo97QDoDoGQs8OrvPnRqeAACkG9pWv5UnbPsAA==" length="6013400" />
+        </item>
+        <item>
+            <title>Version 7.5.1</title>
+            <pubDate>Wed, 02 Sep 2026 13:37:17 -0700</pubDate>
+            <sparkle:version>77</sparkle:version>
+            <sparkle:shortVersionString>7.5.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v7.5.1/PUSH-v7.5.1.zip" type="application/octet-stream" sparkle:edSignature="P7NQHgrUg/NoJe67FFaSyQ31PaKK6tVO6cP2b1m10lZ69JbvsvKPTMZh9PIeQmWBCi11CRiRYLyg4ubt4CALCw==" length="6003676" />
+        </item>
+        <item>
+            <title>Version 7.5.0</title>
+            <pubDate>Wed, 02 Sep 2026 07:19:14 -0700</pubDate>
+            <sparkle:version>76</sparkle:version>
+            <sparkle:shortVersionString>7.5.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v7.5.0/PUSH-v7.5.0.zip" type="application/octet-stream" sparkle:edSignature="dJ6HPVB86J2CjoWVoTh7Ln9KfMGum3/pCsYXWUGEeIK5M8/Yl/gi8X2NgRPnYGLCuChRmxj/CsDym823FYwbBg==" length="6001999" />
+        </item>
     </channel>
 </rss>

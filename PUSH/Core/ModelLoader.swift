@@ -16,12 +16,83 @@ enum ModelLoader {
     /// state and a user notification are handled here either way.
     static func activate(_ model: AppState.WhisperModel) async throws {
         let previousTask = currentActivation
+        // A newer choice supersedes the one in flight rather than politely
+        // queueing behind it. The activation being replaced can be a ~600 MB
+        // download, and from the picker a switch that waits for it is
+        // indistinguishable from a picker that does nothing: the radio moves,
+        // the row keeps saying the old model is Active, and minutes pass. The
+        // queue itself stays — the replacement still starts only once the
+        // cancelled one has unwound, so the two can never interleave their
+        // writes to `AppState`.
+        previousTask?.cancel()
         let task = Task {
             _ = await previousTask?.result
             try await performActivation(model)
         }
         currentActivation = task
         try await task.value
+    }
+
+    /// Bring a model up at launch, without ever starting a download nobody
+    /// asked for.
+    ///
+    /// Launch is the one activation the user did not initiate, and until this
+    /// existed it would happily spend 600 MB and several minutes on a model
+    /// that was merely *recorded* — leaving the app unable to dictate the whole
+    /// time, with no picker able to rescue it because the choice it would make
+    /// queued behind the very download it was trying to escape. That is exactly
+    /// what a Nemotron preference arriving from another Mac produced.
+    ///
+    /// The preference is left alone: `selectedWhisperModel` is what the user
+    /// asked for and Settings keeps showing it, with a Download button next to
+    /// it. Only what runs *now* is redirected.
+    static func activateAtLaunch() async {
+        let state = AppState.shared
+        let preferred = state.selectedWhisperModel
+        // Closure literal, not the function value: `isReadyToServe` is
+        // main-actor isolated and `filter` takes a plain closure, so passing it
+        // by reference would strip the isolation the compiler is right to
+        // insist on. The literal inherits this context's instead.
+        let ready = Set(AppState.WhisperModel.selectable.filter { ModelAvailability.isReadyToServe($0) })
+        let model = launchModel(preferred: preferred, ready: ready)
+        if model != preferred {
+            PushLogger.log("""
+                ModelLoader: \(preferred.rawValue) cannot serve without a download — \
+                launching on \(model.rawValue) instead
+                """)
+        }
+        try? await activate(model)
+    }
+
+    /// Which model launch should actually load, given the saved preference and
+    /// what is ready to run right now.
+    ///
+    /// Rules, in order: the preference if it can run; otherwise the default
+    /// (Parakeet Unified) if it is on disk; otherwise anything else that is, in
+    /// the settings list's order, which puts the engine needing no download at
+    /// all last rather than first. If nothing is ready — a fresh install — the
+    /// preference is returned and its download is the one legitimate unattended
+    /// one, because there is no app without it.
+    ///
+    /// `ready` is passed in rather than read from disk here, and holds only
+    /// models this Mac can actually select — so a preference for an engine this
+    /// OS is too old for (a synced `apple-speech` on macOS 15) is treated as
+    /// unavailable rather than loaded into a guaranteed failure. `nonisolated`
+    /// and parameterised so the decision can be tested without a disk full of
+    /// models, exactly like `languageChangeNeedsReload`.
+    nonisolated static func launchModel(
+        preferred: AppState.WhisperModel,
+        ready: Set<AppState.WhisperModel>
+    ) -> AppState.WhisperModel {
+        if ready.contains(preferred) { return preferred }
+        let fallbacks = [AppState.WhisperModel.parakeetUnified] + AppState.WhisperModel.selectable
+        for candidate in fallbacks where candidate != preferred && ready.contains(candidate) {
+            return candidate
+        }
+        // Nothing to fall back on. Download the preference if it is one this Mac
+        // can run, and the default otherwise — a first launch has to fetch
+        // something or there is no app.
+        return AppState.WhisperModel.selectable.contains(preferred) ? preferred : .parakeetUnified
     }
 
     /// Whether changing `changed`'s dictation language has to reload an engine now.
@@ -131,6 +202,15 @@ enum ModelLoader {
 
         do {
             try await load(model)
+        } catch is CancellationError {
+            // Superseded by a newer pick. Not a failure, and specifically not
+            // one to notify about or to paint red under a row: the activation
+            // that replaced this one owns the state from here, and it is about
+            // to set every field this would have.
+            state.isWarmingUp = false
+            if hadModel { state.statusMessage = "Ready" }
+            PushLogger.log("ModelLoader: activation of \(model.rawValue) superseded")
+            throw CancellationError()
         } catch {
             state.isWarmingUp = false
             if hadModel {
@@ -197,6 +277,14 @@ enum ModelLoader {
 
         do {
             try await load(model)
+        } catch is CancellationError {
+            // A model switch overtook this reload. It reports its own outcome,
+            // and it is the thing that decides what is loaded now — saying
+            // "Model failed to load" here would be both wrong and louder than
+            // the truth.
+            state.isWarmingUp = false
+            PushLogger.log("ModelLoader: language reload of \(model.rawValue) superseded")
+            throw CancellationError()
         } catch {
             // Unlike a failed activation there is no previous model still
             // serving to fall back on — both language-taking engines release

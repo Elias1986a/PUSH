@@ -361,6 +361,11 @@ struct ModelsSettingsView: View {
                 // mid-download failure was still on screen minutes after the
                 // model had loaded and was transcribing fine.
                 downloadError = nil
+            } catch is CancellationError {
+                // The user picked something else while this was loading. Their
+                // newer choice is the one that reports; "the operation was
+                // cancelled" in red under the row they just left would read as
+                // a failure they caused.
             } catch {
                 downloadError = error.localizedDescription
             }
@@ -389,6 +394,8 @@ struct ModelsSettingsView: View {
         guard willDownload, let folder = Self.folder(for: model) else {
             do {
                 try await ModelLoader.reloadForLanguageChange(model)
+            } catch is CancellationError {
+                // Overtaken by a model switch, which owns the outcome now.
             } catch {
                 downloadError = error.localizedDescription
             }
@@ -426,6 +433,8 @@ struct ModelsSettingsView: View {
             pollTask.cancel()
             downloadProgress = 1.0
             downloadStatus = "Complete!"
+        } catch is CancellationError {
+            pollTask.cancel()
         } catch {
             pollTask.cancel()
             downloadError = error.localizedDescription
@@ -553,6 +562,10 @@ struct ModelsSettingsView: View {
                 pollTask.cancel()
                 downloadProgress = 1.0
                 downloadStatus = "Complete!"
+            } catch is CancellationError {
+                // Superseded: the user changed their mind mid-download, which
+                // is now a thing they can do. Nothing to report.
+                pollTask.cancel()
             } catch {
                 pollTask.cancel()
                 downloadError = error.localizedDescription

@@ -38,6 +38,11 @@ text field of any app. All speech recognition runs on-device.
 - Text injection is clipboard-paste only (AX APIs are unreliable across apps).
 - Never log transcript text (privacy); PushLogger events are operational only.
 - Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.
+  The feed keeps every past release's `<item>`; the build script prepends.
+- The chosen model is per-machine and never synced (`CloudSync.mirroredSettingKeys`),
+  and launch never downloads: `ModelLoader.activateAtLaunch` loads what is already
+  on disk when the saved preference is not, since only the user pressing Download
+  should be able to spend 600 MB.
 - Every window is AppKit's, created by `AppDelegate` (pill), `MenuBarController`
   (status item + popover), `OnboardingWindowController` and
   `SettingsWindowController`. SwiftUI's `MenuBarExtra` cannot produce the

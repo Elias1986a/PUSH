@@ -265,6 +265,23 @@ echo "🔏 Generating Sparkle appcast..."
 SIG_AND_LENGTH=$("$SPARKLE_BIN/sign_update" "$ZIP_NAME")
 PUBDATE=$(LC_ALL=en_US.UTF-8 date "+%a, %d %b %Y %H:%M:%S %z")
 
+# Keep every previous release in the feed instead of replacing it. A one-item
+# appcast is a feed with no history: anyone whose Mac cannot meet this build's
+# minimumSystemVersion is offered nothing at all rather than the newest version
+# they *can* run, and a release that has to be pulled leaves users with no
+# earlier item to fall back to. Sparkle picks the best applicable item itself.
+#
+# Any item carrying this build number is dropped first, so re-running the script
+# for the same version replaces its item rather than duplicating it.
+PREVIOUS_ITEMS=""
+if [ -f "$APPCAST" ]; then
+    PREVIOUS_ITEMS=$(awk -v skip="<sparkle:version>${BUILD_NUMBER}</sparkle:version>" '
+        /<item>/       { in_item = 1; buffer = ""; drop = 0 }
+        in_item        { buffer = buffer $0 ORS; if (index($0, skip)) drop = 1 }
+        /<\/item>/     { in_item = 0; if (!drop) printf "%s", buffer }
+    ' "$APPCAST")
+fi
+
 cat > "$APPCAST" <<XML
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
@@ -280,6 +297,7 @@ cat > "$APPCAST" <<XML
             <sparkle:minimumSystemVersion>${MIN_OS}</sparkle:minimumSystemVersion>
             <enclosure url="${DOWNLOAD_URL}" type="application/octet-stream" ${SIG_AND_LENGTH} />
         </item>
+${PREVIOUS_ITEMS}
     </channel>
 </rss>
 XML

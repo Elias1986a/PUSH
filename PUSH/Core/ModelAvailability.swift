@@ -28,4 +28,23 @@ enum ModelAvailability {
     static func downloaded() -> Set<WhisperModel> {
         Set(WhisperModel.selectable.filter(isDownloaded))
     }
+
+    /// True when `model` can be activated *in the language it would actually
+    /// run in* without downloading anything.
+    ///
+    /// A stricter question than `isDownloaded`, and only Nemotron can tell the
+    /// two apart: it ships one ~600 MB build per script group, and
+    /// `isDownloaded()` answers "at least one of them is here". A Mac holding
+    /// the Latin build with Japanese selected passes that check and then spends
+    /// 600 MB on the way up — which is fine when the user just pressed
+    /// Download, and is not fine at launch, where nobody asked for anything.
+    ///
+    /// Main-actor because the saved language lives on `AppState`; the
+    /// filesystem checks underneath are cheap `fileExists` calls.
+    @MainActor
+    static func isReadyToServe(_ model: WhisperModel) -> Bool {
+        guard model == .nemotronMultilingual else { return isDownloaded(model) }
+        return NemotronMultilingualEngine.isModelDownloaded(
+            for: AppState.shared.language(for: model).code)
+    }
 }

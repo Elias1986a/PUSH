@@ -15,7 +15,12 @@ it you cannot sign updates existing users will accept. Back it up with
 1. Bump `CFBundleShortVersionString` + `CFBundleVersion` in `PUSH/Info.plist`.
 2. Run `./build_distribution.sh` — it builds, signs (incl. deep-signing Sparkle's
    helpers), notarizes, staples, makes the DMG, and **regenerates `appcast.xml`**
-   with a fresh EdDSA signature for the stapled zip.
+   with a fresh EdDSA signature for the stapled zip. The new `<item>` goes in
+   front of the ones already in the file rather than replacing them: Sparkle
+   picks the newest item a given Mac can actually run, so keeping the history
+   is what lets a Mac below the current `minimumSystemVersion` be offered
+   something instead of nothing. Re-running it for the same build number
+   replaces that version's item rather than duplicating it.
 3. Follow the two commands it prints at the end:
    - `gh release create v<VERSION> … PUSH-v<VERSION>.zip PUSH-v<VERSION>.dmg`
      (the tag **must** be `v<VERSION>` so it matches the appcast enclosure URL)
