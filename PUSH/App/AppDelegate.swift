@@ -234,9 +234,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             window.level = .statusBar
             pillTopY = nil
+            // The window is taller than the capsule by the room the voice glow
+            // blooms into (`VoiceGlow.Tuning.reservedHeight`), all of it below.
+            // Drop the origin by that much so the capsule itself still sits
+            // 10pt off the Dock rather than floating a glow's height above it —
+            // but never past the screen edge, where the glow would be cut in
+            // half instead. With the Dock hidden there is nothing under the
+            // capsule to bloom into, so it rises to keep the glow whole.
+            let restingY = screen.visibleFrame.minY + 10 - VoiceGlow.Tuning.reservedHeight
             window.setFrameOrigin(NSPoint(
                 x: screen.frame.midX - window.frame.width / 2,
-                y: screen.visibleFrame.minY + 10
+                y: max(screen.frame.minY, restingY)
             ))
         }
     }
