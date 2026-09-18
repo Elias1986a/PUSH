@@ -34,24 +34,9 @@ struct DictionarySettingsView: View {
     var body: some View {
         Form {
             Section("Your dictionary") {
-                if let draft {
-                    draftRow(draft)
-                }
-
-                ForEach(displayed) { correction in
-                    // Look the binding back up by id: the display order is not
-                    // the storage order, and rows must stay editable.
-                    if let index = store.corrections.firstIndex(where: { $0.id == correction.id }) {
-                        correctionRow($store.corrections[index])
-                    }
-                }
-
-                if store.corrections.isEmpty && draft == nil {
-                    Text("No corrections yet. Add one with +.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
+                // Above the list, not below it: the list grows without bound,
+                // and a + that walks off the bottom of a long dictionary is a
+                // + you have to go looking for.
                 HStack {
                     Button {
                         draft = Draft()
@@ -63,6 +48,30 @@ struct DictionarySettingsView: View {
                     .disabled(draft != nil)
                     .help("Add a correction")
                     Spacer()
+                }
+
+                if let draft {
+                    draftRow(draft)
+                    // Beside the row it describes. It used to ride in the
+                    // footnote, which now sits below the whole list — far off
+                    // screen from the draft once the dictionary is long.
+                    Text(draftHint)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if store.corrections.isEmpty && draft == nil {
+                    Text("No corrections yet. Add one with +.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(displayed) { correction in
+                    // Look the binding back up by id: the display order is not
+                    // the storage order, and rows must stay editable.
+                    if let index = store.corrections.firstIndex(where: { $0.id == correction.id }) {
+                        correctionRow($store.corrections[index])
+                    }
                 }
 
                 Text(footnote)
@@ -107,10 +116,11 @@ struct DictionarySettingsView: View {
         }
     }
 
+    private var draftHint: String {
+        "Type what PUSH hears, then what it should insert. Choose “In context” for words that are also ordinary English, so they are replaced when you mean the name and left alone otherwise."
+    }
+
     private var footnote: String {
-        if draft != nil {
-            return "Type what PUSH hears, then what it should insert. Choose “In context” for words that are also ordinary English, so they are replaced when you mean the name and left alone otherwise."
-        }
         let count = store.corrections.count
         return count == 0
             ? "Corrections are applied to every transcription before it is inserted."
