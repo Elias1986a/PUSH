@@ -223,8 +223,9 @@ struct VoiceGlow: View {
         Lobe(x: 108, width: 42, height: 26, band: 1)
     ]
 
-    /// The `colorful` palette on dark, one colour per lobe.
-    private static let palette: [Color] = [
+    /// The `colorful` palette on dark, one colour per lobe. Also drawn, still,
+    /// by `PillPositionThumbnail`.
+    static let palette: [Color] = [
         Color(red: 1.000, green: 0.275, blue: 0.471),
         Color(red: 0.235, green: 0.745, blue: 1.000),
         Color(red: 0.686, green: 0.275, blue: 1.000),

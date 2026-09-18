@@ -2,8 +2,7 @@ import SwiftUI
 import PUSHCore
 
 /// A little screen showing where the pill sits. Cheaper to understand than the
-/// paragraph it replaced, and it is the one place the brand's pulse colour
-/// appears outside the pill itself.
+/// paragraph it replaced. The pill wears a still frame of its voice glow.
 ///
 /// Shared by the Pill settings pane and the welcome wizard, which is why it
 /// lives in its own file rather than inside `SettingsView`: the wizard asks the
@@ -13,7 +12,6 @@ struct PillPositionThumbnail: View {
     let position: AppState.PillPosition
     let isSelected: Bool
 
-    private static let pulse = Color(red: 0.69, green: 1.0, blue: 0.0)
     private static let desktop = Color(red: 0.43, green: 0.49, blue: 0.55)
 
     var body: some View {
@@ -54,29 +52,36 @@ struct PillPositionThumbnail: View {
     @ViewBuilder
     private var pill: some View {
         if position == .top {
-            waveform
+            let tab = UnevenRoundedRectangle(bottomLeadingRadius: 8, bottomTrailingRadius: 8)
+            glow
+                .clipShape(tab)
                 .frame(width: 96, height: 20)
-                .background(
-                    UnevenRoundedRectangle(
-                        bottomLeadingRadius: 8,
-                        bottomTrailingRadius: 8
-                    )
-                    .fill(Color(white: 0.11))
-                )
+                .background(tab.fill(Color(white: 0.11)))
         } else {
-            waveform
+            glow
+                .clipShape(Capsule())
                 .frame(width: 84, height: 22)
                 .background(Capsule().fill(Color(white: 0.11).opacity(0.92)))
         }
     }
 
-    private var waveform: some View {
-        HStack(spacing: 3) {
-            ForEach([CGFloat(6), 10, 7, 11, 5], id: \.self) { height in
-                Capsule()
-                    .fill(Self.pulse)
-                    .frame(width: 2.5, height: height)
-            }
-        }
+    /// The glow at mid-sentence, frozen: the palette across the pill, rising
+    /// from the bottom edge and fading out before the top. Not `VoiceGlow`
+    /// itself — there is no voice in Settings, and a live one would redraw at
+    /// display rate behind a static picture.
+    private var glow: some View {
+        LinearGradient(colors: VoiceGlow.palette, startPoint: .leading, endPoint: .trailing)
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0),
+                        .init(color: .black.opacity(0.35), location: 0.5),
+                        .init(color: .clear, location: 0.9)
+                    ],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+            )
+            .blur(radius: 2)
     }
 }
