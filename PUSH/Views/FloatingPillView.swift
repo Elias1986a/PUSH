@@ -104,6 +104,7 @@ struct FloatingPillView: View {
         // silhouette, so it needs no slack around the window either.
         .background(tabShape.fill(.black))
         .overlay(edgePulse)
+        .voiceGlow(shape: AnyShape(tabShape), isActive: isDictating)
     }
 
     private var tabShape: UnevenRoundedRectangle {
@@ -133,6 +134,7 @@ struct FloatingPillView: View {
                     .fill(.ultraThinMaterial)
                     .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
             )
+            .voiceGlow(shape: AnyShape(Capsule()), isActive: isDictating)
     }
 
     /// Icon plus status/preview — identical in both placements.
@@ -276,6 +278,12 @@ struct FloatingPillView: View {
     }
 
     private var shouldShow: Bool { appState.pillShouldShow }
+
+    /// Whether the voice glow is lit: push-to-talk is down and a dictation is
+    /// running. Not `pillShouldShow` — the pill is also on screen for "Warming
+    /// up…" and "Model unavailable", and a glow that answers your voice has
+    /// nothing to say while nobody is talking.
+    private var isDictating: Bool { appState.isListening }
 
     /// Whether to lay the pill out for the preview. Gated on the *active* engine
     /// so the wide box is never reserved for a model that can't stream partials
