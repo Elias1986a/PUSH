@@ -6,17 +6,9 @@ struct FloatingPillView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var revealer = PreviewRevealer()
-    // Observed separately from AppState so the level's ~12Hz churn stays
-    // inside this view. See AudioLevelMonitor.
-    @ObservedObject private var audioLevel = AudioLevelMonitor.shared
     @State private var dotPhase1: CGFloat = 0
     @State private var dotPhase2: CGFloat = 0
     @State private var dotPhase3: CGFloat = 0
-
-    /// Recent microphone levels, oldest first, one per capture buffer. Drawn as
-    /// bars so the waveform scrolls leftward the way a level meter does, rather
-    /// than every bar rising and falling together.
-    @State private var levels = [Double](repeating: 0, count: FloatingPillView.barCount)
 
     /// Width the preview reserves, from the chosen size. It is a fixed width,
     /// not a maximum: the pill claims the whole box up front and keeps it, so
@@ -70,12 +62,6 @@ struct FloatingPillView: View {
         .onChange(of: appState.livePartialText) { _, text in
             revealer.setTarget(text)
         }
-        // On the root rather than on `waveform`: the waveform is removed from
-        // the hierarchy at the moment capture ends, so its own onChange would
-        // never see the transition that has to clear it.
-        .onChange(of: appState.isCapturing) { _, _ in
-            levels = [Double](repeating: 0, count: FloatingPillView.barCount)
-        }
     }
 
     /// The top placement: a black tab hanging off the screen's top edge that
@@ -100,11 +86,10 @@ struct FloatingPillView: View {
         // No shadow: the tab reads as an extension of the hardware, and
         // hardware doesn't cast one onto the desktop. A shadow only added
         // a band of grey pixels around a shape that should end at its edge.
-        // The edge treatment is the pulse below instead — drawn *inside* the
-        // silhouette, so it needs no slack around the window either.
-        .background(tabShape.fill(.black))
-        .overlay(edgePulse)
+        // Nor an edge treatment: the voice glow fills the tab from inside, and
+        // an outline on top of it was one effect too many.
         .voiceGlow(shape: AnyShape(tabShape), isActive: isDictating)
+        .background(tabShape.fill(.black))
     }
 
     private var tabShape: UnevenRoundedRectangle {
@@ -115,26 +100,17 @@ struct FloatingPillView: View {
         )
     }
 
-    /// The tab's edge treatment, shared with the teleprompter.
-    ///
-    /// Drawn *inside* the silhouette: the window is sized to the shape exactly,
-    /// so half of a centred stroke — and all of an outer glow — would be
-    /// clipped. See `NotchEdgePulse`.
-    private var edgePulse: some View {
-        NotchEdgePulse(shape: tabShape)
-    }
-
     /// The original floating capsule, shown at the bottom of the screen.
     private var capsulePill: some View {
         pillContent
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
+            .voiceGlow(shape: AnyShape(Capsule()), isActive: isDictating)
             .background(
                 Capsule()
                     .fill(.ultraThinMaterial)
                     .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
             )
-            .voiceGlow(shape: AnyShape(Capsule()), isActive: isDictating)
     }
 
     /// Icon plus status/preview — identical in both placements.
@@ -150,11 +126,11 @@ struct FloatingPillView: View {
                 // Claim the full width up front — including during the ~2s before
                 // the first partial lands — so the pill is laid out and centered
                 // for the text it is about to hold. Nothing then moves for the
-                // rest of the dictation: no widening, no re-centering, and the
-                // status label sits exactly where the first word will appear.
+                // rest of the dictation: no widening, no re-centering. The
+                // status label is centred in that box, over the glow.
                 if revealer.revealed.isEmpty {
                     statusLabel
-                        .frame(width: previewWidth, alignment: .leading)
+                        .frame(width: previewWidth, alignment: .center)
                 } else {
                     livePreviewText   // carries the same fixed width itself
                 }
@@ -170,12 +146,9 @@ struct FloatingPillView: View {
             Text(baseStatusText)
                 .font(.system(size: 11, weight: .medium))
 
-            if appState.isCapturing {
-                // The mic is open, so there is something real to show. The dots
-                // are an "I am busy" placeholder; this is the user's own voice.
-                waveform
-                    .padding(.bottom, 1)  // Align with text baseline
-            } else if appState.isListening {
+            // Once the mic is capturing, the voice glow is the level meter; the
+            // dots are only the "I am busy" placeholder before that.
+            if appState.isListening && !appState.isCapturing {
                 bouncingDots
                     .padding(.bottom, 1)  // Align with text baseline
             }
@@ -219,42 +192,6 @@ struct FloatingPillView: View {
     private var previewOverflows: Bool {
         (revealer.revealed as NSString)
             .size(withAttributes: [.font: previewFont]).width > previewWidth
-    }
-
-    /// Live level meter, matching the mini-waveform `PillPositionThumbnail`
-    /// draws in Settings so the picker looks like the thing it is picking.
-    ///
-    /// Each bar is one capture buffer (~85ms), newest at the trailing edge.
-    /// Bars are capsules with a floor height so a silent moment reads as a row
-    /// of dots rather than the waveform disappearing mid-sentence.
-    private var waveform: some View {
-        HStack(alignment: .center, spacing: 1.5) {
-            ForEach(levels.indices, id: \.self) { index in
-                Capsule()
-                    .fill(contentColor)
-                    .frame(width: 2.5, height: Self.barHeight(for: levels[index]))
-            }
-        }
-        .frame(height: Self.maxBarHeight, alignment: .center)
-        .padding(.leading, 3)
-        // Buffers land about twelve times a second; interpolating between them
-        // is what turns a stepped readout into something that looks like sound.
-        .animation(reduceMotion ? nil : Animation.easeOut(duration: 0.09), value: levels)
-        .onChange(of: audioLevel.level) { _, level in
-            levels.removeFirst()
-            levels.append(level)
-        }
-        .accessibilityHidden(true)
-    }
-
-    /// Five bars, like the thumbnail. At buffer rate that is a ~0.4s window —
-    /// long enough to show the shape of a word, short enough to feel immediate.
-    private static let barCount = 5
-    private static let minBarHeight: CGFloat = 2.5
-    private static let maxBarHeight: CGFloat = 11
-
-    private static func barHeight(for level: Double) -> CGFloat {
-        minBarHeight + (maxBarHeight - minBarHeight) * CGFloat(min(max(level, 0), 1))
     }
 
     private var bouncingDots: some View {

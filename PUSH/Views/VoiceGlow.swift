@@ -1,10 +1,12 @@
 import SwiftUI
 import Foundation
 
-/// A sound-reactive glow along the bottom edge of the dictation pill: seven
-/// coloured lobes that rise and bloom with your voice, drawn in three layers —
-/// a blurred halo below the pill, a soft light inside it, and colour painted
-/// into its edge.
+/// A sound-reactive glow inside the dictation pill: seven coloured lobes that
+/// rise from its bottom edge with your voice, clipped to its silhouette.
+///
+/// Inside only. The library also draws a halo spilling out below the pill and
+/// paints colour into its edge; on a pill this small both read as the effect
+/// leaking out of the shape, so neither is drawn.
 ///
 /// A port of `voice-glow`, whose `pill` preset is tuned for "a ~150×44
 /// recording pill" — near enough our own. The lobe table, palette and layer
@@ -22,24 +24,7 @@ import Foundation
 /// it wears `NotchEdgePulse` rather than this. Keeping the glow here means
 /// that stays true without a flag anyone has to remember.
 struct VoiceGlow: View {
-    /// Which side of the pill this instance draws.
-    ///
-    /// Two views rather than one: the halo has to sit *under* the pill so the
-    /// black fill masks its top half — that is what makes it read as light
-    /// escaping from beneath an opaque object instead of a colour wash over
-    /// it — while the light and the edge belong on top. Wrapping the pill in
-    /// one view would put its whole subtree inside a 60Hz `TimelineView`, and
-    /// re-laying out the live transcript every frame is not worth it.
-    enum Role {
-        /// The blurred bloom, drawn behind the pill.
-        case halo
-        /// The inner light and the edge stroke, drawn in front of it.
-        case surface
-    }
-
-    var role: Role
-    /// The pill's silhouette. The inner light is clipped to it, the stroke
-    /// traces it.
+    /// The pill's silhouette. The glow is clipped to it.
     var shape: AnyShape
     /// Whether a dictation is live. Drives the whole effect's fade in and out.
     var isActive: Bool
@@ -52,45 +37,42 @@ struct VoiceGlow: View {
         /// input; the pill preset shrinks the whole effect by this.
         static let scale: CGFloat = 0.45
 
-        /// Transparent room reserved *below* the pill for the halo to bloom
-        /// into. It has to be real layout — an overlay drawn past the pill's
-        /// bounds would be cut off by the window edge, which is sized to the
-        /// content (see `AppDelegate.setupFloatingPillWindow`).
-        static let reservedHeight: CGFloat = 72
-        /// The same, either side, for the outermost lobes.
-        static let horizontalBleed: CGFloat = 28
-
         /// Resting glow while a dictation is live but nothing is being said,
         /// so the pill never looks dead mid-sentence.
         static let idle: Double = 0.18
         /// How tall the lobes grow at full level, over the idle height.
         static let reach: Double = 1.35
 
-        /// Per-layer geometry, from the library's three calls to
-        /// `lobeGradients`: width and height multipliers on the lobe table,
-        /// the layer's alpha, and how far the lobe centre sits below the edge.
-        static let strokeLayer = Layer(widthScale: 1.25, heightScale: 1.25, alpha: 1.0, dropBelowEdge: 2)
-        static let innerLayer = Layer(widthScale: 0.855, heightScale: 0.855, alpha: 0.46, dropBelowEdge: 0)
-        static let bloomLayer = Layer(widthScale: 1.2075, heightScale: 3.5438, alpha: 0.9, dropBelowEdge: 0)
+        /// Width and height multipliers on the lobe table, and the alpha.
+        /// Not the library's inner-light numbers (0.855, 0.855, 0.46): that
+        /// layer was a tint under a bright halo, and on its own inside the pill
+        /// it barely cleared the bottom edge. These sit between its inner light
+        /// and its bloom, so speech lights the pill most of the way up.
+        static let widthScale: CGFloat = 1.2
+        static let heightScale: CGFloat = 2.0
+        static let alpha: Double = 0.95
 
-        /// `glowWidth` / `glowHeight` / `lobeSpacing` from the pill preset.
+        /// `glowWidth` / `glowHeight` from the pill preset.
         static let glowWidth: CGFloat = 0.65
         static let glowHeight: CGFloat = 0.95
-        static let lobeSpacing: CGFloat = 0.45
 
-        /// The ellipse every layer is masked to, so the glow reads as one
-        /// centred beam rather than seven separate blobs. Radii in the
-        /// library's unscaled px, after `rangeWidth` / `rangeHeight`.
-        static let rangeRadius = CGSize(width: 200 * 0.8, height: 130 * 0.7)
+        /// Horizontally the glow is fitted to the pill rather than a fixed
+        /// size, so it runs edge to edge on the wide notch tab as well as the
+        /// capsule: this many lobe-table units span centre to edge. The
+        /// outermost lobes sit at 108, just inside it.
+        static let halfSpan: CGFloat = 120
+
+        /// The ellipse every lobe is masked to, so the glow reads as one beam
+        /// rather than seven separate blobs. Its width is the pill's, times
+        /// this; its height is in the library's unscaled px.
+        static let rangeWidth: CGFloat = 0.65
+        static let rangeHeight: CGFloat = 130
 
         /// Where each lobe's gradient has faded out, as a fraction of its
         /// radius: `clamp(70 * softness, 40, 95)` at the pill's softness.
         static let lobeFade: Double = 0.62
 
-        /// Blur on the halo layer, and the much lighter touch inside the pill.
-        static let bloomBlur: CGFloat = 9.5 * 0.95
-        static let innerBlur: CGFloat = 3
-        static let edgeLineWidth: CGFloat = 1.5
+        static let blur: CGFloat = 3
 
         /// The pill preset runs hotter than the chat input to carry on a dark
         /// chip: `voiceTypeStyle.pill`.
@@ -99,13 +81,6 @@ struct VoiceGlow: View {
 
         /// Seconds the whole effect takes to fade in and out with `isActive`.
         static let fade: Double = 0.28
-    }
-
-    struct Layer {
-        var widthScale: CGFloat
-        var heightScale: CGFloat
-        var alpha: Double
-        var dropBelowEdge: CGFloat
     }
 
     var body: some View {
@@ -142,43 +117,21 @@ struct VoiceGlow: View {
         }
     }
 
-    @ViewBuilder
     private func layers(levels: [Double]) -> some View {
-        switch role {
-        case .halo:
-            lobeField(layer: Tuning.bloomLayer, levels: levels)
-                .blur(radius: Tuning.bloomBlur * Tuning.scale)
-
-        case .surface:
-            ZStack {
-                lobeField(layer: Tuning.innerLayer, levels: levels)
-                    .blur(radius: Tuning.innerBlur)
-                    .mask { pillSilhouette { shape.fill(.white) } }
-
-                lobeField(layer: Tuning.strokeLayer, levels: levels)
-                    .mask { pillSilhouette { shape.stroke(.white, lineWidth: Tuning.edgeLineWidth) } }
-            }
-        }
-    }
-
-    /// Places a mask over just the pill's part of the padded frame — the
-    /// reserved halo room below it, and the bleed either side, are not pill.
-    private func pillSilhouette<Mask: View>(@ViewBuilder _ mask: () -> Mask) -> some View {
-        VStack(spacing: 0) {
-            mask()
-            Color.clear.frame(height: Tuning.reservedHeight)
-        }
-        .padding(.horizontal, Tuning.horizontalBleed)
+        lobeField(levels: levels)
+            .blur(radius: Tuning.blur)
+            .clipShape(shape)
     }
 
     // MARK: The lobes
 
     /// Seven ellipses along the pill's bottom edge, each its own colour and
     /// each rising with the band it follows, clipped to one centred ellipse.
-    private func lobeField(layer: Layer, levels: [Double]) -> some View {
+    private func lobeField(levels: [Double]) -> some View {
         Canvas { context, size in
-            let edgeY = size.height - Tuning.reservedHeight
-            let centre = CGPoint(x: size.width / 2, y: edgeY)
+            let centre = CGPoint(x: size.width / 2, y: size.height)
+            // Points per lobe-table unit across the pill.
+            let unitX = size.width / 2 / Tuning.halfSpan
 
             // The mask first: `clipToLayer` takes the alpha of what it draws
             // as the clip, so everything after is confined to the beam's
@@ -190,12 +143,12 @@ struct VoiceGlow: View {
                     in: &mask,
                     centre: centre,
                     radius: CGSize(
-                        width: Tuning.rangeRadius.width * Tuning.scale * grow,
-                        height: Tuning.rangeRadius.height * Tuning.scale * grow
+                        width: size.width * Tuning.rangeWidth * grow,
+                        height: Tuning.rangeHeight * Tuning.scale * grow
                     ),
                     gradient: Gradient(stops: [
                         .init(color: .white, location: 0),
-                        .init(color: .white.opacity(0.5), location: 0.35),
+                        .init(color: .white, location: 0.5),
                         .init(color: .clear, location: 1)
                     ])
                 )
@@ -206,18 +159,18 @@ struct VoiceGlow: View {
             context.blendMode = .plusLighter
 
             for (index, lobe) in Self.lobes.enumerated() {
-                let colour = Self.palette[index].opacity(layer.alpha)
+                let colour = Self.palette[index].opacity(Tuning.alpha)
                 let rise = levels[lobe.band]
 
                 ellipse(
                     in: &context,
                     centre: CGPoint(
-                        x: centre.x + lobe.x * Tuning.lobeSpacing * Tuning.scale,
-                        y: centre.y + layer.dropBelowEdge * Tuning.scale
+                        x: centre.x + lobe.x * unitX,
+                        y: centre.y
                     ),
                     radius: CGSize(
-                        width: lobe.width * layer.widthScale * Tuning.glowWidth * Tuning.scale,
-                        height: lobe.height * layer.heightScale * Tuning.glowHeight * Tuning.scale
+                        width: lobe.width * Tuning.widthScale * Tuning.glowWidth * unitX,
+                        height: lobe.height * Tuning.heightScale * Tuning.glowHeight * Tuning.scale
                             * CGFloat(Tuning.idle + rise * Tuning.reach)
                     ),
                     gradient: Gradient(stops: [
@@ -293,10 +246,8 @@ struct VoiceGlow: View {
 /// different time constants, so the lobes diverge on their own — the lows lag
 /// and hang on, the highs snap. No noise needed to fake it.
 ///
-/// Shared, because the halo and the surface are two views of one glow and
-/// must rise together. They tick off the same display link, so the second
-/// caller in a frame is handed what the first computed rather than advancing
-/// the envelope twice.
+/// Shared, so the envelope survives the glow being unmounted between
+/// dictations; `advance` resets it after a gap rather than resuming stale.
 @MainActor
 private final class BandEnvelopes {
     static let shared = BandEnvelopes()
@@ -312,9 +263,7 @@ private final class BandEnvelopes {
     ]
 
     func advance(to date: Date, target: Double) -> [Double] {
-        // The halo and the surface tick off the same display link, so the
-        // second one through in a frame is handed what the first computed
-        // rather than advancing the envelope a second time.
+        // A repeat call within one frame must not advance the envelope twice.
         guard date != lastTick else { return values }
         defer { lastTick = date }
 
@@ -342,17 +291,10 @@ private final class BandEnvelopes {
 // MARK: - Attaching it
 
 extension View {
-    /// Wraps the pill in its glow, reserving the room the halo blooms into.
-    ///
-    /// The padding is unconditional — it is in the layout whether or not a
-    /// dictation is live. Reserving it only while glowing would resize the
-    /// window mid-dictation, and re-centring the panel per frame is the same
-    /// jitter the fixed preview width exists to avoid.
+    /// Lights the pill from inside. Apply it *before* the pill's fill, so
+    /// the glow sits between the fill and the content rather than over the
+    /// text — and a background never changes the layout or the window size.
     func voiceGlow(shape: AnyShape, isActive: Bool) -> some View {
-        self
-            .padding(.horizontal, VoiceGlow.Tuning.horizontalBleed)
-            .padding(.bottom, VoiceGlow.Tuning.reservedHeight)
-            .background { VoiceGlow(role: .halo, shape: shape, isActive: isActive) }
-            .overlay { VoiceGlow(role: .surface, shape: shape, isActive: isActive) }
+        background { VoiceGlow(shape: shape, isActive: isActive) }
     }
 }
