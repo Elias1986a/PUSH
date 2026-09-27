@@ -21,8 +21,8 @@ let package = Package(
         .library(name: "PUSHCore", targets: ["PUSHCore"])
     ],
     dependencies: [
-        // FluidAudio for Parakeet TDT v2 speech-to-text (CoreML/ANE)
-        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.15.5"),
+        // FluidAudio: the on-device ASR engines (Parakeet, Nemotron) + Silero VAD (CoreML/ANE)
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", from: "0.17.4"),
 
         // Qwen3-ASR speech-to-text (MLX + CoreML hybrid)
         // TODO: Re-enable once MLX metallib bundling is resolved

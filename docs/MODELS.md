@@ -62,7 +62,7 @@ version of this table listed WhisperKit and Moonshine, both removed in v7.0.0
 
 | Component | SDK / package | Pinned | Model in use | Engine |
 |-----------|---------------|--------|--------------|--------|
-| ASR (default, English) | FluidAudio | `from: 0.15.5` @ `19600a48` | **Parakeet Unified 0.6B** (`-en-`) offline + streaming | CoreML/ANE |
+| ASR (default, English) | FluidAudio | `from: 0.17.4` @ `21493f8d` | **Parakeet Unified 0.6B** (`-en-`) offline + streaming | CoreML/ANE |
 | ASR (English, older) | FluidAudio | same | Parakeet TDT 0.6b **v2** (`.v2`, 400 MB) | CoreML/ANE |
 | ASR (multilingual) | FluidAudio | same | **Nemotron 3.5 Streaming Multilingual 0.6B** — `latin` or `multilingual` build, 2240 ms tier | CoreML/ANE |
 | ASR (OS) | — | macOS 26+ | Apple `SpeechTranscriber`, per-locale (45 locales) | system |
@@ -203,3 +203,29 @@ considering, found by looking beyond what PUSH already ships.
   `docs/plans/2026-08-31-multilingual-dictation-plan.md` for the three-tier
   protocol (synthesized smoke → corpus WER → the user's own ear on pt-BR/es/fr,
   which are the only languages available to judge by feel).
+
+- **2026-09-27** — **FluidAudio 0.15.5 → 0.17.4** (`21493f8d`). Chosen for the
+  ASR fixes in 0.15.6 (final window end-aligned to the last speech frame;
+  streaming token de-dup; a cancelled download no longer corrupts a streaming
+  manager) and 0.15.7 (sliding-window seam fix — mid-word joins and repeated
+  words; `AsrManager`, i.e. the TDT v2 path). No PUSH code changes: every
+  FluidAudio API PUSH calls (`AsrModels.downloadAndLoad`, `AsrManager`,
+  `TdtDecoderState`, `UnifiedAsrManager`, `StreamingUnifiedAsrManager`,
+  `StreamingNemotronMultilingualAsrManager.downloadAndPreloadShared`,
+  `VadManager`, `Repo.folderName`, `ModelNames`) has the same signature at both
+  tags — diffed from the two checkouts; the release only adds API.
+  Packaging changes to know about:
+  - New binary dependency `NemoTextProcessing.xcframework` (TTS/ITN text
+    normalisation). It is a **static** library (`libtext_processing_rs.a`), so
+    it links into the PUSH binary — nothing to embed or sign in
+    `build_distribution.sh`, but expect a larger executable. FluidAudio's
+    `Package@swift-6.2.swift` lets it be dropped via the `NemoTextProcessing`
+    trait if the size matters; that needs this manifest on tools 6.2.
+  - FluidAudio now has a resource bundle (LuxTTS G2P lexicon). Only LuxTTS reads
+    it via `Bundle.module`; PUSH never calls LuxTTS. The existing `*.bundle`
+    copy step picks it up anyway.
+  `Package.resolved` pins were edited from a Linux container without a Swift
+  toolchain; run `swift package resolve` on a Mac to refresh `originHash`.
+  **Not compile-checked here** — see the 2026-06-30 correction above.
+  Also new since 0.15.5 but **not adopted**: Parakeet Ultra / Redux (moondream
+  post-trains of TDT v3, batch-only), Nemotron 3 Diarization (8-speaker).
