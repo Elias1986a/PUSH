@@ -13,7 +13,8 @@ enum ModelAvailability {
     /// True when `model` can be activated without downloading anything.
     static func isDownloaded(_ model: WhisperModel) -> Bool {
         switch model.engineType {
-        case .parakeet: return ParakeetEngine.isModelDownloaded()
+        case .parakeet: return ParakeetEngine.shared.isModelDownloaded()
+        case .parakeetUltra: return ParakeetEngine.ultra.isModelDownloaded()
         case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
         case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
         case .nemotronMultilingual: return NemotronMultilingualEngine.isModelDownloaded()

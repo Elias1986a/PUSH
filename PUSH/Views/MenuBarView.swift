@@ -259,7 +259,7 @@ struct MenuBarView: View {
                 languages = []
             }
             hasUndownloadedLanguages = false
-        case .parakeet, .parakeetUnified, .parakeetStreaming:
+        case .parakeet, .parakeetUltra, .parakeetUnified, .parakeetStreaming:
             languages = []
             hasUndownloadedLanguages = false
         }

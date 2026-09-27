@@ -1,61 +1,74 @@
 import Foundation
 import FluidAudio
 
-/// Wrapper for FluidAudio/Parakeet TDT v2 speech-to-text engine (English-only)
+/// Wrapper for FluidAudio's batch Parakeet TDT engines: TDT v2 (English-only) and
+/// Parakeet Ultra.
+///
+/// One actor type, one instance per model, because both load through the same
+/// `AsrModels.downloadAndLoad(version:)` + `AsrManager` path and differ only in
+/// which weights they fetch. Ultra is moondream's post-training of TDT v3 — same
+/// tokenizer, window and decoder contract as v3 — so it is multilingual by
+/// construction; PUSH offers it as an English engine and pins the decoder's
+/// script filter to English (see `transcribeFloats`).
 public actor ParakeetEngine {
-    public static let shared = ParakeetEngine()
+    public static let shared = ParakeetEngine(version: .v2, name: "Parakeet TDT v2")
+    public static let ultra = ParakeetEngine(version: .ultra, name: "Parakeet Ultra")
 
+    private let version: AsrModelVersion
+    /// For log lines only — operational, never transcript text.
+    private let name: String
     private var asrManager: AsrManager?
     private var isLoaded = false
 
-    private init() {}
+    private init(version: AsrModelVersion, name: String) {
+        self.version = version
+        self.name = name
+    }
 
     // MARK: - Model Storage
 
-    /// FluidAudio's default model directory for Parakeet v2
-    public nonisolated static var modelDirectory: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("FluidAudio/Models/parakeet-tdt-0.6b-v2", isDirectory: true)
+    /// Where FluidAudio keeps this model's weights. Asked of FluidAudio rather than
+    /// hardcoded so the download and the "is it downloaded?" check cannot disagree.
+    public nonisolated var modelDirectory: URL {
+        AsrModels.defaultCacheDirectory(for: version)
     }
 
-    /// Check if the Parakeet v2 model has been downloaded
-    public nonisolated static func isModelDownloaded() -> Bool {
+    /// Check if this model has been downloaded
+    public nonisolated func isModelDownloaded() -> Bool {
         let dir = modelDirectory
         guard FileManager.default.fileExists(atPath: dir.path) else { return false }
         let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
         return contents.contains { $0.hasSuffix(".mlmodelc") }
     }
 
-    /// Delete the downloaded Parakeet model to free disk space
-    public nonisolated static func deleteModel() throws {
+    /// Delete the downloaded model to free disk space
+    public nonisolated func deleteModel() throws {
         let dir = modelDirectory
         if FileManager.default.fileExists(atPath: dir.path) {
             try FileManager.default.removeItem(at: dir)
-            PushLogger.log("ParakeetEngine: Model deleted from \(dir.path)")
+            PushLogger.log("ParakeetEngine[\(name)]: Model deleted from \(dir.path)")
         }
     }
 
     // MARK: - Public API
 
-    /// Load the Parakeet TDT v2 model (downloads to FluidAudio's default location if needed)
+    /// Load the model (downloads to FluidAudio's default location if needed)
     public func loadModel() async throws {
         if isLoaded { return }
 
-        PushLogger.log("ParakeetEngine: Loading Parakeet TDT v2 (English-only)...")
+        PushLogger.log("ParakeetEngine[\(name)]: Loading...")
 
         do {
-            let loadedModels = try await AsrModels.downloadAndLoad(
-                version: .v2
-            )
+            let loadedModels = try await AsrModels.downloadAndLoad(version: version)
 
             let manager = AsrManager(config: .default)
             try await manager.loadModels(loadedModels)
             self.asrManager = manager
 
             isLoaded = true
-            PushLogger.log("ParakeetEngine: ✅ Model loaded successfully")
+            PushLogger.log("ParakeetEngine[\(name)]: ✅ Model loaded successfully")
         } catch {
-            PushLogger.log("ParakeetEngine: ❌ Failed to load model: \(error)")
+            PushLogger.log("ParakeetEngine[\(name)]: ❌ Failed to load model: \(error)")
             throw ParakeetEngineError.loadFailed(error.localizedDescription)
         }
     }
@@ -64,12 +77,12 @@ public actor ParakeetEngine {
     public func unloadModel() {
         asrManager = nil
         isLoaded = false
-        PushLogger.log("ParakeetEngine: Model unloaded")
+        PushLogger.log("ParakeetEngine[\(name)]: Model unloaded")
     }
 
     /// Warm up the model
     public func warmup() async {
-        PushLogger.log("ParakeetEngine: Starting warmup...")
+        PushLogger.log("ParakeetEngine[\(name)]: Starting warmup...")
         let startTime = Date()
 
         do {
@@ -79,16 +92,16 @@ public actor ParakeetEngine {
             _ = try await transcribeFloats(silentAudio)
 
             let elapsed = Date().timeIntervalSince(startTime)
-            PushLogger.log("ParakeetEngine: ✅ Warmup complete in \(String(format: "%.2f", elapsed))s")
+            PushLogger.log("ParakeetEngine[\(name)]: ✅ Warmup complete in \(String(format: "%.2f", elapsed))s")
         } catch {
-            PushLogger.log("ParakeetEngine: Warmup failed: \(error)")
+            PushLogger.log("ParakeetEngine[\(name)]: Warmup failed: \(error)")
         }
     }
 
     /// Transcribe audio data to text
     public func transcribe(audioData: Data) async throws -> String {
         if !isLoaded {
-            PushLogger.log("ParakeetEngine: Not loaded, loading model...")
+            PushLogger.log("ParakeetEngine[\(name)]: Not loaded, loading model...")
             try await loadModel()
         }
 
@@ -108,8 +121,8 @@ public actor ParakeetEngine {
         // Same format as ParakeetUnifiedEngine so the two are directly
         // comparable in an A/B. Duration + timing only — never transcript text.
         PushLogger.log(String(
-            format: "ParakeetEngine: Transcribed %.2fs audio in %.3fs (%d chars)",
-            Double(floatArray.count) / 16000.0, elapsed, text.count))
+            format: "ParakeetEngine[%@]: Transcribed %.2fs audio in %.3fs (%d chars)",
+            name, Double(floatArray.count) / 16000.0, elapsed, text.count))
         return text
     }
 
@@ -123,7 +136,12 @@ public actor ParakeetEngine {
         // A fresh decoder state per utterance: each dictation is independent,
         // so no RNNT context should carry over from the previous one.
         var decoderState = try TdtDecoderState()
-        let result = try await manager.transcribe(floatArray, decoderState: &decoderState)
+        // Ultra is v3-derived and auto-detects language, so an accented or
+        // mumbled English word can surface in Cyrillic. The hint is a *script*
+        // filter (Latin vs Cyrillic/Greek), not a language picker; FluidAudio
+        // ignores it for v2, which is English-only anyway.
+        let result = try await manager.transcribe(
+            floatArray, decoderState: &decoderState, language: .english)
         return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

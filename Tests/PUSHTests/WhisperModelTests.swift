@@ -17,6 +17,7 @@ final class WhisperModelTests: XCTestCase {
         XCTAssertFalse(WhisperModel.parakeetUnified.supportsLanguageSelection)
         XCTAssertFalse(WhisperModel.parakeetStreaming.supportsLanguageSelection)
         XCTAssertFalse(WhisperModel.parakeetV2.supportsLanguageSelection)
+        XCTAssertFalse(WhisperModel.parakeetUltra.supportsLanguageSelection)
     }
 
     func testMultilingualEngineIsSelectable() {

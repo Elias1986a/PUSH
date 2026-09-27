@@ -128,7 +128,7 @@ struct DictationLanguagePicker: View {
             return "Download the model to see its languages."
         case .appleSpeech:
             return "macOS hasn't offered any dictation languages yet."
-        case .parakeetV2, .parakeetUnified, .parakeetStreaming:
+        case .parakeetV2, .parakeetUltra, .parakeetUnified, .parakeetStreaming:
             // Unreachable — `showsLanguagePicker` keeps the English engines out
             // of this view. Listed rather than defaulted so adding an engine is
             // a compile error here instead of a wrong sentence at runtime.
@@ -165,7 +165,7 @@ struct DictationLanguagePicker: View {
             } else {
                 resolved = []
             }
-        case .parakeet, .parakeetUnified, .parakeetStreaming:
+        case .parakeet, .parakeetUltra, .parakeetUnified, .parakeetStreaming:
             resolved = []
         }
         languages = resolved

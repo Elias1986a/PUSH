@@ -437,7 +437,8 @@ struct ModelsSettingsView: View {
 
     private nonisolated static func folder(for model: AppState.WhisperModel) -> URL? {
         switch model.engineType {
-        case .parakeet: return ParakeetEngine.modelDirectory
+        case .parakeet: return ParakeetEngine.shared.modelDirectory
+        case .parakeetUltra: return ParakeetEngine.ultra.modelDirectory
         case .parakeetUnified: return ParakeetUnifiedEngine.modelDirectory
         case .parakeetStreaming: return ParakeetStreamingEngine.modelDirectory
         // The repo root, covering both vocab builds — a user who has dictated in
@@ -499,7 +500,7 @@ struct ModelsSettingsView: View {
     private static func expectedSize(of model: AppState.WhisperModel) -> Double {
         switch model {
         case .parakeetV2: return 400_000_000
-        case .parakeetUnified, .parakeetStreaming, .nemotronMultilingual: return 600_000_000
+        case .parakeetUnified, .parakeetUltra, .parakeetStreaming, .nemotronMultilingual: return 600_000_000
         case .appleSpeech: return 0  // never downloaded through us
         }
     }

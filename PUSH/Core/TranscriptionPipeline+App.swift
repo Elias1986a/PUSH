@@ -27,7 +27,8 @@ extension TranscriptionPipeline {
     /// Deliberately not just `AppState.language(for:)`. The English-only
     /// engines (`.parakeetUnified`, `.parakeetStreaming`, `.parakeetV2`) are
     /// English by construction — their FluidAudio repos are literally named
-    /// `-en-` — and `supportsLanguageSelection` is false for them, so no picker
+    /// `-en-` — and `.parakeetUltra` is offered as English with its script
+    /// filter pinned. `supportsLanguageSelection` is false for all four, so no picker
     /// can ever write their `language.*` defaults key. A key left there by an
     /// earlier build, a hand-edited plist or a synced defaults domain would
     /// otherwise turn off English post-processing for the *default* engine, and
