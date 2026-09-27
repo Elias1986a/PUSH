@@ -339,8 +339,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             async let capture: Void = AudioRecorder.shared.prewarm()
             async let chirp: Void = SoundPlayer.shared.prewarm()
 
-            // ModelLoader handles status, warmup, and failure surfacing.
-            try? await ModelLoader.activate(AppState.shared.selectedWhisperModel)
+            // ModelLoader handles status, warmup, and failure surfacing — and
+            // picks what to load, which is not always the saved preference: it
+            // will not start a several-hundred-megabyte download here when
+            // something already on disk can serve.
+            await ModelLoader.activateAtLaunch()
 
             // Only now start Sparkle. `startUpdater` can put up a modal (an
             // update prompt, a permission request, an error), and a modal runs
