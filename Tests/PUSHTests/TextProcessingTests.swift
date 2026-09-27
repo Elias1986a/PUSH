@@ -73,11 +73,11 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(q("She told me quote not today unquote."),
                        "She told me \"not today.\"")
         XCTAssertEqual(q("Open quote hello world close quote is the classic."),
-                       "\"hello world\" is the classic.")
+                       "\"Hello world\" is the classic.")
         XCTAssertEqual(q("It says quote do not enter. End quote."),
                        "It says \"do not enter.\"")
         XCTAssertEqual(q("Quote one end quote and quote two end quote."),
-                       "\"one\" and \"two.\"")
+                       "\"One\" and \"two.\"")
     }
 
     func testAndIQuoteKeepsItsWordsAndClosesAtTheSentenceEnd() {
@@ -112,8 +112,40 @@ final class TextProcessingTests: XCTestCase {
                        "She said and I quote, \"see Dr. Lee at 9 a.m. sharp.\" Then she left.")
     }
 
-    /// A quote never spans sentences. Real dictation: "and I quote" opened one
-    /// sentence and an "end quote" two sentences later swallowed both.
+    /// Real dictations, verbatim from Ultra on 8.0.6. Most people never say
+    /// "end quote", so a "quote" that plainly opens a quotation closes itself.
+    func testQuoteClosesItselfWhereAQuotationPlainlyStarts() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        XCTAssertEqual(q("Quote alliance is here."), "\"Alliance is here.\"")
+        XCTAssertEqual(q("Elias said quote let's go home."), "Elias said \"let's go home.\"")
+        XCTAssertEqual(q("He said, quote, let's go home. Then we left."),
+                       "He said, \"let's go home.\" Then we left.")
+        XCTAssertEqual(q("She told me quote not now, maybe later."), "She told me \"not now, maybe later.\"")
+    }
+
+    /// With an end marker the quote may span sentences — and a "quote" after
+    /// "a" is fine, because the marker settles what was meant.
+    func testPairedQuotesSpanSentencesAndResolveAmbiguity() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        XCTAssertEqual(q("Quote Elias is here. Elias is here, end quote."),
+                       "\"Elias is here. Elias is here.\"")
+        XCTAssertEqual(q("I think it's a quote big deal end quote."), "I think it's a \"big deal.\"")
+    }
+
+    /// Where "quote" is the ordinary word it stays, even with the looser rule.
+    func testLoneQuoteMidSentenceStaysTheOrdinaryWord() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        for s in ["I think it's a quote big deal.",
+                  "How about this quote Elias says here?",
+                  "Can you send me a quote for the roof?",
+                  "She said, quote me on that.",
+                  "His best quote is still the one about luck."] {
+            XCTAssertEqual(q(s), s)
+        }
+    }
+
+    /// A quote never swallows another. Real dictation: "and I quote" opened one
+    /// sentence and an "end quote" after another "quote" swallowed both.
     func testAQuoteDoesNotSpanSentences() {
         XCTAssertEqual(
             TranscriptionPipeline.normalizeSpokenQuotes(
