@@ -23,6 +23,44 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("I have 42 things"), "I have 42 things")
     }
 
+    // MARK: - Clock times
+
+    /// The Parakeet models write spoken times as "3.30" or "3 30". Real
+    /// dictations, verbatim from Ultra and Unified.
+    func testDottedAndSpacedClockTimesGetAColon() {
+        let t = TranscriptionPipeline.normalizeClockTimes
+        XCTAssertEqual(t("3 30 p.m. 3 30 on a Friday."), "3:30 p.m. 3:30 on a Friday.")
+        XCTAssertEqual(t("Let's meet at 3.30 on Friday."), "Let's meet at 3:30 on Friday.")
+        XCTAssertEqual(t("The call is at 10.15 tomorrow."), "The call is at 10:15 tomorrow.")
+        XCTAssertEqual(t("Pick me up at 7.45pm."), "Pick me up at 7:45pm.")
+        XCTAssertEqual(t("It's 3.30 pm on a Friday."), "It's 3:30 pm on a Friday.")
+        XCTAssertEqual(t("maybe by 12.30"), "maybe by 12:30")
+        XCTAssertEqual(t("from 9 00 until 5 30"), "from 9:00 until 5:30")
+        XCTAssertEqual(t("at three 30"), "at 3:30")
+        XCTAssertEqual(t("The show starts at 8.15 this evening."), "The show starts at 8:15 this evening.")
+    }
+
+    /// The same shapes are prices, versions and plain numbers. With no clock
+    /// cue beside them they must come through untouched.
+    func testNumbersThatAreNotTimesAreLeftAlone() {
+        let t = TranscriptionPipeline.normalizeClockTimes
+        XCTAssertEqual(t("The coffee costs 3.30."), "The coffee costs 3.30.")
+        XCTAssertEqual(t("It was $3.30 at the store."), "It was $3.30 at the store.")
+        XCTAssertEqual(t("We moved from version 2.1."), "We moved from version 2.1.")
+        XCTAssertEqual(t("Pi is about 3.14159."), "Pi is about 3.14159.")
+        XCTAssertEqual(t("I ran 5.25 miles."), "I ran 5.25 miles.")
+        XCTAssertEqual(t("Already written as 3:30 pm."), "Already written as 3:30 pm.")
+        XCTAssertEqual(t("I need 3 30-minute slots."), "I need 3 30-minute slots.")
+        XCTAssertEqual(t("Grab 2 20 packs at the store."), "Grab 2 20 packs at the store.")
+    }
+
+    /// Through the whole English chain, so an earlier pass can't undo it.
+    func testClockTimesSurviveTheFullChain() {
+        XCTAssertEqual(
+            TranscriptionPipeline.postProcess("Let's meet at 3.30 on Friday.", hasNativePunctuation: true),
+            "Let's meet at 3:30 on Friday.")
+    }
+
     // MARK: - Thousands grouping
 
     func testGroupThousandsAddsCommasToLargeNumbers() {

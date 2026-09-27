@@ -88,6 +88,7 @@ public actor TranscriptionPipeline {
         out = normalizeDecimalDictation(out)
         out = normalizeNumberWords(out)
         out = groupThousands(out)
+        out = normalizeClockTimes(out)
         if !hasNativePunctuation {
             out = fixTrailingComma(out)
             out = ensureEndingPunctuation(out)

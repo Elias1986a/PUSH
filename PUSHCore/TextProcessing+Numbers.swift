@@ -294,6 +294,47 @@ extension TranscriptionPipeline {
         return result
     }
 
+    /// Clock times written with a dot or a space become "3:30".
+    ///
+    /// The Parakeet models hear a spoken time correctly but write it as "3.30"
+    /// (Unified and Ultra alike) or "3 30" (Ultra on a real voice), and number
+    /// normalisation can leave "three 30". None of those reads as a time.
+    ///
+    /// Converted only with a clock cue beside it — "at", "by", "until", "from",
+    /// "around", "before", "after", "between" in front, or "a.m."/"p.m.",
+    /// "o'clock", "on Friday", "tomorrow", "tonight" behind — because the same
+    /// shape is also a price ("costs 3.30", "$3.30") or a version ("2.10"),
+    /// and turning those into times would be worse than leaving a time alone.
+    public static func normalizeClockTimes(_ text: String) -> String {
+        let hourWords = ["one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+                         "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12]
+        let hour = "(1[0-9]|2[0-3]|0?[1-9]|" + hourWords.keys.joined(separator: "|") + ")"
+        let pattern = "(?i)(?<![$€£\\d.:,])\\b" + hour + "[. ]([0-5]\\d)(?:\\b|(?=[ap]\\.?m\\b))(?![.,:]?\\d)"
+        let before = "(?i)\\b(at|by|until|till|til|from|around|before|after|between|since)\\s+$"
+        let after = "(?i)^\\s*(a\\.?\\s?m\\b\\.?|p\\.?\\s?m\\b\\.?|o'clock|on\\s+(a\\s+)?(mon|tues|wednes|thurs|fri|satur|sun)day"
+            + "|tomorrow|today|tonight|this\\s+(morning|afternoon|evening))"
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let beforeCue = try? NSRegularExpression(pattern: before),
+              let afterCue = try? NSRegularExpression(pattern: after) else { return text }
+
+        var result = text
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        for match in matches.reversed() {
+            guard let whole = Range(match.range, in: result),
+                  let hourRange = Range(match.range(at: 1), in: result),
+                  let minuteRange = Range(match.range(at: 2), in: result) else { continue }
+            let prefix = String(result[..<whole.lowerBound])
+            let suffix = String(result[whole.upperBound...])
+            let cued = beforeCue.firstMatch(in: prefix, range: NSRange(prefix.startIndex..., in: prefix)) != nil
+                || afterCue.firstMatch(in: suffix, range: NSRange(suffix.startIndex..., in: suffix)) != nil
+            guard cued else { continue }
+            let hourText = String(result[hourRange])
+            guard let h = Int(hourText) ?? hourWords[hourText.lowercased()] else { continue }
+            result.replaceSubrange(whole, with: "\(h):\(result[minuteRange])")
+        }
+        return result
+    }
+
     /// "st"/"nd"/"rd"/"th" suffix for an ordinal value (11–13 are always "th").
     public static func ordinalSuffix(_ n: Int) -> String {
         if (11...13).contains(n % 100) { return "th" }
