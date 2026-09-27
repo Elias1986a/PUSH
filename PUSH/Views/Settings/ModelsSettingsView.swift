@@ -504,7 +504,6 @@ struct ModelsSettingsView: View {
     /// Rough on-disk sizes used to derive download progress (engines don't report it).
     private static func expectedSize(of model: AppState.WhisperModel) -> Double {
         switch model {
-        case .parakeetV2: return 400_000_000
         case .parakeetUnified, .parakeetUltra, .parakeetStreaming, .nemotronMultilingual: return 600_000_000
         case .appleSpeech: return 0  // never downloaded through us
         }

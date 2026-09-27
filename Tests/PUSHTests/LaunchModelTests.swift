@@ -32,7 +32,7 @@ final class LaunchModelTests: XCTestCase {
     func testTheDefaultIsPreferredOverOtherDownloadedModels() {
         XCTAssertEqual(
             ModelLoader.launchModel(preferred: .nemotronMultilingual,
-                                    ready: [.parakeetV2, .parakeetStreaming, .parakeetUnified]),
+                                    ready: [.parakeetUltra, .parakeetStreaming, .parakeetUnified]),
             .parakeetUnified)
     }
 
@@ -43,12 +43,12 @@ final class LaunchModelTests: XCTestCase {
     func testAmongTheRestTheSettingsOrderDecides() {
         XCTAssertEqual(
             ModelLoader.launchModel(preferred: .nemotronMultilingual,
-                                    ready: [.appleSpeech, .parakeetV2, .parakeetStreaming]),
+                                    ready: [.appleSpeech, .parakeetStreaming]),
             .parakeetStreaming)
         XCTAssertEqual(
             ModelLoader.launchModel(preferred: .nemotronMultilingual,
-                                    ready: [.appleSpeech, .parakeetV2]),
-            .parakeetV2)
+                                    ready: [.appleSpeech, .parakeetUltra]),
+            .parakeetUltra)
     }
 
     /// A first launch has nothing to fall back on, and the one download nobody

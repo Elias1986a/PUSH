@@ -34,7 +34,7 @@ final class DictationLanguagePickerTests: XCTestCase {
         XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
             for: .parakeetStreaming, selectedModel: .parakeetStreaming))
         XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
-            for: .parakeetV2, selectedModel: .parakeetV2))
+            for: .parakeetUltra, selectedModel: .parakeetUltra))
 
         // Takes a language, but is not the row the user has chosen.
         XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
@@ -53,7 +53,7 @@ final class DictationLanguagePickerTests: XCTestCase {
                 "\(model.rawValue) disagrees with its own supportsLanguageSelection")
 
             // Never under an unselected row, whatever the engine.
-            let other: WhisperModel = model == .parakeetV2 ? .parakeetUnified : .parakeetV2
+            let other: WhisperModel = model == .parakeetUltra ? .parakeetUnified : .parakeetUltra
             XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(for: model, selectedModel: other))
         }
     }

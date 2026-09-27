@@ -7,9 +7,11 @@ text field of any app. All speech recognition runs on-device.
 
 ## Tech Stack
 - Swift, Swift Package Manager executable target (no Xcode project)
-- ASR engines: FluidAudio Parakeet (TDT v2 / Unified / Streaming) + Apple Speech
-  (macOS 26+). WhisperKit and Moonshine were removed in v7.0.0 — don't reinstate
-  them without re-measuring; Parakeet won on the ANE, not on CPU.
+- ASR engines: FluidAudio Parakeet (Unified / Streaming / Ultra), Nemotron
+  Multilingual, Apple Speech (macOS 26+). Ultra auto-detects Latin-script European
+  languages; `TranscriptLanguage` reads the language back from its text.
+  WhisperKit and Moonshine were removed in v7.0.0, TDT v2 in 8.0.5 — don't
+  reinstate them without re-measuring; Parakeet won on the ANE, not on CPU.
 - Silero VAD via FluidAudio; Sparkle auto-updates; LaunchAtLogin
 
 ## Commands

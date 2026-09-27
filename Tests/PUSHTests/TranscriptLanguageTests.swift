@@ -39,7 +39,7 @@ final class TranscriptLanguageTests: XCTestCase {
         let english = DictationLanguage(code: "en-US")
         XCTAssertEqual(TranscriptionPipeline.transcriptLanguage(
             of: spanishText, from: .parakeetUltra, configured: english).code, "es")
-        for model in [WhisperModel.parakeetUnified, .parakeetStreaming, .parakeetV2] {
+        for model in [WhisperModel.parakeetUnified, .parakeetStreaming] {
             XCTAssertTrue(TranscriptionPipeline.transcriptLanguage(
                 of: spanishText, from: model, configured: english).isEnglish,
                 "\(model.rawValue) should not second-guess its configured language")

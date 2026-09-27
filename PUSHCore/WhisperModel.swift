@@ -13,7 +13,6 @@ import Foundation
 /// compile. Moonshine went at the same time; its weights only ever existed in the
 /// upstream package's test resources and were never shipped, so it could not load at all.
 public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
-    case parakeetV2 = "parakeet-tdt-v2"
     case parakeetUnified = "parakeet-unified"
     case parakeetUltra = "parakeet-ultra"
     case parakeetStreaming = "parakeet-streaming"
@@ -33,15 +32,14 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     /// business and the comparison tool still relies on it.
     public static var selectable: [WhisperModel] {
         let order: [WhisperModel] = [
-            .parakeetUnified, .parakeetUltra, .parakeetStreaming, .nemotronMultilingual, .parakeetV2,
-            .appleSpeech
+            .parakeetUnified, .parakeetUltra, .parakeetStreaming, .nemotronMultilingual, .appleSpeech
         ]
         return order.filter { model in
             switch model.engineType {
             case .appleSpeech:
                 if #available(macOS 26, *) { return AppleSpeechEngine.isSupported }
                 return false
-            case .parakeet, .parakeetUltra, .parakeetUnified, .parakeetStreaming, .nemotronMultilingual:
+            case .parakeetUltra, .parakeetUnified, .parakeetStreaming, .nemotronMultilingual:
                 return true
             }
         }
@@ -49,7 +47,6 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .parakeetV2: return "Parakeet TDT v2 — Smallest"
         case .parakeetUnified: return "Parakeet Unified — Most accurate and fastest"
         case .parakeetUltra: return "Parakeet Ultra — Experimental"
         case .parakeetStreaming: return "Parakeet Streaming — Visualize as you talk"
@@ -68,7 +65,6 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     /// and fastest…").
     public var shortName: String {
         switch self {
-        case .parakeetV2: return "Parakeet TDT v2"
         case .parakeetUnified: return "Parakeet Unified"
         case .parakeetUltra: return "Parakeet Ultra"
         case .parakeetStreaming: return "Parakeet Streaming"
@@ -84,7 +80,7 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
         case .parakeetUltra: return "Experimental"
         case .appleSpeech: return "macOS 26"
         case .nemotronMultilingual: return "Multilingual"
-        case .parakeetV2, .parakeetStreaming: return nil
+        case .parakeetStreaming: return nil
         }
     }
 
@@ -92,7 +88,6 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     /// `modelDescription` quotes and the progress estimates in the download.
     public var downloadSizeLabel: String {
         switch self {
-        case .parakeetV2: return "400 MB"
         case .parakeetUnified, .parakeetUltra, .parakeetStreaming, .nemotronMultilingual: return "600 MB"
         case .appleSpeech: return "No download"
         }
@@ -100,8 +95,6 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     public var modelDescription: String {
         switch self {
-        case .parakeetV2:
-            return "Older English model, smaller download."
         case .parakeetUnified:
             return "Highest accuracy. Transcribes after you release, so longer takes wait longer."
         case .parakeetUltra:
@@ -118,7 +111,6 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     /// The engine type used by this model
     public var engineType: EngineType {
         switch self {
-        case .parakeetV2: return .parakeet
         case .parakeetUnified: return .parakeetUnified
         case .parakeetUltra: return .parakeetUltra
         case .parakeetStreaming: return .parakeetStreaming
@@ -138,7 +130,7 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     public var supportsLanguageSelection: Bool {
         switch self {
         case .nemotronMultilingual, .appleSpeech: return true
-        case .parakeetV2, .parakeetUltra, .parakeetUnified, .parakeetStreaming: return false
+        case .parakeetUltra, .parakeetUnified, .parakeetStreaming: return false
         }
     }
 
@@ -148,8 +140,8 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     public var detectsLanguagePerUtterance: Bool {
         switch self {
         case .parakeetUltra: return true
-        case .parakeetV2, .parakeetUnified, .parakeetStreaming, .nemotronMultilingual,
-             .appleSpeech: return false
+        case .parakeetUnified, .parakeetStreaming, .nemotronMultilingual, .appleSpeech:
+            return false
         }
     }
 
@@ -172,15 +164,14 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     /// the distinction is real, and a future engine may not punctuate.
     public var hasNativePunctuation: Bool {
         switch self {
-        case .parakeetV2, .parakeetUltra, .parakeetUnified, .parakeetStreaming,
-             .nemotronMultilingual, .appleSpeech: return true
+        case .parakeetUltra, .parakeetUnified, .parakeetStreaming, .nemotronMultilingual,
+             .appleSpeech: return true
         }
     }
 }
 
 /// Engine types for model routing
 public enum EngineType: Sendable {
-    case parakeet
     case parakeetUltra
     case parakeetUnified
     case parakeetStreaming

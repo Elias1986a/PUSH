@@ -432,7 +432,6 @@ enum ModelLoader {
 
     private static func load(_ model: AppState.WhisperModel) async throws {
         switch model.engineType {
-        case .parakeet: try await ParakeetEngine.shared.loadModel()
         case .parakeetUltra: try await ParakeetEngine.ultra.loadModel()
         case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
         case .parakeetStreaming:
@@ -463,7 +462,6 @@ enum ModelLoader {
 
     private static func unload(_ model: AppState.WhisperModel) async {
         switch model.engineType {
-        case .parakeet: await ParakeetEngine.shared.unloadModel()
         case .parakeetUltra: await ParakeetEngine.ultra.unloadModel()
         case .parakeetUnified: await ParakeetUnifiedEngine.shared.unloadModel()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.unloadModel()
@@ -476,7 +474,6 @@ enum ModelLoader {
 
     private static func warmup(_ model: AppState.WhisperModel) async {
         switch model.engineType {
-        case .parakeet: await ParakeetEngine.shared.warmup()
         case .parakeetUltra: await ParakeetEngine.ultra.warmup()
         case .parakeetUnified: await ParakeetUnifiedEngine.shared.warmup()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.warmup()

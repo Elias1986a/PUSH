@@ -3,7 +3,7 @@ import FluidAudio
 
 /// Wrapper for FluidAudio's Parakeet Unified 0.6B (FastConformer-RNNT, English).
 ///
-/// Kept as a separate engine from `ParakeetEngine` (TDT v2) so both can be
+/// Kept as a separate engine from `ParakeetEngine` (Ultra) so both can be
 /// selected side by side and compared on real dictation, rather than swapping
 /// one for the other on the strength of published benchmarks.
 ///

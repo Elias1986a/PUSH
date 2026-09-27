@@ -20,13 +20,14 @@ in whatever you were typing in. Nothing leaves your Mac.
 
 ## Models
 
-All four run on-device. Parakeet Unified is the default.
+All run on-device. Parakeet Unified is the default.
 
 | Model | Download | Notes |
 |---|---|---|
 | **Parakeet Unified** ⭐ | ~600 MB | Most accurate and fastest. Transcribes on release. |
+| Parakeet Ultra (experimental) | ~600 MB | English plus the Latin-script European languages, detected automatically. |
 | Parakeet Streaming | ~600 MB | Transcribes while you speak — long takes land instantly. |
-| Parakeet TDT v2 | ~400 MB | Older English model, smaller download. |
+| Nemotron Multilingual | ~600 MB per language group | About 40 languages, including Chinese, Japanese, Arabic and Hindi. You pick the language. |
 | Apple Speech | — | Built into macOS 26. Nothing to download. |
 
 Whisper and Moonshine were removed in v7.0.0. The numbers below are why.

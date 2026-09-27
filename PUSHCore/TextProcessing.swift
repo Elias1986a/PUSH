@@ -21,8 +21,6 @@ public actor TranscriptionPipeline {
     /// and the wake word listener so both always use the loaded engine.
     public static func transcribe(audioData: Data, using model: WhisperModel) async throws -> String {
         switch model.engineType {
-        case .parakeet:
-            return try await ParakeetEngine.shared.transcribe(audioData: audioData)
         case .parakeetUltra:
             return try await ParakeetEngine.ultra.transcribe(audioData: audioData)
         case .parakeetUnified:

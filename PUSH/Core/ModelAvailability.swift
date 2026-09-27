@@ -13,7 +13,6 @@ enum ModelAvailability {
     /// True when `model` can be activated without downloading anything.
     static func isDownloaded(_ model: WhisperModel) -> Bool {
         switch model.engineType {
-        case .parakeet: return ParakeetEngine.shared.isModelDownloaded()
         case .parakeetUltra: return ParakeetEngine.ultra.isModelDownloaded()
         case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
         case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
@@ -40,7 +39,6 @@ enum ModelAvailability {
     /// from a Delete button that reclaims nothing.
     static func folder(for model: WhisperModel) -> URL? {
         switch model.engineType {
-        case .parakeet: return ParakeetEngine.shared.modelDirectory
         case .parakeetUltra: return ParakeetEngine.ultra.modelDirectory
         case .parakeetUnified: return ParakeetUnifiedEngine.modelDirectory
         case .parakeetStreaming: return ParakeetStreamingEngine.modelDirectory

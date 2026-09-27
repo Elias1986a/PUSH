@@ -1,17 +1,16 @@
 import Foundation
 import FluidAudio
 
-/// Wrapper for FluidAudio's batch Parakeet TDT engines: TDT v2 (English-only) and
-/// Parakeet Ultra.
+/// Wrapper for FluidAudio's batch Parakeet TDT engine, serving Parakeet Ultra.
 ///
-/// One actor type, one instance per model, because both load through the same
-/// `AsrModels.downloadAndLoad(version:)` + `AsrManager` path and differ only in
-/// which weights they fetch. Ultra is moondream's post-training of TDT v3 — same
-/// tokenizer, window and decoder contract as v3 — so it is multilingual by
-/// construction; PUSH offers it as an English engine and pins the decoder's
-/// script filter to English (see `transcribeFloats`).
+/// Parameterised by `AsrModelVersion` because every TDT build loads through the
+/// same `AsrModels.downloadAndLoad(version:)` + `AsrManager` path; TDT v2 used
+/// to be the second instance until it was dropped in 8.0.5. Ultra is
+/// moondream's post-training of TDT v3 — same tokenizer, window and decoder
+/// contract as v3 — so it is multilingual by construction: it auto-detects
+/// across the Latin-script European languages, with the decoder's script filter
+/// pinned to Latin (see `transcribeFloats`).
 public actor ParakeetEngine {
-    public static let shared = ParakeetEngine(version: .v2, name: "Parakeet TDT v2")
     public static let ultra = ParakeetEngine(version: .ultra, name: "Parakeet Ultra")
 
     private let version: AsrModelVersion
@@ -138,8 +137,7 @@ public actor ParakeetEngine {
         var decoderState = try TdtDecoderState()
         // Ultra is v3-derived and auto-detects language, so an accented or
         // mumbled English word can surface in Cyrillic. The hint is a *script*
-        // filter (Latin vs Cyrillic/Greek), not a language picker; FluidAudio
-        // ignores it for v2, which is English-only anyway.
+        // filter (Latin vs Cyrillic/Greek), not a language picker.
         let result = try await manager.transcribe(
             floatArray, decoderState: &decoderState, language: .english)
         return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
