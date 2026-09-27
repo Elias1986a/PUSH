@@ -61,6 +61,84 @@ final class TextProcessingTests: XCTestCase {
             "Let's meet at 3:30 on Friday.")
     }
 
+    // MARK: - Spoken quotes
+
+    func testQuoteEndQuoteBecomesQuotationMarks() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        XCTAssertEqual(q("He said quote I'll be there end quote and left."),
+                       "He said \"I'll be there\" and left.")
+        // The shape the model actually writes: markers wrapped in commas.
+        XCTAssertEqual(q("He said, quote, I'll be there, end quote, and left."),
+                       "He said, \"I'll be there,\" and left.")
+        XCTAssertEqual(q("She told me quote not today unquote."),
+                       "She told me \"not today.\"")
+        XCTAssertEqual(q("Open quote hello world close quote is the classic."),
+                       "\"hello world\" is the classic.")
+        XCTAssertEqual(q("It says quote do not enter. End quote."),
+                       "It says \"do not enter.\"")
+        XCTAssertEqual(q("Quote one end quote and quote two end quote."),
+                       "\"one\" and \"two.\"")
+    }
+
+    func testAndIQuoteKeepsItsWordsAndClosesAtTheSentenceEnd() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        XCTAssertEqual(q("He said, and I quote, we're done here."),
+                       "He said, and I quote, \"we're done here.\"")
+        XCTAssertEqual(q("He said and I quote we're done here. Then he left."),
+                       "He said and I quote, \"we're done here.\" Then he left.")
+        XCTAssertEqual(q("And I quote, blah blah, end quote, which was rude."),
+                       "And I quote, \"blah blah,\" which was rude.")
+        XCTAssertEqual(q("The sign said open quote closed for lunch"),
+                       "The sign said \"closed for lunch\"")
+    }
+
+    /// Periods and commas go inside the closing quote; a question or
+    /// exclamation mark belonging to the whole sentence stays outside.
+    func testClosingPunctuationFollowsAmericanStyle() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        XCTAssertEqual(q("Did he really say quote yes end quote?"), "Did he really say \"yes\"?")
+        XCTAssertEqual(q("Stop saying quote whatever end quote!"), "Stop saying \"whatever\"!")
+        XCTAssertEqual(q("She said quote fine end quote, then left."), "She said \"fine,\" then left.")
+        XCTAssertEqual(q("He asked, quote, are we done? End quote."), "He asked, \"are we done?\"")
+        XCTAssertEqual(q("He asked, and I quote, are we done?"), "He asked, and I quote, \"are we done?\"")
+    }
+
+    /// "p.m." and "Dr." are not sentence ends, so a quote runs through them.
+    func testAbbreviationsDoNotEndAQuote() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        XCTAssertEqual(q("He told me, quote, we're shipping at 3:30 p.m. tomorrow, end quote, so plan for that."),
+                       "He told me, \"we're shipping at 3:30 p.m. tomorrow,\" so plan for that.")
+        XCTAssertEqual(q("She said and I quote see Dr. Lee at 9 a.m. sharp. Then she left."),
+                       "She said and I quote, \"see Dr. Lee at 9 a.m. sharp.\" Then she left.")
+    }
+
+    /// A quote never spans sentences. Real dictation: "and I quote" opened one
+    /// sentence and an "end quote" two sentences later swallowed both.
+    func testAQuoteDoesNotSpanSentences() {
+        XCTAssertEqual(
+            TranscriptionPipeline.normalizeSpokenQuotes(
+                "How hard would it be to say, and I quote blah blah. And then it would put whatever follows."),
+            "How hard would it be to say, and I quote, \"blah blah.\" And then it would put whatever follows.")
+    }
+
+    /// "quote" is also an ordinary noun and verb. With no end marker, it stays.
+    func testOrdinaryUsesOfQuoteAreLeftAlone() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        for s in ["Can you get a quote from the contractor?",
+                  "That's my favorite quote.",
+                  "Please quote me on that.",
+                  "The quote was too high, so we passed."] {
+            XCTAssertEqual(q(s), s)
+        }
+    }
+
+    func testSpokenQuotesSurviveTheFullChain() {
+        XCTAssertEqual(
+            TranscriptionPipeline.postProcess("He said, quote, I'll be there at 3.30, end quote.",
+                                              hasNativePunctuation: true),
+            "He said, \"I'll be there at 3:30.\"")
+    }
+
     // MARK: - Thousands grouping
 
     func testGroupThousandsAddsCommasToLargeNumbers() {
