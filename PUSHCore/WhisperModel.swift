@@ -105,7 +105,7 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
         case .parakeetUnified:
             return "Highest accuracy. Transcribes after you release, so longer takes wait longer."
         case .parakeetUltra:
-            return "Newer model on trial against Parakeet Unified. Transcribes after you release, like Unified."
+            return "Newer model on trial against Parakeet Unified. Understands English and the European languages written in the Latin alphabet — Spanish, French, German, Italian, Portuguese and more — and switches between them on its own. Transcribes after you release."
         case .parakeetStreaming:
             return "Transcribes while you speak, so text lands instantly however long you talk."
         case .nemotronMultilingual:
