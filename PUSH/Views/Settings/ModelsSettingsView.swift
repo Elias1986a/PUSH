@@ -571,6 +571,9 @@ struct ModelsSettingsView: View {
         do {
             if FileManager.default.fileExists(atPath: folder.path) {
                 try FileManager.default.removeItem(at: folder)
+                // Logged because every other delete path is: a model folder that
+                // vanished with no line in the log once read as an update bug.
+                PushLogger.log("ModelsSettings: user deleted \(model.rawValue) at \(folder.path)")
             }
             // Compare FOLDERS, not models. Streaming and Unified share one
             // directory, so deleting Streaming while Unified is serving pulls
@@ -581,6 +584,7 @@ struct ModelsSettingsView: View {
                 Task { await ModelLoader.deactivate() }
             }
         } catch {
+            PushLogger.log("ModelsSettings: failed to delete \(model.rawValue): \(error)")
             downloadError = "Failed to delete: \(error.localizedDescription)"
         }
         refreshDownloaded()
