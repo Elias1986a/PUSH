@@ -43,6 +43,17 @@ extension TranscriptionPipeline {
         return AppState.shared.language(for: model)
     }
 
+    /// The language this transcript is in: the configured one, except for an
+    /// engine that chooses per utterance, where it is read from the text.
+    ///
+    /// Resolved after transcription rather than with `activeLanguage` because
+    /// for those engines there is nothing to know until the words exist.
+    nonisolated static func transcriptLanguage(
+        of text: String, from model: WhisperModel, configured: DictationLanguage
+    ) -> DictationLanguage {
+        model.detectsLanguagePerUtterance ? TranscriptLanguage.detect(text) : configured
+    }
+
     // MARK: - Pipeline
 
     /// Process audio data through the full pipeline
@@ -55,7 +66,7 @@ extension TranscriptionPipeline {
             // Both read in the one hop that was already here. The language is a
             // property of the *active* model, not the selected preference, so it
             // has to be resolved from the same value transcription uses.
-            let (activeModel, language) = await MainActor.run { () -> (WhisperModel, DictationLanguage) in
+            let (activeModel, configuredLanguage) = await MainActor.run { () -> (WhisperModel, DictationLanguage) in
                 let model = AppState.shared.activeModel
                 return (model, Self.activeLanguage(for: model))
             }
@@ -129,6 +140,13 @@ extension TranscriptionPipeline {
 
             // Avoid logging raw transcription text to protect user privacy.
             PushLogger.log("TranscriptionPipeline: Whisper transcription received (\(filteredText.count) chars)")
+
+            let language = Self.transcriptLanguage(
+                of: filteredText, from: activeModel, configured: configuredLanguage)
+            if activeModel.detectsLanguagePerUtterance {
+                // The language code only — never the text it was read from.
+                PushLogger.log("TranscriptionPipeline: detected language \(language.code)")
+            }
 
             // Apply user-defined dictionary corrections (e.g. names Whisper consistently mishears).
             // `.always` entries replace unconditionally; `.contextual` entries are gated so

@@ -142,6 +142,17 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Whether this engine picks the language itself on each dictation, so the
+    /// transcript's language has to be read from the text afterwards
+    /// (`TranscriptLanguage.detect`) rather than from a setting.
+    public var detectsLanguagePerUtterance: Bool {
+        switch self {
+        case .parakeetUltra: return true
+        case .parakeetV2, .parakeetUnified, .parakeetStreaming, .nemotronMultilingual,
+             .appleSpeech: return false
+        }
+    }
+
     /// Where this engine's chosen language is persisted.
     ///
     /// Per engine, not global: each supports a different set of languages, and
