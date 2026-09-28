@@ -609,6 +609,30 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(resolve(s), s)
     }
 
+    /// Real dictation on 8.1.0: the model ends the sentence before the fix.
+    func testAShortFixReachesBackIntoThePreviousSentence() {
+        XCTAssertEqual(resolve("Can you please send a letter to Sarah? I mean John."),
+                       "Can you please send a letter to John?")
+        XCTAssertEqual(resolve("Can you please send a letter to Sarah? Sorry, John."),
+                       "Can you please send a letter to John?")
+        XCTAssertEqual(resolve("It'll be tomorrow at eight o'clock. I mean four o'clock."),
+                       "It'll be tomorrow at four o'clock.")
+        XCTAssertEqual(resolve("I'll bring the red one. Sorry, the blue one. See you there."),
+                       "I'll bring the blue one. See you there.")
+    }
+
+    /// Reaching back needs a visible correspondence; otherwise the new
+    /// sentence is just speech and stays.
+    func testReachingBackNeedsTheFixToLineUp() {
+        for s in ["I love it. I mean it.",
+                  "It's great. I mean, it really works.",
+                  "Sorry, I'm running late.",
+                  "The meeting is at noon. Sorry, I have to go.",
+                  "We saw Paris. I mean, wow."] {
+            XCTAssertEqual(resolve(s), s)
+        }
+    }
+
     func testMultipleCorrectionsResolveInOrder() {
         XCTAssertEqual(resolve("call Bob, I mean call Sue, I mean call Ann"),
                        "call Ann")

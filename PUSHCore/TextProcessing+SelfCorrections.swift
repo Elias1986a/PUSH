@@ -111,11 +111,6 @@ extension TranscriptionPipeline {
                 continue
             }
 
-            // A replacement marker opening its sentence corrects nothing — "I
-            // mean, Ultra's been great" is how people talk. Deleting it lost
-            // the words and left the comma behind, so it stays.
-            if !isRestart && trimDangling(clause).isEmpty { continue }
-
             // A marker right next to another marker is someone *listing* them —
             // "common words are sorry, correction, I mean…" — not correcting.
             let allMarkers = replacementMarkers + restartMarkers
@@ -126,6 +121,18 @@ extension TranscriptionPipeline {
             // "sorry, but…", "sorry about that": an apology, not a correction.
             if candidate.marker == "sorry", let first = correction.first?.lowercased(),
                ["but", "about", "for", "to", "that", "if", "i'm", "i", "again"].contains(first) { continue }
+
+            // A replacement marker opening its sentence has nothing to correct
+            // in it. Usually that is just how people talk — "I mean, Ultra's
+            // been great" — and it stays. But the model often ends the sentence
+            // before the fix ("…to Sarah? I mean John."), so a short fix that
+            // lines up with the end of the previous sentence reaches back.
+            if !isRestart && trimDangling(clause).isEmpty {
+                if let resolved = resolveAcrossSentences(text, head: head, markerEnd: candidate.range.upperBound) {
+                    return resolved
+                }
+                continue
+            }
 
             // Nothing to correct with — drop the dangling marker and keep the text.
             if after.isEmpty { return trimDangling(before) }
@@ -149,6 +156,66 @@ extension TranscriptionPipeline {
             return join(head + kept.joined(separator: " "), after, capitalize: capitalize)
         }
         return nil
+    }
+
+    /// "Can you send a letter to Sarah? I mean John." → "…to John?"
+    ///
+    /// Only when the whole sentence after the marker is the fix (one to four
+    /// words, ending the sentence) and it lines up with the end of the
+    /// previous sentence — the same first word, or the same kind of word: a
+    /// number, day, month, or name. No word-count fallback here: reaching into
+    /// another sentence is only safe when the two visibly correspond. A fix
+    /// identical to what it would replace ("I love it. I mean it.") is not one.
+    /// The previous sentence keeps its own terminator, so a question stays one.
+    private static func resolveAcrossSentences(
+        _ text: String, head: String, markerEnd: String.Index
+    ) -> String? {
+        // The fix: up to the first comma or sentence end, which must end it.
+        let after = String(text[markerEnd...])
+            .trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: ",;:")))
+        let stop = after.firstIndex(where: { ",;.!?".contains($0) })
+        if let stop, !".!?".contains(after[stop]) { return nil }
+        let fix = String(after[..<(stop ?? after.endIndex)]).split(whereSeparator: \.isWhitespace).map(String.init)
+        guard (1...maximumCorrectionWords).contains(fix.count) else { return nil }
+        let remainder = stop.map { String(after[after.index(after: $0)...]).trimmingCharacters(in: .whitespaces) } ?? ""
+
+        // The previous sentence, and the terminator it keeps.
+        let previous = trimDangling(head)
+        guard let terminator = previous.last, ".!?".contains(terminator) else { return nil }
+        let body = String(previous.dropLast())
+        let sentenceStart = startOfLastSentence(in: body)
+        let earlier = String(body[..<sentenceStart])
+        var words = body[sentenceStart...].split(whereSeparator: \.isWhitespace).map(String.init)
+        guard !words.isEmpty else { return nil }
+
+        let normalized = words.map { $0.lowercased().trimmingCharacters(in: .punctuationCharacters) }
+        let firstFix = fix[0].trimmingCharacters(in: .punctuationCharacters)
+        let reachStart = max(0, words.count - 6)
+        let isName: (String, Int) -> Bool = { word, index in
+            // Capitalised, not a number/day/month, and not just the sentence's
+            // own capital.
+            index > 0 && word.first?.isUppercase == true && correctionKind(word.lowercased()) == nil
+        }
+        var from: Int?
+        if let i = normalized[reachStart...].lastIndex(of: firstFix.lowercased()) {
+            from = i
+        } else if let kind = correctionKind(firstFix.lowercased()),
+                  let i = normalized[reachStart...].lastIndex(where: { correctionKind($0) == kind }) {
+            from = i
+        } else if firstFix.first?.isUppercase == true, correctionKind(firstFix.lowercased()) == nil,
+                  let i = (reachStart..<words.count).last(where: { isName(words[$0].trimmingCharacters(in: .punctuationCharacters), $0) }) {
+            from = i
+        }
+        guard let from else { return nil }
+
+        let replaced = normalized[from...].joined(separator: " ")
+        let replacement = fix.map { $0.lowercased().trimmingCharacters(in: .punctuationCharacters) }.joined(separator: " ")
+        guard replaced != replacement else { return nil }
+
+        words.removeSubrange(from...)
+        let sentence = (words + fix).joined(separator: " ") + String(terminator)
+        let rebuilt = (earlier.isEmpty ? "" : trimDangling(earlier) + " ") + sentence
+        return remainder.isEmpty ? rebuilt : rebuilt + " " + remainder
     }
 
     /// How many trailing words of `clause` the correction replaces.
