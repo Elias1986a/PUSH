@@ -10,16 +10,15 @@ extension TranscriptionPipeline {
     /// Markers that replace what was just said: keep what follows, drop a
     /// comparable span before.
     ///
-    /// Every one of these is a phrase, not a word, and that is the whole
-    /// design. This function *deletes words the user actually said*, so a
-    /// false positive is far worse than a miss — it silently loses meaning and
-    /// the user may not notice until later. Bare "sorry", "actually" and
-    /// "rather" are the obvious candidates and all three are excluded: "I'm
-    /// sorry about that", "I actually like it", "I'd rather go" are ordinary
-    /// speech, and there is no reliable way to tell them apart here. They are
-    /// exactly the cases to hand to the LLM resolver later, not to guess at.
+    /// This function *deletes words the user actually said*, so a false
+    /// positive is far worse than a miss — it silently loses meaning and the
+    /// user may not notice until later. Hence the rules in
+    /// `resolveFirstSelfCorrection`: a marker must be set off by punctuation,
+    /// and the correction must be short. "actually" and "rather" stay out
+    /// entirely: "I actually like it" and "I'd rather go" are ordinary speech.
     static let replacementMarkers = [
-        "i mean", "i meant", "no wait", "wait no", "make that", "or rather"
+        "i mean", "i meant", "no wait", "wait no", "make that", "or rather",
+        "sorry", "correction",
     ]
 
     /// Markers that abandon the sentence so far and start it again.
@@ -27,18 +26,32 @@ extension TranscriptionPipeline {
         "scratch that", "let me start over", "start over", "delete that"
     ]
 
+    /// Markers that are ordinary words or phrases too ("I'm sorry", "you
+    /// should delete that file", "we need to start over"), so they count only
+    /// as an interjection set off by punctuation on *both* sides:
+    /// "Dave, sorry, Sarah" or "…at four. Correction, five."
+    static let interjectionOnlyMarkers: Set<String> = ["sorry", "correction", "delete that", "start over"]
+
+    /// A correction longer than this is not treated as one. Real corrections
+    /// are a word or three ("I mean the blue car"); a long run after "I mean"
+    /// is a new thought, and counting it deleted a whole clause of real
+    /// dictation (114 → 53 characters, 2026-09-27).
+    static let maximumCorrectionWords = 4
+
     /// Resolve spoken self-corrections: "the red car, I mean the blue car"
     /// becomes "the blue car".
     ///
     /// The span rule for a replacement is that the correction is about as long
     /// as the thing it corrects — so it deletes as many words before the marker
-    /// as the replacement has after it. "the red car, I mean the blue car"
-    /// replaces with three words, so three come off the front. That is a
-    /// heuristic, and it is wrong when someone corrects three words with one;
-    /// deciding the span properly is the job the LLM resolver exists for.
+    /// as the correction has after it, up to the next comma or sentence end.
+    /// "the red car, I mean the blue car" replaces with three words, so three
+    /// come off the front. That is a heuristic, and it is wrong when someone
+    /// corrects three words with one; deciding the span properly is the job an
+    /// LLM resolver would exist for.
     ///
     /// Deletion never crosses a sentence boundary, so a correction can't eat
-    /// the sentence before it however the count lands.
+    /// the sentence before it however the count lands — with one narrow
+    /// exception, the trailing "…7.0. 8.0, sorry." (see `resolveTrailing`).
     public static func resolveSelfCorrections(_ text: String) -> String {
         var result = text
         // Each pass resolves the first marker. The cap stops a pathological
@@ -55,7 +68,7 @@ extension TranscriptionPipeline {
         let lower = text.lowercased()
 
         // Every occurrence of every marker, in reading order.
-        var candidates: [(range: Range<String.Index>, isRestart: Bool)] = []
+        var candidates: [(range: Range<String.Index>, marker: String)] = []
         for marker in replacementMarkers + restartMarkers {
             var searchStart = lower.startIndex
             while let r = lower.range(of: marker, range: searchStart..<lower.endIndex) {
@@ -65,27 +78,54 @@ extension TranscriptionPipeline {
                     || !lower[lower.index(before: r.lowerBound)].isLetter
                 let endsClean = r.upperBound == lower.endIndex
                     || !lower[r.upperBound].isLetter
-                if startsClean, endsClean { candidates.append((r, restartMarkers.contains(marker))) }
+                if startsClean, endsClean { candidates.append((r, marker)) }
             }
         }
         candidates.sort { $0.range.lowerBound < $1.range.lowerBound }
 
-        for marker in candidates {
-            let before = String(text[..<marker.range.lowerBound])
+        for candidate in candidates {
+            let isRestart = restartMarkers.contains(candidate.marker)
+
+            // Set off by punctuation (or opening the text) in front: "what I
+            // mean is" and "I think I mean it" are not corrections. Behind too,
+            // for the markers that are also everyday words.
+            guard precededByBreak(text, at: candidate.range.lowerBound) else { continue }
+            let needsBreakAfter = interjectionOnlyMarkers.contains(candidate.marker)
+            if needsBreakAfter && !followedByBreak(text, at: candidate.range.upperBound) { continue }
+
+            let before = String(text[..<candidate.range.lowerBound])
             let sentenceStart = startOfLastSentence(in: before)
             let head = String(before[..<sentenceStart])
             let clause = String(before[sentenceStart...])
 
-            // A replacement marker opening its sentence corrects nothing — "I
-            // mean, Ultra's been great" is how people talk. Deleting it lost
-            // the words and left the comma behind (", Ultra's been great"), so
-            // it stays and the next marker is tried.
-            if !marker.isRestart && trimDangling(clause).isEmpty { continue }
-
             // The comma or colon the model puts after a marker ("I mean, the
             // blue car") belongs to the marker and goes with it.
-            let after = String(text[marker.range.upperBound...])
+            let after = String(text[candidate.range.upperBound...])
                 .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ",;:")))
+
+            // "sorry" and "correction" with nothing after them in the sentence:
+            // the correction came first ("before 7.0. 8.0, sorry.").
+            let correction = correctionWords(in: after)
+            if needsBreakAfter && !isRestart && correction.isEmpty {
+                if let resolved = resolveTrailing(text, marker: candidate.range) { return resolved }
+                continue
+            }
+
+            // A replacement marker opening its sentence corrects nothing — "I
+            // mean, Ultra's been great" is how people talk. Deleting it lost
+            // the words and left the comma behind, so it stays.
+            if !isRestart && trimDangling(clause).isEmpty { continue }
+
+            // A marker right next to another marker is someone *listing* them —
+            // "common words are sorry, correction, I mean…" — not correcting.
+            let allMarkers = replacementMarkers + restartMarkers
+            let correctionText = correction.joined(separator: " ").lowercased()
+            let clauseText = trimDangling(clause).lowercased()
+            if allMarkers.contains(where: { correctionText.hasPrefix($0) || clauseText.hasSuffix($0) }) { continue }
+
+            // "sorry, but…", "sorry about that": an apology, not a correction.
+            if candidate.marker == "sorry", let first = correction.first?.lowercased(),
+               ["but", "about", "for", "to", "that", "if", "i'm", "i", "again"].contains(first) { continue }
 
             // Nothing to correct with — drop the dangling marker and keep the text.
             if after.isEmpty { return trimDangling(before) }
@@ -94,22 +134,124 @@ extension TranscriptionPipeline {
             // one — dictation into the middle of a sentence starts lowercase.
             let capitalize = clause.trimmingCharacters(in: .whitespaces).first?.isUppercase ?? false
 
-            if marker.isRestart {
+            if isRestart {
                 return join(head, after, capitalize: capitalize)
             }
 
-            // Replacement: drop as many words as the correction supplies, capped at
-            // the clause so the previous sentence is never touched.
-            let replacementLength = after
-                .prefix { $0 != "." && $0 != "!" && $0 != "?" }
-                .split(whereSeparator: \.isWhitespace)
-                .count
+            // Long runs after a marker are new thoughts, not corrections.
+            guard correction.count <= maximumCorrectionWords else { continue }
+
+            // Replacement: drop the span the correction replaces, capped at the
+            // clause so the previous sentence is never touched.
             var kept = clause.split(whereSeparator: \.isWhitespace).map(String.init)
-            kept.removeLast(min(replacementLength, kept.count))
+            kept.removeLast(min(replacedSpan(in: kept, by: correction), kept.count))
 
             return join(head + kept.joined(separator: " "), after, capitalize: capitalize)
         }
         return nil
+    }
+
+    /// How many trailing words of `clause` the correction replaces.
+    ///
+    /// Lined up rather than counted where possible, because a correction often
+    /// carries more than the slip: "It costs 20, correction, 25 dollars"
+    /// replaces "20", not the two words "costs 20". In order:
+    /// 1. the correction's first word also appears near the end of the clause
+    ///    ("the red car, I mean the blue car") → from that word on;
+    /// 2. its first word is a number, day or month and so is a word near the
+    ///    end of the clause ("20" ↔ "25") → from that word on;
+    /// 3. otherwise as many words as the correction has.
+    /// Lining up never reaches back more than six words.
+    private static func replacedSpan(in clause: [String], by correction: [String]) -> Int {
+        let normalized = clause.map { $0.lowercased().trimmingCharacters(in: .punctuationCharacters) }
+        let reach = normalized.suffix(6)
+        if let first = correction.first?.lowercased().trimmingCharacters(in: .punctuationCharacters) {
+            if let i = reach.lastIndex(of: first) { return normalized.count - i }
+            if let kind = correctionKind(first),
+               let i = reach.lastIndex(where: { correctionKind($0) == kind }) {
+                return normalized.count - i
+            }
+        }
+        return correction.count
+    }
+
+    /// The correction itself: the words after a marker up to the next comma,
+    /// semicolon or sentence end. "I mean the blue car, which I love" is a
+    /// three-word correction, not six.
+    private static func correctionWords(in after: String) -> [String] {
+        after.prefix { !",;.!?".contains($0) }
+            .split(whereSeparator: \.isWhitespace)
+            .map(String.init)
+    }
+
+    /// The trailing form: "…before 7.0. 8.0, sorry." — the fix is the short
+    /// phrase just before the marker, and it replaces the same number of words
+    /// before *it*, even across the sentence break the model tends to put
+    /// between them.
+    ///
+    /// Only when the two are the same kind of thing — a number for a number, a
+    /// time for a time, a weekday or month for another — because otherwise
+    /// "Thanks for waiting, sorry." would delete three words of the sentence
+    /// before. Returns nil (leave the text alone) whenever that can't be shown.
+    private static func resolveTrailing(_ text: String, marker: Range<String.Index>) -> String? {
+        let before = trimDangling(String(text[..<marker.lowerBound]))
+        let rest = String(text[marker.upperBound...])
+
+        // The fix: everything after the last comma or sentence end — one that
+        // is followed by a space, so the dot inside "8.0" doesn't count.
+        let chars = Array(before.indices)
+        guard let boundary = chars.last(where: { i in
+            let next = before.index(after: i)
+            return ",;.!?".contains(before[i]) && next < before.endIndex && before[next].isWhitespace
+        }) else { return nil }
+        let fix = before[before.index(after: boundary)...].split(whereSeparator: \.isWhitespace).map(String.init)
+        guard (1...3).contains(fix.count) else { return nil }
+
+        // What it replaces: the same number of words just before that break.
+        var earlier = String(before[...boundary]).split(whereSeparator: \.isWhitespace).map(String.init)
+        guard earlier.count >= fix.count else { return nil }
+        let replaced = earlier.suffix(fix.count).map { $0.trimmingCharacters(in: .punctuationCharacters) }
+        guard zip(replaced, fix).allSatisfy({ correctionKind($0) != nil && correctionKind($0) == correctionKind($1) })
+        else { return nil }
+
+        earlier.removeLast(fix.count)
+        let fixed = (earlier + fix).joined(separator: " ")
+        let tail = rest.trimmingCharacters(in: .whitespaces)
+        return fixed + (tail.first.map { ".!?".contains($0) } == true ? tail : ". " + tail)
+            .trimmingCharacters(in: .whitespaces)
+    }
+
+    /// The kind of a word, for the trailing form's same-kind check.
+    private static func correctionKind(_ word: String) -> String? {
+        let w = word.lowercased()
+        if w.range(of: #"^\d+(?:[.,:]\d+)*(?:%|am|pm|st|nd|rd|th)?$"#, options: .regularExpression) != nil {
+            return "number"
+        }
+        let numberWords: Set<String> = ["one", "two", "three", "four", "five", "six", "seven", "eight",
+                                        "nine", "ten", "eleven", "twelve", "twenty", "thirty", "forty",
+                                        "fifty", "hundred", "thousand", "million"]
+        if numberWords.contains(w) { return "number" }
+        let days: Set<String> = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
+                                 "sunday", "today", "tomorrow", "yesterday", "tonight"]
+        if days.contains(w) { return "day" }
+        let months: Set<String> = ["january", "february", "march", "april", "may", "june", "july",
+                                   "august", "september", "october", "november", "december"]
+        if months.contains(w) { return "month" }
+        return nil
+    }
+
+    /// Whether the nearest non-space character before `index` is punctuation
+    /// or the start of the text.
+    private static func precededByBreak(_ text: String, at index: String.Index) -> Bool {
+        guard let previous = text[..<index].last(where: { !$0.isWhitespace }) else { return true }
+        return ",;:.!?—-".contains(previous)
+    }
+
+    /// Whether the nearest non-space character after `index` is punctuation or
+    /// the end of the text.
+    private static func followedByBreak(_ text: String, at index: String.Index) -> Bool {
+        guard let next = text[index...].first(where: { !$0.isWhitespace }) else { return true }
+        return ",;:.!?—-".contains(next)
     }
 
     /// Index just past the previous sentence's terminator, or the start.

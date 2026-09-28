@@ -514,7 +514,7 @@ final class TextProcessingTests: XCTestCase {
     func testRestartDropsTheWholeClause() {
         XCTAssertEqual(resolve("let's go to the park, scratch that let's stay home"),
                        "let's stay home")
-        XCTAssertEqual(resolve("the total is fifty, delete that the total is sixty"),
+        XCTAssertEqual(resolve("the total is fifty, delete that, the total is sixty"),
                        "the total is sixty")
     }
 
@@ -570,6 +570,43 @@ final class TextProcessingTests: XCTestCase {
     func testMarkerCommaIsRemovedWithTheMarker() {
         XCTAssertEqual(resolve("The red car, I mean, the blue car."), "The blue car.")
         XCTAssertEqual(resolve("Let's go out, scratch that, let's stay home."), "Let's stay home.")
+    }
+
+    /// "sorry" and "correction" between the slip and the fix.
+    func testSorryAndCorrectionBetweenTheSlipAndTheFix() {
+        XCTAssertEqual(resolve("Meet at 4, sorry, 5."), "Meet at 5.")
+        XCTAssertEqual(resolve("Send it to Dave, sorry, Sarah."), "Send it to Sarah.")
+        XCTAssertEqual(resolve("It costs 20, correction, 25 dollars."), "It costs 25 dollars.")
+    }
+
+    /// The trailing form, from real dictation: the fix comes first, then
+    /// "sorry" — only when a number replaces a number, a day a day.
+    func testTrailingSorryReplacesTheSameKindOfWord() {
+        XCTAssertEqual(resolve("I'm gonna clean up all things before 7.0. 8.0, sorry."),
+                       "I'm gonna clean up all things before 8.0.")
+        XCTAssertEqual(resolve("The meeting is Tuesday. Wednesday, sorry."), "The meeting is Wednesday.")
+        XCTAssertEqual(resolve("See you at 4, 5, sorry."), "See you at 5.")
+    }
+
+    /// Everyday "sorry", "delete that", "start over" and "I mean" pass through.
+    func testEverydayUsesOfTheMarkersAreLeftAlone() {
+        for s in ["Thanks for waiting, sorry.",
+                  "I'm sorry about the delay.",
+                  "Sorry, I'm running late.",
+                  "The delay was long, sorry, but we'll be there.",
+                  "You should delete that file.",
+                  "We need to start over with a new plan.",
+                  "What I mean is that it works.",
+                  "It works, I mean it really does feel faster than the old one, honestly."] {
+            XCTAssertEqual(resolve(s), s)
+        }
+    }
+
+    /// Real dictation, 2026-09-27: talking *about* the markers lost 61 of 114
+    /// characters. Listing them, or a long run after one, is not a correction.
+    func testListingTheMarkersOrALongRunIsNotACorrection() {
+        let s = "I think common words are sorry, correction, I mean, actually I noticed something odd, which I think was part of the last fix."
+        XCTAssertEqual(resolve(s), s)
     }
 
     func testMultipleCorrectionsResolveInOrder() {
