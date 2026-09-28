@@ -21,6 +21,12 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
+    /// The model a fresh install uses, and what launch falls back to first.
+    /// Parakeet Ultra since 8.0.9: faster than Unified in real use (~0.08s vs
+    /// ~0.15s on the same clip), as accurate on English, and it handles the
+    /// Latin-script European languages too.
+    public static let defaultModel: WhisperModel = .parakeetUltra
+
     /// The cases the picker should offer. Enum cases can't carry `@available`, so
     /// the macOS 26 engine is filtered out here — otherwise an older system would
     /// list a model that can only ever fail to load. A stale saved preference is
@@ -32,7 +38,7 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     /// business and the comparison tool still relies on it.
     public static var selectable: [WhisperModel] {
         let order: [WhisperModel] = [
-            .parakeetUnified, .parakeetUltra, .parakeetStreaming, .nemotronMultilingual, .appleSpeech
+            .parakeetUltra, .parakeetUnified, .parakeetStreaming, .nemotronMultilingual, .appleSpeech
         ]
         return order.filter { model in
             switch model.engineType {
@@ -47,8 +53,8 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .parakeetUnified: return "Parakeet Unified — Most accurate and fastest"
-        case .parakeetUltra: return "Parakeet Ultra — Experimental"
+        case .parakeetUnified: return "Parakeet Unified — English only"
+        case .parakeetUltra: return "Parakeet Ultra — English and European languages"
         case .parakeetStreaming: return "Parakeet Streaming — Visualize as you talk"
         case .nemotronMultilingual: return "Nemotron Multilingual — Other languages"
         case .appleSpeech: return "Apple Speech — No download"
@@ -76,11 +82,10 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     /// Short qualifier shown beside the name, where one earns its place.
     public var badge: String? {
         switch self {
-        case .parakeetUnified: return "Recommended"
-        case .parakeetUltra: return "Experimental"
+        case .parakeetUltra: return "Recommended"
         case .appleSpeech: return "macOS 26"
         case .nemotronMultilingual: return "Multilingual"
-        case .parakeetStreaming: return nil
+        case .parakeetUnified, .parakeetStreaming: return nil
         }
     }
 
@@ -96,13 +101,13 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     public var modelDescription: String {
         switch self {
         case .parakeetUnified:
-            return "Highest accuracy. Transcribes after you release, so longer takes wait longer."
+            return "English only. Very accurate; transcribes after you release, so longer takes wait longer."
         case .parakeetUltra:
-            return "Newer model on trial against Parakeet Unified. Understands English and the European languages written in the Latin alphabet — Spanish, French, German, Italian, Portuguese and more — and switches between them on its own. Transcribes after you release."
+            return "Fastest and most accurate. Understands English and the European languages written in the Latin alphabet — Spanish, French, German, Italian, Portuguese and more — and switches between them on its own. For other languages, use Nemotron Multilingual."
         case .parakeetStreaming:
             return "Transcribes while you speak, so text lands instantly however long you talk."
         case .nemotronMultilingual:
-            return "Streams like Parakeet Streaming, in the language you pick. Downloads one model per language group."
+            return "For languages Parakeet Ultra doesn't cover — Chinese, Japanese, Arabic, Hindi, Russian, Greek and more. Streams as you speak, in the language you pick. For English and European languages like Spanish, French and German, use Parakeet Ultra."
         case .appleSpeech:
             return "Built into macOS — nothing to download, and the system keeps it updated. Punctuates as it goes."
         }

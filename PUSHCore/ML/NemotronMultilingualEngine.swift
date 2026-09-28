@@ -233,9 +233,33 @@ public actor NemotronMultilingualEngine {
     /// prompts, and the spare 37 are aliases, misspellings and invented
     /// regions. `NemotronPromptDictionary.offeredLanguages(in:)` reduces it to
     /// the menu; see there for what is dropped and why.
+    ///
+    /// Languages Parakeet Ultra covers are left out: English and the
+    /// Latin-script European languages belong to Ultra, and Nemotron offers the
+    /// rest (see `TranscriptLanguage.ultraLanguageSubtags`).
     public func supportedLanguages() async -> [DictationLanguage] {
         guard let manager else { return [] }
         return NemotronPromptDictionary.offeredLanguages(in: await manager.config.promptDictionary)
+            .filter { !TranscriptLanguage.ultraCovers($0) }
+    }
+
+    /// The language Nemotron runs in, given what the user saved.
+    ///
+    /// A saved language Ultra covers (or none at all) no longer applies —
+    /// those languages aren't offered here — so it falls to the Mac's own
+    /// language if Nemotron covers that, and otherwise to Chinese, the most
+    /// widely spoken of the languages left. Whichever it lands on, the same
+    /// `multilingual` build downloads, and picking the right language after is
+    /// a prompt-id swap with no second download.
+    public nonisolated static func resolvedLanguage(
+        stored: String?, preferred: [String] = Locale.preferredLanguages
+    ) -> DictationLanguage {
+        if let stored, !TranscriptLanguage.ultraCovers(DictationLanguage(code: stored)) {
+            return DictationLanguage(code: stored)
+        }
+        let system = preferred.lazy.map(DictationLanguage.init(code:))
+            .first { !TranscriptLanguage.ultraCovers($0) }
+        return system ?? DictationLanguage(code: "zh-CN")
     }
 
     // MARK: - Lifecycle

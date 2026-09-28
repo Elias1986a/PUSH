@@ -91,7 +91,7 @@ final class AppState {
     /// The model actually loaded and serving transcriptions. Differs from
     /// `selectedWhisperModel` (the persisted preference) while a newly selected
     /// model downloads/loads — dictation keeps using this one until the swap.
-    var activeModel: WhisperModel = .parakeetUnified
+    var activeModel: WhisperModel = .defaultModel
 
     var statusMessage: String = "Ready"
 
@@ -104,7 +104,8 @@ final class AppState {
         isListening || isProcessing || !isModelReady || isWarmingUp || isPrewarming
     }
 
-    /// Parakeet Unified is the default for fresh installs, chosen after running
+    /// `WhisperModel.defaultModel` (Parakeet Ultra since 8.0.9) is the default for
+    /// fresh installs. History: Parakeet Unified held the slot before, chosen after running
     /// every engine over the same recording in `compare/`: 8.3s of audio in
     /// 0.061s, the fastest of the four and the most accurate on English.
     ///
@@ -115,7 +116,7 @@ final class AppState {
     /// dictation and the only one that shows text while you talk — but at
     /// ordinary utterance length the difference is imperceptible, and in the
     /// app's own logs Streaming returned nothing at all on 4 of 86 runs.
-    var selectedWhisperModel: WhisperModel = .parakeetUnified {
+    var selectedWhisperModel: WhisperModel = .defaultModel {
         didSet {
             UserDefaults.standard.set(selectedWhisperModel.rawValue, forKey: UserDefaultsKeys.selectedWhisperModel)
         }
@@ -438,7 +439,9 @@ final class AppState {
         // see it, so a view calling this needs *some* tracked property to
         // depend on or it will never redraw when the language changes.
         _ = languageRevision
-        return DictationLanguage(code: languageDefaults.string(forKey: model.languageDefaultsKey) ?? "en-US")
+        let stored = languageDefaults.string(forKey: model.languageDefaultsKey)
+        if model == .nemotronMultilingual { return NemotronMultilingualEngine.resolvedLanguage(stored: stored) }
+        return DictationLanguage(code: stored ?? "en-US")
     }
 
     /// Records the user's language choice for one engine.

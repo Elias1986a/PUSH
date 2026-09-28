@@ -177,16 +177,18 @@ final class LanguageGateTests: XCTestCase {
         }
 
         // The engines that *do* have a picker still honour it.
-        store.set("pt-BR", forKey: WhisperModel.nemotronMultilingual.languageDefaultsKey)
-        XCTAssertEqual(TranscriptionPipeline.activeLanguage(for: .nemotronMultilingual).code, "pt-BR")
+        store.set("ja-JP", forKey: WhisperModel.nemotronMultilingual.languageDefaultsKey)
+        XCTAssertEqual(TranscriptionPipeline.activeLanguage(for: .nemotronMultilingual).code, "ja-JP")
     }
 
-    /// With nothing stored, every engine is English — a fresh install must
-    /// behave exactly as it does today.
+    /// With nothing stored, every engine is English — except Nemotron, which
+    /// no longer offers English (Parakeet Ultra covers it).
     func testActiveLanguageDefaultsToEnglish() {
         useIsolatedStore()
-        for model in WhisperModel.allCases {
+        for model in WhisperModel.allCases where model != .nemotronMultilingual {
             XCTAssertTrue(TranscriptionPipeline.activeLanguage(for: model).isEnglish)
         }
+        XCTAssertFalse(TranscriptLanguage.ultraCovers(
+            TranscriptionPipeline.activeLanguage(for: .nemotronMultilingual)))
     }
 }

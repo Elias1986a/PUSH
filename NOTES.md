@@ -7,20 +7,13 @@ experimental engine + #16 (per-Mac model choice, no launch downloads, no wedged
 loads) (8.0.4); Ultra per-transcript language detection (`TranscriptLanguage`),
 clock times "3.30"/"3 30" → "3:30" (`normalizeClockTimes`), TDT v2 removed (8.0.5).
 
-**User is trialling Ultra vs Unified by feel.** Pending their verdict:
-
-- **If Ultra is kept — the language split (user's plan, 2026-09-26):**
-  - Ultra becomes the European-languages model: drop "Experimental", and its
-    description ends "For other languages, use Nemotron Multilingual."
-  - Nemotron's picker hides every language Ultra covers (English + the
-    Latin-script European set in `TranscriptLanguage.candidates`), leaving
-    zh/ja/ko/ar/he/hi/ru/el etc. Its description points European languages at
-    Ultra.
-  - Then Nemotron only ever needs the full `multilingual` build — the `latin`
-    build and the script-group selection logic can go.
-  - Trade-off to tell the user: those languages lose streaming (Ultra is batch)
-    and explicit language choice (Ultra auto-detects).
-- **If Ultra is dropped:** remove the case; `ParakeetEngine` then has no users.
+**Ultra kept (2026-09-27) and made the default; the language split is done (8.0.9).**
+`WhisperModel.defaultModel` = `.parakeetUltra`. Nemotron's picker filters out
+`TranscriptLanguage.ultraLanguageSubtags`; `NemotronMultilingualEngine.resolvedLanguage`
+maps a missing/Ultra-covered saved language to the Mac's language if Nemotron has
+it, else zh-CN. Not done: deleting the now-unreachable `latin` build code path
+(`vocabVariant`) — harmless, left for a cleanup. Teleprompter voice-following
+still needs the Unified/Streaming bundle, which a fresh install no longer has.
 
 Other loose ends: remote branches were all verified merged/superseded but
 deletion was blocked by the permission classifier — the user has the command.

@@ -15,12 +15,32 @@ import NaturalLanguage
 /// no text leaves the Mac.
 public enum TranscriptLanguage {
 
-    /// The languages Ultra can produce under PUSH's Latin-script filter.
-    /// Constraining the recognizer to these keeps a short phrase from being
-    /// "detected" as a language the engine could never have written.
+    /// The languages Parakeet Ultra covers: the Latin-script members of
+    /// Parakeet TDT v3's 25 (its Cyrillic and Greek ones are cut off by PUSH's
+    /// script filter). Nemotron Multilingual offers everything *except* these —
+    /// one engine per language, so the picker never has to explain which of
+    /// two to use.
+    public static let ultraLanguageSubtags: Set<String> = [
+        "en", "es", "fr", "de", "it", "pt", "nl", "sv", "da", "fi", "pl", "cs",
+        "sk", "hu", "ro", "hr", "et", "lv", "lt", "mt", "sl",
+    ]
+
+    /// Whether Parakeet Ultra covers `language`, by its language subtag.
+    public static func ultraCovers(_ language: DictationLanguage) -> Bool {
+        let subtag = Locale(identifier: language.code).language.languageCode?.identifier
+            ?? String(language.code.prefix(2))
+        return ultraLanguageSubtags.contains(subtag.lowercased())
+    }
+
+    /// The languages Ultra can produce under PUSH's Latin-script filter, as far
+    /// as `NLLanguageRecognizer` can name them (it has no Estonian, Latvian,
+    /// Lithuanian, Maltese or Slovenian — those read as some other non-English
+    /// language, which is all the English/not-English decision needs).
+    /// Constraining the recognizer keeps a short phrase from being "detected"
+    /// as a language the engine could never have written.
     static let candidates: [NLLanguage] = [
         .english, .spanish, .french, .german, .italian, .portuguese, .dutch,
-        .swedish, .danish, .norwegian, .finnish, .polish, .czech, .slovak,
+        .swedish, .danish, .finnish, .polish, .czech, .slovak,
         .hungarian, .romanian, .croatian,
     ]
 

@@ -93,7 +93,7 @@ enum ModelLoader {
     /// what is ready to run right now.
     ///
     /// Rules, in order: the preference if it can run; otherwise the default
-    /// (Parakeet Unified) if it is on disk; otherwise anything else that is, in
+    /// (`WhisperModel.defaultModel`) if it is on disk; otherwise anything else that is, in
     /// the settings list's order, which puts the engine needing no download at
     /// all last rather than first. If nothing is ready — a fresh install — the
     /// preference is returned and its download is the one legitimate unattended
@@ -110,14 +110,14 @@ enum ModelLoader {
         ready: Set<AppState.WhisperModel>
     ) -> AppState.WhisperModel {
         if ready.contains(preferred) { return preferred }
-        let fallbacks = [AppState.WhisperModel.parakeetUnified] + AppState.WhisperModel.selectable
+        let fallbacks = [AppState.WhisperModel.defaultModel] + AppState.WhisperModel.selectable
         for candidate in fallbacks where candidate != preferred && ready.contains(candidate) {
             return candidate
         }
         // Nothing to fall back on. Download the preference if it is one this Mac
         // can run, and the default otherwise — a first launch has to fetch
         // something or there is no app.
-        return AppState.WhisperModel.selectable.contains(preferred) ? preferred : .parakeetUnified
+        return AppState.WhisperModel.selectable.contains(preferred) ? preferred : .defaultModel
     }
 
     /// Whether changing `changed`'s dictation language has to reload an engine now.

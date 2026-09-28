@@ -65,6 +65,27 @@ final class TranscriptLanguageTests: XCTestCase {
         XCTAssertTrue(englishOut.contains("25"), "English lost its number formatting: \(englishOut)")
     }
 
+    /// One engine per language: Ultra takes English and the Latin-script
+    /// European languages, Nemotron everything else.
+    func testUltraCoverageSplitsTheLanguages() {
+        for code in ["en-US", "es-ES", "fr-FR", "de-DE", "it-IT", "pt-BR", "nl-NL", "pl-PL", "sv-SE"] {
+            XCTAssertTrue(TranscriptLanguage.ultraCovers(DictationLanguage(code: code)), code)
+        }
+        for code in ["zh-CN", "ja-JP", "ko-KR", "ar", "hi-IN", "ru-RU", "el-GR", "he-IL", "uk-UA"] {
+            XCTAssertFalse(TranscriptLanguage.ultraCovers(DictationLanguage(code: code)), code)
+        }
+    }
+
+    /// Nemotron's language when the saved one is gone or belongs to Ultra: the
+    /// Mac's own language if Nemotron has it, else Chinese.
+    func testNemotronLanguageResolution() {
+        let r = NemotronMultilingualEngine.resolvedLanguage
+        XCTAssertEqual(r("ja-JP", ["en-US"]).code, "ja-JP")
+        XCTAssertEqual(r(nil, ["en-US", "ko-KR"]).code, "ko-KR")
+        XCTAssertEqual(r("es-ES", ["ar"]).code, "ar")
+        XCTAssertEqual(r(nil, ["en-US", "fr-FR"]).code, "zh-CN")
+    }
+
     func testOnlyUltraDetectsPerUtterance() {
         XCTAssertEqual(WhisperModel.allCases.filter(\.detectsLanguagePerUtterance), [.parakeetUltra])
     }

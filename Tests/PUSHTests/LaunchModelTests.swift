@@ -32,8 +32,8 @@ final class LaunchModelTests: XCTestCase {
     func testTheDefaultIsPreferredOverOtherDownloadedModels() {
         XCTAssertEqual(
             ModelLoader.launchModel(preferred: .nemotronMultilingual,
-                                    ready: [.parakeetUltra, .parakeetStreaming, .parakeetUnified]),
-            .parakeetUnified)
+                                    ready: [.parakeetUnified, .parakeetStreaming, .parakeetUltra]),
+            WhisperModel.defaultModel)
     }
 
     /// With the default absent too, the settings list's own order decides —
@@ -70,6 +70,6 @@ final class LaunchModelTests: XCTestCase {
                       "Apple Speech is selectable on this OS, so it is not the unrunnable case")
         XCTAssertEqual(
             ModelLoader.launchModel(preferred: .appleSpeech, ready: []),
-            .parakeetUnified)
+            WhisperModel.defaultModel)
     }
 }

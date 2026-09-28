@@ -29,21 +29,24 @@ final class LanguagePreferenceTests: XCTestCase {
         return suite
     }
 
-    /// Independent keys: choosing Portuguese on Nemotron must not change what
+    /// Independent keys: choosing Japanese on Nemotron must not change what
     /// Apple Speech uses, since the two engines support different sets.
     func testEachEngineStoresItsOwnLanguage() {
         useIsolatedStore()
         let state = AppState.shared
-        state.setLanguage(DictationLanguage(code: "pt-BR"), for: .nemotronMultilingual)
+        state.setLanguage(DictationLanguage(code: "ja-JP"), for: .nemotronMultilingual)
         state.setLanguage(DictationLanguage(code: "fr-FR"), for: .appleSpeech)
-        XCTAssertEqual(state.language(for: .nemotronMultilingual).code, "pt-BR")
+        XCTAssertEqual(state.language(for: .nemotronMultilingual).code, "ja-JP")
         XCTAssertEqual(state.language(for: .appleSpeech).code, "fr-FR")
     }
 
-    /// A fresh install must behave exactly as it does today: English.
-    func testDefaultsToEnglish() {
-        useIsolatedStore()
-        XCTAssertTrue(AppState.shared.language(for: .nemotronMultilingual).isEnglish)
+    /// Nemotron no longer offers the languages Parakeet Ultra covers, so its
+    /// default — and any saved choice of one of those — lands on one it does.
+    func testNemotronNeverRunsInALanguageUltraCovers() {
+        let store = useIsolatedStore()
+        XCTAssertFalse(TranscriptLanguage.ultraCovers(AppState.shared.language(for: .nemotronMultilingual)))
+        store.set("pt-BR", forKey: WhisperModel.nemotronMultilingual.languageDefaultsKey)
+        XCTAssertFalse(TranscriptLanguage.ultraCovers(AppState.shared.language(for: .nemotronMultilingual)))
     }
 
     /// A preference persisted in Apple's underscore form must still match an

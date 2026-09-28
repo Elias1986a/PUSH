@@ -155,8 +155,10 @@ enum EngineComparison {
     /// <code>`, it is English. That is the right default for a timing tool: the
     /// point is comparing engines on the same utterance, not comparing languages.
     private static func storedLanguage(for model: WhisperModel) -> DictationLanguage {
-        DictationLanguage(
-            code: UserDefaults.standard.string(forKey: model.languageDefaultsKey) ?? "en-US")
+        let stored = UserDefaults.standard.string(forKey: model.languageDefaultsKey)
+        // Same resolution the app uses: Nemotron no longer offers Ultra's languages.
+        if model == .nemotronMultilingual { return NemotronMultilingualEngine.resolvedLanguage(stored: stored) }
+        return DictationLanguage(code: stored ?? "en-US")
     }
 
     private struct TimeoutError: Error {}
