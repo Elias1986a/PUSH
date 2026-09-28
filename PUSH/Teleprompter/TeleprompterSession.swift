@@ -15,9 +15,9 @@ final class TeleprompterSession: ObservableObject {
 
     /// Whether voice-following can run right now, and if not, why.
     enum Readiness: Equatable {
-        /// The streaming model is on disk. Note this is true for anyone who
-        /// already has Parakeet Unified: the streaming encoder ships inside the
-        /// same bundle, so most users need no download.
+        /// Parakeet Streaming's encoder is on disk. It is its own ~600 MB file
+        /// in the Parakeet Unified folder, fetched when Streaming (or this
+        /// prompter) first loads — having Unified alone does not include it.
         case ready
         /// Voice-following needs the Parakeet bundle fetched first. The prompter
         /// still opens and runs on the timer meanwhile.

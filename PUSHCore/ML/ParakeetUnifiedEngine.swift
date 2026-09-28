@@ -34,19 +34,64 @@ public actor ParakeetUnifiedEngine {
             .appendingPathComponent(Repo.parakeetUnified.folderName, isDirectory: true)
     }
 
+    /// The repo holds two ~600 MB encoders — offline (this engine) and
+    /// streaming (`ParakeetStreamingEngine`) — plus a few MB of decoder and
+    /// joint both use. FluidAudio downloads each mode's encoder only when that
+    /// mode loads, so "downloaded" and "delete" are per encoder, not per folder.
+    public nonisolated static let offlineEncoderFile = ModelNames.ParakeetUnified.offlineEncoderFile(precision: .int8)
+    public nonisolated static let streamingEncoderFile = ModelNames.ParakeetUnified.streamingEncoderFile(
+        precision: .int8, contextSuffix: UnifiedConfig().contextSuffix)
+    nonisolated static let sharedFiles = [
+        ModelNames.ParakeetUnified.decoderFile, ModelNames.ParakeetUnified.jointDecisionFile,
+    ]
+
+    /// Whether `encoder` and the shared files it needs are on disk.
+    public nonisolated static func hasMode(encoder: String, in dir: URL = modelDirectory) -> Bool {
+        ([encoder] + sharedFiles).allSatisfy {
+            FileManager.default.fileExists(atPath: dir.appendingPathComponent($0).path)
+        }
+    }
+
     public nonisolated static func isModelDownloaded() -> Bool {
-        let dir = modelDirectory
-        guard FileManager.default.fileExists(atPath: dir.path) else { return false }
-        let contents = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
-        return contents.contains { $0.hasSuffix(".mlmodelc") }
+        hasMode(encoder: offlineEncoderFile)
     }
 
     public nonisolated static func deleteModel() throws {
-        let dir = modelDirectory
-        if FileManager.default.fileExists(atPath: dir.path) {
-            try FileManager.default.removeItem(at: dir)
-            PushLogger.log("ParakeetUnifiedEngine: Model deleted from \(dir.path)")
+        try deleteMode(encoder: offlineEncoderFile, keepingIfPresent: streamingEncoderFile)
+    }
+
+    /// Remove one mode's encoder; remove the whole folder (shared files
+    /// included) only once the other mode's encoder is gone too.
+    nonisolated static func deleteMode(
+        encoder: String, keepingIfPresent other: String, in dir: URL = modelDirectory
+    ) throws {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: dir.path) else { return }
+        if fm.fileExists(atPath: dir.appendingPathComponent(other).path) {
+            let file = dir.appendingPathComponent(encoder)
+            if fm.fileExists(atPath: file.path) { try fm.removeItem(at: file) }
+            PushLogger.log("ParakeetUnified: deleted \(encoder), kept the other mode")
+        } else {
+            try fm.removeItem(at: dir)
+            PushLogger.log("ParakeetUnified: deleted \(dir.path)")
         }
+    }
+
+    /// Bytes this mode occupies: its encoder plus the shared files.
+    public nonisolated static func modeSize(encoder: String) -> Double {
+        ([encoder] + sharedFiles).reduce(0) { total, name in
+            total + directoryBytes(modelDirectory.appendingPathComponent(name))
+        }
+    }
+
+    private nonisolated static func directoryBytes(_ url: URL) -> Double {
+        guard let e = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.fileSizeKey])
+        else { return 0 }
+        var total: Double = 0
+        for case let f as URL in e {
+            total += Double((try? f.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+        }
+        return total
     }
 
     // MARK: - Public API

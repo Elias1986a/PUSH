@@ -54,8 +54,17 @@ public actor ParakeetStreamingEngine {
         ParakeetUnifiedEngine.modelDirectory
     }
 
+    /// Only the streaming encoder counts — the offline one alone would
+    /// report "downloaded" and then fetch 600 MB on first use.
     public nonisolated static func isModelDownloaded() -> Bool {
-        ParakeetUnifiedEngine.isModelDownloaded()
+        ParakeetUnifiedEngine.hasMode(encoder: ParakeetUnifiedEngine.streamingEncoderFile)
+    }
+
+    /// Removes the streaming encoder, keeping Parakeet Unified's if present.
+    public nonisolated static func deleteModel() throws {
+        try ParakeetUnifiedEngine.deleteMode(
+            encoder: ParakeetUnifiedEngine.streamingEncoderFile,
+            keepingIfPresent: ParakeetUnifiedEngine.offlineEncoderFile)
     }
 
     // MARK: - Lifecycle

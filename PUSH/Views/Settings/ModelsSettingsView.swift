@@ -245,15 +245,9 @@ struct ModelsSettingsView: View {
             ? modelBytes[model].flatMap { $0 > 0 ? Self.format(bytes: $0) : nil }
             : nil
         let size = measured ?? model.downloadSizeLabel
-        // Trimming the size out of `modelDescription` also removed the only
-        // place that said Streaming and Unified are one download. Deleting
-        // either removes both, so the row has to admit it.
-        if model == .parakeetStreaming || model == .parakeetUnified {
-            let other: AppState.WhisperModel = model == .parakeetStreaming ? .parakeetUnified : .parakeetStreaming
-            if AppState.WhisperModel.selectable.contains(other) {
-                return "\(size) · shared with \(other.shortName) · \(state)"
-            }
-        }
+        // Unified and Streaming used to be one download that deleted as one,
+        // so these rows said "shared with…". Since 8.1.1 each has its own
+        // encoder and deletes on its own, and the note is gone.
         return "\(size) · \(state)"
     }
 
@@ -482,12 +476,20 @@ struct ModelsSettingsView: View {
             let sizes = await Task.detached(priority: .utility) {
                 Dictionary(uniqueKeysWithValues: folders.map { ($0, Self.directorySize(at: $0)) })
             }.value
+            let modeSizes = await Task.detached(priority: .utility) {
+                (unified: ParakeetUnifiedEngine.modeSize(encoder: ParakeetUnifiedEngine.offlineEncoderFile),
+                 streaming: ParakeetUnifiedEngine.modeSize(encoder: ParakeetUnifiedEngine.streamingEncoderFile))
+            }.value
             await MainActor.run {
                 // Summed over the model folders only: the build directories
                 // live inside the Nemotron folder, so counting both would
                 // report its bytes twice.
                 storageBytes = Set(foldersByModel.values).compactMap { sizes[$0] }.reduce(0, +)
                 modelBytes = foldersByModel.compactMapValues { sizes[$0] }
+                // Unified and Streaming share a folder; each row shows only its
+                // own encoder plus the shared files.
+                modelBytes[.parakeetUnified] = modeSizes.unified
+                modelBytes[.parakeetStreaming] = modeSizes.streaming
                 buildBytes = Dictionary(uniqueKeysWithValues:
                     builds.compactMap { variant, url in sizes[url].map { (variant, $0) } })
             }
@@ -568,18 +570,24 @@ struct ModelsSettingsView: View {
         downloadError = nil
 
         do {
-            if FileManager.default.fileExists(atPath: folder.path) {
-                try FileManager.default.removeItem(at: folder)
-                // Logged because every other delete path is: a model folder that
-                // vanished with no line in the log once read as an update bug.
-                PushLogger.log("ModelsSettings: user deleted \(model.rawValue) at \(folder.path)")
+            switch model {
+            // Unified and Streaming share a folder but not their ~600 MB
+            // encoders: each removes only its own, and the shared files go
+            // with whichever is deleted last.
+            case .parakeetUnified: try ParakeetUnifiedEngine.deleteModel()
+            case .parakeetStreaming: try ParakeetStreamingEngine.deleteModel()
+            default:
+                if FileManager.default.fileExists(atPath: folder.path) {
+                    try FileManager.default.removeItem(at: folder)
+                }
             }
-            // Compare FOLDERS, not models. Streaming and Unified share one
-            // directory, so deleting Streaming while Unified is serving pulls
-            // the active model's files out from under it — and `model ==
-            // activeModel` is false in exactly that case.
-            if let activeFolder = Self.folder(for: appState.activeModel),
-               activeFolder.standardizedFileURL == folder.standardizedFileURL {
+            // Logged because every other delete path is: a model folder that
+            // vanished with no line in the log once read as an update bug.
+            PushLogger.log("ModelsSettings: user deleted \(model.rawValue)")
+            // Whatever is serving must still have its files. Checked by
+            // availability, not by comparing models, because deleting the last
+            // of two modes takes the shared files the other one was using.
+            if !ModelAvailability.isDownloaded(appState.activeModel) {
                 Task { await ModelLoader.deactivate() }
             }
         } catch {
