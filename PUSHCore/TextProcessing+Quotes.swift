@@ -23,9 +23,11 @@ extension TranscriptionPipeline {
     ///
     /// Straight quotes, because they paste correctly into every app.
     public static func normalizeSpokenQuotes(_ text: String) -> String {
-        var result = text
+        var result = normalizeQuoteUnquote(text)
         let opener = "(and\\s+I\\s+quote|(?:open\\s+|begin\\s+)?quote)"
-        let closer = "(?:end\\s+(?:of\\s+)?quote|close\\s+quote|unquote)"
+        // "quote-end quote" / "quote unquote" also closes a quote already open:
+        // "Quote, that seems pretty good quote-end quote."
+        let closer = "(?:quote[\\s,\\-]*)?(?:end\\s+(?:of\\s+)?quote|close\\s+quote|unquote)"
 
         // Paired: an opener, the quoted words, a closer. The words may run
         // across sentences but never past another "quote" — that is what let
@@ -64,7 +66,10 @@ extension TranscriptionPipeline {
         let speech = "(?:said|says|say|saying|wrote|writes|asked|asks|replied|replies|goes|went"
             + "|yelled|shouted|texted|told\\s+(?:me|us|him|her|them|you))"
         let bareLead = "(^|[.!?]\\s+|[,:;]\\s*|\\b" + speech + "\\s+)"
-        let notOrdinary = "(?!(?:me|him|her|them|us|you|it|for|from|of|on|about|in)\\b)"
+        // …and never straight into a closer: "quote, end quote" with nothing
+        // between is the idiom, and quoting the words "end quote" is nonsense.
+        let notOrdinary = "(?!(?:me|him|her|them|us|you|it|for|from|of|on|about|in"
+            + "|end\\s+(?:of\\s+)?quote|close\\s+quote|unquote)\\b)"
         let unpaired = "(?i)(?:(^|[.!?]\\s+)?\\b(and\\s+I\\s+quote|open\\s+quote|begin\\s+quote)|"
             + bareLead + "(quote))\\b[,:]?\\s+" + notOrdinary + "(?!\")(" + unit + "+?)" + sentenceEnd
         result = replaceAll(unpaired, in: result) { g in
@@ -80,6 +85,27 @@ extension TranscriptionPipeline {
             return lead + kept + "\""
                 + capitalized(joinPunctuation(trimmed, trailing), if: startsSentence && kept.isEmpty) + "\""
         }
+        return result
+    }
+
+    /// The "quote-unquote" idiom: scare quotes around what comes next.
+    ///
+    /// "it's a quote unquote big deal." → "it's a \"big deal.\"" The markers
+    /// are said together (also "quote end quote", "quote-end quote"), so the
+    /// only question is how far the quote runs. Up to the next punctuation if
+    /// that is three words or fewer — "a quote unquote big deal." — otherwise
+    /// just the next word: "a quote unquote expert on this topic" → "a
+    /// \"expert\" on this topic". Said *after* a phrase ("pretty good, quote,
+    /// end quote.") it is left as dictated: how many earlier words it covers
+    /// can't be known, and guessing wrong is worse than doing nothing.
+    static func normalizeQuoteUnquote(_ text: String) -> String {
+        let idiom = "(?i)\\bquote[\\s,\\-]*(?:end[\\s\\-]+(?:of\\s+)?quote|close\\s+quote|unquote)\\b,?\\s+"
+        let word = "[\\p{L}\\p{N}'’\\-]+"
+        // Short phrase running to punctuation or the end, else one word. A
+        // period or comma right after it goes inside, as everywhere else here.
+        let short = "(" + word + "(?:\\s+" + word + "){0,2})(?:([.,])|(?=\\s*(?:[!?;:]|$)))"
+        var result = replaceAll(idiom + short, in: text) { g in "\"" + g[0] + g[1] + "\"" }
+        result = replaceAll(idiom + "(" + word + ")", in: result) { g in "\"" + g[0] + "\"" }
         return result
     }
 

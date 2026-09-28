@@ -132,6 +132,28 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(q("I think it's a quote big deal end quote."), "I think it's a \"big deal.\"")
     }
 
+    /// "quote unquote" said together: scare quotes around what follows.
+    func testQuoteUnquoteIdiom() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        XCTAssertEqual(q("It's a quote unquote big deal."), "It's a \"big deal.\"")
+        XCTAssertEqual(q("He's a quote-end quote expert on this topic."), "He's a \"expert\" on this topic.")
+        XCTAssertEqual(q("That was, quote, end quote, fun, I guess."), "That was, \"fun,\" I guess.")
+        // With a quote already open, the idiom closes it.
+        XCTAssertEqual(q("Quote, that seems to be pretty good quote-end quote."),
+                       "\"That seems to be pretty good.\"")
+    }
+
+    /// Real dictation: "…pretty well, quote, end quote." quoted the words
+    /// "end quote" themselves. Said after the phrase, it is left as dictated.
+    func testMarkersWithNothingAfterThemAreNeverQuoted() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        for s in ["It seems to be working pretty well, quote, end quote.",
+                  "That seems to be pretty good quote-end quote.",
+                  "That seems pretty good, quote unquote."] {
+            XCTAssertEqual(q(s), s)
+        }
+    }
+
     /// Where "quote" is the ordinary word it stays, even with the looser rule.
     func testLoneQuoteMidSentenceStaysTheOrdinaryWord() {
         let q = TranscriptionPipeline.normalizeSpokenQuotes
