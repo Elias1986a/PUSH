@@ -522,9 +522,9 @@ final class TextProcessingTests: XCTestCase {
     /// sentence before it, however the word count lands.
     func testDeletionStopsAtTheSentenceBoundary() {
         XCTAssertEqual(resolve("Keep this sentence. Red, I mean blue"),
-                       "Keep this sentence. blue")
+                       "Keep this sentence. Blue")
         XCTAssertEqual(resolve("First thought. Second one, scratch that third one"),
-                       "First thought. third one")
+                       "First thought. Third one")
     }
 
     /// False positives silently delete what the user said, so the ambiguous
@@ -551,6 +551,25 @@ final class TextProcessingTests: XCTestCase {
 
     func testDanglingMarkerWithNothingAfterItIsDropped() {
         XCTAssertEqual(resolve("the red car, I mean"), "the red car")
+    }
+
+    /// Real dictation: "I mean, Ultra's been great…" came out as ", Ultra's
+    /// been great…". Opening a sentence, a marker corrects nothing and stays.
+    func testMarkerOpeningASentenceIsKept() {
+        XCTAssertEqual(resolve("I mean, Ultra's been great, to be honest."),
+                       "I mean, Ultra's been great, to be honest.")
+        XCTAssertEqual(resolve("It works. No wait, it's even better than that."),
+                       "It works. No wait, it's even better than that.")
+        // A later marker in the same text still resolves.
+        XCTAssertEqual(resolve("I mean, it's fine. The red car, I mean the blue car."),
+                       "I mean, it's fine. The blue car.")
+    }
+
+    /// The comma after a marker goes with it, and a correction that now opens
+    /// the text is capitalised.
+    func testMarkerCommaIsRemovedWithTheMarker() {
+        XCTAssertEqual(resolve("The red car, I mean, the blue car."), "The blue car.")
+        XCTAssertEqual(resolve("Let's go out, scratch that, let's stay home."), "Let's stay home.")
     }
 
     func testMultipleCorrectionsResolveInOrder() {

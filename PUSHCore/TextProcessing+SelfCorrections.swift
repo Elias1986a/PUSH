@@ -54,46 +54,62 @@ extension TranscriptionPipeline {
     private static func resolveFirstSelfCorrection(in text: String) -> String? {
         let lower = text.lowercased()
 
-        var found: (range: Range<String.Index>, isRestart: Bool)?
+        // Every occurrence of every marker, in reading order.
+        var candidates: [(range: Range<String.Index>, isRestart: Bool)] = []
         for marker in replacementMarkers + restartMarkers {
-            guard let r = lower.range(of: marker) else { continue }
-            // Word boundaries, so "I meant" doesn't fire inside "I meantime".
-            let startsClean = r.lowerBound == lower.startIndex
-                || !lower[lower.index(before: r.lowerBound)].isLetter
-            let endsClean = r.upperBound == lower.endIndex
-                || !lower[r.upperBound].isLetter
-            guard startsClean, endsClean else { continue }
-            if found == nil || r.lowerBound < found!.range.lowerBound {
-                found = (r, restartMarkers.contains(marker))
+            var searchStart = lower.startIndex
+            while let r = lower.range(of: marker, range: searchStart..<lower.endIndex) {
+                searchStart = r.upperBound
+                // Word boundaries, so "I meant" doesn't fire inside "I meantime".
+                let startsClean = r.lowerBound == lower.startIndex
+                    || !lower[lower.index(before: r.lowerBound)].isLetter
+                let endsClean = r.upperBound == lower.endIndex
+                    || !lower[r.upperBound].isLetter
+                if startsClean, endsClean { candidates.append((r, restartMarkers.contains(marker))) }
             }
         }
-        guard let marker = found else { return nil }
+        candidates.sort { $0.range.lowerBound < $1.range.lowerBound }
 
-        let before = String(text[..<marker.range.lowerBound])
-        let after = String(text[marker.range.upperBound...])
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        for marker in candidates {
+            let before = String(text[..<marker.range.lowerBound])
+            let sentenceStart = startOfLastSentence(in: before)
+            let head = String(before[..<sentenceStart])
+            let clause = String(before[sentenceStart...])
 
-        // Nothing to correct with — drop the dangling marker and keep the text.
-        if after.isEmpty { return trimDangling(before) }
+            // A replacement marker opening its sentence corrects nothing — "I
+            // mean, Ultra's been great" is how people talk. Deleting it lost
+            // the words and left the comma behind (", Ultra's been great"), so
+            // it stays and the next marker is tried.
+            if !marker.isRestart && trimDangling(clause).isEmpty { continue }
 
-        let sentenceStart = startOfLastSentence(in: before)
-        let head = String(before[..<sentenceStart])
-        let clause = String(before[sentenceStart...])
+            // The comma or colon the model puts after a marker ("I mean, the
+            // blue car") belongs to the marker and goes with it.
+            let after = String(text[marker.range.upperBound...])
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ",;:")))
 
-        if marker.isRestart {
-            return join(head, after)
+            // Nothing to correct with — drop the dangling marker and keep the text.
+            if after.isEmpty { return trimDangling(before) }
+
+            // The correction inherits the deleted words' capital, if they had
+            // one — dictation into the middle of a sentence starts lowercase.
+            let capitalize = clause.trimmingCharacters(in: .whitespaces).first?.isUppercase ?? false
+
+            if marker.isRestart {
+                return join(head, after, capitalize: capitalize)
+            }
+
+            // Replacement: drop as many words as the correction supplies, capped at
+            // the clause so the previous sentence is never touched.
+            let replacementLength = after
+                .prefix { $0 != "." && $0 != "!" && $0 != "?" }
+                .split(whereSeparator: \.isWhitespace)
+                .count
+            var kept = clause.split(whereSeparator: \.isWhitespace).map(String.init)
+            kept.removeLast(min(replacementLength, kept.count))
+
+            return join(head + kept.joined(separator: " "), after, capitalize: capitalize)
         }
-
-        // Replacement: drop as many words as the correction supplies, capped at
-        // the clause so the previous sentence is never touched.
-        let replacementLength = after
-            .prefix { $0 != "." && $0 != "!" && $0 != "?" }
-            .split(whereSeparator: \.isWhitespace)
-            .count
-        var kept = clause.split(whereSeparator: \.isWhitespace).map(String.init)
-        kept.removeLast(min(replacementLength, kept.count))
-
-        return join(head + kept.joined(separator: " "), after)
+        return nil
     }
 
     /// Index just past the previous sentence's terminator, or the start.
@@ -103,10 +119,15 @@ extension TranscriptionPipeline {
         return text.index(after: terminator)
     }
 
-    private static func join(_ left: String, _ right: String) -> String {
+    /// Joins what was kept with the correction. When the correction now opens
+    /// a sentence it takes the capital the deleted words had: "Red, I mean
+    /// blue" → "Blue", not "blue".
+    private static func join(_ left: String, _ right: String, capitalize: Bool = false) -> String {
         let head = trimDangling(left)
-        if head.isEmpty { return right }
-        return head + " " + right
+        let opensSentence = head.isEmpty || ".!?".contains(head.last!)
+        let tail = opensSentence && capitalize ? right.prefix(1).uppercased() + right.dropFirst() : right
+        if head.isEmpty { return tail }
+        return head + " " + tail
     }
 
     /// Strip the whitespace and the comma left hanging by a removed span, so
