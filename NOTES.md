@@ -1,11 +1,15 @@
 # NOTES
 
-## Current state (2026-09-26, v8.0.5 — released)
+## Current state (2026-09-27, v8.1.0 — released)
 
-Shipped today: FluidAudio 0.15.5 → 0.17.4 (8.0.3); Parakeet Ultra as an
-experimental engine + #16 (per-Mac model choice, no launch downloads, no wedged
-loads) (8.0.4); Ultra per-transcript language detection (`TranscriptLanguage`),
-clock times "3.30"/"3 30" → "3:30" (`normalizeClockTimes`), TDT v2 removed (8.0.5).
+Shipped 2026-09-26/27 (8.0.3 → 8.1.0): FluidAudio 0.17.4; Parakeet Ultra (now the
+default); #16 merged (per-Mac model choice, no launch downloads, no wedged loads);
+per-transcript language detection for Ultra (`TranscriptLanguage`); clock times
+→ "3:30" (`normalizeClockTimes`); spoken quotes incl. self-closing "quote" and
+"quote unquote" (`TextProcessing+Quotes.swift`); TDT v2 removed; strict spoken
+self-corrections with "sorry"/"correction" (`TextProcessing+SelfCorrections.swift`).
+GitHub cleaned by the user: only `main`, releases/tags 8.0.0+ only; appcast
+lists 8.0.3+.
 
 **Ultra kept (2026-09-27) and made the default; the language split is done (8.0.9).**
 `WhisperModel.defaultModel` = `.parakeetUltra`. Nemotron's picker filters out
