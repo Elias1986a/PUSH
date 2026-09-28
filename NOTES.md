@@ -1,6 +1,13 @@
 # NOTES
 
-## Current state (2026-09-27, v8.1.0 — released)
+## Current state (2026-09-27, v8.1.1 — released)
+
+8.1.1: self-corrections may reach back across a sentence break when a short fix
+lines up with the previous sentence's tail (name/number/day/month/same word);
+Parakeet Unified and Streaming are per-encoder downloads (delete one, keep the
+other — `ParakeetUnifiedEngine.hasMode/deleteMode`).
+
+### v8.1.0
 
 Shipped 2026-09-26/27 (8.0.3 → 8.1.0): FluidAudio 0.17.4; Parakeet Ultra (now the
 default); #16 merged (per-Mac model choice, no launch downloads, no wedged loads);
