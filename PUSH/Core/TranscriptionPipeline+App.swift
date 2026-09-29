@@ -180,6 +180,12 @@ extension TranscriptionPipeline {
                 }
             }
 
+            // California mode runs ahead of the formatting chain, which does its
+            // own cautious "like" pass; English only, like that chain.
+            if language.isEnglish, await MainActor.run(body: { AppState.shared.californiaMode }) {
+                filteredText = Self.removeCasualLike(filteredText)
+            }
+
             // Post-processing pipeline varies by model capability:
             // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.

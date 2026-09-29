@@ -29,6 +29,7 @@ final class AppState {
         static let previewSize = "previewSize"
         static let pillPosition = "pillPosition"
         static let resolveSelfCorrections = "resolveSelfCorrections"
+        static let californiaMode = "californiaMode"
         static let iCloudSyncEnabled = "iCloudSyncEnabled"
         static let inputDeviceUID = "inputDeviceUID"
     }
@@ -286,7 +287,8 @@ final class AppState {
             (d.bool(forKey: UserDefaultsKeys.wakeWordEnabled), \.wakeWordEnabled),
             (d.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence), \.doubleSpaceAfterSentence),
             (d.bool(forKey: UserDefaultsKeys.showLivePreview), \.showLivePreview),
-            (d.object(forKey: UserDefaultsKeys.resolveSelfCorrections) as? Bool ?? true, \.resolveSelfCorrections)
+            (d.object(forKey: UserDefaultsKeys.resolveSelfCorrections) as? Bool ?? true, \.resolveSelfCorrections),
+            (d.bool(forKey: UserDefaultsKeys.californiaMode), \.californiaMode)
         ]
         for (value, path) in flags where self[keyPath: path] != value {
             self[keyPath: path] = value
@@ -306,6 +308,16 @@ final class AppState {
     var resolveSelfCorrections: Bool = true {
         didSet {
             UserDefaults.standard.set(resolveSelfCorrections, forKey: UserDefaultsKeys.resolveSelfCorrections)
+        }
+    }
+
+    /// California mode: remove casual "like" wherever it isn't doing a job
+    /// (`TranscriptionPipeline.removeCasualLike`). Off by default — it removes
+    /// by rule rather than only where "like" can't be anything else, so it is
+    /// for people who say it a lot and would rather lose the odd one.
+    var californiaMode: Bool = false {
+        didSet {
+            UserDefaults.standard.set(californiaMode, forKey: UserDefaultsKeys.californiaMode)
         }
     }
 
@@ -501,6 +513,7 @@ final class AppState {
         // Defaults to true when never set, like iCloud sync below.
         self.resolveSelfCorrections = UserDefaults.standard.object(
             forKey: UserDefaultsKeys.resolveSelfCorrections) as? Bool ?? true
+        self.californiaMode = UserDefaults.standard.bool(forKey: UserDefaultsKeys.californiaMode)
         // Defaults to true when never set, unlike every other flag here.
         if UserDefaults.standard.object(forKey: UserDefaultsKeys.iCloudSyncEnabled) != nil {
             self.iCloudSyncEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.iCloudSyncEnabled)

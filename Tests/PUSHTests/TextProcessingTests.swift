@@ -783,3 +783,46 @@ final class TextProcessingTests: XCTestCase {
                        "call Ann")
     }
 }
+
+/// California mode: the opt-in pass that removes casual "like" everywhere it
+/// is not doing a job. The default filler pass only removes the shapes that
+/// cannot be anything else; this one removes by default and keeps by rule.
+final class CaliforniaLikeTests: XCTestCase {
+    private func ca(_ s: String) -> String { TranscriptionPipeline.removeCasualLike(s) }
+
+    func testCasualLikeGoes() {
+        XCTAssertEqual(ca("It was like really good."), "It was really good.")
+        XCTAssertEqual(ca("So like I went to the store and like bought milk."),
+                       "So I went to the store and bought milk.")
+        XCTAssertEqual(ca("It's like super expensive."), "It's super expensive.")
+        XCTAssertEqual(ca("We should like totally do that."), "We should totally do that.")
+        XCTAssertEqual(ca("And then like, the whole thing broke."), "And then the whole thing broke.")
+        XCTAssertEqual(ca("It was, like, amazing."), "It was amazing.")
+        XCTAssertEqual(ca("She's like the best person ever."), "She's the best person ever.")
+        XCTAssertEqual(ca("He like lives there now."), "He lives there now.")
+    }
+
+    func testTheVerbStays() {
+        for s in ["I like it.", "Kids like candy.", "I'd really like that.",
+                  "Would you like some coffee?", "We don't like the new logo.",
+                  "They like to hike on weekends.", "Dogs like walks.", "My kids like the new park."] {
+            XCTAssertEqual(ca(s), s)
+        }
+    }
+
+    func testComparisonsStay() {
+        for s in ["It looks like rain.", "That sounds like a plan.", "I feel like going out.",
+                  "Do it like this.", "People like us get it.", "Something like that.",
+                  "It's just like before.", "It seemed like forever."] {
+            XCTAssertEqual(ca(s), s)
+        }
+    }
+
+    func testMeaningfulUsesStay() {
+        for s in ["Like I said, we're done.", "It'll take like 30 minutes.",
+                  "He was like, no way.", "I'm like, whatever.",
+                  "That's likely.", "She likes it.", "Unlike last year, we shipped."] {
+            XCTAssertEqual(ca(s), s)
+        }
+    }
+}

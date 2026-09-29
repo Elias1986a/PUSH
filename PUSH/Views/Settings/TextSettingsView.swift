@@ -43,7 +43,15 @@ struct TextSettingsView: View {
                 }
                 .padding(.vertical, 4)
 
-                Text("Words like “sorry” and “actually” are ignored on purpose — too often ordinary speech, and a wrong guess deletes words you meant to keep.")
+                Text("“Sorry” counts only when set off by commas, and “actually” is ignored — too often ordinary speech, and a wrong guess deletes words you meant to keep.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("California mode") {
+                Toggle("Remove casual “like”", isOn: $appState.californiaMode)
+
+                Text("“It was like really good” becomes “It was really good.” Keeps “I like it”, “looks like rain”, “like I said”, “like 30 minutes” and “he was like, no way.”")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

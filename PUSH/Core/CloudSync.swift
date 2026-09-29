@@ -40,7 +40,8 @@ final class CloudSync: ObservableObject {
         "mediaBehavior",
         "showLivePreview",
         "previewSize",
-        "resolveSelfCorrections"
+        "resolveSelfCorrections",
+        "californiaMode"
     ]
 
     /// Keys this app used to mirror and no longer does.
