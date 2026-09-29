@@ -657,6 +657,23 @@ final class TextProcessingTests: XCTestCase {
                        "Hello there. The blue car")
     }
 
+    /// A number said as several words is replaced whole: lining the fix up by
+    /// kind found "million" (the last number word) and kept the "5" in front
+    /// of it. Found by the eval set, 2026-09-29.
+    func testACrossSentenceFixReplacesTheWholeNumber() {
+        XCTAssertEqual(resolve("The budget is 5 million. Sorry, 6 million."),
+                       "The budget is 6 million.")
+    }
+
+    /// A restart marker that ends its sentence takes the period with it.
+    /// ". The launch is on track." was pasted with the stray period leading.
+    func testARestartDoesNotLeaveItsPeriodBehind() {
+        XCTAssertEqual(resolve("The launch is delayed, scratch that. The launch is on track."),
+                       "The launch is on track.")
+        XCTAssertEqual(resolve("The report is done. The numbers look bad, start over. The numbers look good."),
+                       "The report is done. The numbers look good.")
+    }
+
     /// The thousands separator is the same trap with a comma.
     func testGroupedNumbersAreNotClauseBoundaries() {
         XCTAssertEqual(resolve("It costs 1,500, I mean 2,500"),

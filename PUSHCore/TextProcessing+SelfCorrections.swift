@@ -142,7 +142,10 @@ extension TranscriptionPipeline {
             let capitalize = clause.trimmingCharacters(in: .whitespaces).first?.isUppercase ?? false
 
             if isRestart {
-                return join(head, after, capitalize: capitalize)
+                // "…delayed, scratch that. The launch is on track." — the
+                // marker ended its sentence, and that period goes with it.
+                let fresh = String(after.drop(while: { $0 == "." || $0.isWhitespace }))
+                return join(head, fresh, capitalize: capitalize)
             }
 
             // Long runs after a marker are new thoughts, not corrections.
@@ -206,7 +209,10 @@ extension TranscriptionPipeline {
         if let i = normalized[reachStart...].lastIndex(of: firstFix.lowercased()) {
             from = i
         } else if let kind = correctionKind(firstFix.lowercased()),
-                  let i = normalized[reachStart...].lastIndex(where: { correctionKind($0) == kind }) {
+                  var i = normalized[reachStart...].lastIndex(where: { correctionKind($0) == kind }) {
+            // Back over the rest of a number said in words: "5 million" is one
+            // number, and lining up on "million" alone kept the "5".
+            while i > reachStart, correctionKind(normalized[i - 1]) == kind { i -= 1 }
             from = i
         } else if firstFix.first?.isUppercase == true, correctionKind(firstFix.lowercased()) == nil,
                   let i = (reachStart..<words.count).last(where: { isName(words[$0].trimmingCharacters(in: .punctuationCharacters), $0) }) {
