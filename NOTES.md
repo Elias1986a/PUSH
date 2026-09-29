@@ -39,6 +39,11 @@ MacParakeet). Not committed to; each needs the user's go-ahead.
   forbids use outside VoiceInk (no other apps, commercial use or
   redistribution without permission), so the model itself is out; the recipe
   is not — fine-tune an openly licensed Qwen ourselves on our eval shapes.
+  The user likes the idea of PUSH having its own model. Plan if picked up:
+  LoRA fine-tune of Qwen 0.5B–1.5B (Apache 2.0; confirm the exact release) with
+  MLX on the M4 / 24 GB Mac mini (hours; a rented GPU if not); the real work is
+  a few thousand generated messy→clean pairs. Ship only if it clearly beats the
+  rules' 44/50 at interactive latency — target ~350 MB at 4-bit.
 - Rejected, don't re-propose: transcript history / paste-last (privacy),
   snippets, meeting notetaker, usage stats, per-app tone styles, SenseVoice
   (weaker than Parakeet on English; the user dropped it 2026-09-29).
