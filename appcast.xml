@@ -5,6 +5,14 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
+            <title>Version 8.2.1</title>
+            <pubDate>Tue, 29 Sep 2026 15:15:45 -0700</pubDate>
+            <sparkle:version>95</sparkle:version>
+            <sparkle:shortVersionString>8.2.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.1/PUSH-v8.2.1.zip" type="application/octet-stream" sparkle:edSignature="Vp/zg2kQmzw9zjZi/F/LW9sJfTtcHSGNZkBM0kZBJhtga1fj+HWQrtsinA/lXNH8ePnPN4tm4P7nUOSL3OdrAA==" length="14156442" />
+        </item>
+        <item>
             <title>Version 8.2.0</title>
             <pubDate>Tue, 29 Sep 2026 14:35:32 -0700</pubDate>
             <sparkle:version>94</sparkle:version>
