@@ -4,6 +4,8 @@ import SwiftUI
 
 struct ComparisonView: View {
     @State private var model = ComparisonModel()
+    /// The tool's own preference, not PUSH's: this app has its own defaults domain.
+    @AppStorage("resolveSelfCorrections") private var resolveSelfCorrections = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -17,6 +19,7 @@ struct ComparisonView: View {
                         ForEach(model.comparisons) { comparison in
                             ComparisonCard(comparison: comparison,
                                            pending: comparison.id == model.comparisons.first?.id ? model.pending : 0,
+                                           resolveSelfCorrections: resolveSelfCorrections,
                                            onDelete: { model.delete(comparison) })
                         }
                     }
@@ -110,6 +113,13 @@ struct ComparisonView: View {
 
             benchmarkScript
 
+            // PUSH ships this off by default, so an off run is what users get and an on
+            // run is what the setting buys. Applied to every row, past ones included,
+            // because it is recomputed from the stored raw text rather than re-transcribed.
+            Toggle("Resolve spoken self-corrections (\"15.2, I mean 1.52\" → \"1.52\")",
+                   isOn: $resolveSelfCorrections)
+                .font(.caption)
+
             Text(model.status.isEmpty ? engineSummary : model.status)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -154,6 +164,7 @@ struct ComparisonView: View {
 private struct ComparisonCard: View {
     let comparison: Comparison
     let pending: Int
+    let resolveSelfCorrections: Bool
     let onDelete: () -> Void
 
     /// Fastest first. Engines are measured in sequence, so arrival order says which ran
@@ -221,6 +232,7 @@ private struct ComparisonCard: View {
             ForEach(Array(ranked.enumerated()), id: \.element.id) { index, run in
                 EngineRow(run: run,
                           audioSeconds: comparison.audioSeconds,
+                          resolveSelfCorrections: resolveSelfCorrections,
                           isFastest: index == 0 && !run.failed && comparison.runs.count > 1)
             }
 
@@ -245,7 +257,20 @@ private struct ComparisonCard: View {
 private struct EngineRow: View {
     let run: EngineRun
     let audioSeconds: Double
+    let resolveSelfCorrections: Bool
     let isFastest: Bool
+
+    /// What PUSH would paste with the self-correction setting as toggled here. Same
+    /// order as the app: resolve first, while the "I mean" commas are intact, then
+    /// format. Rows whose engine is no longer known keep the text they were saved with.
+    private var final: String {
+        guard resolveSelfCorrections, !run.failed,
+              let model = WhisperModel.allCases.first(where: { $0.displayName == run.engine })
+        else { return run.final }
+        return TranscriptionPipeline.postProcess(
+            TranscriptionPipeline.resolveSelfCorrections(run.raw),
+            hasNativePunctuation: model.hasNativePunctuation)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -278,8 +303,8 @@ private struct EngineRow: View {
             // Both stages, because the two failure modes look identical in the final text
             // alone: a word the model misheard, and a word the pipeline mangled.
             LabeledText(label: "raw", text: run.raw)
-            if run.final != run.raw {
-                LabeledText(label: "final", text: run.final, emphasised: true)
+            if final != run.raw {
+                LabeledText(label: "final", text: final, emphasised: true)
             } else if !run.failed {
                 Text("final — unchanged by post-processing")
                     .font(.caption2)
