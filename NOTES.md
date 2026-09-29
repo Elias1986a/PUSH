@@ -28,6 +28,19 @@ move with how long you took to read it.
 | 2026-09-29 | 22.0s | 0.14s · 152× | 0.28s · 79× | 0.66s + 0.13s net | 0.0064 | Unified/Streaming/Nemotron not on disk |
 | 2026-09-29 | 21.0s | 0.15s · 142× | 0.29s · 73× | 1.04s + 0.09s net | 0.0071 | Wispr's slow run |
 | 2026-09-29 | 20.1s | 0.14s · 140× | 0.26s · 76× | 0.66s + 0.13s net | 0.0070 | |
+| 2026-09-29 | 19.6s | 0.16s · 122× | 0.28s · 69× | 0.58s + 0.10s net | 0.0082 | Unified 0.15s/134×, Streaming 0.40s/48× |
+| 2026-09-29 | 21.6s | 0.15s · 145× | 0.27s · 79× | 0.61s + 0.08s net | 0.0069 | Unified 0.16s/135×, Streaming 0.39s/55× |
+
+That closes **script v1** at five runs. Unified and Streaming only have the last
+two. Unified ties Ultra (0.15–0.16s either way); Streaming's 0.39–0.40s is
+batch-mode only — in the app it decodes while you talk, which this tool cannot
+show. On the last two runs Unified and Streaming both dropped the final `?`
+("…confirm before Friday"), fixed by `closeUnfinishedQuestion`; with
+self-corrections on, all three Parakeet engines end on `1.52 seconds`.
+
+**Script v2 (2026-09-29 on):** adds "Priya said, quote, ship it anyway, end
+quote." before the question. Cards show `script v2`. Start a new table below
+for it; don't average v1 and v2 rows.
 
 Medians: Ultra 0.14s/142×, Apple 0.28s/76×, Wispr 0.66s + 0.13s/32×. Ultra beats
 Wispr's server-side processing by 4.7×, 5.6× counting their network, and Apple
@@ -69,23 +82,16 @@ it" into "Can the Zürich team rerun it?" — an instruction turned into a
 question. It did not repeat, so don't build a claim on it; note it if it
 reappears.
 
-**The comparison tool's `final` column is a default install.**
-`EngineComparison` calls `TranscriptionPipeline.postProcess` only, and the
-self-correction resolver lives in `TranscriptionPipeline+App` behind
-`AppState.resolveSelfCorrections`, which is off by default. So the tool is
-honest about stock PUSH but will not show what the setting does. If the README
-ever leans on that setting, the tool has to run it too.
+**The comparison tool has a self-corrections toggle** (header, default on to
+match the app since 8.1.3). It re-derives `final` from stored `raw`, so it
+flips past rows too. Switching it on found two more bugs, both fixed: the
+space before a later-sentence correction was dropped ("target.Um"), and
+`normalizeClockTimes` turned "at 1.52 seconds" into "1:52" (a unit behind
+the number now overrules "at"). The sentence-opening "Um" is stripped and the
+next word capitalised (`stripSentenceOpener`).
 
-**Also spotted, not fixed here.** `removeFillerWords` strips a sentence-initial
-"Um" only at the very start of the text (`^\s*um\s*,?\s*`) or when it is bare
-between spaces (`\s+um\s+`). "…target. Um, latency came back" matches neither —
-the comma defeats the second pattern and the `^` defeats the first — so the
-filler survives. Seen on Apple Speech, but the pattern is ours and Ultra emits
-"Um" too; it only escaped because Ultra wrote it without the comma. One extra
-alternation for `(?<=[.!?])\s+um\s*,?\s*`, the same shape the "like" pass
-already uses.
-
-Next: download Unified, Streaming and Nemotron and add rows.
+Nemotron has no row: it is not on disk, and for English it would not be
+chosen anyway (`TranscriptLanguage.ultraCovers`).
 
 #### Off-script runs (not comparable to the series)
 
