@@ -1,6 +1,12 @@
 # NOTES
 
-## Current state (2026-09-29, v8.2.0 — released)
+## Current state (2026-09-29, v8.2.1 — released)
+
+8.2.1: onboarding "Choose a speech model" step (Ultra preselected on a first
+run, Continue gated on the model being loaded, no Skip and no seen-on-close
+while no speech model is on disk); launch no longer downloads a speech model
+on its own. Shared `ModelDownload.run` for Settings and the wizard.
+
 
 8.2.0: **Apple Speech removed** (worst in every benchmark; the user won't have
 Apple's AI in the product) — the lineup is Parakeet Ultra/Unified/Streaming +
