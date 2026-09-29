@@ -95,6 +95,11 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(p("Latency came back at 1.52 seconds. Is that right"),
                        "Latency came back at 1.52 seconds. Is that right?")
         XCTAssertEqual(p("What time is it"), "What time is it?")
+        // Behind a closed quotation the sentence break is `."` then a space.
+        // Missing that put the start of the sentence back at "Priya said" and
+        // left the question open (Unified and Streaming, script v2, run 3).
+        XCTAssertEqual(p("Priya said, quote, ship it anyways, end quote. Can you confirm before Friday"),
+                       "Priya said, \"Ship it anyways.\" Can you confirm before Friday?")
     }
 
     /// Only a missing terminator is filled in, and only for a sentence the

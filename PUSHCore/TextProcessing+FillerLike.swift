@@ -158,11 +158,20 @@ extension TranscriptionPipeline {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let last = trimmed.last, last.isLetter || last.isNumber else { return text }
         // The last sentence end, not a decimal point: "1.52" holds no break.
-        let breakIndex = trimmed.indices.last { i in
-            let next = trimmed.index(after: i)
-            return ".!?".contains(trimmed[i]) && (next == trimmed.endIndex || trimmed[next].isWhitespace)
+        // A closing quote may sit between the terminator and the space —
+        // `said, "Ship it anyways." Can you…` — and still ends the sentence.
+        let closers = "\"'\u{201D}\u{2019})"
+        func pastClosers(_ i: String.Index) -> String.Index {
+            var i = i
+            while i < trimmed.endIndex, closers.contains(trimmed[i]) { i = trimmed.index(after: i) }
+            return i
         }
-        let start = breakIndex.map { trimmed.index(after: $0) } ?? trimmed.startIndex
+        let breakIndex = trimmed.indices.last { i in
+            guard ".!?".contains(trimmed[i]) else { return false }
+            let next = pastClosers(trimmed.index(after: i))
+            return next == trimmed.endIndex || trimmed[next].isWhitespace
+        }
+        let start = breakIndex.map { pastClosers(trimmed.index(after: $0)) } ?? trimmed.startIndex
         guard let first = trimmed[start...].split(whereSeparator: \.isWhitespace).first,
               first.first?.isUppercase == true,
               questionWords.contains(first.lowercased()) else { return text }
