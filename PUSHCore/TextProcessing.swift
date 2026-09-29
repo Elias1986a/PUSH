@@ -92,6 +92,8 @@ public actor TranscriptionPipeline {
             out = fixTrailingComma(out)
             out = ensureEndingPunctuation(out)
             out = fixQuestionMarks(out)
+        } else {
+            out = closeUnfinishedQuestion(out)
         }
         out = smartSymbols(out)
         if !hasNativePunctuation {

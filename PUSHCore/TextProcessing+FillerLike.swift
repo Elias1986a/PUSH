@@ -103,20 +103,21 @@ extension TranscriptionPipeline {
         return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1")
     }
 
+    /// Words that open a question when they open a sentence.
+    private static let questionWords: Set<String> = [
+        "who", "what", "where", "when", "why", "how",
+        "is", "are", "am", "was", "were",
+        "do", "does", "did",
+        "can", "could", "would", "should", "shall", "will",
+        "have", "has", "had",
+        "isn't", "aren't", "don't", "doesn't", "didn't",
+        "won't", "wouldn't", "couldn't", "shouldn't",
+        "isn\u{2019}t", "aren\u{2019}t", "don\u{2019}t", "doesn\u{2019}t", "didn\u{2019}t",
+        "won\u{2019}t", "wouldn\u{2019}t", "couldn\u{2019}t", "shouldn\u{2019}t"
+    ]
+
     /// Fix question marks: sentences starting with question words should end with ?
     public static func fixQuestionMarks(_ text: String) -> String {
-        let questionWords: Set<String> = [
-            "who", "what", "where", "when", "why", "how",
-            "is", "are", "am", "was", "were",
-            "do", "does", "did",
-            "can", "could", "would", "should", "shall", "will",
-            "have", "has", "had",
-            "isn't", "aren't", "don't", "doesn't", "didn't",
-            "won't", "wouldn't", "couldn't", "shouldn't",
-            "isn\u{2019}t", "aren\u{2019}t", "don\u{2019}t", "doesn\u{2019}t", "didn\u{2019}t",
-            "won\u{2019}t", "wouldn\u{2019}t", "couldn\u{2019}t", "shouldn\u{2019}t"
-        ]
-
         // Split into sentences on . or ? or !
         // Process each sentence: if it starts with a question word and ends with ., flip to ?
         var result = ""
@@ -142,6 +143,30 @@ extension TranscriptionPipeline {
         result.append(current)
 
         return result
+    }
+
+    /// Close a final sentence the model left open when it is plainly a question.
+    ///
+    /// For engines that punctuate their own output, which skip
+    /// `fixQuestionMarks`. Parakeet Unified and Streaming ended the benchmark
+    /// script on "…Can you confirm before Friday" with no terminator at all
+    /// (2026-09-29). Only then, and only when the model itself capitalised a
+    /// question word to open that sentence: a fragment dictated into the middle
+    /// of someone's sentence ("is what I meant") starts lowercase and stays
+    /// as it is, and a period the model chose is its call, not ours.
+    public static func closeUnfinishedQuestion(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let last = trimmed.last, last.isLetter || last.isNumber else { return text }
+        // The last sentence end, not a decimal point: "1.52" holds no break.
+        let breakIndex = trimmed.indices.last { i in
+            let next = trimmed.index(after: i)
+            return ".!?".contains(trimmed[i]) && (next == trimmed.endIndex || trimmed[next].isWhitespace)
+        }
+        let start = breakIndex.map { trimmed.index(after: $0) } ?? trimmed.startIndex
+        guard let first = trimmed[start...].split(whereSeparator: \.isWhitespace).first,
+              first.first?.isUppercase == true,
+              questionWords.contains(first.lowercased()) else { return text }
+        return trimmed + "?"
     }
 
     /// Replace trailing comma with a period (model sometimes leaves a dangling comma)

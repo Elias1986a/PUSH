@@ -68,6 +68,33 @@ final class TextProcessingTests: XCTestCase {
             "Let's meet at 3:30 on Friday.")
     }
 
+    // MARK: - Unfinished questions
+
+    /// Parakeet Unified and Streaming both stopped without closing the
+    /// benchmark script's last sentence: "…Can you confirm before Friday"
+    /// (2026-09-29, a real voice). The punctuation passes are skipped for
+    /// Parakeet, so nothing put the question mark back.
+    func testAnUnclosedQuestionGetsItsQuestionMark() {
+        let p = { TranscriptionPipeline.postProcess($0, hasNativePunctuation: true) }
+        XCTAssertEqual(p("So ask the Zurich team to rerun it. Can you confirm before Friday"),
+                       "So ask the Zurich team to rerun it. Can you confirm before Friday?")
+        XCTAssertEqual(p("Latency came back at 1.52 seconds. Is that right"),
+                       "Latency came back at 1.52 seconds. Is that right?")
+        XCTAssertEqual(p("What time is it"), "What time is it?")
+    }
+
+    /// Only a missing terminator is filled in, and only for a sentence the
+    /// model itself started (capitalised) with a question word. A fragment
+    /// dictated into the middle of a sentence stays a fragment, and the
+    /// model's own period is its decision.
+    func testOnlyAnUnclosedCapitalisedQuestionIsTouched() {
+        let p = { TranscriptionPipeline.postProcess($0, hasNativePunctuation: true) }
+        XCTAssertEqual(p("is what I meant"), "is what I meant")
+        XCTAssertEqual(p("Send it over"), "Send it over")
+        XCTAssertEqual(p("Can you confirm before Friday."), "Can you confirm before Friday.")
+        XCTAssertEqual(p("It was 3.52 so how did we"), "It was 3.52 so how did we")
+    }
+
     // MARK: - Spoken quotes
 
     func testQuoteEndQuoteBecomesQuotationMarks() {
