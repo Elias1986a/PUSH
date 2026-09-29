@@ -67,6 +67,13 @@ struct OnboardingView: View {
         .onAppear {
             permissions.startPolling()
             refreshModelsOnDisk()
+            // A first run starts on the recommended model, whatever preference
+            // happens to be saved (a dev build's, or one left by an earlier
+            // install). Once a model is on disk the user has chosen before,
+            // and their choice stands.
+            if modelsOnDisk.isEmpty {
+                appState.selectedWhisperModel = .defaultModel
+            }
         }
         .onDisappear(perform: permissions.stopPolling)
         .task { await launchAtLogin.loadIfNeeded() }
