@@ -68,6 +68,20 @@ final class TextProcessingTests: XCTestCase {
             "Let's meet at 3:30 on Friday.")
     }
 
+    /// A quotation introduced by a speech verb and a comma is a sentence of its
+    /// own and starts with a capital (Chicago, AP, APA). Without the comma it
+    /// is a fragment worked into the sentence and keeps its lowercase, as does
+    /// the scare-quote idiom. Benchmark script v2, 2026-09-29.
+    func testAQuotationIntroducedBySaidCommaIsCapitalised() {
+        let q = TranscriptionPipeline.normalizeSpokenQuotes
+        XCTAssertEqual(q("Priya said, quote, ship it anyways, end quote. Can you confirm?"),
+                       "Priya said, \"Ship it anyways.\" Can you confirm?")
+        XCTAssertEqual(q("Priya said, quote, ship it anyways."), "Priya said, \"Ship it anyways.\"")
+        XCTAssertEqual(q("She replied: quote, not today, end quote."), "She replied: \"Not today.\"")
+        XCTAssertEqual(q("Joe said quote ship it end quote."), "Joe said \"ship it.\"")
+        XCTAssertEqual(q("Joe called it a quote unquote stretch goal."), "Joe called it a \"stretch goal.\"")
+    }
+
     // MARK: - Unfinished questions
 
     /// Parakeet Unified and Streaming both stopped without closing the
@@ -133,7 +147,7 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(q("Did he really say quote yes end quote?"), "Did he really say \"yes\"?")
         XCTAssertEqual(q("Stop saying quote whatever end quote!"), "Stop saying \"whatever\"!")
         XCTAssertEqual(q("She said quote fine end quote, then left."), "She said \"fine,\" then left.")
-        XCTAssertEqual(q("He asked, quote, are we done? End quote."), "He asked, \"are we done?\"")
+        XCTAssertEqual(q("He asked, quote, are we done? End quote."), "He asked, \"Are we done?\"")
         XCTAssertEqual(q("He asked, and I quote, are we done?"), "He asked, and I quote, \"are we done?\"")
     }
 
@@ -141,7 +155,7 @@ final class TextProcessingTests: XCTestCase {
     func testAbbreviationsDoNotEndAQuote() {
         let q = TranscriptionPipeline.normalizeSpokenQuotes
         XCTAssertEqual(q("He told me, quote, we're shipping at 3:30 p.m. tomorrow, end quote, so plan for that."),
-                       "He told me, \"we're shipping at 3:30 p.m. tomorrow,\" so plan for that.")
+                       "He told me, \"We're shipping at 3:30 p.m. tomorrow,\" so plan for that.")
         XCTAssertEqual(q("She said and I quote see Dr. Lee at 9 a.m. sharp. Then she left."),
                        "She said and I quote, \"see Dr. Lee at 9 a.m. sharp.\" Then she left.")
     }
@@ -153,7 +167,7 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(q("Quote alliance is here."), "\"Alliance is here.\"")
         XCTAssertEqual(q("Elias said quote let's go home."), "Elias said \"let's go home.\"")
         XCTAssertEqual(q("He said, quote, let's go home. Then we left."),
-                       "He said, \"let's go home.\" Then we left.")
+                       "He said, \"Let's go home.\" Then we left.")
         XCTAssertEqual(q("She told me quote not now, maybe later."), "She told me \"not now, maybe later.\"")
     }
 

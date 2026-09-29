@@ -24,6 +24,8 @@ extension TranscriptionPipeline {
     /// Straight quotes, because they paste correctly into every app.
     public static func normalizeSpokenQuotes(_ text: String) -> String {
         var result = normalizeQuoteUnquote(text)
+        let speech = "(?:said|says|say|saying|wrote|writes|asked|asks|replied|replies|goes|went"
+            + "|yelled|shouted|texted|told\\s+(?:me|us|him|her|them|you))"
         let opener = "(and\\s+I\\s+quote|(?:open\\s+|begin\\s+)?quote)"
         // "quote-end quote" / "quote unquote" also closes a quote already open:
         // "Quote, that seems pretty good quote-end quote."
@@ -48,7 +50,8 @@ extension TranscriptionPipeline {
             let moves = trailing == "." || trailing == ","
             let body = joinPunctuation(quoted + inner, moves ? trailing : "")
             let kept = prefix(for: marker)
-            return lead + kept + "\"" + capitalized(body, if: g.startsSentence && kept.isEmpty)
+            let opensSentence = g.startsSentence || introducedBySpeech(g.preceding + lead, speech: speech)
+            return lead + kept + "\"" + capitalized(body, if: opensSentence && kept.isEmpty)
                 + "\"" + (moves ? "" : trailing)
         }
 
@@ -63,8 +66,6 @@ extension TranscriptionPipeline {
         // where a quotation begins — sentence start, after a comma or colon, or
         // after a speech verb — and not before "me", "for", "from" and the like
         // ("quote me on that", "a quote for the roof").
-        let speech = "(?:said|says|say|saying|wrote|writes|asked|asks|replied|replies|goes|went"
-            + "|yelled|shouted|texted|told\\s+(?:me|us|him|her|them|you))"
         let bareLead = "(^|[.!?]\\s+|[,:;]\\s*|\\b" + speech + "\\s+)"
         // …and never straight into a closer: "quote, end quote" with nothing
         // between is the idiom, and quoting the words "end quote" is nonsense.
@@ -78,8 +79,8 @@ extension TranscriptionPipeline {
             let lead = explicit ? g[0] : g[2]
             let marker = explicit ? g[1] : g[3]
             let (quoted, trailing) = (g[4], g[5])
-            let startsSentence = lead.isEmpty ? g.matchStartsText : lead.trimmingCharacters(in: .whitespaces)
-                .last.map { ".!?".contains($0) } ?? false
+            let startsSentence = (lead.isEmpty ? g.matchStartsText : lead.trimmingCharacters(in: .whitespaces)
+                .last.map { ".!?".contains($0) } ?? false) || introducedBySpeech(g.preceding + lead, speech: speech)
             let trimmed = quoted.trimmingCharacters(in: .whitespaces)
             let kept = prefix(for: marker)
             return lead + kept + "\""
@@ -118,6 +119,15 @@ extension TranscriptionPipeline {
         return first.uppercased() + text.dropFirst()
     }
 
+    /// Whether a quotation follows a speech verb and a comma or colon — "Priya
+    /// said, quote, ship it" — which makes it a sentence of its own that takes
+    /// a capital (Chicago, AP, APA): `Priya said, "Ship it anyways."`. Without
+    /// the comma it is a fragment worked into the sentence ("Joe said \"ship
+    /// it\"") and keeps its case, like the scare-quote idiom.
+    private static func introducedBySpeech(_ preceding: String, speech: String) -> Bool {
+        preceding.range(of: "(?i)\\b" + speech + "\\s*[,:]\\s*$", options: .regularExpression) != nil
+    }
+
     /// What is kept of the opener: "and I quote" stays as written (with the
     /// comma it takes before a quotation); every other opener is dropped.
     private static func prefix(for marker: String) -> String {
@@ -146,15 +156,19 @@ extension TranscriptionPipeline {
                 guard let r = Range(match.range(at: i), in: result) else { return "" }
                 return String(result[r])
             }
-            result.replaceSubrange(whole, with: build(Groups(values: values, matchStartsText: match.range.location == 0)))
+            let groups = Groups(values: values, matchStartsText: match.range.location == 0,
+                                preceding: String(result[..<whole.lowerBound]))
+            result.replaceSubrange(whole, with: build(groups))
         }
         return result
     }
 
-    /// Capture groups of one match, plus whether the match began the text.
+    /// Capture groups of one match, whether the match began the text, and the
+    /// text in front of it.
     private struct Groups {
         let values: [String]
         let matchStartsText: Bool
+        let preceding: String
         subscript(i: Int) -> String { values[i] }
 
         /// For the paired pattern: its first group is the sentence start (or
