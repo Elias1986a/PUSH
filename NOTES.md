@@ -7,6 +7,37 @@ lines up with the previous sentence's tail (name/number/day/month/same word);
 Parakeet Unified and Streaming are per-encoder downloads (delete one, keep the
 other — `ParakeetUnifiedEngine.hasMode/deleteMode`).
 
+### Benchmark re-run, 29 September 2026
+
+One 15.2s utterance through `compare/`. Only the engines that were on disk ran —
+Unified, Streaming and Nemotron were not downloaded, so this is Ultra, Apple
+Speech and Wispr Flow only.
+
+| engine | transcribe | × realtime |
+|---|---|---|
+| Parakeet Ultra | 0.18s | 84× |
+| Apple Speech | 0.20s | 77× |
+| Wispr Flow (cloud) | 0.62s + 0.12s network | 25× |
+
+**Ultra beats Wispr's server-side processing by 3.4×**, 4.1× counting their
+network. The README's old headline said 8× — that was Unified on an 8.3s clip in
+August, not a regression here: per second of audio Ultra runs 0.012 s/s against
+Unified's 0.0074 s/s on a different sample and a different machine state. The
+public number moved to what was actually measured.
+
+**First accuracy data point.** Spoken: "five million dollar challenge". Ultra's
+*raw* output was already `$5 million challenge` and post-processing left it
+alone. Apple Speech gave `$5000000`, which our formatter rewrote to
+`$5,000,000` — right value, different convention from what was said. Wispr's raw
+was `five million dollar challenge`; `$5 million` came from their server-side
+cleanup, along with commas around "everyone" and a colon before the name list.
+So Ultra is the only one that produced the written form on device with nothing
+to fix.
+
+Caveat that applies to both runs: single utterance, single machine. Worth
+re-running with Unified/Streaming/Nemotron downloaded before anyone leans on the
+multiples.
+
 ### v8.1.0
 
 Shipped 2026-09-26/27 (8.0.3 → 8.1.0): FluidAudio 0.17.4; Parakeet Ultra (now the
@@ -133,6 +164,10 @@ Measured on one 8.3s utterance, all seven engines plus Wispr:
 
 **Parakeet Unified beats Wispr's server-side processing by 8×**, before counting their
 network. Accuracy is still unmeasured — that is what the side-by-side is for.
+
+(Superseded by the 29 September 2026 re-run at the top of this file: Ultra is the
+default now, TDT v2 and Whisper are gone, and the Wispr multiple measured 3.4× on a
+longer utterance. These August figures stay as the record of why Whisper was dropped.)
 
 **Things that cost time here, worth not re-learning:**
 
