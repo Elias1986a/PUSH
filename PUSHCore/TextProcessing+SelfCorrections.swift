@@ -151,6 +151,11 @@ extension TranscriptionPipeline {
             // Long runs after a marker are new thoughts, not corrections.
             guard correction.count <= maximumCorrectionWords else { continue }
 
+            // The same words again, stronger — "cold, I mean very cold" — is
+            // emphasis. Resolving it pasted "Very cold." for "It's cold, I mean
+            // very cold.", deleting what the speaker was emphasising.
+            if isEmphasis(after, of: clause) { continue }
+
             // Replacement: drop the span the correction replaces, capped at the
             // clause so the previous sentence is never touched.
             var kept = clause.split(whereSeparator: \.isWhitespace).map(String.init)
@@ -252,6 +257,34 @@ extension TranscriptionPipeline {
             }
         }
         return correction.count
+    }
+
+    /// Intensifiers that turn a repeat into emphasis rather than a fix.
+    private static let intensifiers: Set<String> = [
+        "really", "very", "so", "super", "extremely", "incredibly", "totally",
+        "completely", "absolutely", "pretty", "seriously", "truly", "quite"
+    ]
+
+    /// Whether what follows the marker is the end of `clause` said again with
+    /// intensifiers in front: "expensive" → "really expensive", "close" →
+    /// "really, really close". The intensifiers are skipped commas and all
+    /// (the first comma would otherwise end it at "really,"); what they lead
+    /// into runs to the next comma or sentence end, so "very cold, so bring a
+    /// coat" compares "cold".
+    private static func isEmphasis(_ after: String, of clause: String) -> Bool {
+        let norm = { (w: String) in w.lowercased().trimmingCharacters(in: .punctuationCharacters) }
+        let tokens = after.split(whereSeparator: \.isWhitespace).map(String.init)
+        let lead = tokens.prefix(while: { intensifiers.contains(norm($0)) }).count
+        guard lead > 0 else { return false }
+        var core: [String] = []
+        for token in tokens.dropFirst(lead) {
+            core.append(norm(token))
+            if let last = token.last, ",;.!?".contains(last) { break }
+        }
+        core.removeAll(where: \.isEmpty)
+        guard !core.isEmpty else { return false }
+        let tail = clause.split(whereSeparator: \.isWhitespace).map { norm(String($0)) }.filter { !$0.isEmpty }
+        return tail.suffix(core.count).elementsEqual(core)
     }
 
     /// The correction itself: the words after a marker up to the next comma,

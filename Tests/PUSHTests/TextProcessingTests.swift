@@ -674,6 +674,20 @@ final class TextProcessingTests: XCTestCase {
                        "The report is done. The numbers look good.")
     }
 
+    /// Saying it again, stronger, is emphasis, not a correction. Resolving it
+    /// deleted words: "It's cold, I mean very cold." pasted as "Very cold."
+    func testEmphasisIsNotACorrection() {
+        for s in ["It was expensive, I mean really expensive.",
+                  "It's cold, I mean very cold.",
+                  "The drive was long, I mean so long.",
+                  "We were close, I mean really, really close.",
+                  "It's cold, I mean very cold, so bring a coat."] {
+            XCTAssertEqual(resolve(s), s)
+        }
+        // A real correction that happens to start with an intensifier still resolves.
+        XCTAssertEqual(resolve("It's very small, I mean very big."), "It's very big.")
+    }
+
     /// The thousands separator is the same trap with a comma.
     func testGroupedNumbersAreNotClauseBoundaries() {
         XCTAssertEqual(resolve("It costs 1,500, I mean 2,500"),
