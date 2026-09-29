@@ -850,6 +850,24 @@ final class SpokenFormattingTests: XCTestCase {
         XCTAssertEqual(fmt("Bullet point call mom. She's waiting."), "- Call mom. She's waiting.")
     }
 
+    func testNumberedLists() {
+        XCTAssertEqual(fmt("Number one, milk. Number two, eggs. Number three, bread."),
+                       "1. Milk\n2. Eggs\n3. Bread")
+        XCTAssertEqual(fmt("Here's the plan: number one, ship it. Number 2, tell Priya."),
+                       "Here's the plan:\n1. Ship it\n2. Tell Priya")
+        XCTAssertEqual(fmt("Two things. Number one call mom, number two book the table."),
+                       "Two things.\n1. Call mom\n2. Book the table")
+    }
+
+    func testANumberOnItsOwnIsNotAList() {
+        for s in ["We're number one.",
+                  "Okay, number two on my list is the budget.",
+                  "Number one, it's too late. We'll talk tomorrow.",
+                  "Number two, then number one."] {
+            XCTAssertEqual(fmt(s), s)
+        }
+    }
+
     func testTheOrdinaryWordsAreLeftAlone() {
         for s in ["We launched a new line of shoes.",
                   "It's the new line.",

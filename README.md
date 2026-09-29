@@ -15,7 +15,7 @@ in whatever you were typing in. Nothing leaves your Mac.
 - **Fully offline.** Speech recognition runs on the Neural Engine. No accounts, no API keys, no network.
 - **Fixes itself as you speak.** "The red car, I mean the blue car" pastes *the blue car*. On by default; one switch turns it off.
 - **Cleans up as it goes.** Drops "um" and "uh", writes times, money, percentages and spoken quotes the way you would type them, and closes a question the model left open.
-- **Lays text out when you ask.** Say "new line", "new paragraph" or "bullet point" and it breaks the line or starts a list item.
+- **Lays text out when you ask.** Say "new line", "new paragraph" or "bullet point" and it breaks the line or starts a list item; "number one … number two …" makes a numbered list.
 - **California mode.** An optional switch that removes casual "like" — "it was like really good" pastes *it was really good* — while keeping "I like it", "looks like rain" and "like I said".
 - **Personal dictionary.** Teach it names and jargon it keeps mishearing — globally, or only in context.
 - **Live pill.** A floating capsule shows it is listening; Parakeet Streaming draws the words as you say them.

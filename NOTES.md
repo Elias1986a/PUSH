@@ -2,7 +2,8 @@
 
 ## Current state (2026-09-29, v8.2.1 — released)
 
-Unreleased on main: spoken layout ("new line", "new paragraph", "bullet point"
+Unreleased on main: spoken layout ("new line", "new paragraph", "bullet point",
+numbered lists from "number one … number two …" counting up from one
 — only at a break, never before a preposition/verb) and a ranked microphone
 list (first attached wins; built-in mic skipped with the lid closed). Needs a
 real-voice check of where Parakeet puts commas around the commands, and a look
@@ -21,12 +22,9 @@ MacParakeet). Not committed to; each needs the user's go-ahead.
   Transforms): highlight, speak "make this shorter". To explore. Needs a
   language model — open, local only (no Apple AI); small local models lost to
   rules on self-correction, so size/quality is the open question.
-- **SenseVoice Small** (VoiceInk ships it) — explored 2026-09-29, see the answer
-  in the session: strong and fast for Chinese/Japanese/Korean/Cantonese, weaker
-  than Parakeet on English. Only candidate role: an alternative to Nemotron for
-  CJK. A CoreML export exists (korakotlee/sensevoice-small-coreml).
 - Rejected, don't re-propose: transcript history / paste-last (privacy),
-  snippets, meeting notetaker, usage stats, per-app tone styles.
+  snippets, meeting notetaker, usage stats, per-app tone styles, SenseVoice
+  (weaker than Parakeet on English; the user dropped it 2026-09-29).
 
 8.2.1: onboarding "Choose a speech model" step (Ultra preselected on a first
 run, Continue gated on the model being loaded, no Skip and no seen-on-close
