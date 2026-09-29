@@ -22,6 +22,13 @@ MacParakeet). Not committed to; each needs the user's go-ahead.
   Transforms): highlight, speak "make this shorter". To explore. Needs a
   language model — open, local only (no Apple AI); small local models lost to
   rules on self-correction, so size/quality is the open question.
+- **A purpose-trained cleanup model** — back pocket. VoiceInk Refine V1
+  (huggingface.co/beingpax/VoiceInk-Refine-V1) is Qwen3.5-2B fine-tuned only for
+  transcript cleanup, 4-bit, 1.08 GB. Our bake-off used general small models
+  (Qwen 0.5B/1.5B, Llama 1B) and dropped them on size vs. gain; a model trained
+  for this one job is the version that might earn its size. If revisited: run it
+  through `eval/run_llm_eval.py` against the rules (44/50), and check its
+  licence before shipping anything built on it.
 - Rejected, don't re-propose: transcript history / paste-last (privacy),
   snippets, meeting notetaker, usage stats, per-app tone styles, SenseVoice
   (weaker than Parakeet on English; the user dropped it 2026-09-29).
