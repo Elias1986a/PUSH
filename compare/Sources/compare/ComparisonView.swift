@@ -1,3 +1,4 @@
+import AppKit
 import PUSHCore
 import SwiftUI
 
@@ -23,6 +24,48 @@ struct ComparisonView: View {
                 }
             }
         }
+    }
+
+    /// The fixed passage, on screen while recording so every run says the same words.
+    ///
+    /// It sits in the header rather than behind a disclosure: a script you have to go
+    /// looking for is a script that gets paraphrased, and a paraphrased run is not
+    /// comparable to the one before it. Emphasised while recording so it stays
+    /// readable at arm's length from the microphone.
+    private var benchmarkScript: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "text.quote")
+                    .font(.caption2)
+                Text("Read this — the same words every run")
+                    .font(.caption.weight(.semibold))
+                Spacer()
+                Button("Copy") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(BenchmarkScript.text, forType: .string)
+                }
+                .buttonStyle(.link)
+                .font(.caption)
+            }
+            .foregroundStyle(.secondary)
+
+            Text(BenchmarkScript.text)
+                .font(.system(size: 15, design: .serif))
+                .fontWeight(model.isRecording ? .semibold : .regular)
+                .lineSpacing(3)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(BenchmarkScript.exercises.joined(separator: " · "))
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.secondary.opacity(model.isRecording ? 0.16 : 0.07))
+        )
     }
 
     private var header: some View {
@@ -64,6 +107,8 @@ struct ComparisonView: View {
                 .controlSize(.large)
                 .disabled(model.isRecording)
             }
+
+            benchmarkScript
 
             Text(model.status.isEmpty ? engineSummary : model.status)
                 .font(.caption)
