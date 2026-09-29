@@ -23,8 +23,10 @@ final class SelfCorrectionEvalTests: XCTestCase {
             .map { try JSONDecoder().decode(Case.self, from: Data($0.utf8)) }
 
         var tally: [String: (pass: Int, total: Int)] = [:]
+        var outputs: [String] = []
         for c in cases {
             let got = TranscriptionPipeline.resolveSelfCorrections(c.input)
+            outputs.append(got)
             let pass = got == c.expected
             tally[c.category, default: (0, 0)].total += 1
             if pass { tally[c.category]!.pass += 1 } else {
@@ -36,5 +38,11 @@ final class SelfCorrectionEvalTests: XCTestCase {
         }
         let passed = tally.values.map(\.pass).reduce(0, +)
         print("EVAL| total: \(passed)/\(cases.count)")
+
+        // `eval/run_llm_eval.py` falls back to these when a model's answer
+        // fails its check, exactly as the app would fall back to the rules.
+        if let out = ProcessInfo.processInfo.environment["PUSH_EVAL_RULES_OUT"] {
+            try JSONEncoder().encode(outputs).write(to: URL(fileURLWithPath: out))
+        }
     }
 }

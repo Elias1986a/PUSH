@@ -396,6 +396,27 @@ The two known misses are deliberate and unchanged — "is just like human level
 common courtesy", "never put like a corporate lens". They are the LLM
 resolver's job (see below), not a looser rule's.
 
+### Smarter self-correction — model bake-off (2026-09-29)
+
+`eval/self_corrections.jsonl` (50 cases) + `eval/run_llm_eval.py` (llama-server,
+few-shot, temperature 0; an answer is accepted only if every word in it was
+spoken, else the rules' output is used). Rules alone, after two bug fixes: **43/50**.
+
+| model | score | non-corrections kept | median / max |
+|---|---|---|---|
+| rules | 43/50 | 14/15 | — |
+| Qwen2.5-0.5B Q4 | 35/50 | 13/15 | 66 / 152 ms |
+| Qwen2.5-1.5B Q4 | 37/50 | 15/15 | 138 / 324 ms |
+| Llama-3.2-1B Q4 | 36/50 | 9/15 | 99 / 222 ms |
+
+None beats the rules as a free-form rewriter. Qwen 1.5B is safe (never deleted a
+non-correction) but mostly timid — returned the text unchanged or kept the
+mistake ("The red car, I mean the blue car" left as is). Llama deletes
+aggressively: 6 of 15 ordinary sentences lost words ("It's great." from "It's
+great. I mean, it really works."). The word check cannot catch a wrong
+*deletion*, only an invented word, so free-form output is the wrong shape for
+models this small.
+
 ### Still open
 
 - **Onboarding: choose and download a model before the app starts** (asked

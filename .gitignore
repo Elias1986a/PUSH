@@ -75,3 +75,6 @@ compare/.build/
 
 # compare/.build is a symlink out of iCloud (see root .build)
 compare/.build
+eval/.rules_output.json
+eval/.server.log
+eval/.llm_eval_results.json
