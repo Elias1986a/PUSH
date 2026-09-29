@@ -439,7 +439,7 @@ left after a replaced subject ("The blue car, is outside.").
 
 ### Still open
 
-- **Onboarding model step — built, not yet seen on screen** (2026-09-29). Step 3
+- **Onboarding model step — built; layout checked on a dev build** (2026-09-29). Step 3
   of 7, "Choose a speech model": four cards (Ultra preselected), Download with
   progress via the shared `ModelDownload.run` (Settings uses it too), Continue
   disabled until the chosen model is loaded. Skip hidden and closing the window
