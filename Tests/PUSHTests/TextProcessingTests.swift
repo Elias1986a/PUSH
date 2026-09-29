@@ -463,10 +463,13 @@ final class TextProcessingTests: XCTestCase {
     /// " um " rule and the start-of-text rule is anchored to `^`.
     func testFillerOpeningALaterSentenceIsRemoved() {
         XCTAssertEqual(filler("of the $5 million target. Um, latency came back"),
-                       "of the $5 million target. latency came back")
+                       "of the $5 million target. Latency came back")
         XCTAssertEqual(filler("That works. Uh, let me check"),
-                       "That works. let me check")
-        XCTAssertEqual(filler("Right. Um so we ship"), "Right. so we ship")
+                       "That works. Let me check")
+        XCTAssertEqual(filler("Right. Um so we ship"), "Right. So we ship")
+        // The start of the text too: dictation into the middle of a sentence
+        // is what the engines lowercase, and a filler never opens one of those.
+        XCTAssertEqual(filler("um, let me check"), "Let me check")
     }
 
     /// The comma after the filler is optional, so the rules need a word
@@ -483,7 +486,7 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(filler("it works for like normal situations"),
                        "it works for normal situations")
         XCTAssertEqual(filler("Like, I don't know"), "I don't know")
-        XCTAssertEqual(filler("Fine. Like, whatever"), "Fine. whatever")
+        XCTAssertEqual(filler("Fine. Like, whatever"), "Fine. Whatever")
     }
 
     /// Real dictation. Both of these survived the first implementation, which

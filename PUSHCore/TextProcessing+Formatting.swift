@@ -96,13 +96,7 @@ extension TranscriptionPipeline {
 
         // Sentence-initial: "Like, I don't know" — nothing precedes it to
         // compare to, so it cannot be the comparison sense.
-        if let regex = try? NSRegularExpression(
-            pattern: "(^|(?<=[.!?])\\s+)like\\s*,\\s*",
-            options: .caseInsensitive
-        ) {
-            let range = NSRange(result.startIndex..., in: result)
-            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1")
-        }
+        result = stripSentenceOpener("(^|(?<=[.!?])\\s+)like\\s*,\\s*", from: result)
 
         result = removeFillerLike(result)
 
@@ -120,10 +114,7 @@ extension TranscriptionPipeline {
             // `\b` because the comma is optional: without it the pattern ate
             // the first two letters of any text opening with "Umbrella" or
             // "Uhuru", leaving "brella".
-            if let regex = try? NSRegularExpression(pattern: "^\\s*\(filler)\\b\\s*,?\\s*", options: .caseInsensitive) {
-                let range = NSRange(result.startIndex..., in: result)
-                result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "")
-            }
+            result = stripSentenceOpener("(^)\\s*\(filler)\\b\\s*,?\\s*", from: result)
             // Opening a later sentence: "…the target. Um, latency came back".
             //
             // Neither rule around this one catches that shape — the comma
@@ -131,13 +122,7 @@ extension TranscriptionPipeline {
             // very start of the text — so the filler survived into the final
             // transcript (seen in a benchmark run, 2026-09-29). Same form as
             // the sentence-initial "like" pass above.
-            if let regex = try? NSRegularExpression(
-                pattern: "(?<=[.!?])(\\s+)\(filler)\\b\\s*,?\\s*",
-                options: .caseInsensitive
-            ) {
-                let range = NSRange(result.startIndex..., in: result)
-                result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1")
-            }
+            result = stripSentenceOpener("(?<=[.!?])(\\s+)\(filler)\\b\\s*,?\\s*", from: result)
             // Standalone mid-sentence: " um " (no commas)
             if let regex = try? NSRegularExpression(pattern: "\\s+\(filler)\\s+", options: .caseInsensitive) {
                 let range = NSRange(result.startIndex..., in: result)
@@ -151,5 +136,27 @@ extension TranscriptionPipeline {
         }
 
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Remove a filler that opens a sentence, and give its capital to the word
+    /// that now opens it: "…target. Um, latency" → "…target. Latency".
+    ///
+    /// Left lowercase until 8.1.3, deliberately, because `fixCapitalization`
+    /// was expected to clean up after it. It never does for Parakeet: the
+    /// model punctuates its own output, so that pass is skipped, and the
+    /// benchmark script showed "target. latency" on the default engine.
+    ///
+    /// `pattern`'s first group is what precedes the filler and is kept.
+    private static func stripSentenceOpener(_ pattern: String, from text: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { return text }
+        var result = text
+        for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).reversed() {
+            guard let whole = Range(match.range, in: result) else { continue }
+            let lead = Range(match.range(at: 1), in: result).map { String(result[$0]) } ?? ""
+            let next = whole.upperBound < result.endIndex ? result.index(after: whole.upperBound) : whole.upperBound
+            result.replaceSubrange(whole.lowerBound..<next,
+                                   with: lead + result[whole.upperBound..<next].uppercased())
+        }
+        return result
     }
 }
