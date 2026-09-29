@@ -1,6 +1,12 @@
 # NOTES
 
-## Current state (2026-09-27, v8.1.1 — released)
+## Current state (2026-09-29, v8.1.2 — released)
+
+8.1.2 (PR #20): decimals no longer read as sentence ends in self-corrections
+("15.2 … I mean 1.52"); a filler opening a later sentence (". Um, …") is
+stripped; "Umbrella" no longer loses "Um". Built with stable Xcode 27.1 —
+Xcode-beta is no longer installed.
+
 
 8.1.1: self-corrections may reach back across a sentence break when a short fix
 lines up with the previous sentence's tail (name/number/day/month/same word);
