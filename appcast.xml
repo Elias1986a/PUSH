@@ -5,6 +5,98 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
+            <title>Version 8.2.2</title>
+            <pubDate>Tue, 29 Sep 2026 16:13:06 -0700</pubDate>
+            <sparkle:version>96</sparkle:version>
+            <sparkle:shortVersionString>8.2.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+<meta charset="utf-8">
+<style>
+:root { color-scheme: light dark; }
+body { font: 13px -apple-system, sans-serif; line-height: 1.45; margin: 12px 16px; }
+h2 { font-size: 15px; margin: 0 0 6px; }
+.older { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(128,128,128,.3); }
+h2 .tag { font-size: 11px; font-weight: 600; color: #fff; background: #0a84ff;
+          border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; }
+h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity: .6; margin: 10px 0 4px; }
+ul { margin: 0; padding-left: 18px; }
+li { margin: 3px 0; }
+code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
+.older { opacity: .75; }
+</style>
+<div class="latest"><h2>Version 8.2.2 <span class="tag">New</span></h2>
+<h3>New</h3>
+<ul>
+<li><strong>Lay out text by voice.</strong> Say "new line" or "new paragraph" where you pause and PUSH breaks the line. Say "bullet point" before each item for a bulleted list.</li>
+<li><strong>Numbered lists.</strong> "Number one, milk. Number two, eggs." pastes as <code>1. Milk</code> and <code>2. Eggs</code> on their own lines. It only becomes a list when the numbers count up from one, so "we're number one" stays a sentence.</li>
+<li><strong>Rank your microphones</strong> (Settings ▸ Dictation). Add the mics you use in the order you prefer; PUSH records from the first one that's connected, and switches as soon as you plug one in.</li>
+<li><strong>Closed-lid mode.</strong> With your MacBook's lid shut, PUSH skips the built-in microphone, which records silence when the lid is closed, and uses a real one instead.</li>
+<li><strong>What's new, right here.</strong> Update notes now show in this window, with the last few versions below.</li>
+</ul>
+<h3>Changed</h3>
+<ul>
+<li>The single microphone choice is now a list. If you had picked one, add it again in Settings ▸ Dictation.</li>
+</ul></div>
+<div class="older"><h2>Version 8.2.1</h2>
+<h3>New</h3>
+<ul>
+<li><strong>Choose your speech model during setup.</strong> On first launch, the welcome wizard now has a "Choose a speech model" step. Parakeet Ultra is selected and recommended. Press Download, watch the progress, and continue once the model is ready. Setup can't be skipped until a model is on your Mac, since PUSH can't dictate without one.</li>
+</ul>
+<h3>Changed</h3>
+<ul>
+<li><strong>PUSH no longer downloads a speech model silently at first launch.</strong> The 600 MB download now happens only when you choose it, in setup or in Settings ▸ Models. The small supporting models still load automatically.</li>
+</ul></div>
+<div class="older"><h2>Version 8.2.0</h2>
+<h3>New</h3>
+<ul>
+<li><strong>California mode</strong> (Settings ▸ Text, off by default). Removes casual "like": "It was like really good" → "It was really good." Keeps "I like it", "looks like rain", "like I said", "like 30 minutes" and "he was like, no way."</li>
+</ul>
+<h3>Changed</h3>
+<ul>
+<li><strong>Apple Speech has been removed.</strong> It was the least accurate engine in every benchmark. The models are now Parakeet Ultra (default), Parakeet Unified, Parakeet Streaming and Nemotron Multilingual. If Apple Speech was your choice, PUSH switches to Parakeet Ultra.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li><strong>Emphasis isn't treated as a correction.</strong> "It's cold, I mean very cold." used to paste as "Very cold."</li>
+<li><strong>"Scratch that"</strong> no longer leaves a stray period at the start of the next sentence.</li>
+<li><strong>Corrected numbers are replaced whole.</strong> "The budget is 5 million. Sorry, 6 million." → "The budget is 6 million."</li>
+<li><strong>A question after a quote gets its "?".</strong> <code>Priya said, "Ship it anyway." Can you confirm before Friday?</code></li>
+<li><strong>Quotes after "said," start with a capital.</strong> <code>Priya said, "Ship it anyway."</code></li>
+</ul></div>
+<div class="older"><h2>Version 8.1.3</h2>
+<ul>
+<li><strong>Spoken self-corrections are on by default:</strong> "15.2 seconds, I mean 1.52 seconds" pastes as "1.52 seconds". Turn it off in Settings ▸ Text.</li>
+<li><strong>Missing question marks:</strong> when the model leaves a question unpunctuated ("…Can you confirm before Friday"), PUSH adds the "?" — including right after a quotation.</li>
+<li><strong>Quotes after "said,":</strong> <code>Priya said, quote, ship it anyway, end quote</code> → <code>Priya said, "Ship it anyway."</code></li>
+<li><strong>Capital after a removed filler:</strong> "…target. Um, latency…" → "…target. Latency…"</li>
+<li><strong>Numbers with units stay numbers:</strong> "at 1.52 seconds" or "by 2.25 percent" no longer turn into clock times.</li>
+<li><strong>Spacing:</strong> a correction in a later sentence no longer glues it to the sentence before.</li>
+</ul></div>
+<div class="older"><h2>Version 8.1.2</h2>
+<ul>
+<li><strong>Decimals in self-corrections:</strong> "latency came back at 15.2 seconds, I mean 1.52 seconds" now resolves to "…1.52 seconds" instead of garbling into "15. 1. 52 seconds". (Only applies with spoken self-corrections switched on.)</li>
+<li><strong>Fillers mid-text:</strong> an "Um," that opens a later sentence is now removed, not just one at the very start.</li>
+<li><strong>"Umbrella" is safe:</strong> text starting with words like "Umbrella" no longer loses its first letters to the filler remover.</li>
+</ul></div>
+<div class="older"><h2>Version 8.1.1</h2>
+<ul>
+<li><strong>Corrections across a sentence break:</strong> "…send a letter to Sarah? I mean John." → "…send a letter to John?"; "…at eight o'clock. I mean four o'clock." → "…at four o'clock." Only when the short fix clearly matches the end of the previous sentence (a name for a name, a number for a number).</li>
+<li><strong>Parakeet Unified and Streaming are separate downloads:</strong> deleting one no longer deletes the other, and each shows its own size.</li>
+</ul></div>
+<div class="older"><h2>Version 8.1.0</h2>
+<p>Everything since 8.0.2, now on the default <strong>Parakeet Ultra</strong>:</p>
+<ul>
+<li><strong>Spoken corrections are stricter and smarter.</strong> "Tuesday, sorry, Wednesday" → Wednesday; "It costs 20, correction, 25 dollars" → 25 dollars; "before 7.0. 8.0, sorry." → before 8.0. Everyday phrases ("I mean," to start a sentence, "Sorry for the delay", "delete that file") are no longer touched, and long sentences after "I mean" no longer delete what came before.</li>
+<li><strong>Parakeet Ultra is the default</strong> — English plus the Latin-script European languages, detected automatically. Nemotron Multilingual covers the rest.</li>
+<li><strong>Spoken quotes</strong> — "quote … end quote", "quote unquote", and a "quote" that closes itself at the end of the sentence.</li>
+<li><strong>Clock times</strong> written as 3:30.</li>
+<li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
+</ul></div>
+            ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.2/PUSH-v8.2.2.zip" type="application/octet-stream" sparkle:edSignature="rhxpjeDdvlo4wuglYQkEBr0xr8gtofmRCgIdmCDBM9lJC+oBIhz7ufgN0LFUkFUxjpVAXHqXTp8M+0R8CYxfBg==" length="14183331" />
+        </item>
+        <item>
             <title>Version 8.2.1</title>
             <pubDate>Tue, 29 Sep 2026 15:15:45 -0700</pubDate>
             <sparkle:version>95</sparkle:version>
