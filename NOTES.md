@@ -392,14 +392,16 @@ resolver's job (see below), not a looser rule's.
 
 ### Still open
 
-- **Cross-Mac sync has still only been exercised on one machine.** The
-  capability is proven (a KVS write crossed in 2 seconds), but the shipped
-  feature has not been watched end to end. Now that both Macs can run 6.5.2:
-  add a dictionary word on one, watch it appear on the other.
-- **Phase 2, the LLM resolver.** Job description below; unchanged.
-- **Stale remote branches.** `claude/realtime-speech-display-quculk` (Aug 12)
-  never merged — live preview shipped down a different path and main's version
-  is well past it. The other `claude/*` branches are merged and can go too.
+- ~~Cross-Mac sync end to end~~ — tested by the user across both Macs, works
+  (confirmed 2026-09-29).
+- **Phase 2, the LLM resolver.** Job description below; unchanged. The user
+  wants this improved — it is the standing answer to the span heuristic's
+  wrong guesses now that self-corrections are on by default (8.1.3).
+- ~~Stale remote branches~~ — origin has only `main` (2026-09-29). The Aug 31
+  worktree under `.claude/worktrees/` was clean and in main; removed.
+  One stash remains, `Teleport auto-stash` on `claude/push-onboarding-waveform`
+  (2026-09-04): swaps `nextel_chirp.mp3` for `push_chime.wav` in SoundPlayer.
+  Left for the user to keep or drop.
 
 ### Release pipeline gotcha found today
 
