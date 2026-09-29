@@ -44,15 +44,11 @@ final class LaunchModelTests: XCTestCase {
             .parakeetStreaming)
     }
 
-    /// A first launch has nothing to fall back on, and the one download nobody
-    /// asked for that is still right is the one that makes the app exist.
-    func testAFreshInstallStillDownloadsWhatWasChosen() {
-        XCTAssertEqual(
-            ModelLoader.launchModel(preferred: .nemotronMultilingual, ready: []),
-            .nemotronMultilingual)
-        XCTAssertEqual(
-            ModelLoader.launchModel(preferred: .parakeetUnified, ready: []),
-            .parakeetUnified)
+    /// A first launch loads nothing: the onboarding wizard's model step starts
+    /// the first download, with the user choosing and watching it.
+    func testAFreshInstallLoadsNothing() {
+        XCTAssertNil(ModelLoader.launchModel(preferred: .parakeetUltra, ready: []))
+        XCTAssertNil(ModelLoader.launchModel(preferred: .nemotronMultilingual, ready: []))
     }
 
     /// Apple Speech was removed in 8.2.0. A saved or synced "apple-speech"

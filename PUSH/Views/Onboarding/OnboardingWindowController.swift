@@ -73,8 +73,12 @@ final class OnboardingWindowController {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                // Closing with the red button counts as having seen it.
-                Self.markSeen()
+                // Closing with the red button counts as having seen it — once a
+                // model is on disk. Before that the app cannot dictate and
+                // launch will not download one, so the wizard comes back.
+                if !ModelAvailability.downloaded().isEmpty {
+                    Self.markSeen()
+                }
                 // The wizard was the reason HotkeyManager stayed quiet about
                 // Accessibility; hand that back now that it is gone, so someone
                 // who skipped still gets the normal system prompt.

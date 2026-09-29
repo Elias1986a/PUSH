@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import PUSHCore
 
-/// The four-step welcome wizard shown on first launch.
+/// The welcome wizard shown on first launch.
 ///
 /// PUSH is `LSUIElement`: no Dock icon, no launch window, nothing but a menu
 /// bar glyph. Without this, a first launch is three unexplained events in a
@@ -12,9 +12,11 @@ import PUSHCore
 /// has just paid for it.
 ///
 /// So the wizard exists to put a sentence in front of each of them. It is not
-/// a settings pane in disguise: the only preference it touches is launch at
-/// login, and everything else is either an explanation or a permission the app
-/// cannot start without.
+/// a settings pane in disguise: beyond launch at login and the pill, it asks
+/// only for what the app cannot start without — two permissions and a speech
+/// model, which it downloads here rather than behind the user's back. The
+/// small supporting models (voice activity detection) still load on their own
+/// at launch; only the ~600 MB speech model waits for this step.
 struct OnboardingView: View {
 
     /// Called when the wizard is finished with — by the last step's button, or
@@ -33,8 +35,15 @@ struct OnboardingView: View {
     @State private var sandboxText = ""
     @FocusState private var sandboxFocused: Bool
 
+    /// Models already on disk. Read from the filesystem on appear and after a
+    /// download, never from `body`.
+    @State private var modelsOnDisk: Set<WhisperModel> = []
+    @State private var downloadingModel: WhisperModel?
+    @State private var downloadProgress: Double = 0
+    @State private var downloadError: String?
+
     enum Step: Int, CaseIterable {
-        case welcome, permissions, tryIt, pill, more, finish
+        case welcome, permissions, model, tryIt, pill, more, finish
     }
 
     var body: some View {
@@ -55,7 +64,10 @@ struct OnboardingView: View {
         }
         .frame(width: OnboardingWindowController.contentSize.width,
                height: OnboardingWindowController.contentSize.height)
-        .onAppear(perform: permissions.startPolling)
+        .onAppear {
+            permissions.startPolling()
+            refreshModelsOnDisk()
+        }
         .onDisappear(perform: permissions.stopPolling)
         .task { await launchAtLogin.loadIfNeeded() }
     }
@@ -65,6 +77,7 @@ struct OnboardingView: View {
         switch step {
         case .welcome: welcomeStep
         case .permissions: permissionsStep
+        case .model: modelStep
         case .tryIt: tryItStep
         case .pill: pillStep
         case .more: moreStep
@@ -186,7 +199,162 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 3 · try it here
+    // MARK: - Step 3 · a speech model
+
+    /// The one download PUSH cannot run without, chosen and watched here. Launch
+    /// no longer fetches a model on its own (`ModelLoader.activateAtLaunch`), so
+    /// on a first run this step is where the app becomes able to dictate, and
+    /// Continue stays off until it can.
+    private var modelStep: some View {
+        let chosen = appState.selectedWhisperModel
+        return VStack(alignment: .leading, spacing: 14) {
+            stepHeader(
+                title: "Choose a speech model",
+                subtitle: "Everything is transcribed on this Mac, so PUSH needs one model first — about 600 MB, downloaded once."
+            )
+
+            VStack(spacing: 8) {
+                ForEach(WhisperModel.selectable) { model in
+                    modelCard(model, isChosen: model == chosen)
+                }
+            }
+
+            modelAction(for: chosen)
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func modelCard(_ model: WhisperModel, isChosen: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: isChosen ? "largecircle.fill.circle" : "circle")
+                .font(.system(size: 15))
+                .foregroundStyle(isChosen ? Color.accentColor : Color.secondary)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(model.shortName).font(.system(size: 13, weight: .medium))
+                    if let badge = model.badge {
+                        Text(badge)
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(Color.accentColor.opacity(0.15), in: Capsule())
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    if modelsOnDisk.contains(model) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                            .accessibilityLabel("Downloaded")
+                    }
+                }
+                Text(Self.blurb(for: model))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(isChosen ? Color.accentColor : Color.secondary.opacity(0.2),
+                              lineWidth: isChosen ? 1.5 : 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { choose(model) }
+        // Switching mid-download would abandon 600 MB half-fetched.
+        .disabled(downloadingModel != nil)
+        .opacity(downloadingModel != nil && !isChosen ? 0.5 : 1)
+    }
+
+    /// One line each. `modelDescription` is written for Settings, where there
+    /// is room; four of those would not fit this window.
+    private static func blurb(for model: WhisperModel) -> String {
+        switch model {
+        case .parakeetUltra:
+            return "Fastest and most accurate. English, plus Spanish, French, German and other European languages."
+        case .parakeetUnified:
+            return "English only. Transcribes when you let go of the key."
+        case .parakeetStreaming:
+            return "English only. Shows your words as you speak them."
+        case .nemotronMultilingual:
+            return "Chinese, Japanese, Arabic, Hindi, Russian and more. Pick the language in Settings."
+        }
+    }
+
+    @ViewBuilder
+    private func modelAction(for chosen: WhisperModel) -> some View {
+        if downloadingModel == chosen {
+            VStack(alignment: .leading, spacing: 6) {
+                ProgressView(value: downloadProgress)
+                Text(downloadProgress < 0.95
+                     ? "Downloading \(chosen.shortName)… \(Int(downloadProgress * 100))%"
+                     : "Getting \(chosen.shortName) ready…")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        } else if isReady(chosen) {
+            statusLine(icon: "checkmark.circle.fill", text: "\(chosen.shortName) is ready.", tint: .green)
+        } else if modelsOnDisk.contains(chosen) {
+            // On disk but not loaded yet: `choose` has started it.
+            statusLine(icon: "hourglass", text: "Loading \(chosen.shortName)…", tint: .secondary)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Download \(chosen.shortName) · \(chosen.downloadSizeLabel)") { download(chosen) }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                if let downloadError {
+                    statusLine(icon: "exclamationmark.triangle.fill",
+                               text: "The download stopped: \(downloadError) Check your connection and try again.",
+                               tint: .orange)
+                }
+            }
+        }
+    }
+
+    private func isReady(_ model: WhisperModel) -> Bool {
+        modelsOnDisk.contains(model) && appState.activeModel == model && appState.isModelReady
+    }
+
+    /// Picking a card records the preference, and brings the model up straight
+    /// away when it is already on disk — a reinstall, or a second Mac.
+    private func choose(_ model: WhisperModel) {
+        guard downloadingModel == nil else { return }
+        downloadError = nil
+        appState.selectedWhisperModel = model
+        if modelsOnDisk.contains(model) {
+            Task { try? await ModelLoader.activate(model) }
+        }
+    }
+
+    private func download(_ model: WhisperModel) {
+        appState.selectedWhisperModel = model
+        downloadingModel = model
+        downloadError = nil
+        Task {
+            do {
+                try await ModelDownload.run(model) { downloadProgress = $0 }
+            } catch is CancellationError {
+                // Superseded by another activation; nothing to report.
+            } catch {
+                downloadError = error.localizedDescription
+            }
+            downloadingModel = nil
+            refreshModelsOnDisk()
+        }
+    }
+
+    private func refreshModelsOnDisk() {
+        modelsOnDisk = ModelAvailability.downloaded()
+    }
+
+    // MARK: - Step 4 · try it here
 
     private var tryItStep: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -259,11 +427,7 @@ struct OnboardingView: View {
         } else if !sandboxText.isEmpty {
             statusLine(icon: "checkmark.circle.fill", text: "That is it. It works the same in every other app.", tint: .green)
         } else if !appState.isModelReady {
-            statusLine(
-                icon: "arrow.down.circle",
-                text: "Getting the speech model ready — this is a one-time download. You can carry on and come back to this.",
-                tint: .secondary
-            )
+            statusLine(icon: "hourglass", text: "Loading the speech model…", tint: .secondary)
         } else {
             statusLine(
                 icon: "keyboard",
@@ -284,7 +448,7 @@ struct OnboardingView: View {
         .font(.callout)
     }
 
-    // MARK: - Step 4 · where the pill lives
+    // MARK: - Step 5 · where the pill lives
 
     /// Asked with the same picture Settings uses, so the two read as one
     /// setting rather than two. The choice is genuinely a matter of taste and
@@ -317,7 +481,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 5 · the rest of the app
+    // MARK: - Step 6 · the rest of the app
 
     private var moreStep: some View {
         // This step is not `body`, so it needs its own `@Bindable` shadow for
@@ -405,7 +569,7 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Step 6 · keep it around
+    // MARK: - Step 7 · keep it around
 
     private var finishStep: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -476,9 +640,13 @@ struct OnboardingView: View {
     private var footer: some View {
         HStack(spacing: 12) {
             if step == .welcome {
-                Button("Skip", action: onFinish)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                // No way round the model step until a model exists: the app
+                // cannot dictate without one, and launch will not fetch it.
+                if !modelsOnDisk.isEmpty {
+                    Button("Skip", action: onFinish)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                }
             } else {
                 Button("Back") { advance(to: -1) }
             }
@@ -495,11 +663,13 @@ struct OnboardingView: View {
             } else {
                 Button("Continue") { advance(to: 1) }
                     .keyboardShortcut(.defaultAction)
-                    // Deliberately never disabled, not even with permissions
-                    // missing. A wizard that traps someone on a step they
-                    // cannot satisfy — a managed Mac where an admin owns these
-                    // switches, say — is worse than one they can walk out of;
-                    // Settings shows the same two rows afterwards.
+                    // Never disabled for permissions: a wizard that traps
+                    // someone on a step they cannot satisfy — a managed Mac
+                    // where an admin owns these switches, say — is worse than
+                    // one they can walk out of, and Settings shows the same two
+                    // rows afterwards. The model is different: it is a download
+                    // the user can always start, and there is no app without it.
+                    .disabled(step == .model && !isReady(appState.selectedWhisperModel))
             }
         }
     }

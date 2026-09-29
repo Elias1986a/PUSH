@@ -438,45 +438,28 @@ struct ModelsSettingsView: View {
     // MARK: Download / delete
 
     private func downloadModel(_ model: AppState.WhisperModel) {
-        guard let folder = Self.folder(for: model) else { return }
         // Downloading is also choosing: nobody fetches 600 MB they don't intend
         // to use.
         appState.selectedWhisperModel = model
         downloadingModel = model
-        downloadProgress = 0
         downloadStatus = "Downloading…"
         downloadError = nil
 
         Task {
-            // Poll the download directory for coarse progress.
-            let expected = Self.expectedSize(of: model)
-            let pollTask = Task {
-                while !Task.isCancelled {
-                    try? await Task.sleep(for: .seconds(1))
-                    let onDisk = await Task.detached(priority: .utility) {
-                        Self.directorySize(at: folder)
-                    }.value
-                    let progress = min(onDisk / expected, 0.95)
-                    await MainActor.run {
-                        downloadProgress = progress
-                        if progress > 0.01 {
-                            downloadStatus = "Downloading… \(Int(progress * 100))%"
-                        }
-                    }
-                }
-            }
             do {
                 // Engines download on load; activate also swaps it in and warms up.
-                try await ModelLoader.activate(model)
-                pollTask.cancel()
-                downloadProgress = 1.0
-                downloadStatus = "Complete!"
+                try await ModelDownload.run(model) { progress in
+                    downloadProgress = progress
+                    if progress >= 1 {
+                        downloadStatus = "Complete!"
+                    } else if progress > 0.01 {
+                        downloadStatus = "Downloading… \(Int(progress * 100))%"
+                    }
+                }
             } catch is CancellationError {
                 // Superseded: the user changed their mind mid-download, which
                 // is now a thing they can do. Nothing to report.
-                pollTask.cancel()
             } catch {
-                pollTask.cancel()
                 downloadError = error.localizedDescription
             }
             downloadingModel = nil

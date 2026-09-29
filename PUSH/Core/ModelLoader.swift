@@ -71,6 +71,10 @@ enum ModelLoader {
     /// The preference is left alone: `selectedWhisperModel` is what the user
     /// asked for and Settings keeps showing it, with a Download button next to
     /// it. Only what runs *now* is redirected.
+    ///
+    /// With nothing on disk — a first launch — it loads nothing. The onboarding
+    /// wizard's model step is where the first download happens, chosen and
+    /// watched by the user; until 8.2 launch fetched the default here unasked.
     static func activateAtLaunch() async {
         let state = AppState.shared
         let preferred = state.selectedWhisperModel
@@ -79,7 +83,10 @@ enum ModelLoader {
         // by reference would strip the isolation the compiler is right to
         // insist on. The literal inherits this context's instead.
         let ready = Set(AppState.WhisperModel.selectable.filter { ModelAvailability.isReadyToServe($0) })
-        let model = launchModel(preferred: preferred, ready: ready)
+        guard let model = launchModel(preferred: preferred, ready: ready) else {
+            PushLogger.log("ModelLoader: no model on disk — waiting for one to be downloaded")
+            return
+        }
         if model != preferred {
             PushLogger.log("""
                 ModelLoader: \(preferred.rawValue) cannot serve without a download — \
@@ -95,29 +102,19 @@ enum ModelLoader {
     /// Rules, in order: the preference if it can run; otherwise the default
     /// (`WhisperModel.defaultModel`) if it is on disk; otherwise anything else that is, in
     /// the settings list's order, which puts the engine needing no download at
-    /// all last rather than first. If nothing is ready — a fresh install — the
-    /// preference is returned and its download is the one legitimate unattended
-    /// one, because there is no app without it.
+    /// all last rather than first. Nil when nothing is ready — a fresh install,
+    /// whose first download is the onboarding wizard's to start, not launch's.
     ///
-    /// `ready` is passed in rather than read from disk here, and holds only
-    /// models this Mac can actually select — so a preference for an engine this
-    /// OS is too old for (a synced `apple-speech` on macOS 15) is treated as
-    /// unavailable rather than loaded into a guaranteed failure. `nonisolated`
+    /// `ready` is passed in rather than read from disk here. `nonisolated`
     /// and parameterised so the decision can be tested without a disk full of
     /// models, exactly like `languageChangeNeedsReload`.
     nonisolated static func launchModel(
         preferred: AppState.WhisperModel,
         ready: Set<AppState.WhisperModel>
-    ) -> AppState.WhisperModel {
+    ) -> AppState.WhisperModel? {
         if ready.contains(preferred) { return preferred }
         let fallbacks = [AppState.WhisperModel.defaultModel] + AppState.WhisperModel.selectable
-        for candidate in fallbacks where candidate != preferred && ready.contains(candidate) {
-            return candidate
-        }
-        // Nothing to fall back on. Download the preference if it is one this Mac
-        // can run, and the default otherwise — a first launch has to fetch
-        // something or there is no app.
-        return AppState.WhisperModel.selectable.contains(preferred) ? preferred : .defaultModel
+        return fallbacks.first { $0 != preferred && ready.contains($0) }
     }
 
     /// Whether changing `changed`'s dictation language has to reload an engine now.
