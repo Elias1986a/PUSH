@@ -398,6 +398,19 @@ resolver's job (see below), not a looser rule's.
 
 ### Still open
 
+- **Onboarding: choose and download a model before the app starts** (asked
+  2026-09-29, queued behind the self-correction work). With Apple Speech gone
+  (8.1.4, unreleased) nothing works without a download, and today
+  `preloadModels` → `ModelLoader.activateAtLaunch` silently downloads Ultra on a
+  fresh install. Wanted: a "Choose your model" step in `OnboardingView` after
+  permissions and before `tryIt` (which needs a working model), listing the
+  four models with Ultra preselected as recommended, a Download button with
+  progress, and Continue disabled until the chosen model is on disk and loaded.
+  **No Skip on the first-ever launch** (`OnboardingWindowController.isPending`);
+  Skip stays when the wizard is reopened from the menu (`MenuBarView` "show
+  welcome"). Launch must not auto-download while the wizard is pending. Updates
+  never show the wizard (already true: `isPending` is one-shot). Quitting
+  mid-download leaves it pending, so it resumes next launch.
 - ~~Cross-Mac sync end to end~~ — tested by the user across both Macs, works
   (confirmed 2026-09-29).
 - **Phase 2, the LLM resolver.** Job description below; unchanged. The user
