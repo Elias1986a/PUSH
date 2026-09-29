@@ -153,7 +153,11 @@ extension TranscriptionPipeline {
             var kept = clause.split(whereSeparator: \.isWhitespace).map(String.init)
             kept.removeLast(min(replacedSpan(in: kept, by: correction), kept.count))
 
-            return join(head + kept.joined(separator: " "), after, capitalize: capitalize)
+            // Joined, not concatenated: splitting the clause into words threw
+            // away the space it opened with, so "target. Um, latency…" came
+            // back as "target.Um, latency…".
+            let left = kept.isEmpty ? head : join(head, kept.joined(separator: " "))
+            return join(left, after, capitalize: capitalize)
         }
         return nil
     }

@@ -305,6 +305,10 @@ extension TranscriptionPipeline {
     /// "o'clock", "on Friday", "tomorrow", "tonight" behind — because the same
     /// shape is also a price ("costs 3.30", "$3.30") or a version ("2.10"),
     /// and turning those into times would be worse than leaving a time alone.
+    ///
+    /// A unit behind the number overrules a cue in front: "at 1.52 seconds",
+    /// "by 2.25 percent" and "at 3.30 dollars" are measurements. "at" is a
+    /// clock word and a quantity word both, and the unit says which.
     public static func normalizeClockTimes(_ text: String) -> String {
         let hourWords = ["one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
                          "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12]
@@ -313,9 +317,13 @@ extension TranscriptionPipeline {
         let before = "(?i)\\b(at|by|until|till|til|from|around|before|after|between|since)\\s+$"
         let after = "(?i)^\\s*(a\\.?\\s?m\\b\\.?|p\\.?\\s?m\\b\\.?|o'clock|on\\s+(a\\s+)?(mon|tues|wednes|thurs|fri|satur|sun)day"
             + "|tomorrow|today|tonight|this\\s+(morning|afternoon|evening))"
+        let unit = "(?i)^\\s*(%|(percent|(milli)?seconds?|secs?|ms|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?"
+            + "|dollars?|euros?|pounds?|cents?|bucks|miles?|km|kilomet(er|re)s?|met(er|re)s?|feet|foot|inch(es)?"
+            + "|kilos?|kg|grams?|g|lbs?|degrees?|[kmgt]b|gigabytes?|megabytes?|times|x)\\b)"
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let beforeCue = try? NSRegularExpression(pattern: before),
-              let afterCue = try? NSRegularExpression(pattern: after) else { return text }
+              let afterCue = try? NSRegularExpression(pattern: after),
+              let unitAfter = try? NSRegularExpression(pattern: unit) else { return text }
 
         var result = text
         let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
@@ -327,7 +335,8 @@ extension TranscriptionPipeline {
             let suffix = String(result[whole.upperBound...])
             let cued = beforeCue.firstMatch(in: prefix, range: NSRange(prefix.startIndex..., in: prefix)) != nil
                 || afterCue.firstMatch(in: suffix, range: NSRange(suffix.startIndex..., in: suffix)) != nil
-            guard cued else { continue }
+            let measured = unitAfter.firstMatch(in: suffix, range: NSRange(suffix.startIndex..., in: suffix)) != nil
+            guard cued, !measured else { continue }
             let hourText = String(result[hourRange])
             guard let h = Int(hourText) ?? hourWords[hourText.lowercased()] else { continue }
             result.replaceSubrange(whole, with: "\(h):\(result[minuteRange])")

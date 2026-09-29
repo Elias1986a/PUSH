@@ -52,6 +52,13 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(t("Already written as 3:30 pm."), "Already written as 3:30 pm.")
         XCTAssertEqual(t("I need 3 30-minute slots."), "I need 3 30-minute slots.")
         XCTAssertEqual(t("Grab 2 20 packs at the store."), "Grab 2 20 packs at the store.")
+        // A clock word in front, a unit behind: the unit wins. "at 1.52 seconds"
+        // became "at 1:52 seconds" once a self-correction put it there.
+        XCTAssertEqual(t("Latency came back at 1.52 seconds."), "Latency came back at 1.52 seconds.")
+        XCTAssertEqual(t("It sold at 3.30 dollars each."), "It sold at 3.30 dollars each.")
+        XCTAssertEqual(t("Rates rose by 2.25 percent."), "Rates rose by 2.25 percent.")
+        XCTAssertEqual(t("Rates rose by 2.25% this year."), "Rates rose by 2.25% this year.")
+        XCTAssertEqual(t("It peaked at 1.45 GB."), "It peaked at 1.45 GB.")
     }
 
     /// Through the whole English chain, so an earlier pass can't undo it.
@@ -586,6 +593,19 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(
             resolve("Latency was 15.2 seconds, I mean 1.52 seconds, so rerun it"),
             "Latency was 1.52 seconds, so rerun it")
+    }
+
+    /// A correction in a later sentence keeps the space after the sentence
+    /// before it. The clause was rebuilt from its words, which dropped the
+    /// whitespace it opened with: "target. Um, latency…" became
+    /// "target.Um, latency…", and the glued "Um" then escaped the filler pass.
+    /// Ultra's raw output from the benchmark script, 2026-09-29.
+    func testACorrectionInALaterSentenceKeepsTheSpaceBeforeIt() {
+        XCTAssertEqual(
+            resolve("It's 37% of the target. Um, latency came back at 15.2 seconds, I mean 1.52 seconds. So ask them."),
+            "It's 37% of the target. Um, latency came back at 1.52 seconds. So ask them.")
+        XCTAssertEqual(resolve("Hello there. The red car, I mean the blue car"),
+                       "Hello there. The blue car")
     }
 
     /// The thousands separator is the same trap with a comma.
