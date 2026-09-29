@@ -549,6 +549,29 @@ final class TextProcessingTests: XCTestCase {
         XCTAssertEqual(resolve("in the meantime we wait"), "in the meantime we wait")
     }
 
+    /// A decimal point is not a sentence end.
+    ///
+    /// Found by the fixed benchmark script (2026-09-29), which says "15.2
+    /// seconds, I mean 1.52 seconds" out loud. Parakeet writes both as digits
+    /// and puts a sentence break before the marker, so every dot-scanning pass
+    /// saw "1.52" as the end of a sentence after "1": the correction became the
+    /// single word "1", and the sentence it was correcting was rebuilt from the
+    /// dot inside "15.2". `resolveTrailing` had the rule; nothing else did.
+    func testDecimalsAreNotSentenceBoundaries() {
+        XCTAssertEqual(
+            resolve("Latency came back at 15.2 seconds. I mean 1.52 seconds. So ask the Zurich team to rerun it."),
+            "Latency came back at 1.52 seconds. So ask the Zurich team to rerun it.")
+        XCTAssertEqual(
+            resolve("Latency was 15.2 seconds, I mean 1.52 seconds, so rerun it"),
+            "Latency was 1.52 seconds, so rerun it")
+    }
+
+    /// The thousands separator is the same trap with a comma.
+    func testGroupedNumbersAreNotClauseBoundaries() {
+        XCTAssertEqual(resolve("It costs 1,500, I mean 2,500"),
+                       "It costs 2,500")
+    }
+
     func testDanglingMarkerWithNothingAfterItIsDropped() {
         XCTAssertEqual(resolve("the red car, I mean"), "the red car")
     }
