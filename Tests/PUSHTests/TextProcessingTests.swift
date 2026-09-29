@@ -449,6 +449,28 @@ final class TextProcessingTests: XCTestCase {
         TranscriptionPipeline.removeFillerWords(text)
     }
 
+    /// "Um" opening a sentence that is not the first one.
+    ///
+    /// Found in a benchmark run (2026-09-29): "…of the $5 million target. Um,
+    /// latency came back" kept the filler, because the comma defeats the bare
+    /// " um " rule and the start-of-text rule is anchored to `^`.
+    func testFillerOpeningALaterSentenceIsRemoved() {
+        XCTAssertEqual(filler("of the $5 million target. Um, latency came back"),
+                       "of the $5 million target. latency came back")
+        XCTAssertEqual(filler("That works. Uh, let me check"),
+                       "That works. let me check")
+        XCTAssertEqual(filler("Right. Um so we ship"), "Right. so we ship")
+    }
+
+    /// The comma after the filler is optional, so the rules need a word
+    /// boundary or they bite into the next word.
+    func testWordsBeginningWithAFillerAreLeftAlone() {
+        XCTAssertEqual(filler("Umbrella sales are up"), "Umbrella sales are up")
+        XCTAssertEqual(filler("It rained. Umbrella sales are up"),
+                       "It rained. Umbrella sales are up")
+        XCTAssertEqual(filler("Uhuru Park is in Nairobi"), "Uhuru Park is in Nairobi")
+    }
+
     func testFillerLikeIsRemoved() {
         XCTAssertEqual(filler("I was, like, going"), "I was going")
         XCTAssertEqual(filler("it works for like normal situations"),
