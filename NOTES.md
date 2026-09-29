@@ -2,6 +2,32 @@
 
 ## Current state (2026-09-29, v8.2.1 — released)
 
+Unreleased on main: spoken layout ("new line", "new paragraph", "bullet point"
+— only at a break, never before a preposition/verb) and a ranked microphone
+list (first attached wins; built-in mic skipped with the lid closed). Needs a
+real-voice check of where Parakeet puts commas around the commands, and a look
+at the new Microphone section in Settings ▸ Dictation.
+
+### Competitive backlog — bring up when the user asks "what else are we missing?"
+From the 2026-09-29 competitor review (Wispr Flow, Superwhisper, VoiceInk,
+MacParakeet). Not committed to; each needs the user's go-ahead.
+- **Mid-sentence insertion** — read the text before the cursor (AX) so a
+  dictation dropped mid-sentence doesn't start with a capital or end with a
+  period. Medium effort; AX is unreliable in Chrome/Electron.
+- **Noisy rooms** — the user isn't convinced. Options: measure first (script v2
+  over café noise, PUSH vs Wispr), headset via mic ranking, macOS voice
+  processing before ASR (may cost accuracy), wait for a better model.
+- **Rewrite selected text by voice** (Wispr Command Mode, MacParakeet/VoiceInk
+  Transforms): highlight, speak "make this shorter". To explore. Needs a
+  language model — open, local only (no Apple AI); small local models lost to
+  rules on self-correction, so size/quality is the open question.
+- **SenseVoice Small** (VoiceInk ships it) — explored 2026-09-29, see the answer
+  in the session: strong and fast for Chinese/Japanese/Korean/Cantonese, weaker
+  than Parakeet on English. Only candidate role: an alternative to Nemotron for
+  CJK. A CoreML export exists (korakotlee/sensevoice-small-coreml).
+- Rejected, don't re-propose: transcript history / paste-last (privacy),
+  snippets, meeting notetaker, usage stats, per-app tone styles.
+
 8.2.1: onboarding "Choose a speech model" step (Ultra preselected on a first
 run, Continue gated on the model being loaded, no Skip and no seen-on-close
 while no speech model is on disk); launch no longer downloads a speech model
