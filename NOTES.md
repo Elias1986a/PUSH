@@ -1,6 +1,12 @@
 # NOTES
 
-## Current state (2026-09-29, v8.1.2 — released)
+## Current state (2026-09-29, v8.1.3 — released)
+
+8.1.3: self-corrections on by default; unclosed questions get "?" (also behind a
+closed quote); quotes after "said," capitalised; capital after a removed
+sentence-opening filler; unit after a number vetoes clock-time conversion;
+space kept before a later-sentence correction. Benchmark script v2 in NOTES.
+
 
 8.1.2 (PR #20): decimals no longer read as sentence ends in self-corrections
 ("15.2 … I mean 1.52"); a filler opening a later sentence (". Um, …") is
