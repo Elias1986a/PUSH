@@ -1,4 +1,5 @@
-import Foundation
+import AppKit
+import CoreAudio
 import PUSHCore
 @preconcurrency import AVFoundation
 
@@ -8,7 +9,11 @@ final class AudioRecorder: @unchecked Sendable {
     static let shared = AudioRecorder()
 
     private var audioEngine: AVAudioEngine?
-    private var engineBuild: Task<AVAudioEngine, Never>?
+    private var engineBuild: Task<(AVAudioEngine, String?), Never>?
+    /// The device the engine was bound to, nil for the system default — what a
+    /// device or lid change is compared against.
+    private var boundDeviceUID: String?
+    private var lidWasClosed = AudioInputDevices.isLidClosed()
     private var audioData: Data?
     private var isRecording = false
     /// Set for the window between a press and the engine being ready, so a
@@ -30,7 +35,30 @@ final class AudioRecorder: @unchecked Sendable {
     // Callback for VAD-triggered stop
     var onSilenceDetected: (() -> Void)?
 
-    private init() {}
+    private init() {
+        // A preferred microphone being plugged in, or the lid closing on the
+        // built-in one, changes which device should record. Neither reaches the
+        // engine's own configuration-change notification.
+        var devices = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &devices, .main) { _, _ in
+            MainActor.assumeIsolated { AudioRecorder.shared.reresolveInputDevice() }
+        }
+        // Closing the lid on an external display reconfigures the screens.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                let recorder = AudioRecorder.shared
+                let closed = AudioInputDevices.isLidClosed()
+                guard closed != recorder.lidWasClosed else { return }
+                recorder.lidWasClosed = closed
+                recorder.reresolveInputDevice()
+            }
+        }
+    }
 
     // MARK: - Public API
 
@@ -64,23 +92,24 @@ final class AudioRecorder: @unchecked Sendable {
     /// the hotkey's event tap disabled by the system.
     private func readyEngine() async -> AVAudioEngine {
         if let audioEngine { return audioEngine }
-        let preferredUID = AppState.shared.inputDeviceUID
+        let priority = AppState.shared.inputDevicePriority.map(\.uid)
         let build = engineBuild ?? {
-            let task = Task.detached(priority: .userInitiated) { Self.buildEngine(preferredUID: preferredUID) }
+            let task = Task.detached(priority: .userInitiated) { Self.buildEngine(priority: priority) }
             engineBuild = task
             return task
         }()
-        let engine = await build.value
+        let (engine, deviceUID) = await build.value
         engineBuild = nil
         // Another caller may have adopted it while this one was suspended.
         if let audioEngine { return audioEngine }
+        boundDeviceUID = deviceUID
         adopt(engine)
         return engine
     }
 
     /// Initialising the input device is the expensive part and needs no main
     /// thread, so this is callable from anywhere.
-    private nonisolated static func buildEngine(preferredUID: String?) -> AVAudioEngine {
+    private nonisolated static func buildEngine(priority: [String]) -> (AVAudioEngine, String?) {
         // Timed in parts: this is the "deaf window" on a cold press — the seconds
         // between the key going down and the mic actually hearing anything — so
         // it matters which step owns it, not just the total.
@@ -92,7 +121,7 @@ final class AudioRecorder: @unchecked Sendable {
         // Before the format query, which is the call that actually initialises
         // the device — binding afterwards would wake the default microphone
         // first and then switch, paying the expensive part twice.
-        bind(input: input, toUID: preferredUID)
+        let deviceUID = bind(input: input, to: AudioInputDevices.preferred(from: priority))
         _ = input.outputFormat(forBus: 0)
         let t3 = Date()
         engine.prepare()
@@ -103,26 +132,39 @@ final class AudioRecorder: @unchecked Sendable {
             t2.timeIntervalSince(t1) * 1000,
             t3.timeIntervalSince(t2) * 1000,
             t4.timeIntervalSince(t3) * 1000))
-        return engine
+        return (engine, deviceUID)
     }
 
-    /// Point the engine's input at the user's chosen microphone.
+    /// Point the engine's input at the chosen microphone, returning the UID it
+    /// is bound to, or nil for the system default.
     ///
-    /// Silently keeps the system default when the choice is nil (the default
-    /// preference) or when the device is not attached right now — a USB
-    /// interface that is simply unplugged is an ordinary state, not an error
-    /// to interrupt someone mid-press with. The log line is the record.
-    private nonisolated static func bind(input: AVAudioInputNode, toUID uid: String?) {
-        guard let uid else { return }
-        guard let deviceID = AudioInputDevices.deviceID(forUID: uid) else {
-            PushLogger.log("AudioRecorder: preferred input device is not attached, using the system default")
-            return
-        }
+    /// nil in means the system default: nothing is preferred, or nothing
+    /// preferred is attached — a USB interface that is simply unplugged is an
+    /// ordinary state, not an error to interrupt someone mid-press with.
+    private nonisolated static func bind(input: AVAudioInputNode,
+                                         to device: AudioInputDevices.Device?) -> String? {
+        guard let device else { return nil }
         do {
-            try input.auAudioUnit.setDeviceID(deviceID)
-            PushLogger.log("AudioRecorder: input bound to the selected device")
+            try input.auAudioUnit.setDeviceID(device.id)
+            PushLogger.log("AudioRecorder: input bound to the preferred device")
+            return device.uid
         } catch {
-            PushLogger.log("AudioRecorder: could not bind the selected input device (\(error.localizedDescription)), using the system default")
+            PushLogger.log("AudioRecorder: could not bind the preferred input device (\(error.localizedDescription)), using the system default")
+            return nil
+        }
+    }
+
+    /// Rebuild the engine if the microphone that should record has changed —
+    /// a preferred one plugged in or unplugged, or the lid closed on the
+    /// built-in one. Enumerating devices is off the main thread; nothing
+    /// happens when the answer is the device already bound.
+    func reresolveInputDevice() {
+        guard audioEngine != nil else { return }  // the next build resolves anyway
+        let priority = AppState.shared.inputDevicePriority.map(\.uid)
+        Task {
+            let uid = await Task.detached { AudioInputDevices.preferred(from: priority)?.uid }.value
+            guard uid != boundDeviceUID else { return }
+            inputDeviceDidChange()
         }
     }
 

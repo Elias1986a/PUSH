@@ -31,7 +31,7 @@ final class AppState {
         static let resolveSelfCorrections = "resolveSelfCorrections"
         static let californiaMode = "californiaMode"
         static let iCloudSyncEnabled = "iCloudSyncEnabled"
-        static let inputDeviceUID = "inputDeviceUID"
+        static let inputDevicePriority = "inputDevicePriority"
     }
 
     // MARK: - Published State
@@ -123,28 +123,29 @@ final class AppState {
         }
     }
 
-    /// Which microphone to record from, by CoreAudio UID, or nil to follow the
-    /// system default.
+    /// The microphones to record from, most wanted first. Recording uses the
+    /// first one attached (`AudioInputDevices.preferred`); empty, or none
+    /// attached, follows the system default — what most people want.
     ///
-    /// A UID rather than an `AudioDeviceID` because the numeric id is handed
-    /// out at enumeration time and is not stable across reboots or replugging
-    /// — persisting one would eventually name a different device.
-    ///
-    /// nil is a real choice, not an absence: "whatever macOS is using" is what
-    /// most people want, and it is the behaviour every version before this had.
-    var inputDeviceUID: String? {
+    /// By CoreAudio UID rather than `AudioDeviceID`, which is handed out at
+    /// enumeration time and not stable across reboots or replugging. The name
+    /// is kept so a device that is unplugged can still be listed.
+    var inputDevicePriority: [InputDevicePreference] = [] {
         didSet {
-            guard inputDeviceUID != oldValue else { return }
-            let defaults = UserDefaults.standard
-            if let inputDeviceUID {
-                defaults.set(inputDeviceUID, forKey: UserDefaultsKeys.inputDeviceUID)
-            } else {
-                defaults.removeObject(forKey: UserDefaultsKeys.inputDeviceUID)
+            guard inputDevicePriority != oldValue else { return }
+            if let data = try? JSONEncoder().encode(inputDevicePriority) {
+                UserDefaults.standard.set(data, forKey: UserDefaultsKeys.inputDevicePriority)
             }
             // The device is bound when the engine is built, so the engine has
             // to go for a new choice to take effect.
             AudioRecorder.shared.inputDeviceDidChange()
         }
+    }
+
+    struct InputDevicePreference: Codable, Hashable, Identifiable {
+        let uid: String
+        let name: String
+        var id: String { uid }
     }
 
     var hotkeyEnabled: Bool = true
@@ -525,7 +526,10 @@ final class AppState {
             self.mediaBehavior = behavior
         }
 
-        self.inputDeviceUID = UserDefaults.standard.string(forKey: UserDefaultsKeys.inputDeviceUID)
+        if let data = UserDefaults.standard.data(forKey: UserDefaultsKeys.inputDevicePriority),
+           let saved = try? JSONDecoder().decode([InputDevicePreference].self, from: data) {
+            self.inputDevicePriority = saved
+        }
 
         // Load wake word settings from UserDefaults
         self.wakeWordEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.wakeWordEnabled)

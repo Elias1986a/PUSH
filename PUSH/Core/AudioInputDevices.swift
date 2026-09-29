@@ -1,5 +1,6 @@
 import Foundation
 import CoreAudio
+import IOKit
 import PUSHCore
 
 /// The microphones PUSH can record from.
@@ -22,6 +23,12 @@ enum AudioInputDevices {
         /// Stable across reboots — this is what gets persisted.
         let uid: String
         let name: String
+        /// The Mac's own microphone, which Apple silicon MacBooks disconnect in
+        /// hardware while the lid is closed.
+        let isBuiltIn: Bool
+        /// Software routing (BlackHole, Teams, aggregates): never a microphone
+        /// to fall back to on our own.
+        let isVirtual: Bool
     }
 
     /// Every device with at least one input channel, in CoreAudio's order.
@@ -45,8 +52,39 @@ enum AudioInputDevices {
         return ids.compactMap { id in
             guard hasInput(id), let uid = string(id, kAudioDevicePropertyDeviceUID) else { return nil }
             let name = string(id, kAudioObjectPropertyName) ?? uid
-            return Device(id: id, uid: uid, name: name)
+            let transport = transportType(id)
+            return Device(id: id, uid: uid, name: name,
+                          isBuiltIn: transport == kAudioDeviceTransportTypeBuiltIn,
+                          isVirtual: [kAudioDeviceTransportTypeVirtual, kAudioDeviceTransportTypeAggregate,
+                                      kAudioDeviceTransportTypeAutoAggregate].contains(transport))
         }
+    }
+
+    /// The microphone to record from, or nil to leave the system default alone.
+    ///
+    /// The first device in `priority` that is attached wins, so a USB mic at the
+    /// desk and AirPods on the go both just work. With the lid closed the
+    /// built-in microphone is skipped — it records silence then — and if the
+    /// system default *is* the built-in one, the first real microphone attached
+    /// stands in for it.
+    static func preferred(from priority: [String]) -> Device? {
+        let lidClosed = isLidClosed()
+        let usable = available().filter { !(lidClosed && $0.isBuiltIn) }
+        for uid in priority {
+            if let device = usable.first(where: { $0.uid == uid }) { return device }
+        }
+        guard lidClosed, systemDefault()?.isBuiltIn == true else { return nil }
+        return usable.first { !$0.isVirtual }
+    }
+
+    /// Whether a laptop's lid is shut (running on an external display). False
+    /// on desktops, which have no such property.
+    static func isLidClosed() -> Bool {
+        let root = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
+        guard root != 0 else { return false }
+        defer { IOObjectRelease(root) }
+        let state = IORegistryEntryCreateCFProperty(root, "AppleClamshellState" as CFString, kCFAllocatorDefault, 0)
+        return state?.takeRetainedValue() as? Bool ?? false
     }
 
     /// The CoreAudio id for a saved UID, or nil if that device is not attached
@@ -95,6 +133,17 @@ enum AudioInputDevices {
 
         let list = UnsafeMutableAudioBufferListPointer(raw.assumingMemoryBound(to: AudioBufferList.self))
         return list.contains { $0.mNumberChannels > 0 }
+    }
+
+    private static func transportType(_ id: AudioDeviceID) -> UInt32 {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyTransportType,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        guard AudioObjectGetPropertyData(id, &address, 0, nil, &size, &value) == noErr else { return 0 }
+        return value
     }
 
     private static func string(_ id: AudioDeviceID, _ selector: AudioObjectPropertySelector) -> String? {

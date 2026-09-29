@@ -13,7 +13,8 @@ struct DictationSettingsView: View {
     /// CoreAudio round-trips, and a Form re-renders on every keystroke
     /// anywhere in the window.
     @State private var inputDevices: [AudioInputDevices.Device] = []
-    @State private var systemDefaultName: String?
+    /// The microphone recording would use right now.
+    @State private var inUse: String?
 
     var body: some View {
         // `@Observable` has no projected value of its own; `@Bindable`
@@ -22,31 +23,31 @@ struct DictationSettingsView: View {
 
         Form {
             Section("Microphone") {
-                Picker("Input device", selection: $appState.inputDeviceUID) {
-                    Text(systemDefaultName.map { "System default (\($0))" } ?? "System default")
-                        .tag(String?.none)
-                    if !inputDevices.isEmpty {
-                        Divider()
-                        ForEach(inputDevices) { device in
-                            Text(device.name).tag(String?.some(device.uid))
+                ForEach(Array(appState.inputDevicePriority.enumerated()), id: \.element.id) { index, device in
+                    microphoneRow(device, at: index)
+                }
+
+                HStack {
+                    Menu("Add microphone") {
+                        ForEach(addableDevices) { device in
+                            Button(device.name) {
+                                appState.inputDevicePriority.append(.init(uid: device.uid, name: device.name))
+                            }
                         }
+                    }
+                    .disabled(addableDevices.isEmpty)
+                    .fixedSize()
+                    Spacer()
+                    if let inUse {
+                        Text("Recording from \(inUse)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
-                // A saved device that is not attached stays selected rather
-                // than silently resetting: unplugging an interface for the
-                // afternoon should not lose the setting. Recording falls back
-                // to the system default until it is back.
-                if let uid = appState.inputDeviceUID, !inputDevices.contains(where: { $0.uid == uid }) {
-                    Label(
-                        "That microphone is not connected right now. PUSH will use the system default until it is back.",
-                        systemImage: "exclamationmark.triangle.fill"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                }
-
-                Text("System default follows whatever macOS is using, which changes when you connect AirPods or a headset. Pick a device to keep PUSH on it.")
+                Text(appState.inputDevicePriority.isEmpty
+                     ? "PUSH uses the system default, which changes when you connect AirPods or a headset. Add microphones to choose which one PUSH uses."
+                     : "PUSH uses the first microphone on the list that is connected, otherwise the system default. With the lid closed, the built-in microphone is skipped.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -114,14 +115,53 @@ struct DictationSettingsView: View {
         .onAppear(perform: refreshDevices)
         // CoreAudio posts this when a device is attached or removed, so the
         // list is right without the user reopening the pane.
+        .onChange(of: appState.inputDevicePriority) { _, _ in refreshDevices() }
         .onReceive(NotificationCenter.default.publisher(
             for: .AVAudioEngineConfigurationChange)) { _ in
             refreshDevices()
         }
     }
 
+    /// One ranked microphone: its name, whether it is plugged in, and
+    /// controls to move it up or take it off the list.
+    private func microphoneRow(_ device: AppState.InputDevicePreference, at index: Int) -> some View {
+        HStack {
+            Text("\(index + 1).")
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+            Text(device.name)
+            if !inputDevices.contains(where: { $0.uid == device.uid }) {
+                Text("Not connected")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button {
+                appState.inputDevicePriority.swapAt(index, index - 1)
+            } label: {
+                Image(systemName: "arrow.up")
+            }
+            .buttonStyle(.borderless)
+            .disabled(index == 0)
+            .help("Prefer this microphone")
+            Button {
+                appState.inputDevicePriority.remove(at: index)
+            } label: {
+                Image(systemName: "minus.circle")
+            }
+            .buttonStyle(.borderless)
+            .help("Remove from the list")
+        }
+    }
+
+    /// Connected microphones not on the list yet.
+    private var addableDevices: [AudioInputDevices.Device] {
+        inputDevices.filter { device in !appState.inputDevicePriority.contains { $0.uid == device.uid } }
+    }
+
     private func refreshDevices() {
         inputDevices = AudioInputDevices.available()
-        systemDefaultName = AudioInputDevices.systemDefault()?.name
+        let priority = appState.inputDevicePriority.map(\.uid)
+        inUse = (AudioInputDevices.preferred(from: priority) ?? AudioInputDevices.systemDefault())?.name
     }
 }
