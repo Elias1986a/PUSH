@@ -1,0 +1,50 @@
+{"category": "same_length", "input": "Book the table for six, I mean eight.", "expected": "Book the table for eight."}
+{"category": "same_length", "input": "Send it to Mark, sorry, Mike.", "expected": "Send it to Mike."}
+{"category": "same_length", "input": "We land on Tuesday, no wait, Wednesday.", "expected": "We land on Wednesday."}
+{"category": "same_length", "input": "It costs 40 dollars, make that 50 dollars.", "expected": "It costs 50 dollars."}
+{"category": "same_length", "input": "Call me at 3 PM, correction, 4 PM.", "expected": "Call me at 4 PM."}
+{"category": "same_length", "input": "Latency came back at 15.2 seconds, I mean 1.52 seconds, so rerun it.", "expected": "Latency came back at 1.52 seconds, so rerun it."}
+{"category": "same_length", "input": "Add eggs to the shopping list, I mean the to-do list.", "expected": "Add eggs to the to-do list."}
+{"category": "same_length", "input": "The meeting is on the fourteenth of March, I mean April.", "expected": "The meeting is on the fourteenth of April."}
+{"category": "same_length", "input": "Can you move it to next week, I mean next month?", "expected": "Can you move it to next month?"}
+{"category": "same_length", "input": "The red car, I mean the blue car, is outside.", "expected": "The blue car is outside.", "note": "the comma that closed the corrected phrase should go too"}
+{"category": "span_mismatch", "input": "Meet me at the coffee shop on Main Street, I mean the library.", "expected": "Meet me at the library."}
+{"category": "span_mismatch", "input": "Ship it to our office in San Francisco, I mean Oakland.", "expected": "Ship it to our office in Oakland."}
+{"category": "span_mismatch", "input": "Let's use the blue one, I mean red.", "expected": "Let's use the red one."}
+{"category": "span_mismatch", "input": "I'll take the train at 8, I mean I'll drive.", "expected": "I'll drive."}
+{"category": "span_mismatch", "input": "Invite Tom, Anna and Chris, sorry, Tom and Anna.", "expected": "Invite Tom and Anna."}
+{"category": "span_mismatch", "input": "Email the report to the whole marketing team, I mean just Lisa.", "expected": "Email the report to just Lisa."}
+{"category": "span_mismatch", "input": "Book a flight to New York City, no wait, Boston.", "expected": "Book a flight to Boston."}
+{"category": "span_mismatch", "input": "The package arrives on the twenty-first, I mean the 22nd.", "expected": "The package arrives on the 22nd."}
+{"category": "span_mismatch", "input": "Set the meeting for Thursday afternoon, make that Friday.", "expected": "Set the meeting for Friday."}
+{"category": "span_mismatch", "input": "Tell him the price is two hundred and fifty dollars, sorry, three hundred.", "expected": "Tell him the price is three hundred dollars.", "note": "keeps the unit the fix left out"}
+{"category": "not_a_correction", "input": "It's great. I mean, it really works.", "expected": "It's great. I mean, it really works."}
+{"category": "not_a_correction", "input": "I mean it this time.", "expected": "I mean it this time."}
+{"category": "not_a_correction", "input": "What I mean is we need more time.", "expected": "What I mean is we need more time."}
+{"category": "not_a_correction", "input": "I'm sorry, I can't make it tonight.", "expected": "I'm sorry, I can't make it tonight."}
+{"category": "not_a_correction", "input": "Sorry for the delay, the report is attached.", "expected": "Sorry for the delay, the report is attached."}
+{"category": "not_a_correction", "input": "We should delete that file before Friday.", "expected": "We should delete that file before Friday."}
+{"category": "not_a_correction", "input": "I think we need to start over on the design.", "expected": "I think we need to start over on the design."}
+{"category": "not_a_correction", "input": "She said sorry, but it didn't help.", "expected": "She said sorry, but it didn't help."}
+{"category": "not_a_correction", "input": "The correction was published on Monday.", "expected": "The correction was published on Monday."}
+{"category": "not_a_correction", "input": "Make that call before lunch.", "expected": "Make that call before lunch."}
+{"category": "not_a_correction", "input": "No wait times at the clinic today.", "expected": "No wait times at the clinic today."}
+{"category": "not_a_correction", "input": "You know what I mean, right?", "expected": "You know what I mean, right?"}
+{"category": "not_a_correction", "input": "Thanks for waiting, sorry.", "expected": "Thanks for waiting, sorry."}
+{"category": "not_a_correction", "input": "It was expensive, I mean really expensive.", "expected": "It was expensive, I mean really expensive.", "note": "emphasis, not a correction"}
+{"category": "not_a_correction", "input": "We shipped it on time. I mean, mostly on time.", "expected": "We shipped it on time. I mean, mostly on time.", "note": "a hedge, not a correction"}
+{"category": "cross_sentence", "input": "Can you send a letter to Sarah? I mean John.", "expected": "Can you send a letter to John?"}
+{"category": "cross_sentence", "input": "It'll be tomorrow at eight o'clock. I mean four o'clock.", "expected": "It'll be tomorrow at four o'clock."}
+{"category": "cross_sentence", "input": "The budget is 5 million. Sorry, 6 million.", "expected": "The budget is 6 million."}
+{"category": "cross_sentence", "input": "We fly out on Friday. No wait, Saturday.", "expected": "We fly out on Saturday."}
+{"category": "cross_sentence", "input": "Latency came back at 15.2 seconds. I mean 1.52 seconds. So ask the Zurich team to rerun it.", "expected": "Latency came back at 1.52 seconds. So ask the Zurich team to rerun it."}
+{"category": "cross_sentence", "input": "Put it on the shelf in the garage. I mean the basement.", "expected": "Put it on the shelf in the basement."}
+{"category": "restart", "input": "The launch is delayed, scratch that. The launch is on track.", "expected": "The launch is on track."}
+{"category": "restart", "input": "Let's order pizza, no, scratch that, let's get sushi.", "expected": "Let's get sushi."}
+{"category": "restart", "input": "The report is done. The numbers look bad, start over. The numbers look good.", "expected": "The report is done. The numbers look good."}
+{"category": "trailing", "input": "Upgrade to version 7.0. 8.0, sorry.", "expected": "Upgrade to version 8.0."}
+{"category": "trailing", "input": "The deadline is Thursday. Friday, sorry.", "expected": "The deadline is Friday."}
+{"category": "multiple", "input": "Call Bob, I mean call Sue, I mean call Ann.", "expected": "Call Ann."}
+{"category": "multiple", "input": "Meet at 3, sorry, 4, at the cafe, I mean the office.", "expected": "Meet at 4, at the office."}
+{"category": "no_marker", "input": "Let's move the Q3 review to Tuesday at 4:30 p.m.", "expected": "Let's move the Q3 review to Tuesday at 4:30 p.m."}
+{"category": "no_marker", "input": "The blue car is outside, and the keys are on the table.", "expected": "The blue car is outside, and the keys are on the table."}
