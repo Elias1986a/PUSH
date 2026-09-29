@@ -42,6 +42,32 @@ self-corrections on, all three Parakeet engines end on `1.52 seconds`.
 quote." before the question. Cards show `script v2`. Start a new table below
 for it; don't average v1 and v2 rows.
 
+#### Script v2 — append here
+
+| date | held | Ultra | Unified | Streaming | Apple Speech | Wispr Flow |
+|---|---|---|---|---|---|---|
+| 2026-09-29 | 22.7s | 0.15s · 149× | 0.15s · 150× | 0.42s · 54× | 0.30s · 76× | 0.81s + 0.13s net |
+| 2026-09-29 | 25.5s | 0.17s · 147× | 0.17s · 149× | 0.50s · 51× | 0.32s · 79× | 0.71s + 0.12s net |
+| 2026-09-29 | 24.8s | 0.20s · 123× | 0.15s · 162× | 0.45s · 55× | 0.29s · 85× | 0.79s + 0.13s net |
+
+Medians: Unified 0.15s/150×, Ultra 0.17s/147×, Apple 0.30s/79×, Streaming
+0.45s/54× (batch only — it decodes while you talk in the app), Wispr 0.79s +
+0.13s/31×. Ultra beats Wispr's server time by 4.6×, 5.4× with their network;
+Unified by 5.2×/6.1×. Ultra's 0.20s in run 3 is the widest local spread so far.
+
+Accuracy, re-run through the current pipeline with self-corrections on:
+- Ultra: clean 2/3; run 1 misheard "So asked the Zurich team".
+- Streaming: clean 2/3 apart from names; run 1 heard "30-some percent" for 37%.
+- Unified: run 2 lost all punctuation after "15.2 seconds." (engine), so the
+  correction could not resolve and the question could not close; run 3 dropped
+  the commas round "quote", so the quote is a lowercase fragment (correct).
+- Apple: "one. 52 seconds" 3/3, "Prius"/"Larry Pri" for Priya, "430 p.m." once.
+  Run 2's raw "target, um, latency" loses its break when the filler and both
+  commas go ("target latency came back"). Apple-only so far; not fixed.
+- Quotes: `Priya said, "Ship it anyways."` everywhere the engine wrote the
+  commas. Question mark: closed everywhere once `closeUnfinishedQuestion` saw
+  past the closing quote (fixed after run 3).
+
 Medians: Ultra 0.14s/142×, Apple 0.28s/76×, Wispr 0.66s + 0.13s/32×. Ultra beats
 Wispr's server-side processing by 4.7×, 5.6× counting their network, and Apple
 by 2×. Ultra's spread is 0.14–0.15, Apple's 0.26–0.29, Wispr's 0.66–1.04 — the
