@@ -97,6 +97,6 @@ public actor TranscriptionPipeline {
             out = fixCapitalization(out)
             out = capitalizeI(out)
         }
-        return out
+        return applySpokenFormatting(out)
     }
 }

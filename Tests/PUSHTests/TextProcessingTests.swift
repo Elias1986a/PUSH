@@ -826,3 +826,37 @@ final class CaliforniaLikeTests: XCTestCase {
         }
     }
 }
+
+/// Spoken layout commands, through the whole chain as the app runs it.
+final class SpokenFormattingTests: XCTestCase {
+    private func fmt(_ s: String) -> String {
+        TranscriptionPipeline.postProcess(s, hasNativePunctuation: true)
+    }
+
+    func testNewLineAndNewParagraph() {
+        XCTAssertEqual(fmt("Hi John, new line, thanks for the update."), "Hi John,\nThanks for the update.")
+        XCTAssertEqual(fmt("Hi John. New line. Thanks for the update."), "Hi John.\nThanks for the update.")
+        XCTAssertEqual(fmt("That's the plan. New paragraph. The second thing is cost."),
+                       "That's the plan.\n\nThe second thing is cost.")
+        XCTAssertEqual(fmt("Thanks, newline Elias."), "Thanks,\nElias.")
+        XCTAssertEqual(fmt("New line. And one more thing."), "\nAnd one more thing.")
+    }
+
+    func testBulletPoints() {
+        XCTAssertEqual(fmt("Groceries: bullet point milk, bullet point eggs, bullet point bread."),
+                       "Groceries:\n- Milk\n- Eggs\n- Bread")
+        XCTAssertEqual(fmt("I need these. Bullet point. Milk. Bullet point. Twelve apples."),
+                       "I need these.\n- Milk\n- 12 apples")
+        XCTAssertEqual(fmt("Bullet point call mom. She's waiting."), "- Call mom. She's waiting.")
+    }
+
+    func testTheOrdinaryWordsAreLeftAlone() {
+        for s in ["We launched a new line of shoes.",
+                  "It's the new line.",
+                  "Okay, new line of products is out.",
+                  "The bullet point was too long.",
+                  "Draw a new line through it."] {
+            XCTAssertEqual(fmt(s), s)
+        }
+    }
+}
