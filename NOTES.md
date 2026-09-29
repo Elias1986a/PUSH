@@ -7,36 +7,90 @@ lines up with the previous sentence's tail (name/number/day/month/same word);
 Parakeet Unified and Streaming are per-encoder downloads (delete one, keep the
 other — `ParakeetUnifiedEngine.hasMode/deleteMode`).
 
-### Benchmark re-run, 29 September 2026
+### Benchmark series — append here, don't overwrite
 
-One 15.2s utterance through `compare/`. Only the engines that were on disk ran —
-Unified, Streaming and Nemotron were not downloaded, so this is Ultra, Apple
-Speech and Wispr Flow only.
+Runs of `BenchmarkScript.text` through `compare/`. Same words every time, so
+these rows are comparable to each other. **Add a row, never replace the table.**
+Anything measured on a different utterance goes under "off-script" below and is
+not comparable to these.
 
-| engine | transcribe | × realtime |
-|---|---|---|
-| Parakeet Ultra | 0.18s | 84× |
-| Apple Speech | 0.20s | 77× |
-| Wispr Flow (cloud) | 0.62s + 0.12s network | 25× |
+Per second of audio (`s/s`) is the column to read across runs — the raw seconds
+move with how long you took to read it.
 
-**Ultra beats Wispr's server-side processing by 3.4×**, 4.1× counting their
-network. The README's old headline said 8× — that was Unified on an 8.3s clip in
-August, not a regression here: per second of audio Ultra runs 0.012 s/s against
-Unified's 0.0074 s/s on a different sample and a different machine state. The
-public number moved to what was actually measured.
+| date | held | Ultra | Apple Speech | Wispr Flow | Ultra s/s | notes |
+|---|---|---|---|---|---|---|
+| 2026-09-29 | 22.0s | 0.14s · 152× | 0.28s · 79× | 0.66s + 0.13s net | 0.0064 | Unified/Streaming/Nemotron not on disk |
+| 2026-09-29 | 21.0s | 0.15s · 142× | 0.29s · 73× | 1.04s + 0.09s net | 0.0071 | Wispr's slow run |
+| 2026-09-29 | 20.1s | 0.14s · 140× | 0.26s · 76× | 0.66s + 0.13s net | 0.0070 | |
 
-**First accuracy data point.** Spoken: "five million dollar challenge". Ultra's
-*raw* output was already `$5 million challenge` and post-processing left it
-alone. Apple Speech gave `$5000000`, which our formatter rewrote to
-`$5,000,000` — right value, different convention from what was said. Wispr's raw
-was `five million dollar challenge`; `$5 million` came from their server-side
-cleanup, along with commas around "everyone" and a colon before the name list.
-So Ultra is the only one that produced the written form on device with nothing
-to fix.
+Medians: Ultra 0.14s/142×, Apple 0.28s/76×, Wispr 0.66s + 0.13s/32×. Ultra beats
+Wispr's server-side processing by 4.7×, 5.6× counting their network, and Apple
+by 2×. Ultra's spread is 0.14–0.15, Apple's 0.26–0.29, Wispr's 0.66–1.04 — the
+cloud is the only one whose worst run is 1.6× its best, which is the argument
+for medians rather than single reads.
 
-Caveat that applies to both runs: single utterance, single machine. Worth
-re-running with Unified/Streaming/Nemotron downloaded before anyone leans on the
-multiples.
+Accuracy over the three runs:
+
+| exercise | Ultra | Apple Speech | Wispr Flow |
+|---|---|---|---|
+| `$5 million` | `$5 million` in raw, 3/3 | `$5000000` → `$5,000,000` (ours) | `five million dollar` → `$5 million` (theirs) |
+| `4:30 PM` | `4.30 p.m.` → `4:30 p.m.` | same | `4:30 PM` raw |
+| `1.52 seconds` | 3/3 | `one. 52 seconds` 3/3 ✗ | 3/3 |
+| `Zürich` | `Zurich` 2/3, `Zurek` once | `Zurich` | `Zurich` → `Zürich` |
+| `37%` `Q3` `March 3rd` `?` | 3/3 | dropped "Priya" once | 3/3 |
+
+Apple's `one. 52` is a recognition failure, not something our pipeline can
+repair — don't spend time on it.
+
+**What the script actually caught: a bug in our own self-correction resolver.**
+Wispr resolves "15.2 seconds, I mean 1.52 seconds" down to `1.52` in all three
+runs and says so in its UI. Ours would not have, even switched on, because
+every dot-scanning pass in `TextProcessing+SelfCorrections` read the decimal
+point in `1.52` as a sentence terminator. The correction became the single word
+`1`, and `startOfLastSentence` rebuilt the sentence it was correcting starting
+from the dot inside `15.2`. `resolveTrailing` had the "a dot followed by a
+digit is not a sentence end" rule from the day it was written; `correctionWords`,
+`resolveAcrossSentences` and `startOfLastSentence` did not. Fixed with a shared
+`isClauseBreak`, tests in `testDecimalsAreNotSentenceBoundaries` and
+`testGroupedNumbersAreNotClauseBoundaries`.
+
+Digits only — requiring whitespace after the terminator would also reclassify
+`p.m.` and every other abbreviation, which is a bigger change than this bug
+justifies.
+
+One run of the three also had Wispr rewrite "so ask the Zürich team to re-run
+it" into "Can the Zürich team rerun it?" — an instruction turned into a
+question. It did not repeat, so don't build a claim on it; note it if it
+reappears.
+
+**The comparison tool's `final` column is a default install.**
+`EngineComparison` calls `TranscriptionPipeline.postProcess` only, and the
+self-correction resolver lives in `TranscriptionPipeline+App` behind
+`AppState.resolveSelfCorrections`, which is off by default. So the tool is
+honest about stock PUSH but will not show what the setting does. If the README
+ever leans on that setting, the tool has to run it too.
+
+**Also spotted, not fixed here.** `removeFillerWords` strips a sentence-initial
+"Um" only at the very start of the text (`^\s*um\s*,?\s*`) or when it is bare
+between spaces (`\s+um\s+`). "…target. Um, latency came back" matches neither —
+the comma defeats the second pattern and the `^` defeats the first — so the
+filler survives. Seen on Apple Speech, but the pattern is ours and Ultra emits
+"Um" too; it only escaped because Ultra wrote it without the comma. One extra
+alternation for `(?<=[.!?])\s+um\s*,?\s*`, the same shape the "like" pass
+already uses.
+
+Next: download Unified, Streaming and Nemotron and add rows.
+
+#### Off-script runs (not comparable to the series)
+
+**2026-09-29, one 15.2s utterance, before the script existed.** Ultra 0.18s/84×,
+Apple Speech 0.20s/77×, Wispr 0.62s + 0.12s network. That gave 3.4× against
+Wispr where the scripted run gives 4.7×, on the same three engines and the same
+machine — Ultra ran 0.012 s/s there against 0.0064 s/s on script. Nothing
+changed in the engine between them; the clip was shorter, so Ultra's fixed
+overhead was amortised over less audio, and the machine state differed. This
+pair is exactly why the script is fixed now. Don't quote the 3.4× or the 8×
+(August, Unified, 8.3s clip) as if they were the same measurement as the series.
 
 ### v8.1.0
 

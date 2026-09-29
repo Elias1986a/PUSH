@@ -35,33 +35,68 @@ archived run below is why.
 
 ---
 
-## Benchmark — measured 29 September 2026
+## Benchmark — 29 September 2026
 
-**15.2 seconds of speech. Seconds to transcript.**
+Every run reads the same passage. It lives in
+[`compare/Sources/compare/BenchmarkScript.swift`](compare/Sources/compare/BenchmarkScript.swift)
+and is on screen in the comparison tool while you record, so one run can be
+compared against the next instead of against a different sentence.
+
+> Let's move the Q3 review to Tuesday, March 3rd at 4:30 PM — Larry, Priya and
+> Joe are all in, which puts us at 37% of the $5 million target. Um, latency
+> came back at 15.2 seconds, I mean 1.52 seconds, so ask the Zürich team to
+> re-run it. Can you confirm before Friday?
+
+**Three readings, 20–22 seconds each. Median seconds to transcript.**
 
 | PUSH · Parakeet Ultra | PUSH · Apple Speech | Wispr Flow (cloud) |
 |:---:|:---:|:---:|
-| **0.18 s** | **0.20 s** | **0.62 s** |
-| 84× realtime | 77× realtime | 25× realtime |
-| on device | on device | + 0.12 s network |
+| **0.14 s** | **0.28 s** | **0.66 s** |
+| 142× realtime | 76× realtime | 32× realtime |
+| on device | on device | + 0.13 s network |
 
-PUSH's default engine finished the utterance **3.4× faster than Wispr Flow's
-server-side processing**, and **4.1× faster** once their network round trip is
-counted. Multiples are against processing time; Wispr's realtime figure excludes
-their network, exactly as the on-device engines have no network to exclude.
+PUSH's default engine finished the passage **4.7× faster than Wispr Flow's
+server-side processing**, **5.6× faster** once their network round trip is
+counted, and **2× faster** than Apple's built-in recogniser. Multiples are
+against processing time; Wispr's realtime figure excludes their network,
+exactly as the on-device engines have no network to exclude.
 
-**Accuracy, same utterance.** The phrase spoken was "five million dollar
-challenge".
+Medians of three, not a best-of: Ultra ran 0.14 / 0.15 / 0.14 s and Apple 0.28 /
+0.29 / 0.26 s, while Wispr came back 0.66 / 1.04 / 0.66 s — the cloud is the
+only one of the three whose worst run was 1.6× its best.
 
-| Engine | Raw output | After cleanup |
-|---|---|---|
-| Parakeet Ultra | `$5 million challenge` | unchanged |
-| Apple Speech | `$5000000 challenge` | `$5,000,000 challenge` (PUSH's formatter) |
-| Wispr Flow | `five million dollar challenge` | `$5 million challenge` (their server) |
+### Accuracy
 
-Ultra is the only one that produced the written form on device, first try, with
-nothing to clean up afterwards. Wispr reached the same answer by sending the
-audio away and cleaning it up server-side.
+The passage is built out of the things these engines demonstrably disagree
+about, so a run produces this table and not just a stopwatch.
+
+| The script asks for | Parakeet Ultra | Apple Speech | Wispr Flow |
+|---|---|---|---|
+| `$5 million`, spoken "five million dollars" | `$5 million` **in raw output**, 3/3 | `$5000000` → `$5,000,000` (PUSH's formatter) | `five million dollar` → `$5 million` (their server) |
+| `4:30 PM` | `4.30 p.m.` → `4:30 p.m.` | `4.30 p.m.` → `4:30 p.m.` | `4:30 PM` in raw |
+| `1.52 seconds` | correct 3/3 | `one. 52 seconds` 3/3 ✗ | correct 3/3 |
+| `Zürich` | `Zurich` 2/3, `Zurek` once | `Zurich` | `Zurich` → `Zürich` |
+| `37%`, `Q3`, `March 3rd`, `?` | all correct | dropped "Priya" once | all correct |
+
+Ultra is the only engine that produced `$5 million` on device, first try, with
+nothing left to clean up — the other two reach the same string only through
+post-processing, one of them by sending the audio to a server. It never
+recovers the umlaut in `Zürich`, which Wispr's server-side pass does.
+
+**The difference worth knowing about is what cleanup does to meaning.** The
+script says "latency came back at 15.2 seconds, I mean 1.52 seconds". In all
+three runs Wispr's final text kept only the corrected figure:
+
+> Latency came back at 1.52 seconds so ask the Zürich team to rerun it.
+
+That is usually what you meant, and it is done for you with no way to turn it
+off. PUSH ships the same resolution as an opt-in — Settings ▸ Text ▸ resolve
+spoken self-corrections — and leaves it **off by default**, because it is the
+only post-processing step that deletes words you actually said, and its failure
+mode is losing meaning quietly rather than formatting something oddly. The
+table above is a default install, so both figures survive. Which behaviour you
+want depends on whether you are drafting prose or dictating numbers you will be
+held to.
 
 <details>
 <summary>Archived run — 18 August 2026, including the engines PUSH has since dropped</summary>
@@ -88,12 +123,15 @@ That gap is why Whisper and Moonshine came out in v7.0.0.
 
 </details>
 
-> One utterance, one machine, one day — not an average over a corpus. Parakeet
-> Unified, Streaming and Nemotron Multilingual were not on disk for the
-> September run and so are absent from it. Every engine here keeps shipping new
-> versions; if you re-run this today you should expect different numbers. The
-> comparison tool that produced them lives in `compare/` — build it with
-> `./compare/build_compare.sh` and measure your own hardware.
+> One reading, one machine, one day — not an average over a corpus. Parakeet
+> Unified, Streaming and Nemotron Multilingual were not on disk for this run and
+> so are absent from it. Fixing the script makes future runs comparable to this
+> one; it does not make this one comparable to the 18 August figures below, which
+> were a different sentence of a different length. Every engine here keeps
+> shipping new versions, so if you re-run this today you should expect different
+> numbers — that is the point of shipping the tool. It lives in `compare/`: build
+> it with `./compare/build_compare.sh`, read the passage, measure your own
+> hardware.
 
 <sub>\* **How the Whisper numbers were taken.** Every engine transcribed the
 *same* recorded audio buffer, one at a time — never in parallel, since two
