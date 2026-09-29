@@ -55,7 +55,7 @@ final class LaunchModelTests: XCTestCase {
             .parakeetUnified)
     }
 
-    /// Apple Speech was removed in 8.1.4. A saved or synced "apple-speech"
+    /// Apple Speech was removed in 8.2.0. A saved or synced "apple-speech"
     /// must not decode into anything, so `AppState` keeps the default.
     func testTheRemovedAppleSpeechPreferenceDecodesToNothing() {
         XCTAssertNil(WhisperModel(rawValue: "apple-speech"))

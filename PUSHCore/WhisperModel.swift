@@ -12,7 +12,7 @@ import Foundation
 /// Large v3 Turbo's 1.106s, with better English accuracy and no two-minute first-run
 /// compile. Moonshine went at the same time; its weights only ever existed in the
 /// upstream package's test resources and were never shipped, so it could not load at all.
-/// Apple Speech went in 8.1.4: last in every benchmark run ("one. 52 seconds" for 1.52,
+/// Apple Speech went in 8.2.0: last in every benchmark run ("one. 52 seconds" for 1.52,
 /// "Prius" for Priya), and not something to put PUSH's name next to. A saved
 /// "apple-speech" preference no longer decodes and launch falls back to the default.
 public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {

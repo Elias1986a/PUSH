@@ -1,6 +1,19 @@
 # NOTES
 
-## Current state (2026-09-29, v8.1.3 — released)
+## Current state (2026-09-29, v8.2.0 — released)
+
+8.2.0: **Apple Speech removed** (worst in every benchmark; the user won't have
+Apple's AI in the product) — the lineup is Parakeet Ultra/Unified/Streaming +
+Nemotron, and a saved "apple-speech" falls back to Ultra. **California mode**
+(Settings ▸ Text, off by default): `removeCasualLike` drops casual "like" and
+keeps the verb, comparisons, "like I said", "like 30 minutes" and quotative
+"was like,". Self-corrections: emphasis ("cold, I mean very cold") is no
+longer resolved; restarts drop their period; cross-sentence number runs
+replace whole. Eval set `eval/self_corrections.jsonl`: 44/50. The model-based
+resolver was tried (three open models, none beat the rules) and dropped.
+README benchmark now leads with script v2. Next: onboarding model-choice step
+(below, "Still open").
+
 
 8.1.3: self-corrections on by default; unclosed questions get "?" (also behind a
 closed quote); quotes after "said," capitalised; capital after a removed
@@ -428,7 +441,7 @@ left after a replaced subject ("The blue car, is outside.").
 
 - **Onboarding: choose and download a model before the app starts** (asked
   2026-09-29, queued behind the self-correction work). With Apple Speech gone
-  (8.1.4, unreleased) nothing works without a download, and today
+  (8.2.0) nothing works without a download, and today
   `preloadModels` → `ModelLoader.activateAtLaunch` silently downloads Ultra on a
   fresh install. Wanted: a "Choose your model" step in `OnboardingView` after
   permissions and before `tryIt` (which needs a working model), listing the

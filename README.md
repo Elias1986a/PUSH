@@ -13,7 +13,9 @@ in whatever you were typing in. Nothing leaves your Mac.
 - **Or say a wake word.** Hands-free start, with voice activity detection ending the take on silence.
 - **Lands anywhere.** Text is inserted into the focused field of any app.
 - **Fully offline.** Speech recognition runs on the Neural Engine. No accounts, no API keys, no network.
-- **Fixes itself as you speak.** "The red car, I mean the blue car" pastes *the blue car*.
+- **Fixes itself as you speak.** "The red car, I mean the blue car" pastes *the blue car*. On by default; one switch turns it off.
+- **Cleans up as it goes.** Drops "um" and "uh", writes times, money, percentages and spoken quotes the way you would type them, and closes a question the model left open.
+- **California mode.** An optional switch that removes casual "like" — "it was like really good" pastes *it was really good* — while keeping "I like it", "looks like rain" and "like I said".
 - **Personal dictionary.** Teach it names and jargon it keeps mishearing — globally, or only in context.
 - **Live pill.** A floating capsule shows it is listening; Parakeet Streaming draws the words as you say them.
 - **Menu bar only.** No dock icon, no window. iCloud syncs your dictionary across Macs; Sparkle handles updates.
@@ -30,7 +32,7 @@ All run on-device. Parakeet Ultra is the default.
 | Nemotron Multilingual | ~600 MB | Every language Ultra doesn't cover — Chinese, Japanese, Arabic, Hindi, Russian, Greek and more. You pick the language. |
 
 Whisper and Moonshine were removed in v7.0.0, Parakeet TDT v2 in 8.0.5, Apple
-Speech in 8.1.4. The runs below are why.
+Speech in 8.2.0. The runs below are why.
 
 ---
 
@@ -44,7 +46,52 @@ compared against the next instead of against a different sentence.
 > Let's move the Q3 review to Tuesday, March 3rd at 4:30 PM — Larry, Priya and
 > Joe are all in, which puts us at 37% of the $5 million target. Um, latency
 > came back at 15.2 seconds, I mean 1.52 seconds, so ask the Zürich team to
-> re-run it. Can you confirm before Friday?
+> re-run it. Priya said, quote, ship it anyway, end quote. Can you confirm
+> before Friday?
+
+**Three readings, 23–26 seconds each. Median seconds from release to transcript.**
+
+| PUSH · Parakeet Ultra | PUSH · Parakeet Unified | Wispr Flow (cloud) |
+|:---:|:---:|:---:|
+| **0.17 s** | **0.15 s** | **0.79 s** |
+| 147× realtime | 150× realtime | 31× realtime |
+| on device | on device | + 0.13 s network |
+
+PUSH's default engine finished the passage **4.6× faster than Wispr Flow's
+server-side processing**, **5.4× faster** once their network round trip is
+counted. Unified is a hair quicker (5.2× / 6.1×) but English-only; Ultra also
+handles the European languages. Multiples are against processing time, and
+Wispr's realtime figure excludes their network, exactly as the on-device
+engines have no network to exclude. Parakeet Streaming measured 0.45 s, but
+it transcribes while you talk, so in use most of that is done before you let
+go. macOS's built-in recogniser took 0.30 s and was the least accurate of all,
+which is why PUSH no longer offers it.
+
+### Accuracy
+
+The passage is built out of the things these engines demonstrably disagree
+about, so a run produces this table and not just a stopwatch. PUSH's column is
+what it pastes with default settings.
+
+| The script asks for | PUSH · Parakeet Ultra | Wispr Flow |
+|---|---|---|
+| `$5 million`, spoken "five million dollars" | `$5 million` **in the model's own output**, 3/3 | `five million dollar` → `$5 million` (their server) |
+| `4:30 PM` | `4.30 p.m.` → `4:30 p.m.` (PUSH's formatter) | `4:30 PM` |
+| "15.2 seconds, I mean 1.52 seconds" | `1.52 seconds`, 3/3 | `1.52 seconds`, 3/3 |
+| "Um, latency…" | filler removed | filler removed |
+| "quote, ship it anyway, end quote" | `said, "Ship it anyways."` | `said, "Ship it anyways."` |
+| `Zürich` | `Zurich` | `Zurich` → `Zürich` |
+| `37%`, `Q3`, `March 3rd`, `?` | all correct | all correct |
+
+Ultra misheard one phrase once ("So asked the Zurich team"), and never
+recovers the umlaut in `Zürich`, which Wispr's server-side pass does.
+
+Both resolve the spoken correction to `1.52 seconds`. The difference is that
+Wispr gives you no way to turn it off; PUSH does (Settings ▸ Text), because
+it is the only step that deletes words you actually said.
+
+<details>
+<summary>Earlier script — the same passage without the quotation, three runs, with macOS's built-in recogniser</summary>
 
 **Three readings, 20–22 seconds each. Median seconds to transcript.**
 
@@ -82,17 +129,7 @@ nothing left to clean up — the other two reach the same string only through
 post-processing, one of them by sending the audio to a server. It never
 recovers the umlaut in `Zürich`, which Wispr's server-side pass does.
 
-**The difference worth knowing about is what cleanup does to meaning.** The
-script says "latency came back at 15.2 seconds, I mean 1.52 seconds". In all
-three runs Wispr's final text kept only the corrected figure:
-
-> Latency came back at 1.52 seconds so ask the Zürich team to rerun it.
-
-That is usually what you meant, and it is done for you with no way to turn it
-off. PUSH does the same **by default since 8.1.3**, and unlike Wispr you can
-switch it off — Settings ▸ Text — because it is the only post-processing step
-that deletes words you actually said. The table above was measured before
-8.1.3, so both figures survive in it.
+</details>
 
 <details>
 <summary>Archived run — 18 August 2026, including the engines PUSH has since dropped</summary>

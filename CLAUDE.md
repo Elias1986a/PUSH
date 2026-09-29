@@ -13,7 +13,7 @@ text field of any app. All speech recognition runs on-device.
   language: Nemotron offers only what Ultra doesn't (`TranscriptLanguage.ultraCovers`).
   WhisperKit and Moonshine were removed in v7.0.0, TDT v2 in 8.0.5 — don't
   reinstate them without re-measuring; Parakeet won on the ANE, not on CPU.
-  Apple Speech was removed in 8.1.4 (last in every benchmark), and Apple's AI
+  Apple Speech was removed in 8.2.0 (last in every benchmark), and Apple's AI
   stays out of the product by the user's choice — use open models.
 - Silero VAD via FluidAudio; Sparkle auto-updates; LaunchAtLogin
 
