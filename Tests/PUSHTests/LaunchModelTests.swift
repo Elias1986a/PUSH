@@ -36,19 +36,12 @@ final class LaunchModelTests: XCTestCase {
             WhisperModel.defaultModel)
     }
 
-    /// With the default absent too, the settings list's own order decides —
-    /// which puts Apple Speech last. It needs no download, so it would always
-    /// win a "cheapest first" rule, and quietly demoting a Mac to the OS engine
-    /// when a Parakeet build is sitting right there is not what anyone meant.
+    /// With the default absent too, the settings list's own order decides.
     func testAmongTheRestTheSettingsOrderDecides() {
         XCTAssertEqual(
-            ModelLoader.launchModel(preferred: .nemotronMultilingual,
-                                    ready: [.appleSpeech, .parakeetStreaming]),
+            ModelLoader.launchModel(preferred: .parakeetUnified,
+                                    ready: [.nemotronMultilingual, .parakeetStreaming]),
             .parakeetStreaming)
-        XCTAssertEqual(
-            ModelLoader.launchModel(preferred: .nemotronMultilingual,
-                                    ready: [.appleSpeech, .parakeetUltra]),
-            .parakeetUltra)
     }
 
     /// A first launch has nothing to fall back on, and the one download nobody
@@ -62,14 +55,9 @@ final class LaunchModelTests: XCTestCase {
             .parakeetUnified)
     }
 
-    /// A preference this Mac cannot run at all — `apple-speech` synced from a
-    /// macOS 26 machine to one on macOS 15 — is not a download instruction
-    /// either. Loading it could only ever throw `requiresNewerSystem`.
-    func testAPreferenceThisMacCannotRunFallsBackToTheDefault() throws {
-        try XCTSkipIf(WhisperModel.selectable.contains(.appleSpeech),
-                      "Apple Speech is selectable on this OS, so it is not the unrunnable case")
-        XCTAssertEqual(
-            ModelLoader.launchModel(preferred: .appleSpeech, ready: []),
-            WhisperModel.defaultModel)
+    /// Apple Speech was removed in 8.1.4. A saved or synced "apple-speech"
+    /// must not decode into anything, so `AppState` keeps the default.
+    func testTheRemovedAppleSpeechPreferenceDecodesToNothing() {
+        XCTAssertNil(WhisperModel(rawValue: "apple-speech"))
     }
 }

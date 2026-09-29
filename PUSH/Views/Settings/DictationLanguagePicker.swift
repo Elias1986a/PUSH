@@ -126,8 +126,6 @@ struct DictationLanguagePicker: View {
             // dictionary and deliberately has no hardcoded fallback, so an
             // undownloaded engine has genuinely nothing to offer.
             return "Download the model to see its languages."
-        case .appleSpeech:
-            return "macOS hasn't offered any dictation languages yet."
         case .parakeetUltra, .parakeetUnified, .parakeetStreaming:
             // Unreachable — `showsLanguagePicker` keeps the English engines out
             // of this view. Listed rather than defaulted so adding an engine is
@@ -159,12 +157,6 @@ struct DictationLanguagePicker: View {
         switch model.engineType {
         case .nemotronMultilingual:
             resolved = await NemotronMultilingualEngine.shared.supportedLanguages()
-        case .appleSpeech:
-            if #available(macOS 26, *) {
-                resolved = await AppleSpeechEngine.supportedLanguages()
-            } else {
-                resolved = []
-            }
         case .parakeetUltra, .parakeetUnified, .parakeetStreaming:
             resolved = []
         }

@@ -250,15 +250,6 @@ struct MenuBarView: View {
             let resident = all.filter { NemotronMultilingualEngine.isModelDownloaded(for: $0.code) }
             languages = resident
             hasUndownloadedLanguages = resident.count < all.count
-        case .appleSpeech:
-            // The OS owns these assets and installs them on demand; there is no
-            // download of ours to protect the user from.
-            if #available(macOS 26, *) {
-                languages = await AppleSpeechEngine.supportedLanguages()
-            } else {
-                languages = []
-            }
-            hasUndownloadedLanguages = false
         case .parakeetUltra, .parakeetUnified, .parakeetStreaming:
             languages = []
             hasUndownloadedLanguages = false

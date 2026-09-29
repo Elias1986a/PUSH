@@ -28,10 +28,9 @@ All run on-device. Parakeet Ultra is the default.
 | Parakeet Unified | ~600 MB | English only. Transcribes on release. |
 | Parakeet Streaming | ~600 MB | English. Transcribes while you speak — long takes land instantly. |
 | Nemotron Multilingual | ~600 MB | Every language Ultra doesn't cover — Chinese, Japanese, Arabic, Hindi, Russian, Greek and more. You pick the language. |
-| Apple Speech | — | Built into macOS 26. Nothing to download. |
 
-Whisper and Moonshine were removed in v7.0.0, Parakeet TDT v2 in 8.0.5. The
-archived run below is why.
+Whisper and Moonshine were removed in v7.0.0, Parakeet TDT v2 in 8.0.5, Apple
+Speech in 8.1.4. The runs below are why.
 
 ---
 
@@ -49,7 +48,7 @@ compared against the next instead of against a different sentence.
 
 **Three readings, 20–22 seconds each. Median seconds to transcript.**
 
-| PUSH · Parakeet Ultra | PUSH · Apple Speech | Wispr Flow (cloud) |
+| PUSH · Parakeet Ultra | Apple Speech (macOS built-in) | Wispr Flow (cloud) |
 |:---:|:---:|:---:|
 | **0.14 s** | **0.28 s** | **0.66 s** |
 | 142× realtime | 76× realtime | 32× realtime |
@@ -90,13 +89,10 @@ three runs Wispr's final text kept only the corrected figure:
 > Latency came back at 1.52 seconds so ask the Zürich team to rerun it.
 
 That is usually what you meant, and it is done for you with no way to turn it
-off. PUSH ships the same resolution as an opt-in — Settings ▸ Text ▸ resolve
-spoken self-corrections — and leaves it **off by default**, because it is the
-only post-processing step that deletes words you actually said, and its failure
-mode is losing meaning quietly rather than formatting something oddly. The
-table above is a default install, so both figures survive. Which behaviour you
-want depends on whether you are drafting prose or dictating numbers you will be
-held to.
+off. PUSH does the same **by default since 8.1.3**, and unlike Wispr you can
+switch it off — Settings ▸ Text — because it is the only post-processing step
+that deletes words you actually said. The table above was measured before
+8.1.3, so both figures survive in it.
 
 <details>
 <summary>Archived run — 18 August 2026, including the engines PUSH has since dropped</summary>
@@ -168,7 +164,7 @@ can be deleted any time.
 
 ## Tech
 
-Swift · SwiftUI · [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet + Silero VAD on CoreML/ANE) · Apple SpeechAnalyzer · Sparkle
+Swift · SwiftUI · [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet + Silero VAD on CoreML/ANE) · Sparkle
 
 ## Contributing
 

@@ -296,10 +296,7 @@ enum ModelLoader {
     /// `load(_:)` is reused rather than reimplemented, and that is the whole
     /// trick: its `.nemotronMultilingual` arm already reads the saved code and
     /// hands it to the engine (which decides for itself whether that is a cheap
-    /// prompt swap or a genuine build swap), and its `.appleSpeech` arm already
-    /// pushes the code through `setPreferredLanguage(_:)`, which drops
-    /// `readyLocale` so the `loadModel()` on the next line actually re-resolves.
-    /// A second copy of that routing here would be one more place to forget an
+    /// prompt swap or a genuine build swap). A second copy of that routing here would be one more place to forget an
     /// engine.
     ///
     /// `isModelReady` is left true across the load, matching `activate`'s
@@ -384,9 +381,6 @@ enum ModelLoader {
         generation: Int,
         hadModel: Bool
     ) -> Task<Void, Never> {
-        // Apple Speech is exempt: the OS owns that install, takes as long as it
-        // takes, and reports its own state in Settings. There are no files of
-        // ours to watch and nothing here would be true of it.
         guard let folder = ModelAvailability.folder(for: model) else { return Task {} }
 
         return Task { @MainActor in
@@ -448,15 +442,6 @@ enum ModelLoader {
             // tap and silently drop hotkey presses.
             let code = await MainActor.run { AppState.shared.language(for: .nemotronMultilingual).code }
             try await NemotronMultilingualEngine.shared.loadModel(languageCode: code)
-        case .appleSpeech:
-            guard #available(macOS 26, *) else { throw PipelineError.requiresNewerSystem }
-            // Push the saved preference in before loading. `AppleSpeechEngine`
-            // deliberately does not persist it — it is handed a code and forgets
-            // it on quit, falling back to its old system-locale guess. Without
-            // this line the picker appears to do nothing after a relaunch.
-            let code = await MainActor.run { AppState.shared.language(for: .appleSpeech).code }
-            await AppleSpeechEngine.shared.setPreferredLanguage(code)
-            try await AppleSpeechEngine.shared.loadModel()
         }
     }
 
@@ -467,8 +452,6 @@ enum ModelLoader {
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.unloadModel()
         // No language: tearing the model down is the same act whichever one was loaded.
         case .nemotronMultilingual: await NemotronMultilingualEngine.shared.unloadModel()
-        case .appleSpeech:
-            if #available(macOS 26, *) { await AppleSpeechEngine.shared.unloadModel() }
         }
     }
 
@@ -480,8 +463,6 @@ enum ModelLoader {
         case .nemotronMultilingual:
             let code = await MainActor.run { AppState.shared.language(for: .nemotronMultilingual).code }
             await NemotronMultilingualEngine.shared.warmup(languageCode: code)
-        case .appleSpeech:
-            if #available(macOS 26, *) { await AppleSpeechEngine.shared.warmup() }
         }
     }
 }

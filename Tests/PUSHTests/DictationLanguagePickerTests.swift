@@ -25,8 +25,6 @@ final class DictationLanguagePickerTests: XCTestCase {
     func testOnlyTheSelectedLanguageTakingEngineShowsAPicker() {
         XCTAssertTrue(ModelsSettingsView.showsLanguagePicker(
             for: .nemotronMultilingual, selectedModel: .nemotronMultilingual))
-        XCTAssertTrue(ModelsSettingsView.showsLanguagePicker(
-            for: .appleSpeech, selectedModel: .appleSpeech))
 
         // Selected, but English-only by construction.
         XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
@@ -39,8 +37,6 @@ final class DictationLanguagePickerTests: XCTestCase {
         // Takes a language, but is not the row the user has chosen.
         XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
             for: .nemotronMultilingual, selectedModel: .parakeetUnified))
-        XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
-            for: .appleSpeech, selectedModel: .nemotronMultilingual))
     }
 
     /// Holds the rule to `supportsLanguageSelection` rather than to today's list
@@ -119,13 +115,6 @@ final class DictationLanguagePickerTests: XCTestCase {
         XCTAssertFalse(needsDownload("en-US", withBuildsOnDisk: []))
     }
 
-    /// Apple Speech has one asset set, managed by the OS, and the row reports
-    /// its state in the system's own terms. Nothing here to warn about.
-    func testAppleSpeechIsNeverWarnedAbout() {
-        XCTAssertFalse(needsDownload("ja-JP", withBuildsOnDisk: ["latin"], model: .appleSpeech))
-        XCTAssertFalse(needsDownload("ja-JP", withBuildsOnDisk: [], model: .appleSpeech))
-    }
-
     // MARK: - Reloading the running engine
 
     /// `ModelLoader.activate` early-returns when the model is already active, so
@@ -137,8 +126,6 @@ final class DictationLanguagePickerTests: XCTestCase {
             changed: .nemotronMultilingual,
             activeModel: .nemotronMultilingual,
             isModelReady: true))
-        XCTAssertTrue(ModelLoader.languageChangeNeedsReload(
-            changed: .appleSpeech, activeModel: .appleSpeech, isModelReady: true))
     }
 
     /// Every other engine reads the preference on its way up. Reloading for one
@@ -147,10 +134,6 @@ final class DictationLanguagePickerTests: XCTestCase {
         XCTAssertFalse(ModelLoader.languageChangeNeedsReload(
             changed: .nemotronMultilingual,
             activeModel: .parakeetUnified,
-            isModelReady: true))
-        XCTAssertFalse(ModelLoader.languageChangeNeedsReload(
-            changed: .appleSpeech,
-            activeModel: .nemotronMultilingual,
             isModelReady: true))
     }
 

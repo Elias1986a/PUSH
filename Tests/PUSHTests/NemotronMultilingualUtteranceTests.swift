@@ -7,7 +7,7 @@ import AVFoundation
 /// Everything here needs the ~600 MB `latin` build on disk and skips cleanly
 /// without it, so the suite stays fast for anyone who has not downloaded it.
 /// Speech is synthesized with `say` rather than shipped as a fixture or read
-/// aloud by anyone — the same trick `AppleSpeechSmokeTest` uses.
+/// aloud by anyone.
 ///
 /// Nothing here asserts a whole transcript. The engine's output is a model's
 /// opinion about audio and pinning it exactly would fail on every FluidAudio

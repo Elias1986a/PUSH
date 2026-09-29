@@ -13,7 +13,6 @@ final class WhisperModelTests: XCTestCase {
     /// grow a picker.
     func testOnlyMultilingualEnginesAcceptALanguage() {
         XCTAssertTrue(WhisperModel.nemotronMultilingual.supportsLanguageSelection)
-        XCTAssertTrue(WhisperModel.appleSpeech.supportsLanguageSelection)
         XCTAssertFalse(WhisperModel.parakeetUnified.supportsLanguageSelection)
         XCTAssertFalse(WhisperModel.parakeetStreaming.supportsLanguageSelection)
         XCTAssertFalse(WhisperModel.parakeetUltra.supportsLanguageSelection)
@@ -29,6 +28,5 @@ final class WhisperModelTests: XCTestCase {
     func testLanguageDefaultsKeyIsDerivedFromTheRawValue() {
         XCTAssertEqual(WhisperModel.nemotronMultilingual.languageDefaultsKey,
                        "language.nemotron-multilingual")
-        XCTAssertEqual(WhisperModel.appleSpeech.languageDefaultsKey, "language.apple-speech")
     }
 }

@@ -51,7 +51,6 @@ enum EngineComparison {
     static func availableModels() -> [WhisperModel] {
         WhisperModel.selectable.filter { model in
             switch model.engineType {
-            case .appleSpeech: return true
             case .parakeetUltra: return ParakeetEngine.ultra.isModelDownloaded()
             case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
             case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
@@ -144,8 +143,6 @@ enum EngineComparison {
         case .nemotronMultilingual:
             await NemotronMultilingualEngine.shared.warmup(
                 languageCode: storedLanguage(for: model).code)
-        case .appleSpeech:
-            if #available(macOS 26, *) { await AppleSpeechEngine.shared.warmup() }
         }
     }
 
@@ -192,18 +189,7 @@ enum EngineComparison {
         case .nemotronMultilingual:
             try await NemotronMultilingualEngine.shared.loadModel(
                 languageCode: storedLanguage(for: model).code)
-        case .appleSpeech:
-            guard #available(macOS 26, *) else { throw ComparisonError.needsNewerSystem }
-            // The engine does not persist its language, so it has to be pushed in
-            // before every load — same reason `ModelLoader` does it in the app.
-            await AppleSpeechEngine.shared.setPreferredLanguage(storedLanguage(for: model).code)
-            try await AppleSpeechEngine.shared.loadModel()
         }
     }
 
-}
-
-enum ComparisonError: LocalizedError {
-    case needsNewerSystem
-    var errorDescription: String? { "Requires macOS 26 or later" }
 }

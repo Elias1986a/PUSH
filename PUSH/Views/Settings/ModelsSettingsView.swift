@@ -15,7 +15,6 @@ struct ModelsSettingsView: View {
     @State private var downloadProgress: Double = 0
     @State private var downloadStatus: String = ""
     @State private var downloadError: String?
-    @State private var appleStatus: AppleSpeechAssetStatus = .unknown
     @State private var storageBytes: Double = 0
 
     /// Measured on-disk size per model, filled by `refreshStorage`. Empty until
@@ -63,7 +62,6 @@ struct ModelsSettingsView: View {
         .formStyle(.grouped)
         .onAppear {
             refreshDownloaded()
-            refreshAppleStatus()
             refreshStorage()
         }
     }
@@ -115,11 +113,6 @@ struct ModelsSettingsView: View {
                         onModelsChanged: {
                             refreshDownloaded()
                             refreshStorage()
-                            // Apple installs its assets per locale, so the
-                            // answer to "is this installed" changes with the
-                            // language. Without this the row keeps showing the
-                            // status of whichever locale was current on appear.
-                            refreshAppleStatus()
                         },
                         reload: { willDownload in
                             await reloadForLanguage(model, willDownload: willDownload)
@@ -162,17 +155,7 @@ struct ModelsSettingsView: View {
         if downloadingModel == model {
             EmptyView()
         } else if showsActiveBadge(for: model) {
-            // The engine that is loaded says so, whichever engine it is. Apple
-            // Speech used to be answered by a short-circuit above this check, so
-            // the one engine needing no download was also the only one that
-            // never said "Active": it sat reading "Installs on first use" while
-            // it was loaded and transcribing, which reads as "not working yet".
             statusBadge(icon: "checkmark.circle.fill", color: .green, text: "Active")
-        } else if model == .appleSpeech {
-            // No download button: these assets belong to the OS. A progress bar
-            // we neither drive nor can cancel would be a fiction, so this
-            // reports the system's own state instead.
-            statusBadge(icon: appleStatusIcon, color: appleStatusColor, text: appleStatusLabel)
         } else if downloaded.contains(model) {
             Button("Delete") { deleteModel(model) }
                 .foregroundStyle(.red)
@@ -183,14 +166,8 @@ struct ModelsSettingsView: View {
     }
 
     /// Whether `model` is the engine currently serving dictation.
-    ///
-    /// Apple Speech has no files of ours, so `downloaded` is the wrong question
-    /// for it — but "still installing" is worth saying in preference to
-    /// "Active", since that install is the one thing that would stop it working.
     private func showsActiveBadge(for model: AppState.WhisperModel) -> Bool {
-        guard model == appState.activeModel else { return false }
-        if model == .appleSpeech { return appleStatus != .installing }
-        return downloaded.contains(model)
+        model == appState.activeModel && downloaded.contains(model)
     }
 
     private func statusBadge(icon: String, color: Color, text: String) -> some View {
@@ -229,9 +206,6 @@ struct ModelsSettingsView: View {
     }
 
     private func metaLine(for model: AppState.WhisperModel) -> String {
-        if model == .appleSpeech {
-            return "No download · managed by macOS"
-        }
         let isDownloaded = downloaded.contains(model)
         let state = isDownloaded ? "on this Mac" : "not downloaded"
 
@@ -277,59 +251,6 @@ struct ModelsSettingsView: View {
         model == selectedModel && model.supportsLanguageSelection
     }
 
-    // MARK: Apple asset status
-
-    private var appleStatusLabel: String {
-        switch appleStatus {
-        case .unknown: return "Checking…"
-        case .installed: return "Ready"
-        case .willInstall: return "Installs on first use"
-        case .installing: return "Installing…"
-        case .unsupported: return "Not available"
-        }
-    }
-
-    private var appleStatusIcon: String {
-        switch appleStatus {
-        case .installed: return "checkmark.circle.fill"
-        case .installing: return "arrow.down.circle"
-        case .willInstall: return "icloud.and.arrow.down"
-        case .unknown: return "ellipsis.circle"
-        case .unsupported: return "exclamationmark.triangle"
-        }
-    }
-
-    private var appleStatusColor: Color {
-        switch appleStatus {
-        case .installed: return .green
-        case .unsupported: return .orange
-        case .unknown, .willInstall, .installing: return .secondary
-        }
-    }
-
-    /// Ask the system what state its speech assets are in. Only meaningful for
-    /// `.appleSpeech`, which `selectable` already filters out below macOS 26.
-    private func refreshAppleStatus() {
-        guard AppState.WhisperModel.selectable.contains(.appleSpeech) else { return }
-        guard #available(macOS 26, *) else {
-            appleStatus = .unsupported
-            return
-        }
-        appleStatus = .unknown
-        Task {
-            let status = await AppleSpeechEngine.installStatus()
-            await MainActor.run {
-                switch status {
-                case .installed: appleStatus = .installed
-                case .downloading: appleStatus = .installing
-                case .supported: appleStatus = .willInstall
-                case .unsupported: appleStatus = .unsupported
-                @unknown default: appleStatus = .unknown
-                }
-            }
-        }
-    }
-
     // MARK: Selection
 
     /// Picking a row records the preference; the swap only happens once the
@@ -338,7 +259,7 @@ struct ModelsSettingsView: View {
         guard appState.selectedWhisperModel != model else { return }
         downloadError = nil
         appState.selectedWhisperModel = model
-        if downloaded.contains(model) || model == .appleSpeech {
+        if downloaded.contains(model) {
             activate(model)
         }
     }
@@ -452,7 +373,7 @@ struct ModelsSettingsView: View {
     }
 
     private func refreshDownloaded() {
-        downloaded = ModelAvailability.downloaded().subtracting([.appleSpeech])
+        downloaded = ModelAvailability.downloaded()
     }
 
     /// Walks the model directories, so it runs off the main thread — blocking it
@@ -507,7 +428,6 @@ struct ModelsSettingsView: View {
     private static func expectedSize(of model: AppState.WhisperModel) -> Double {
         switch model {
         case .parakeetUnified, .parakeetUltra, .parakeetStreaming, .nemotronMultilingual: return 600_000_000
-        case .appleSpeech: return 0  // never downloaded through us
         }
     }
 
@@ -599,10 +519,3 @@ struct ModelsSettingsView: View {
     }
 }
 
-enum AppleSpeechAssetStatus {
-    case unknown
-    case installed
-    case willInstall
-    case installing
-    case unsupported
-}

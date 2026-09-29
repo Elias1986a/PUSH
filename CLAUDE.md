@@ -7,12 +7,14 @@ text field of any app. All speech recognition runs on-device.
 
 ## Tech Stack
 - Swift, Swift Package Manager executable target (no Xcode project)
-- ASR engines: FluidAudio Parakeet (Ultra = default / Unified / Streaming), Nemotron
-  Multilingual, Apple Speech (macOS 26+). Ultra auto-detects Latin-script European
-  languages; `TranscriptLanguage` reads the language back from its text. One engine
-  per language: Nemotron offers only what Ultra doesn't (`TranscriptLanguage.ultraCovers`).
+- ASR engines: FluidAudio Parakeet (Ultra = default / Unified / Streaming) and
+  Nemotron Multilingual. Ultra auto-detects Latin-script European languages;
+  `TranscriptLanguage` reads the language back from its text. One engine per
+  language: Nemotron offers only what Ultra doesn't (`TranscriptLanguage.ultraCovers`).
   WhisperKit and Moonshine were removed in v7.0.0, TDT v2 in 8.0.5 — don't
   reinstate them without re-measuring; Parakeet won on the ANE, not on CPU.
+  Apple Speech was removed in 8.1.4 (last in every benchmark), and Apple's AI
+  stays out of the product by the user's choice — use open models.
 - Silero VAD via FluidAudio; Sparkle auto-updates; LaunchAtLogin
 
 ## Commands
@@ -20,14 +22,15 @@ text field of any app. All speech recognition runs on-device.
 - `swift test` — unit tests (Tests/PUSHTests; text post-processing + context gate)
 - `swift run` — run the app
 - `./build_distribution.sh` — signed/notarized release ZIP + DMG + Sparkle appcast
-  (requires the Xcode-beta toolchain; CLT's Foundation breaks FluidAudio)
+  (run with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`; CLT's
+  Foundation breaks FluidAudio)
 
 ## Project Structure
 - `PUSH/App` — entry point, AppDelegate, shared AppState
 - `PUSH/Core` — TranscriptionPipeline+App, HotkeyManager, AudioRecorder, SileroVAD,
   WakeWordListener, ModelLoader, CorrectionsStore/ContextGate, TextInjector
 - `PUSHCore` — library target: engine wrappers (ParakeetEngine, ParakeetUnified,
-  ParakeetStreaming, AppleSpeechEngine), TextProcessing, WhisperModel, PushLogger.
+  ParakeetStreaming, NemotronMultilingualEngine), TextProcessing, WhisperModel, PushLogger.
   No SwiftUI, no resources (Bundle.module fatal-asserts in distribution builds).
 - `PUSH/Views` — MenuBarView, SettingsView, FloatingPillView
 - `docs/` — design docs and plans

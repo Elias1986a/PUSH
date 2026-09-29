@@ -17,9 +17,6 @@ enum ModelAvailability {
         case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
         case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
         case .nemotronMultilingual: return NemotronMultilingualEngine.isModelDownloaded()
-        case .appleSpeech:
-            // Nothing for us to download — the system installs on demand.
-            return true
         }
     }
 
@@ -30,8 +27,6 @@ enum ModelAvailability {
     }
 
     /// Where `model`'s files live, whether or not they have been downloaded.
-    /// `nil` for Apple Speech, whose assets belong to the OS — there is nothing
-    /// of ours to size, watch or delete.
     ///
     /// Shared with `ModelsSettingsView` (which sizes and deletes these folders)
     /// and `ModelLoader` (which watches one for signs of life during a load).
@@ -45,7 +40,6 @@ enum ModelAvailability {
         // The repo root, covering both vocab builds — a user who has dictated in
         // two language groups has two of them down.
         case .nemotronMultilingual: return NemotronMultilingualEngine.modelDirectory
-        case .appleSpeech: return nil  // the OS owns these; nothing of ours to show
         }
     }
 
