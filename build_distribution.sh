@@ -263,6 +263,10 @@ rm -rf "$DMG_TEMP"
 # private key in the login Keychain (created once via Sparkle's generate_keys).
 echo "🔏 Generating Sparkle appcast..."
 SIG_AND_LENGTH=$("$SPARKLE_BIN/sign_update" "$ZIP_NAME")
+# What Sparkle's update window shows: this version's notes, then the older ones
+# (scripts/release_notes.py). Fails the release if release-notes/$VERSION.md
+# was never written.
+RELEASE_NOTES_HTML=$(python3 scripts/release_notes.py "$VERSION") || exit 1
 PUBDATE=$(LC_ALL=en_US.UTF-8 date "+%a, %d %b %Y %H:%M:%S %z")
 
 # Keep every previous release in the feed instead of replacing it. A one-item
@@ -272,12 +276,16 @@ PUBDATE=$(LC_ALL=en_US.UTF-8 date "+%a, %d %b %Y %H:%M:%S %z")
 # earlier item to fall back to. Sparkle picks the best applicable item itself.
 #
 # Any item carrying this build number is dropped first, so re-running the script
-# for the same version replaces its item rather than duplicating it.
+# for the same version replaces its item rather than duplicating it. Older
+# items lose their release notes: the newest item's notes already include
+# theirs, and keeping every copy would grow the feed with each release.
 PREVIOUS_ITEMS=""
 if [ -f "$APPCAST" ]; then
     PREVIOUS_ITEMS=$(awk -v skip="<sparkle:version>${BUILD_NUMBER}</sparkle:version>" '
         /<item>/       { in_item = 1; buffer = ""; drop = 0 }
-        in_item        { buffer = buffer $0 ORS; if (index($0, skip)) drop = 1 }
+        /<description>/ && in_item { in_notes = 1 }
+        in_item && !in_notes { buffer = buffer $0 ORS; if (index($0, skip)) drop = 1 }
+        /<\/description>/ { in_notes = 0 }
         /<\/item>/     { in_item = 0; if (!drop) printf "%s", buffer }
     ' "$APPCAST")
 fi
@@ -295,6 +303,9 @@ cat > "$APPCAST" <<XML
             <sparkle:version>${BUILD_NUMBER}</sparkle:version>
             <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>${MIN_OS}</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+${RELEASE_NOTES_HTML}
+            ]]></description>
             <enclosure url="${DOWNLOAD_URL}" type="application/octet-stream" ${SIG_AND_LENGTH} />
         </item>
 ${PREVIOUS_ITEMS}
@@ -314,7 +325,7 @@ echo "   - $APPCAST (Sparkle update feed)"
 echo ""
 echo "🚀 Ready to distribute! To publish this update:"
 echo "   1. Create the GitHub release (the tag must match the appcast URL):"
-echo "        gh release create v${VERSION} --title \"PUSH v${VERSION}\" --generate-notes \"$ZIP_NAME\" \"$DMG_NAME\""
+echo "        gh release create v${VERSION} --title \"PUSH v${VERSION}\" --notes-file release-notes/${VERSION}.md \"$ZIP_NAME\" \"$DMG_NAME\""
 echo "   2. Commit & push the appcast so existing users get the update:"
 echo "        git add $APPCAST && git commit -m \"Release v${VERSION}\" && git push"
 echo ""

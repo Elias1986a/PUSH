@@ -1,8 +1,16 @@
 # NOTES
 
-## Current state (2026-09-29, v8.2.1 — released)
+## Current state (2026-09-29, v8.2.2)
 
-Unreleased on main: spoken layout ("new line", "new paragraph", "bullet point",
+**Release notes live in `release-notes/<version>.md`** — write one before every
+release; `build_distribution.sh` refuses to build without it. The same file is
+the GitHub release text (`--notes-file`), and `scripts/release_notes.py` turns
+all of them (newest first, down to 8.1.0) into the HTML Sparkle's update window
+shows. Older appcast items are stripped of notes so the feed doesn't grow. This
+is where small behaviour changes get announced instead of permanent Settings
+captions (the user's call).
+
+8.2.2: spoken layout ("new line", "new paragraph", "bullet point",
 numbered lists from "number one … number two …" counting up from one
 — only at a break, never before a preposition/verb) and a ranked microphone
 list (first attached wins; built-in mic skipped with the lid closed). Needs a
@@ -27,8 +35,10 @@ MacParakeet). Not committed to; each needs the user's go-ahead.
   transcript cleanup, 4-bit, 1.08 GB. Our bake-off used general small models
   (Qwen 0.5B/1.5B, Llama 1B) and dropped them on size vs. gain; a model trained
   for this one job is the version that might earn its size. If revisited: run it
-  through `eval/run_llm_eval.py` against the rules (44/50), and check its
-  licence before shipping anything built on it.
+  through `eval/run_llm_eval.py` against the rules (44/50). Its licence
+  forbids use outside VoiceInk (no other apps, commercial use or
+  redistribution without permission), so the model itself is out; the recipe
+  is not — fine-tune an openly licensed Qwen ourselves on our eval shapes.
 - Rejected, don't re-propose: transcript history / paste-last (privacy),
   snippets, meeting notetaker, usage stats, per-app tone styles, SenseVoice
   (weaker than Parakeet on English; the user dropped it 2026-09-29).

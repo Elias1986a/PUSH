@@ -15,10 +15,6 @@ struct TextSettingsView: View {
         Form {
             Section("Formatting") {
                 Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
-
-                Text("Say “new line”, “new paragraph” or “bullet point” where you pause, and PUSH lays the text out. “Number one, … number two, …” makes a numbered list.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section("Spoken corrections") {
