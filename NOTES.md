@@ -417,6 +417,13 @@ great. I mean, it really works."). The word check cannot catch a wrong
 *deletion*, only an invented word, so free-form output is the wrong shape for
 models this small.
 
+**Dropped (user's call, 2026-09-29):** not worth the download or the effort for
+a handful of edge cases. Models deleted. Stay on the rules (43/50). The eval set
+and scorer stay in `eval/` as a regression check. Known rule misses, unfixed:
+emphasis read as a correction ("It's cold, I mean very cold." → "Very cold."),
+multi-word names ("San Francisco, I mean Oakland" → "San Oakland"), and a comma
+left after a replaced subject ("The blue car, is outside.").
+
 ### Still open
 
 - **Onboarding: choose and download a model before the app starts** (asked
