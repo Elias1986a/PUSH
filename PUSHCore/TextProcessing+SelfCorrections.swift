@@ -173,7 +173,9 @@ extension TranscriptionPipeline {
         // The fix: up to the first comma or sentence end, which must end it.
         let after = String(text[markerEnd...])
             .trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: ",;:")))
-        let stop = after.firstIndex(where: { ",;.!?".contains($0) })
+        let stop = after.indices.first(where: {
+            ",;.!?".contains(after[$0]) && isClauseBreak(after, at: $0)
+        })
         if let stop, !".!?".contains(after[stop]) { return nil }
         let fix = String(after[..<(stop ?? after.endIndex)]).split(whereSeparator: \.isWhitespace).map(String.init)
         guard (1...maximumCorrectionWords).contains(fix.count) else { return nil }
@@ -246,7 +248,10 @@ extension TranscriptionPipeline {
     /// semicolon or sentence end. "I mean the blue car, which I love" is a
     /// three-word correction, not six.
     private static func correctionWords(in after: String) -> [String] {
-        after.prefix { !",;.!?".contains($0) }
+        let end = after.indices.first(where: {
+            ",;.!?".contains(after[$0]) && isClauseBreak(after, at: $0)
+        }) ?? after.endIndex
+        return after[..<end]
             .split(whereSeparator: \.isWhitespace)
             .map(String.init)
     }
@@ -321,10 +326,31 @@ extension TranscriptionPipeline {
         return ",;:.!?—-".contains(next)
     }
 
+    /// Whether the punctuation at `index` ends a clause, or is sitting inside a
+    /// number.
+    ///
+    /// "latency came back at 15.2 seconds, I mean 1.52 seconds" holds three
+    /// dots and one sentence: the decimal points are followed by a digit, the
+    /// terminator by a space. Reading a decimal point as a sentence end split
+    /// the correction "1.52" into "1" and rebuilt the sentence around it —
+    /// "came back at 15. 1. 52 seconds". `resolveTrailing` has applied this
+    /// rule since it was written; the other passes had not, and the fixed
+    /// benchmark script walked into it (2026-09-29).
+    ///
+    /// Digits only, deliberately. Requiring whitespace after the terminator
+    /// would also reclassify "p.m." and every other abbreviation, which is a
+    /// larger change than the bug warrants.
+    private static func isClauseBreak(_ text: String, at index: String.Index) -> Bool {
+        let next = text.index(after: index)
+        guard next < text.endIndex else { return true }
+        return !text[next].isNumber
+    }
+
     /// Index just past the previous sentence's terminator, or the start.
     private static func startOfLastSentence(in text: String) -> String.Index {
-        guard let terminator = text.lastIndex(where: { $0 == "." || $0 == "!" || $0 == "?" })
-        else { return text.startIndex }
+        guard let terminator = text.indices.last(where: {
+            ".!?".contains(text[$0]) && isClauseBreak(text, at: $0)
+        }) else { return text.startIndex }
         return text.index(after: terminator)
     }
 

@@ -14,6 +14,10 @@ build/
 
 # Swift Package Manager
 .build
+# ".build 2", ".build 3" — Finder and iCloud make numbered duplicates of the
+# symlink, and the bare `.build` rule does not match them. Two of them reached
+# the repo as absolute symlinks into one machine's home directory.
+.build [0-9]*
 .swiftpm/
 Packages/
 # Package.resolved — tracked for CI reproducibility

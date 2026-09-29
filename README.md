@@ -30,25 +30,80 @@ All run on-device. Parakeet Ultra is the default.
 | Nemotron Multilingual | ~600 MB | Every language Ultra doesn't cover — Chinese, Japanese, Arabic, Hindi, Russian, Greek and more. You pick the language. |
 | Apple Speech | — | Built into macOS 26. Nothing to download. |
 
-Whisper and Moonshine were removed in v7.0.0. The numbers below are why.
+Whisper and Moonshine were removed in v7.0.0, Parakeet TDT v2 in 8.0.5. The
+archived run below is why.
 
 ---
 
-## Benchmark — measured 18 August 2026
+## Benchmark — 29 September 2026
 
-**8.3 seconds of speech. Seconds to transcript, per engine.**
+Every run reads the same passage. It lives in
+[`compare/Sources/compare/BenchmarkScript.swift`](compare/Sources/compare/BenchmarkScript.swift)
+and is on screen in the comparison tool while you record, so one run can be
+compared against the next instead of against a different sentence.
 
-| PUSH · Parakeet Unified | PUSH · Parakeet TDT v2 | PUSH · Parakeet Streaming | Wispr Flow (cloud) |
-|:---:|:---:|:---:|:---:|
-| **0.061 s** | **0.074 s** | **0.161 s** | **0.492 s** |
-| 136× realtime | 112× realtime | 52× realtime | 17× realtime |
-| on device | on device | on device | + 0.095 s network |
+> Let's move the Q3 review to Tuesday, March 3rd at 4:30 PM — Larry, Priya and
+> Joe are all in, which puts us at 37% of the $5 million target. Um, latency
+> came back at 15.2 seconds, I mean 1.52 seconds, so ask the Zürich team to
+> re-run it. Can you confirm before Friday?
 
-PUSH's default engine finished the same utterance **8× faster than Wispr Flow's
-server-side processing** — before their round trip is counted at all.
+**Three readings, 20–22 seconds each. Median seconds to transcript.**
+
+| PUSH · Parakeet Ultra | PUSH · Apple Speech | Wispr Flow (cloud) |
+|:---:|:---:|:---:|
+| **0.14 s** | **0.28 s** | **0.66 s** |
+| 142× realtime | 76× realtime | 32× realtime |
+| on device | on device | + 0.13 s network |
+
+PUSH's default engine finished the passage **4.7× faster than Wispr Flow's
+server-side processing**, **5.6× faster** once their network round trip is
+counted, and **2× faster** than Apple's built-in recogniser. Multiples are
+against processing time; Wispr's realtime figure excludes their network,
+exactly as the on-device engines have no network to exclude.
+
+Medians of three, not a best-of: Ultra ran 0.14 / 0.15 / 0.14 s and Apple 0.28 /
+0.29 / 0.26 s, while Wispr came back 0.66 / 1.04 / 0.66 s — the cloud is the
+only one of the three whose worst run was 1.6× its best.
+
+### Accuracy
+
+The passage is built out of the things these engines demonstrably disagree
+about, so a run produces this table and not just a stopwatch.
+
+| The script asks for | Parakeet Ultra | Apple Speech | Wispr Flow |
+|---|---|---|---|
+| `$5 million`, spoken "five million dollars" | `$5 million` **in raw output**, 3/3 | `$5000000` → `$5,000,000` (PUSH's formatter) | `five million dollar` → `$5 million` (their server) |
+| `4:30 PM` | `4.30 p.m.` → `4:30 p.m.` | `4.30 p.m.` → `4:30 p.m.` | `4:30 PM` in raw |
+| `1.52 seconds` | correct 3/3 | `one. 52 seconds` 3/3 ✗ | correct 3/3 |
+| `Zürich` | `Zurich` 2/3, `Zurek` once | `Zurich` | `Zurich` → `Zürich` |
+| `37%`, `Q3`, `March 3rd`, `?` | all correct | dropped "Priya" once | all correct |
+
+Ultra is the only engine that produced `$5 million` on device, first try, with
+nothing left to clean up — the other two reach the same string only through
+post-processing, one of them by sending the audio to a server. It never
+recovers the umlaut in `Zürich`, which Wispr's server-side pass does.
+
+**The difference worth knowing about is what cleanup does to meaning.** The
+script says "latency came back at 15.2 seconds, I mean 1.52 seconds". In all
+three runs Wispr's final text kept only the corrected figure:
+
+> Latency came back at 1.52 seconds so ask the Zürich team to rerun it.
+
+That is usually what you meant, and it is done for you with no way to turn it
+off. PUSH ships the same resolution as an opt-in — Settings ▸ Text ▸ resolve
+spoken self-corrections — and leaves it **off by default**, because it is the
+only post-processing step that deletes words you actually said, and its failure
+mode is losing meaning quietly rather than formatting something oddly. The
+table above is a default install, so both figures survive. Which behaviour you
+want depends on whether you are drafting prose or dictating numbers you will be
+held to.
 
 <details>
-<summary>Every engine measured that day, including the ones PUSH dropped</summary>
+<summary>Archived run — 18 August 2026, including the engines PUSH has since dropped</summary>
+
+A different sample (8.3 s) and a different default engine — Parakeet Unified,
+before Ultra existed. Kept because it is the measurement that retired Whisper
+and Moonshine. Not comparable row-for-row with the run above.
 
 Times are release → transcript on one Apple silicon Mac, model loading excluded.
 
@@ -59,20 +114,24 @@ Times are release → transcript on one Apple silicon Mac, model loading exclude
 | Apple Speech | 0.118 s | 70× |
 | Parakeet Streaming | 0.161 s | 52× |
 | Wispr Flow (cloud) | 0.492 s + 0.095 s network | 17× |
-| Whisper Small * | 0.947 s | 8.8× |
-| Whisper Large v3 Turbo * | 1.106 s | 7.5× |
+| Whisper Small | 0.947 s | 8.8× |
+| Whisper Large v3 Turbo | 1.106 s | 7.5× |
 | Moonshine Tiny | failed to load | — |
 
-Parakeet Unified is **18× faster than Whisper Large v3 Turbo** on the same
-machine. That gap is why Whisper and Moonshine came out in v7.0.0.
+Parakeet Unified was **18× faster than Whisper Large v3 Turbo** on that machine.
+That gap is why Whisper and Moonshine came out in v7.0.0.
 
 </details>
 
-> These are the figures from that date, on that machine, on that one recording.
-> Every engine here keeps shipping new versions; if you re-run this today you
-> should expect different numbers. The comparison tool that produced them lives
-> in `compare/` — build it with `./compare/build_compare.sh` and measure your
-> own hardware.
+> One reading, one machine, one day — not an average over a corpus. Parakeet
+> Unified, Streaming and Nemotron Multilingual were not on disk for this run and
+> so are absent from it. Fixing the script makes future runs comparable to this
+> one; it does not make this one comparable to the 18 August figures below, which
+> were a different sentence of a different length. Every engine here keeps
+> shipping new versions, so if you re-run this today you should expect different
+> numbers — that is the point of shipping the tool. It lives in `compare/`: build
+> it with `./compare/build_compare.sh`, read the passage, measure your own
+> hardware.
 
 <sub>\* **How the Whisper numbers were taken.** Every engine transcribed the
 *same* recorded audio buffer, one at a time — never in parallel, since two

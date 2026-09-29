@@ -449,6 +449,28 @@ final class TextProcessingTests: XCTestCase {
         TranscriptionPipeline.removeFillerWords(text)
     }
 
+    /// "Um" opening a sentence that is not the first one.
+    ///
+    /// Found in a benchmark run (2026-09-29): "…of the $5 million target. Um,
+    /// latency came back" kept the filler, because the comma defeats the bare
+    /// " um " rule and the start-of-text rule is anchored to `^`.
+    func testFillerOpeningALaterSentenceIsRemoved() {
+        XCTAssertEqual(filler("of the $5 million target. Um, latency came back"),
+                       "of the $5 million target. latency came back")
+        XCTAssertEqual(filler("That works. Uh, let me check"),
+                       "That works. let me check")
+        XCTAssertEqual(filler("Right. Um so we ship"), "Right. so we ship")
+    }
+
+    /// The comma after the filler is optional, so the rules need a word
+    /// boundary or they bite into the next word.
+    func testWordsBeginningWithAFillerAreLeftAlone() {
+        XCTAssertEqual(filler("Umbrella sales are up"), "Umbrella sales are up")
+        XCTAssertEqual(filler("It rained. Umbrella sales are up"),
+                       "It rained. Umbrella sales are up")
+        XCTAssertEqual(filler("Uhuru Park is in Nairobi"), "Uhuru Park is in Nairobi")
+    }
+
     func testFillerLikeIsRemoved() {
         XCTAssertEqual(filler("I was, like, going"), "I was going")
         XCTAssertEqual(filler("it works for like normal situations"),
@@ -547,6 +569,29 @@ final class TextProcessingTests: XCTestCase {
     /// Word-boundary check: a marker embedded in a longer word must not fire.
     func testMarkerInsideAWordDoesNotFire() {
         XCTAssertEqual(resolve("in the meantime we wait"), "in the meantime we wait")
+    }
+
+    /// A decimal point is not a sentence end.
+    ///
+    /// Found by the fixed benchmark script (2026-09-29), which says "15.2
+    /// seconds, I mean 1.52 seconds" out loud. Parakeet writes both as digits
+    /// and puts a sentence break before the marker, so every dot-scanning pass
+    /// saw "1.52" as the end of a sentence after "1": the correction became the
+    /// single word "1", and the sentence it was correcting was rebuilt from the
+    /// dot inside "15.2". `resolveTrailing` had the rule; nothing else did.
+    func testDecimalsAreNotSentenceBoundaries() {
+        XCTAssertEqual(
+            resolve("Latency came back at 15.2 seconds. I mean 1.52 seconds. So ask the Zurich team to rerun it."),
+            "Latency came back at 1.52 seconds. So ask the Zurich team to rerun it.")
+        XCTAssertEqual(
+            resolve("Latency was 15.2 seconds, I mean 1.52 seconds, so rerun it"),
+            "Latency was 1.52 seconds, so rerun it")
+    }
+
+    /// The thousands separator is the same trap with a comma.
+    func testGroupedNumbersAreNotClauseBoundaries() {
+        XCTAssertEqual(resolve("It costs 1,500, I mean 2,500"),
+                       "It costs 2,500")
     }
 
     func testDanglingMarkerWithNothingAfterItIsDropped() {

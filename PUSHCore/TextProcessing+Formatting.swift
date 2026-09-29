@@ -116,9 +116,27 @@ extension TranscriptionPipeline {
                 result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: " ")
             }
             // Start of text: "Um, " or "Uh, "
-            if let regex = try? NSRegularExpression(pattern: "^\\s*\(filler)\\s*,?\\s*", options: .caseInsensitive) {
+            //
+            // `\b` because the comma is optional: without it the pattern ate
+            // the first two letters of any text opening with "Umbrella" or
+            // "Uhuru", leaving "brella".
+            if let regex = try? NSRegularExpression(pattern: "^\\s*\(filler)\\b\\s*,?\\s*", options: .caseInsensitive) {
                 let range = NSRange(result.startIndex..., in: result)
                 result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "")
+            }
+            // Opening a later sentence: "…the target. Um, latency came back".
+            //
+            // Neither rule around this one catches that shape — the comma
+            // defeats the bare " um " below, and the `^` above only covers the
+            // very start of the text — so the filler survived into the final
+            // transcript (seen in a benchmark run, 2026-09-29). Same form as
+            // the sentence-initial "like" pass above.
+            if let regex = try? NSRegularExpression(
+                pattern: "(?<=[.!?])(\\s+)\(filler)\\b\\s*,?\\s*",
+                options: .caseInsensitive
+            ) {
+                let range = NSRange(result.startIndex..., in: result)
+                result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1")
             }
             // Standalone mid-sentence: " um " (no commas)
             if let regex = try? NSRegularExpression(pattern: "\\s+\(filler)\\s+", options: .caseInsensitive) {
