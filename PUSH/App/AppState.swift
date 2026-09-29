@@ -286,7 +286,7 @@ final class AppState {
             (d.bool(forKey: UserDefaultsKeys.wakeWordEnabled), \.wakeWordEnabled),
             (d.bool(forKey: UserDefaultsKeys.doubleSpaceAfterSentence), \.doubleSpaceAfterSentence),
             (d.bool(forKey: UserDefaultsKeys.showLivePreview), \.showLivePreview),
-            (d.bool(forKey: UserDefaultsKeys.resolveSelfCorrections), \.resolveSelfCorrections)
+            (d.object(forKey: UserDefaultsKeys.resolveSelfCorrections) as? Bool ?? true, \.resolveSelfCorrections)
         ]
         for (value, path) in flags where self[keyPath: path] != value {
             self[keyPath: path] = value
@@ -296,11 +296,14 @@ final class AppState {
     /// Whether to act on spoken self-corrections — "the red car, I mean the
     /// blue car" pastes as "the blue car".
     ///
-    /// Off by default, and it should stay off until it has been lived with:
-    /// this is the only post-processing step that deletes words the user
-    /// actually said, so its failure mode is losing meaning silently rather
-    /// than formatting something oddly.
-    var resolveSelfCorrections: Bool = false {
+    /// On by default since 8.1.3. It was off because it is the only
+    /// post-processing step that deletes words the user actually said, so
+    /// its failure mode is losing meaning silently. The benchmark script
+    /// showed it resolving "15.2 seconds, I mean 1.52 seconds" correctly on
+    /// all three Parakeet engines, and a correction left in the paste is
+    /// almost never wanted — Wispr does it unconditionally. The switch in
+    /// Settings ▸ Text stays as the way out when it guesses wrong.
+    var resolveSelfCorrections: Bool = true {
         didSet {
             UserDefaults.standard.set(resolveSelfCorrections, forKey: UserDefaultsKeys.resolveSelfCorrections)
         }
@@ -495,7 +498,9 @@ final class AppState {
            let position = PillPosition(rawValue: savedPosition) {
             self.pillPosition = position
         }
-        self.resolveSelfCorrections = UserDefaults.standard.bool(forKey: UserDefaultsKeys.resolveSelfCorrections)
+        // Defaults to true when never set, like iCloud sync below.
+        self.resolveSelfCorrections = UserDefaults.standard.object(
+            forKey: UserDefaultsKeys.resolveSelfCorrections) as? Bool ?? true
         // Defaults to true when never set, unlike every other flag here.
         if UserDefaults.standard.object(forKey: UserDefaultsKeys.iCloudSyncEnabled) != nil {
             self.iCloudSyncEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.iCloudSyncEnabled)
