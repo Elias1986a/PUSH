@@ -5,7 +5,7 @@ import SwiftUI
 struct ComparisonView: View {
     @State private var model = ComparisonModel()
     /// The tool's own preference, not PUSH's: this app has its own defaults domain.
-    @AppStorage("resolveSelfCorrections") private var resolveSelfCorrections = false
+    @AppStorage("resolveSelfCorrections") private var resolveSelfCorrections = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -113,8 +113,8 @@ struct ComparisonView: View {
 
             benchmarkScript
 
-            // PUSH ships this off by default, so an off run is what users get and an on
-            // run is what the setting buys. Applied to every row, past ones included,
+            // On by default, as in PUSH since 8.1.3; off shows what the setting buys.
+            // Applied to every row, past ones included,
             // because it is recomputed from the stored raw text rather than re-transcribed.
             Toggle("Resolve spoken self-corrections (\"15.2, I mean 1.52\" → \"1.52\")",
                    isOn: $resolveSelfCorrections)
@@ -202,6 +202,9 @@ private struct ComparisonCard: View {
                     Text("· \(comparison.audioSeconds, format: .number.precision(.fractionLength(1)))s")
                 } else {
                     Text("· held \(comparison.audioSeconds, format: .number.precision(.fractionLength(1)))s")
+                }
+                if let version = comparison.scriptVersion {
+                    Text("· script v\(version)")
                 }
                 Spacer()
                 if let verdict {

@@ -121,7 +121,8 @@ final class ComparisonModel {
     private func compare(audio: Data, seconds: Double, sourceFile: String?) {
         let models = self.models
         var comparison = Comparison(
-            date: Date(), audioSeconds: seconds, sourceFile: sourceFile, runs: [])
+            date: Date(), audioSeconds: seconds, sourceFile: sourceFile,
+            scriptVersion: sourceFile == nil ? BenchmarkScript.version : nil, runs: [])
         comparisons.insert(comparison, at: 0)
         pending = models.count
         status = "Transcribing with \(models.count) engine\(models.count == 1 ? "" : "s")…"

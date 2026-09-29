@@ -31,6 +31,9 @@ struct Comparison: Codable, Identifiable, Sendable {
     ///
     /// Optional so rows written before it existed still decode.
     var sourceFile: String?
+    /// `BenchmarkScript.version` for a live recording, nil for a file or a row from
+    /// before scripts were versioned. Optional so older rows still decode.
+    var scriptVersion: Int?
     var runs: [EngineRun]
     /// Wispr Flow's result for the same utterance, when its hotkey was held too.
     var wispr: WisprRun?
