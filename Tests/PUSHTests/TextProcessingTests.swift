@@ -646,6 +646,18 @@ final class TextProcessingTests: XCTestCase {
             "Latency was 1.52 seconds, so rerun it")
     }
 
+    /// Ultra does not always write the comma before "I mean". A correction
+    /// that ends on the word the marker follows still resolves; ordinary
+    /// "what I mean is" does not.
+    func testACorrectionWithoutACommaResolvesWhenItMirrorsTheWordBefore() {
+        XCTAssertEqual(resolve("The new build loads in 15.2 seconds I mean 1.52 seconds. Everyone liked it."),
+                       "The new build loads in 1.52 seconds. Everyone liked it.")
+        XCTAssertEqual(resolve("Grab the red car I mean the blue car"), "Grab the blue car")
+        for s in ["That's what I mean when I say it.", "I love you I mean it.", "I think I mean it"] {
+            XCTAssertEqual(resolve(s), s)
+        }
+    }
+
     /// A correction in a later sentence keeps the space after the sentence
     /// before it. The clause was rebuilt from its words, which dropped the
     /// whitespace it opened with: "target. Um, latency…" became
@@ -856,6 +868,14 @@ final class SpokenFormattingTests: XCTestCase {
                        "That's the plan.\n\nThe second thing is cost.")
         XCTAssertEqual(fmt("Thanks, newline Elias."), "Thanks,\nElias.")
         XCTAssertEqual(fmt("New line. And one more thing."), "\nAnd one more thing.")
+    }
+
+    func testTimesOfDayTakeOneStyle() {
+        XCTAssertEqual(fmt("Tuesday at 4:30 pm. Since that works."), "Tuesday at 4:30 p.m. Since that works.")
+        XCTAssertEqual(fmt("Meet at 4:30 PM on Friday."), "Meet at 4:30 p.m. on Friday.")
+        XCTAssertEqual(fmt("Call at 9am tomorrow."), "Call at 9 a.m. tomorrow.")
+        XCTAssertEqual(fmt("Tuesday at 4.30 p.m., since it works."), "Tuesday at 4:30 p.m., since it works.")
+        XCTAssertEqual(fmt("I am here. The PM said so."), "I am here. The PM said so.")
     }
 
     func testADoubledFullStopBecomesOne() {

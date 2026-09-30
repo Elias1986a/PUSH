@@ -84,6 +84,7 @@ public actor TranscriptionPipeline {
         out = normalizeNumberWords(out)
         out = groupThousands(out)
         out = normalizeClockTimes(out)
+        out = normalizeMeridiem(out)
         out = normalizeSpokenQuotes(out)
         if !hasNativePunctuation {
             out = fixTrailingComma(out)

@@ -136,15 +136,24 @@ public actor ParakeetEngine {
         // FluidAudio's fixed seams start a window mid-sentence.
         guard floatArray.count <= SentenceAlignedWindows.windowSamples else {
             return try await SentenceAlignedWindows.transcribe(
-                floatArray,
-                window: { chunk in
-                    let result = try await Self.decode(chunk, with: manager)
-                    return .init(text: result.text, tokens: result.tokenTimings ?? [])
-                },
-                whole: { try await Self.decode($0, with: manager).text })
+                floatArray, window: decodeWindow, whole: decodeWhole)
         }
         return try await Self.decode(floatArray, with: manager).text
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// One encoder window with its token timings — the unit both the
+    /// release-time path and `LiveDecoder` work in.
+    func decodeWindow(_ samples: [Float]) async throws -> SentenceAlignedWindows.Decoded {
+        guard let manager = asrManager else { throw ParakeetEngineError.notInitialized }
+        let result = try await Self.decode(samples, with: manager)
+        return .init(text: result.text, tokens: result.tokenTimings ?? [])
+    }
+
+    /// FluidAudio's own long-audio path, for audio with no sentence end to cut at.
+    func decodeWhole(_ samples: [Float]) async throws -> String {
+        guard let manager = asrManager else { throw ParakeetEngineError.notInitialized }
+        return try await Self.decode(samples, with: manager).text
     }
 
     private static func decode(_ samples: [Float], with manager: AsrManager) async throws -> ASRResult {

@@ -89,8 +89,10 @@ extension TranscriptionPipeline {
             // Set off by punctuation (or opening the text) in front: "what I
             // mean is" and "I think I mean it" are not corrections. Behind too,
             // for the markers that are also everyday words.
-            guard precededByBreak(text, at: candidate.range.lowerBound) else { continue }
             let needsBreakAfter = interjectionOnlyMarkers.contains(candidate.marker)
+            guard precededByBreak(text, at: candidate.range.lowerBound)
+                || (!isRestart && !needsBreakAfter && mirrorsWordBefore(text, marker: candidate.range))
+            else { continue }
             if needsBreakAfter && !followedByBreak(text, at: candidate.range.upperBound) { continue }
 
             let before = String(text[..<candidate.range.lowerBound])
@@ -357,6 +359,23 @@ extension TranscriptionPipeline {
 
     /// Whether the nearest non-space character before `index` is punctuation
     /// or the start of the text.
+    /// "15.2 seconds I mean 1.52 seconds", "the red car I mean the blue car":
+    /// no pause mark before the marker — the model does not always write one —
+    /// but the correction ends on the very word the marker follows, which is
+    /// what a correction looks like and ordinary speech ("what I mean is",
+    /// "I think I mean it") does not.
+    private static func mirrorsWordBefore(_ text: String, marker: Range<String.Index>) -> Bool {
+        func bare(_ word: Substring) -> String {
+            word.lowercased().trimmingCharacters(in: .punctuationCharacters)
+        }
+        guard let previous = text[..<marker.lowerBound].split(whereSeparator: \.isWhitespace).last.map(bare),
+              !previous.isEmpty else { return false }
+        let correction = correctionWords(in: String(text[marker.upperBound...]))
+        guard (1...maximumCorrectionWords).contains(correction.count),
+              let last = correction.last?.split(whereSeparator: \.isWhitespace).last.map(bare) else { return false }
+        return last == previous
+    }
+
     private static func precededByBreak(_ text: String, at index: String.Index) -> Bool {
         guard let previous = text[..<index].last(where: { !$0.isWhitespace }) else { return true }
         return ",;:.!?—-".contains(previous)

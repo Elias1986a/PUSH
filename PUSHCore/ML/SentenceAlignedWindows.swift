@@ -75,42 +75,79 @@ enum SentenceAlignedWindows {
         return Array(timed[start...])
     }
 
-    /// Transcribe `samples` window by window. `window` decodes at most
-    /// `windowSamples`; `whole` is the engine's own long-audio path, used for
-    /// the rest of the audio when a window has no sentence end to cut at —
-    /// never worse than before.
+    /// One decoded window: the audio from `start` to `end`, of which the
+    /// first `lead` samples are lead-in whose tokens are already dropped.
+    struct Pass {
+        let tokens: [TokenTiming]
+        let text: String
+        let start: Int
+        let end: Int
+        let lead: Int
+
+        var seconds: Double { Double(end - start) / sampleRate }
+
+        /// The window's text through a cut, or all of it.
+        func text(through index: Int? = nil) -> String {
+            guard let index else { return lead == 0 ? text : tokens.map(piece).joined() }
+            return tokens[0...index].map(piece).joined()
+        }
+    }
+
+    /// Decode the window that continues from `offset`: at most `windowSamples`,
+    /// ending no later than `limit`, and after the first window starting
+    /// `leadIn` seconds early.
+    static func pass(
+        _ samples: [Float], from offset: Int, limit: Int, leadIn: Double,
+        window: ([Float]) async throws -> Decoded
+    ) async throws -> Pass {
+        let lead = offset == 0 ? 0 : min(Int(leadIn * sampleRate), offset)
+        let start = offset - lead
+        let end = min(start + windowSamples, limit)
+        let decoded = try await window(Array(samples[start..<end]))
+        return Pass(tokens: afterLeadIn(decoded.tokens, leadIn: Double(lead) / sampleRate),
+                    text: decoded.text, start: start, end: end, lead: lead)
+    }
+
+    static func join(_ pieces: [String]) -> String {
+        pieces.map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    /// Transcribe `samples` from `offset` on, window by window. `window`
+    /// decodes at most `windowSamples`; `whole` is the engine's own long-audio
+    /// path, used for the rest of the audio when a window has no sentence end
+    /// to cut at — never worse than before.
     ///
     /// `leadIn` starts every window after the first that many seconds before
     /// its cut, and discards what was decoded there. Parakeet Unified drops
     /// the first word of a window that starts on it ("Everyone who tried" →
     /// "Who tried", 7 of 10 readings); Ultra does not, and takes 0.
+    ///
+    /// `offset` is where `LiveDecoder` got to while the user was still
+    /// talking; the audio before it is already text.
     static func transcribe(
         _ samples: [Float],
+        from offset: Int = 0,
         leadIn: Double = 0,
         window: ([Float]) async throws -> Decoded,
         whole: ([Float]) async throws -> String
     ) async throws -> String {
         var pieces: [String] = []
-        var offset = 0
+        var offset = offset
         while offset < samples.count {
-            let lead = offset == 0 ? 0 : min(Int(leadIn * sampleRate), offset)
-            let start = offset - lead
-            let end = min(start + windowSamples, samples.count)
-            let decoded = try await window(Array(samples[start..<end]))
-            let tokens = afterLeadIn(decoded.tokens, leadIn: Double(lead) / sampleRate)
-            if end == samples.count {
-                pieces.append(lead == 0 ? decoded.text : tokens.map(piece).joined())
+            let pass = try await pass(samples, from: offset, limit: samples.count, leadIn: leadIn, window: window)
+            if pass.end == samples.count {
+                pieces.append(pass.text())
                 break
             }
-            guard let cut = cut(in: tokens, windowSeconds: Double(end - start) / sampleRate) else {
+            guard let cut = cut(in: pass.tokens, windowSeconds: pass.seconds) else {
                 pieces.append(try await whole(Array(samples[offset...])))
                 break
             }
-            pieces.append(tokens[0...cut.through].map(piece).joined())
-            offset = start + Int(cut.at * sampleRate)
+            pieces.append(pass.text(through: cut.through))
+            offset = pass.start + Int(cut.at * sampleRate)
         }
-        return pieces.map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
+        return join(pieces)
     }
 }

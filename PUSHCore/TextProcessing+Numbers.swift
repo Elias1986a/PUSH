@@ -323,6 +323,23 @@ extension TranscriptionPipeline {
     /// A unit behind the number overrules a cue in front: "at 1.52 seconds",
     /// "by 2.25 percent" and "at 3.30 dollars" are measurements. "at" is a
     /// clock word and a quantity word both, and the unit says which.
+    /// "4:30 pm", "4:30 PM", "9am" → "4:30 p.m.", "9 a.m.": one style for a
+    /// time of day, the one Parakeet writes most often. Only straight after a
+    /// time, so "I am" and "PM" the title are never touched. A full stop that
+    /// ended the sentence is absorbed: "4:30 pm." → "4:30 p.m.", not "p.m..".
+    public static func normalizeMeridiem(_ text: String) -> String {
+        guard let regex = try? NSRegularExpression(
+            pattern: "(?i)(?<![\\d.:])(\\d{1,2}(?::[0-5]\\d)?)\\s?([ap])\\.?\\s?m\\b\\.?") else { return text }
+        var result = text
+        for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).reversed() {
+            guard let whole = Range(match.range, in: result),
+                  let time = Range(match.range(at: 1), in: result),
+                  let letter = Range(match.range(at: 2), in: result) else { continue }
+            result.replaceSubrange(whole, with: "\(result[time]) \(result[letter].lowercased()).m.")
+        }
+        return result
+    }
+
     public static func normalizeClockTimes(_ text: String) -> String {
         let hourWords = ["one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
                          "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12]

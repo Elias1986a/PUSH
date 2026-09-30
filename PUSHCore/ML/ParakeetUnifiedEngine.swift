@@ -169,14 +169,26 @@ public actor ParakeetUnifiedEngine {
         let text = floatArray.count <= SentenceAlignedWindows.windowSamples
             ? try await manager.transcribe(floatArray)
             : try await SentenceAlignedWindows.transcribe(
-                floatArray,
-                leadIn: 1.0,
-                window: { chunk in
-                    let result = try await manager.transcribeWithTimings(chunk)
-                    return .init(text: result.text, tokens: result.tokenTimings)
-                },
-                whole: { try await manager.transcribe($0) })
+                floatArray, leadIn: Self.leadIn, window: decodeWindow, whole: decodeWhole)
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Unified drops the first word of a window that starts on it, so every
+    /// window after the first starts this early (see `SentenceAlignedWindows`).
+    static let leadIn = 1.0
+
+    /// One encoder window with its token timings — the unit both the
+    /// release-time path and `LiveDecoder` work in.
+    func decodeWindow(_ samples: [Float]) async throws -> SentenceAlignedWindows.Decoded {
+        guard let manager else { throw ParakeetEngineError.notInitialized }
+        let result = try await manager.transcribeWithTimings(samples)
+        return .init(text: result.text, tokens: result.tokenTimings)
+    }
+
+    /// FluidAudio's own long-audio path, for audio with no sentence end to cut at.
+    func decodeWhole(_ samples: [Float]) async throws -> String {
+        guard let manager else { throw ParakeetEngineError.notInitialized }
+        return try await manager.transcribe(samples)
     }
 
     private func audioDataToFloatArray(_ data: Data) -> [Float] {
