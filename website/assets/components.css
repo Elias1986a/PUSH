@@ -1,0 +1,40 @@
+
+.pb-root { background: var(--studio); color: var(--ink); font-family: var(--font-body); }
+
+/* Button: the push button. A physical key with 4px of travel. */
+.pb-btn { font: 600 17px/1 var(--font-body); border-radius: var(--radius-pill); padding: 16px 28px; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; transition: transform .08s ease, box-shadow .08s ease; }
+.pb-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pb-btn-push { background: var(--on-air); color: var(--on-on-air); box-shadow: var(--shadow-button); }
+.pb-btn-push:active, .pb-btn-push.is-pressed { transform: translateY(3px); box-shadow: 0 1px 0 #7d1a10; }
+.pb-btn-quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--chrome-deep); }
+.pb-btn-quiet:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.pb-btn .pb-price { font-family: var(--font-mono); font-weight: 700; }
+
+/* Pill: the floating dictation capsule from the app. */
+.pb-pill { display: inline-flex; align-items: center; gap: 12px; padding: 10px 18px 10px 14px; border-radius: var(--radius-pill); background: #17161a; color: #efede8; box-shadow: var(--shadow-pill); position: relative; overflow: hidden; min-width: 150px; height: 44px; box-sizing: border-box; }
+.pb-pill-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff5a45; flex: none; }
+.pb-pill-glow { position: absolute; inset: auto 0 -18px 0; height: 36px; background: radial-gradient(20px 18px at 15% 100%, #ff4678aa, transparent), radial-gradient(22px 20px at 32% 100%, #3cbeffaa, transparent), radial-gradient(22px 22px at 50% 100%, #af46ffaa, transparent), radial-gradient(20px 20px at 68% 100%, #3cdc82aa, transparent), radial-gradient(22px 18px at 85% 100%, #ff9628aa, transparent); filter: blur(6px); pointer-events: none; }
+.pb-pill-label { font: 500 14px/1 var(--font-body); position: relative; }
+.pb-pill-time { font: 400 12px/1 var(--font-mono); color: #a7a39b; margin-left: auto; position: relative; font-variant-numeric: tabular-nums; }
+
+/* Chip: a kept phrase, a language, a fact. */
+.pb-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-pill); font: 500 14px/1.2 var(--font-body); background: var(--studio-raised); color: var(--ink); box-shadow: inset 0 0 0 1px var(--chrome); }
+.pb-chip-mono { font-family: var(--font-mono); font-size: 13px; }
+
+/* Speed bar: one row of the benchmark race. */
+.pb-speed { display: grid; grid-template-columns: minmax(0, 9rem) 1fr auto; gap: 12px 16px; align-items: center; }
+.pb-speed-label { font: 600 15px/1.2 var(--font-body); color: var(--ink); }
+.pb-speed-label small { display: block; font: 400 12px/1.4 var(--font-mono); color: var(--ink-muted); }
+.pb-speed-track { height: 14px; border-radius: var(--radius-pill); background: var(--chrome); overflow: hidden; }
+.pb-speed-fill { height: 100%; border-radius: var(--radius-pill); background: var(--chrome-deep); }
+.pb-speed-fill.is-push { background: var(--on-air); }
+.pb-speed-num { font: 700 20px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); min-width: 5.5ch; text-align: right; }
+
+/* California toggle: a sunset switch. */
+.pb-cali { display: inline-flex; align-items: center; gap: 14px; font: 600 15px/1 var(--font-body); color: var(--sunset-ink); background: none; border: 0; cursor: pointer; padding: 0; }
+.pb-cali:focus-visible { outline: 2px solid var(--sunset-ink); outline-offset: 4px; border-radius: var(--radius-pill); }
+.pb-cali-track { width: 76px; height: 40px; border-radius: var(--radius-pill); background: #ffffff; box-shadow: inset 0 0 0 2px var(--sunset-ink); position: relative; transition: background .25s ease; }
+.pb-cali-knob { position: absolute; top: 5px; left: 5px; width: 30px; height: 30px; border-radius: 50%; background: var(--sunset-ink); transition: left .25s cubic-bezier(.3,1.4,.5,1); }
+.pb-cali[aria-checked="true"] .pb-cali-track { background: var(--sunset-coral); }
+.pb-cali[aria-checked="true"] .pb-cali-knob { left: 41px; background: #ffffff; box-shadow: inset 0 0 0 2px var(--sunset-ink); }
+@media (prefers-reduced-motion: reduce) { .pb-btn, .pb-cali-track, .pb-cali-knob { transition: none; } }

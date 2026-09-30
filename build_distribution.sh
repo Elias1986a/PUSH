@@ -61,6 +61,11 @@ ditto --norsrc --noextattr PUSH/Info.plist "$APP_DIR/Contents/Info.plist"
 echo "   Copying app icon..."
 ditto --norsrc --noextattr ICON/AppIcon.icns "$APP_DIR/Contents/Resources/AppIcon.icns"
 
+# Copy licence texts and third-party notices. Apache-2.0 (FluidAudio) and MIT
+# (Sparkle, LaunchAtLogin, voice-glow) require them in every copy we ship.
+echo "   Copying legal notices..."
+ditto --norsrc --noextattr legal "$APP_DIR/Contents/Resources/Legal"
+
 # Copy resource bundles (using ditto without resource forks)
 echo "   Copying resource bundles..."
 for bundle in $BUILD_DIR/release/*.bundle; do

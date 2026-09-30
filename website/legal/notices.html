@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Third-party notices · PUSH</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/components.css">
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/theme.js"></script>
+</head>
+<body>
+<header class="wrap nav">
+<a class="brand" href="../"><span class="disp">PUSH</span><span class="dot"></span></a>
+<span style="flex-grow: 1;"></span>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+<svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+<svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+</button>
+<a href="../" style="text-decoration: none; font-size: 15px; font-weight: 500;">← Back to PUSH</a>
+</header>
+<main class="wrap doc">
+<h1 class="disp">Third-party notices</h1>
+<p>PUSH is built on open-source software and open speech models. We're grateful to the people who made them. This file lists each one, its licence and what the licence asks of us. The full licence texts are in <code>legal/third-party/</code>, and the release build copies this whole folder into <code>PUSH.app/Contents/Resources/Legal</code>.</p>
+<p>The companies named here have not endorsed PUSH. Their names are used only to say where each component comes from.</p>
+<h2>Software shipped inside PUSH.app</h2>
+<p>These are compiled into the app or bundled with it. Their licences require us to include the copyright notice and licence text with every copy we distribute.</p>
+<div class="table-wrap"><table><thead><tr><th>Component</th><th>Version</th><th>Licence</th><th>Copyright</th><th>Full text</th></tr></thead><tbody><tr><td><a href="https://github.com/FluidInference/FluidAudio">FluidAudio</a></td><td>0.17.4</td><td>Apache License 2.0</td><td>FluidInference</td><td><code>third-party/FluidAudio/LICENSE.txt</code></td></tr><tr><td>↳ NemoTextProcessing (text-processing-rs), linked by FluidAudio</td><td>0.3.1</td><td>Apache License 2.0 (with MIT/Apache sub-components)</td><td>FluidInference and contributors</td><td><code>third-party/FluidAudio/NemoTextProcessing-LICENSE.md</code></td></tr><tr><td>↳ fastcluster, compiled into FluidAudio</td><td>—</td><td>BSD 2-Clause</td><td>© 2011 Daniel Müllner; © Google Inc.</td><td><code>third-party/FluidAudio/fastcluster-LICENSE.md</code></td></tr><tr><td>↳ <a href="https://github.com/BUTSpeechFIT/VBx">VBx</a>, ported in FluidAudio</td><td>—</td><td>Apache License 2.0</td><td>VBx authors</td><td><code>third-party/FluidAudio/vbx-LICENSE.md</code></td></tr><tr><td>↳ Kokoro text frontends, in FluidAudio</td><td>—</td><td>Apache 2.0 / MIT / BSD (see file)</td><td>Various</td><td><code>third-party/FluidAudio/JapaneseG2P-LICENSE.md</code>, <code>KokoroAneSpanishFrenchG2P-LICENSE.md</code></td></tr><tr><td><a href="https://sparkle-project.org">Sparkle</a></td><td>2.9.3</td><td>MIT, plus BSD-style and public-domain components (bsdiff, sais-lite, ed25519, SUSignatureVerifier)</td><td>Andy Matuschak and the Sparkle contributors</td><td><code>third-party/Sparkle-LICENSE.txt</code></td></tr><tr><td><a href="https://github.com/sindresorhus/LaunchAtLogin-Modern">LaunchAtLogin-Modern</a></td><td>1.1.0</td><td>MIT</td><td>Sindre Sorhus</td><td><code>third-party/LaunchAtLogin-Modern-LICENSE.txt</code></td></tr><tr><td><a href="https://github.com/Jakubantalik/Libraries.dev">voice-glow</a>, ported as <code>VoiceGlow.swift</code></td><td>—</td><td>MIT</td><td>© 2026 Jakub Antalik</td><td><code>third-party/voice-glow-LICENSE.txt</code></td></tr></tbody></table></div>
+<p>We didn't change FluidAudio, Sparkle or LaunchAtLogin. They're used as released. Apache 2.0 §4(b) asks that modified files be marked; since we modified nothing, there is nothing to mark.</p>
+<h2>Speech models (downloaded on first use, not bundled)</h2>
+<p>PUSH doesn't ship model weights. When you press <strong>Download</strong> in Settings, PUSH fetches the model you picked straight from its public Hugging Face repository onto your Mac. PUSH never sends your audio anywhere; the models run on your Mac.</p>
+<p>We don't redistribute the weights, but we credit them anyway: it's what their authors ask for, and CC BY 4.0 requires it when a work is shared.</p>
+<div class="table-wrap"><table><thead><tr><th>In PUSH</th><th>Model</th><th>Made by</th><th>Licence</th><th>Notice</th></tr></thead><tbody><tr><td>Parakeet Ultra (default)</td><td><a href="https://huggingface.co/moondream/parakeet-ultra">moondream/parakeet-ultra</a>, a post-training of <a href="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3">nvidia/parakeet-tdt-0.6b-v3</a>; Core ML conversion <a href="https://huggingface.co/FluidInference/parakeet-ultra-coreml">FluidInference/parakeet-ultra-coreml</a></td><td>Moondream, from NVIDIA's Parakeet TDT 0.6B v3; converted by FluidInference</td><td><a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></td><td>"Parakeet Ultra" by Moondream, based on "Parakeet TDT 0.6B v3" by NVIDIA, licensed under CC BY 4.0; converted to Core ML by FluidInference.</td></tr><tr><td>Parakeet Unified, Parakeet Streaming</td><td><a href="https://huggingface.co/nvidia/parakeet-unified-en-0.6b">nvidia/parakeet-unified-en-0.6b</a>; Core ML conversion <a href="https://huggingface.co/FluidInference/parakeet-unified-en-0.6b-coreml">FluidInference/parakeet-unified-en-0.6b-coreml</a></td><td>NVIDIA; converted by FluidInference</td><td><a href="https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/">NVIDIA Open Model License</a></td><td>Licensed by NVIDIA Corporation under the NVIDIA Open Model License.</td></tr><tr><td>Nemotron Multilingual</td><td><a href="https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b">NVIDIA Nemotron 3.5 ASR Streaming Multilingual 0.6B</a>; Core ML conversion <a href="https://huggingface.co/FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML">FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML</a></td><td>NVIDIA; converted by FluidInference</td><td><a href="https://openmdw.ai/license/1-1/">OpenMDW-1.1</a></td><td>NVIDIA Nemotron 3.5 ASR Streaming Multilingual, © NVIDIA Corporation, made available under OpenMDW-1.1.</td></tr><tr><td>Voice activity detection</td><td><a href="https://github.com/snakers4/silero-vad">Silero VAD</a>; Core ML conversion <a href="https://huggingface.co/FluidInference/silero-vad-coreml">FluidInference/silero-vad-coreml</a></td><td>Silero Team; converted by FluidInference</td><td>MIT</td><td>Copyright (c) 2020-present Silero Team.</td></tr></tbody></table></div>
+<blockquote><p><strong>Before release: confirm each model licence on its Hugging Face card.</strong> We compiled the table above from FluidAudio's source and documentation plus public listings of the upstream models. Hugging Face was unreachable from the environment this file was written in. Before the first paid release, open each model card, check the licence field and copy any <code>NOTICE</code> text word for word. If you find a mismatch, fix it here and in the website's legal page.</p></blockquote>
+<p>All four licences allow commercial use. What each one requires:</p>
+<ul><li><strong>CC BY 4.0.</strong> Credit the creators, link to the licence, say whether changes were made (we made none) and don't imply endorsement.</li><li><strong>NVIDIA Open Model License.</strong> When redistributing, pass on the agreement and include the notice "Licensed by NVIDIA Corporation under the NVIDIA Open Model License". Rights end if you sue over the model's IP, or if you bypass its guardrails without a substitute. Using NVIDIA's trademarks isn't granted: we name NVIDIA only to say where the model comes from, and never use its logo.</li><li><strong>OpenMDW-1.1.</strong> When redistributing, keep the licence and the notices of origin. Rights end on patent or copyright litigation over the model. There are no restrictions on outputs, so your transcripts are yours.</li><li><strong>MIT (Silero VAD).</strong> Keep the copyright notice.</li></ul>
+</main>
+<footer class="footer">
+<div class="wrap">
+<div class="row" style="gap: 28px;">
+<a href="privacy.html">Privacy</a>
+<a href="terms.html">Terms of sale</a>
+<a href="eula.html">Licence (EULA)</a>
+<a href="notices.html">Third-party notices</a>
+</div>
+<p>© 2026 Elias Atalah.</p>
+</div>
+</footer>
+</body>
+</html>
