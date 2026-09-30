@@ -15,16 +15,16 @@ final class LaunchModelTests: XCTestCase {
     func testThePreferenceWinsWhenItCanRun() {
         XCTAssertEqual(
             ModelLoader.launchModel(preferred: .nemotronMultilingual,
-                                    ready: [.nemotronMultilingual, .parakeetUnified]),
+                                    ready: [.nemotronMultilingual, .parakeetUltra]),
             .nemotronMultilingual)
     }
 
-    /// The bug. Nothing of Nemotron's is on disk, Unified is, so Unified serves
+    /// The bug. Nothing of Nemotron's is on disk, Ultra is, so Ultra serves
     /// and the 600 MB stays unspent until someone asks for it.
     func testAnUnavailablePreferenceFallsBackToTheDefault() {
         XCTAssertEqual(
-            ModelLoader.launchModel(preferred: .nemotronMultilingual, ready: [.parakeetUnified]),
-            .parakeetUnified)
+            ModelLoader.launchModel(preferred: .nemotronMultilingual, ready: [.parakeetUltra]),
+            .parakeetUltra)
     }
 
     /// The default is preferred over the other downloaded models, whatever
@@ -32,16 +32,17 @@ final class LaunchModelTests: XCTestCase {
     func testTheDefaultIsPreferredOverOtherDownloadedModels() {
         XCTAssertEqual(
             ModelLoader.launchModel(preferred: .nemotronMultilingual,
-                                    ready: [.parakeetUnified, .parakeetStreaming, .parakeetUltra]),
+                                    ready: [.parakeetStreaming, .parakeetUltra]),
             WhisperModel.defaultModel)
     }
 
     /// With the default absent too, the settings list's own order decides.
     func testAmongTheRestTheSettingsOrderDecides() {
+        let other: WhisperModel = WhisperModel.defaultModel == .parakeetUltra ? .parakeetStreaming : .parakeetUltra
         XCTAssertEqual(
-            ModelLoader.launchModel(preferred: .parakeetUnified,
-                                    ready: [.nemotronMultilingual, .parakeetStreaming]),
-            .parakeetStreaming)
+            ModelLoader.launchModel(preferred: WhisperModel.defaultModel,
+                                    ready: [.nemotronMultilingual, other]),
+            other)
     }
 
     /// A first launch loads nothing: the onboarding wizard's model step starts

@@ -9,11 +9,28 @@ final class WhisperModelTests: XCTestCase {
         XCTAssertEqual(WhisperModel.nemotronMultilingual.rawValue, "nemotron-multilingual")
     }
 
+    /// Streaming on an English Mac, for the words appearing as you speak;
+    /// Ultra anywhere else, since Streaming is English only.
+    func testTheDefaultFollowsTheMacsLanguage() {
+        XCTAssertEqual(WhisperModel.defaultModel(for: ["en-US", "fr-FR"]), .parakeetStreaming)
+        XCTAssertEqual(WhisperModel.defaultModel(for: ["en-GB"]), .parakeetStreaming)
+        XCTAssertEqual(WhisperModel.defaultModel(for: ["de-DE", "en-US"]), .parakeetUltra)
+        XCTAssertEqual(WhisperModel.defaultModel(for: ["ja-JP"]), .parakeetUltra)
+        XCTAssertEqual(WhisperModel.defaultModel(for: []), .parakeetStreaming)
+    }
+
+    /// A saved choice of the retired Unified engine no longer decodes, so
+    /// launch falls back to the default rather than to a model that is gone.
+    func testTheRetiredUnifiedPreferenceNoLongerDecodes() {
+        XCTAssertNil(WhisperModel(rawValue: "parakeet-unified"))
+        XCTAssertEqual(WhisperModel.selectable.first, WhisperModel.defaultModel)
+        XCTAssertEqual(Set(WhisperModel.selectable), Set(WhisperModel.allCases))
+    }
+
     /// Only the multilingual engines take a language; the English ones must not
     /// grow a picker.
     func testOnlyMultilingualEnginesAcceptALanguage() {
         XCTAssertTrue(WhisperModel.nemotronMultilingual.supportsLanguageSelection)
-        XCTAssertFalse(WhisperModel.parakeetUnified.supportsLanguageSelection)
         XCTAssertFalse(WhisperModel.parakeetStreaming.supportsLanguageSelection)
         XCTAssertFalse(WhisperModel.parakeetUltra.supportsLanguageSelection)
     }

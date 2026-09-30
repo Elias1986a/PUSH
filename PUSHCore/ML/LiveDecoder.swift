@@ -67,11 +67,6 @@ public actor LiveDecoder {
             return LiveDecoder(model: model, leadIn: 0,
                                window: { try await engine.decodeWindow($0) },
                                whole: { try await engine.decodeWhole($0) })
-        case .parakeetUnified:
-            let engine = ParakeetUnifiedEngine.shared
-            return LiveDecoder(model: model, leadIn: ParakeetUnifiedEngine.leadIn,
-                               window: { try await engine.decodeWindow($0) },
-                               whole: { try await engine.decodeWhole($0) })
         case .parakeetStreaming, .nemotronMultilingual:
             return nil
         }

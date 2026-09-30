@@ -1,19 +1,19 @@
 import XCTest
 @testable import PUSHCore
 
-/// Parakeet Unified and Streaming share one folder but each has its own
-/// ~600 MB encoder. Deleting one used to delete both. Runs against a temporary
-/// folder — never the real models.
+/// Streaming shares its folder with the retired offline Unified encoder; each
+/// is its own ~600 MB. Deleting one used to delete both. Runs against a
+/// temporary folder — never the real models.
 final class ParakeetModeFilesTests: XCTestCase {
 
-    private let offline = ParakeetUnifiedEngine.offlineEncoderFile
-    private let streaming = ParakeetUnifiedEngine.streamingEncoderFile
+    private let offline = ParakeetUnifiedFiles.offlineEncoderFile
+    private let streaming = ParakeetUnifiedFiles.streamingEncoderFile
 
     private func makeFolder(_ encoders: [String]) throws -> URL {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("parakeet-modes-\(UUID().uuidString)")
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
-        for name in encoders + ParakeetUnifiedEngine.sharedFiles {
+        for name in encoders + ParakeetUnifiedFiles.sharedFiles {
             try FileManager.default.createDirectory(
                 at: dir.appendingPathComponent(name), withIntermediateDirectories: true)
         }
@@ -22,21 +22,33 @@ final class ParakeetModeFilesTests: XCTestCase {
 
     func testEachModeCountsOnlyItsOwnEncoder() throws {
         let dir = try makeFolder([offline])
-        XCTAssertTrue(ParakeetUnifiedEngine.hasMode(encoder: offline, in: dir))
-        XCTAssertFalse(ParakeetUnifiedEngine.hasMode(encoder: streaming, in: dir),
+        XCTAssertTrue(ParakeetUnifiedFiles.hasMode(encoder: offline, in: dir))
+        XCTAssertFalse(ParakeetUnifiedFiles.hasMode(encoder: streaming, in: dir),
                        "the offline encoder alone must not make Streaming look downloaded")
     }
 
     func testDeletingOneModeKeepsTheOther() throws {
         let dir = try makeFolder([offline, streaming])
-        try ParakeetUnifiedEngine.deleteMode(encoder: offline, keepingIfPresent: streaming, in: dir)
-        XCTAssertFalse(ParakeetUnifiedEngine.hasMode(encoder: offline, in: dir))
-        XCTAssertTrue(ParakeetUnifiedEngine.hasMode(encoder: streaming, in: dir))
+        try ParakeetUnifiedFiles.deleteMode(encoder: offline, keepingIfPresent: streaming, in: dir)
+        XCTAssertFalse(ParakeetUnifiedFiles.hasMode(encoder: offline, in: dir))
+        XCTAssertTrue(ParakeetUnifiedFiles.hasMode(encoder: streaming, in: dir))
+    }
+
+    /// The launch cleanup frees the retired encoder and never touches Streaming.
+    func testRemovingTheRetiredEncoderKeepsStreaming() throws {
+        let both = try makeFolder([offline, streaming])
+        ParakeetUnifiedFiles.removeRetiredOfflineEncoder(in: both)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: both.appendingPathComponent(offline).path))
+        XCTAssertTrue(ParakeetUnifiedFiles.hasMode(encoder: streaming, in: both))
+
+        let streamingOnly = try makeFolder([streaming])
+        ParakeetUnifiedFiles.removeRetiredOfflineEncoder(in: streamingOnly)
+        XCTAssertTrue(ParakeetUnifiedFiles.hasMode(encoder: streaming, in: streamingOnly))
     }
 
     func testDeletingTheLastModeRemovesTheFolder() throws {
         let dir = try makeFolder([streaming])
-        try ParakeetUnifiedEngine.deleteMode(encoder: streaming, keepingIfPresent: offline, in: dir)
+        try ParakeetUnifiedFiles.deleteMode(encoder: streaming, keepingIfPresent: offline, in: dir)
         XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path))
     }
 }

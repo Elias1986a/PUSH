@@ -15,8 +15,10 @@ import Foundation
 /// Apple Speech went in 8.2.0: last in every benchmark run ("one. 52 seconds" for 1.52,
 /// "Prius" for Priya), and not something to put PUSH's name next to. A saved
 /// "apple-speech" preference no longer decodes and launch falls back to the default.
+/// Parakeet Unified went in 8.2.5 the same way: once PUSH decoded while you talk, it
+/// was neither faster nor more accurate than Ultra (13 benchmark readings), and English
+/// only; a saved "parakeet-unified" falls back to the default.
 public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
-    case parakeetUnified = "parakeet-unified"
     case parakeetUltra = "parakeet-ultra"
     case parakeetStreaming = "parakeet-streaming"
     case nemotronMultilingual = "nemotron-multilingual"
@@ -24,22 +26,31 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
 
     /// The model a fresh install uses, and what launch falls back to first.
-    /// Parakeet Ultra since 8.0.9: faster than Unified in real use (~0.08s vs
-    /// ~0.15s on the same clip), as accurate on English, and it handles the
-    /// Latin-script European languages too.
-    public static let defaultModel: WhisperModel = .parakeetUltra
+    ///
+    /// By the Mac's language since 8.2.5. On an English Mac, Parakeet Streaming:
+    /// your words appear in the pill as you speak, which is what the website
+    /// shows, and it is the fastest after release (0.02 s against Ultra's
+    /// 0.04 s — both far below what anyone notices). Anywhere else, Parakeet
+    /// Ultra, which follows English and the Latin-script European languages on
+    /// its own; Streaming is English only.
+    public static var defaultModel: WhisperModel { defaultModel(for: Locale.preferredLanguages) }
+
+    public static func defaultModel(for preferredLanguages: [String]) -> WhisperModel {
+        (preferredLanguages.first ?? "en").lowercased().hasPrefix("en") ? .parakeetStreaming : .parakeetUltra
+    }
 
     /// The cases the picker should offer, ordered for the settings list rather
     /// than by declaration: the recommended default leads and the multilingual
     /// engine comes last. `allCases` order is the enum's own business and the
     /// comparison tool still relies on it.
-    public static let selectable: [WhisperModel] = [
-        .parakeetUltra, .parakeetUnified, .parakeetStreaming, .nemotronMultilingual
-    ]
+    public static var selectable: [WhisperModel] {
+        let parakeet: [WhisperModel] = defaultModel == .parakeetUltra
+            ? [.parakeetUltra, .parakeetStreaming] : [.parakeetStreaming, .parakeetUltra]
+        return parakeet + [.nemotronMultilingual]
+    }
 
     public var displayName: String {
         switch self {
-        case .parakeetUnified: return "Parakeet Unified — English only"
         case .parakeetUltra: return "Parakeet Ultra — English and European languages"
         case .parakeetStreaming: return "Parakeet Streaming — Visualize as you talk"
         case .nemotronMultilingual: return "Nemotron Multilingual — Other languages"
@@ -48,15 +59,12 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     /// The model's name on its own.
     ///
-    /// `displayName` carries a trailing "— Most accurate and fastest" because it
-    /// had to sell the model from inside a one-line popup button. The settings
-    /// list shows description and size in their own rows, so the name can just
-    /// be the name — and this is also what belongs in a status message, where
-    /// the sales pitch read as noise ("Loading Parakeet Unified — Most accurate
-    /// and fastest…").
+    /// `displayName` carries a trailing qualifier because it had to sell the
+    /// model from inside a one-line popup button. The settings list shows
+    /// description and size in their own rows, so the name can just be the
+    /// name — and this is also what belongs in a status message.
     public var shortName: String {
         switch self {
-        case .parakeetUnified: return "Parakeet Unified"
         case .parakeetUltra: return "Parakeet Ultra"
         case .parakeetStreaming: return "Parakeet Streaming"
         case .nemotronMultilingual: return "Nemotron Multilingual"
@@ -64,12 +72,10 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Short qualifier shown beside the name, where one earns its place.
+    /// "Recommended" follows the default, which depends on the Mac's language.
     public var badge: String? {
-        switch self {
-        case .parakeetUltra: return "Recommended"
-        case .nemotronMultilingual: return "Multilingual"
-        case .parakeetUnified, .parakeetStreaming: return nil
-        }
+        if self == Self.defaultModel { return "Recommended" }
+        return self == .nemotronMultilingual ? "Multilingual" : nil
     }
 
     /// Approximate on-disk cost, for the settings list. Matches the figures
@@ -80,12 +86,10 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     public var modelDescription: String {
         switch self {
-        case .parakeetUnified:
-            return "English only. Very accurate; transcribes after you release, so longer takes wait longer."
         case .parakeetUltra:
-            return "Fastest and most accurate. Understands English and the European languages written in the Latin alphabet — Spanish, French, German, Italian, Portuguese and more — and switches between them on its own. For other languages, use Nemotron Multilingual."
+            return "Accurate, and understands English and the European languages written in the Latin alphabet — Spanish, French, German, Italian, Portuguese and more — and switches between them on its own. For other languages, use Nemotron Multilingual."
         case .parakeetStreaming:
-            return "Transcribes while you speak, so text lands instantly however long you talk."
+            return "English only. Shows your words as you speak and transcribes while you talk, so text lands the moment you let go."
         case .nemotronMultilingual:
             return "For languages Parakeet Ultra doesn't cover — Chinese, Japanese, Arabic, Hindi, Russian, Greek and more. Streams as you speak, in the language you pick. For English and European languages like Spanish, French and German, use Parakeet Ultra."
         }
@@ -94,7 +98,6 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     /// The engine type used by this model
     public var engineType: EngineType {
         switch self {
-        case .parakeetUnified: return .parakeetUnified
         case .parakeetUltra: return .parakeetUltra
         case .parakeetStreaming: return .parakeetStreaming
         case .nemotronMultilingual: return .nemotronMultilingual
@@ -112,7 +115,7 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     public var supportsLanguageSelection: Bool {
         switch self {
         case .nemotronMultilingual: return true
-        case .parakeetUltra, .parakeetUnified, .parakeetStreaming: return false
+        case .parakeetUltra, .parakeetStreaming: return false
         }
     }
 
@@ -122,7 +125,7 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     public var detectsLanguagePerUtterance: Bool {
         switch self {
         case .parakeetUltra: return true
-        case .parakeetUnified, .parakeetStreaming, .nemotronMultilingual:
+        case .parakeetStreaming, .nemotronMultilingual:
             return false
         }
     }
@@ -152,7 +155,6 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 /// Engine types for model routing
 public enum EngineType: Sendable {
     case parakeetUltra
-    case parakeetUnified
     case parakeetStreaming
     case nemotronMultilingual
 }

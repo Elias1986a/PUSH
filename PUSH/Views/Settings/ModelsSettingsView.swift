@@ -51,7 +51,7 @@ struct ModelsSettingsView: View {
                     Button("Show in Finder") {
                         NSWorkspace.shared.selectFile(
                             nil,
-                            inFileViewerRootedAtPath: ParakeetUnifiedEngine.modelDirectory
+                            inFileViewerRootedAtPath: ParakeetUnifiedFiles.modelDirectory
                                 .deletingLastPathComponent().path
                         )
                     }
@@ -397,9 +397,8 @@ struct ModelsSettingsView: View {
             let sizes = await Task.detached(priority: .utility) {
                 Dictionary(uniqueKeysWithValues: folders.map { ($0, Self.directorySize(at: $0)) })
             }.value
-            let modeSizes = await Task.detached(priority: .utility) {
-                (unified: ParakeetUnifiedEngine.modeSize(encoder: ParakeetUnifiedEngine.offlineEncoderFile),
-                 streaming: ParakeetUnifiedEngine.modeSize(encoder: ParakeetUnifiedEngine.streamingEncoderFile))
+            let streamingSize = await Task.detached(priority: .utility) {
+                ParakeetUnifiedFiles.modeSize(encoder: ParakeetUnifiedFiles.streamingEncoderFile)
             }.value
             await MainActor.run {
                 // Summed over the model folders only: the build directories
@@ -407,10 +406,9 @@ struct ModelsSettingsView: View {
                 // report its bytes twice.
                 storageBytes = Set(foldersByModel.values).compactMap { sizes[$0] }.reduce(0, +)
                 modelBytes = foldersByModel.compactMapValues { sizes[$0] }
-                // Unified and Streaming share a folder; each row shows only its
-                // own encoder plus the shared files.
-                modelBytes[.parakeetUnified] = modeSizes.unified
-                modelBytes[.parakeetStreaming] = modeSizes.streaming
+                // Streaming's folder may still hold the retired offline encoder
+                // until launch cleans it up; its row shows only its own files.
+                modelBytes[.parakeetStreaming] = streamingSize
                 buildBytes = Dictionary(uniqueKeysWithValues:
                     builds.compactMap { variant, url in sizes[url].map { (variant, $0) } })
             }
@@ -427,7 +425,7 @@ struct ModelsSettingsView: View {
     /// Rough on-disk sizes used to derive download progress (engines don't report it).
     private static func expectedSize(of model: AppState.WhisperModel) -> Double {
         switch model {
-        case .parakeetUnified, .parakeetUltra, .parakeetStreaming, .nemotronMultilingual: return 600_000_000
+        case .parakeetUltra, .parakeetStreaming, .nemotronMultilingual: return 600_000_000
         }
     }
 
@@ -474,10 +472,7 @@ struct ModelsSettingsView: View {
 
         do {
             switch model {
-            // Unified and Streaming share a folder but not their ~600 MB
-            // encoders: each removes only its own, and the shared files go
-            // with whichever is deleted last.
-            case .parakeetUnified: try ParakeetUnifiedEngine.deleteModel()
+            // Streaming removes only its own encoder and the shared files.
             case .parakeetStreaming: try ParakeetStreamingEngine.deleteModel()
             default:
                 if FileManager.default.fileExists(atPath: folder.path) {

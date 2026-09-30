@@ -170,7 +170,7 @@ final class LanguageGateTests: XCTestCase {
     /// engine, and the user would have no setting to point at.
     func testEnglishOnlyEnginesAlwaysGetEnglishProcessing() {
         let store = useIsolatedStore()
-        for model in [WhisperModel.parakeetUnified, .parakeetStreaming, .parakeetUltra] {
+        for model in [WhisperModel.parakeetStreaming, .parakeetUltra] {
             store.set("pt-BR", forKey: model.languageDefaultsKey)
             XCTAssertTrue(TranscriptionPipeline.activeLanguage(for: model).isEnglish,
                           "\(model.rawValue) honoured a language key it has no picker for")

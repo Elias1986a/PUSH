@@ -106,7 +106,7 @@ public actor NemotronMultilingualEngine {
     /// Root of FluidAudio's on-disk cache for this repo.
     ///
     /// Derived from `Repo.folderName` rather than hardcoded, for the same
-    /// reason as `ParakeetUnifiedEngine`: the local folder is not the
+    /// reason as `ParakeetUnifiedFiles`: the local folder is not the
     /// HuggingFace repo name, and hardcoding it once already produced a false
     /// "Not downloaded" in Settings while the model was loaded and serving.
     private nonisolated static var repoDirectory: URL {

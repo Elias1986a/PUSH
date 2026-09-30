@@ -14,7 +14,6 @@ enum ModelAvailability {
     static func isDownloaded(_ model: WhisperModel) -> Bool {
         switch model.engineType {
         case .parakeetUltra: return ParakeetEngine.ultra.isModelDownloaded()
-        case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
         case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
         case .nemotronMultilingual: return NemotronMultilingualEngine.isModelDownloaded()
         }
@@ -35,7 +34,6 @@ enum ModelAvailability {
     static func folder(for model: WhisperModel) -> URL? {
         switch model.engineType {
         case .parakeetUltra: return ParakeetEngine.ultra.modelDirectory
-        case .parakeetUnified: return ParakeetUnifiedEngine.modelDirectory
         case .parakeetStreaming: return ParakeetStreamingEngine.modelDirectory
         // The repo root, covering both vocab builds — a user who has dictated in
         // two language groups has two of them down.

@@ -59,7 +59,6 @@ enum EngineComparison {
         WhisperModel.selectable.filter { model in
             switch model.engineType {
             case .parakeetUltra: return ParakeetEngine.ultra.isModelDownloaded()
-            case .parakeetUnified: return ParakeetUnifiedEngine.isModelDownloaded()
             case .parakeetStreaming: return ParakeetStreamingEngine.isModelDownloaded()
             case .nemotronMultilingual: return NemotronMultilingualEngine.isModelDownloaded()
             }
@@ -183,7 +182,6 @@ enum EngineComparison {
     private static func warmup(_ model: WhisperModel) async {
         switch model.engineType {
         case .parakeetUltra: await ParakeetEngine.ultra.warmup()
-        case .parakeetUnified: await ParakeetUnifiedEngine.shared.warmup()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.warmup()
         case .nemotronMultilingual:
             await NemotronMultilingualEngine.shared.warmup(
@@ -229,7 +227,6 @@ enum EngineComparison {
     private static func load(_ model: WhisperModel) async throws {
         switch model.engineType {
         case .parakeetUltra: try await ParakeetEngine.ultra.loadModel()
-        case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
         case .parakeetStreaming: try await ParakeetStreamingEngine.shared.loadModel()
         case .nemotronMultilingual:
             try await NemotronMultilingualEngine.shared.loadModel(

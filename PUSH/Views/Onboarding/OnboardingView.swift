@@ -285,9 +285,7 @@ struct OnboardingView: View {
     private static func blurb(for model: WhisperModel) -> String {
         switch model {
         case .parakeetUltra:
-            return "Fastest and most accurate. English, plus Spanish, French, German and other European languages."
-        case .parakeetUnified:
-            return "English only. Transcribes when you let go of the key."
+            return "English, plus Spanish, French, German and other European languages."
         case .parakeetStreaming:
             return "English only. Shows your words as you speak them."
         case .nemotronMultilingual:

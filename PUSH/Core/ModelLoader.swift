@@ -76,6 +76,10 @@ enum ModelLoader {
     /// wizard's model step is where the first download happens, chosen and
     /// watched by the user; until 8.2 launch fetched the default here unasked.
     static func activateAtLaunch() async {
+        // Parakeet Unified was retired in 8.2.5; give back its encoder's
+        // ~600 MB if an earlier version downloaded it. Off the main thread.
+        Task.detached(priority: .utility) { ParakeetUnifiedFiles.removeRetiredOfflineEncoder() }
+
         let state = AppState.shared
         let preferred = state.selectedWhisperModel
         // Closure literal, not the function value: `isReadyToServe` is
@@ -424,7 +428,6 @@ enum ModelLoader {
     private static func load(_ model: AppState.WhisperModel) async throws {
         switch model.engineType {
         case .parakeetUltra: try await ParakeetEngine.ultra.loadModel()
-        case .parakeetUnified: try await ParakeetUnifiedEngine.shared.loadModel()
         case .parakeetStreaming:
             await installDictationPartialHandler()
             try await ParakeetStreamingEngine.shared.loadModel()
@@ -445,7 +448,6 @@ enum ModelLoader {
     private static func unload(_ model: AppState.WhisperModel) async {
         switch model.engineType {
         case .parakeetUltra: await ParakeetEngine.ultra.unloadModel()
-        case .parakeetUnified: await ParakeetUnifiedEngine.shared.unloadModel()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.unloadModel()
         // No language: tearing the model down is the same act whichever one was loaded.
         case .nemotronMultilingual: await NemotronMultilingualEngine.shared.unloadModel()
@@ -455,7 +457,6 @@ enum ModelLoader {
     private static func warmup(_ model: AppState.WhisperModel) async {
         switch model.engineType {
         case .parakeetUltra: await ParakeetEngine.ultra.warmup()
-        case .parakeetUnified: await ParakeetUnifiedEngine.shared.warmup()
         case .parakeetStreaming: await ParakeetStreamingEngine.shared.warmup()
         case .nemotronMultilingual:
             let code = await MainActor.run { AppState.shared.language(for: .nemotronMultilingual).code }

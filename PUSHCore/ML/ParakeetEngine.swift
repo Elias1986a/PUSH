@@ -117,7 +117,7 @@ public actor ParakeetEngine {
         let text = try await transcribeFloats(floatArray)
         let elapsed = Date().timeIntervalSince(start)
 
-        // Same format as ParakeetUnifiedEngine so the two are directly
+        // Same format as the other engines so they are directly
         // comparable in an A/B. Duration + timing only — never transcript text.
         PushLogger.log(String(
             format: "ParakeetEngine[%@]: Transcribed %.2fs audio in %.3fs (%d chars)",

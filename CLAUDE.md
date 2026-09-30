@@ -7,11 +7,13 @@ text field of any app. All speech recognition runs on-device.
 
 ## Tech Stack
 - Swift, Swift Package Manager executable target (no Xcode project)
-- ASR engines: FluidAudio Parakeet (Ultra = default / Unified / Streaming) and
+- ASR engines: FluidAudio Parakeet (Streaming = default on English Macs, Ultra
+  elsewhere; `WhisperModel.defaultModel`) and
   Nemotron Multilingual. Ultra auto-detects Latin-script European languages;
   `TranscriptLanguage` reads the language back from its text. One engine per
   language: Nemotron offers only what Ultra doesn't (`TranscriptLanguage.ultraCovers`).
-  WhisperKit and Moonshine were removed in v7.0.0, TDT v2 in 8.0.5 — don't
+  WhisperKit and Moonshine were removed in v7.0.0, TDT v2 in 8.0.5, Unified in
+  8.2.5 — don't
   reinstate them without re-measuring; Parakeet won on the ANE, not on CPU.
   Apple Speech was removed in 8.2.0 (last in every benchmark), and Apple's AI
   stays out of the product by the user's choice — use open models.
@@ -29,7 +31,7 @@ text field of any app. All speech recognition runs on-device.
 - `PUSH/App` — entry point, AppDelegate, shared AppState
 - `PUSH/Core` — TranscriptionPipeline+App, HotkeyManager, AudioRecorder, SileroVAD,
   WakeWordListener, ModelLoader, CorrectionsStore/ContextGate, TextInjector
-- `PUSHCore` — library target: engine wrappers (ParakeetEngine, ParakeetUnified,
+- `PUSHCore` — library target: engine wrappers (ParakeetEngine, ParakeetUnifiedFiles,
   ParakeetStreaming, NemotronMultilingualEngine), TextProcessing, WhisperModel, PushLogger.
   No SwiftUI, no resources (Bundle.module fatal-asserts in distribution builds).
 - `PUSH/Views` — MenuBarView, SettingsView, FloatingPillView

@@ -23,8 +23,6 @@ public actor TranscriptionPipeline {
         switch model.engineType {
         case .parakeetUltra:
             return try await ParakeetEngine.ultra.transcribe(audioData: audioData)
-        case .parakeetUnified:
-            return try await ParakeetUnifiedEngine.shared.transcribe(audioData: audioData)
         case .parakeetStreaming:
             return try await ParakeetStreamingEngine.shared.transcribe(audioData: audioData)
         case .nemotronMultilingual:

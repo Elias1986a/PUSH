@@ -250,7 +250,7 @@ struct MenuBarView: View {
             let resident = all.filter { NemotronMultilingualEngine.isModelDownloaded(for: $0.code) }
             languages = resident
             hasUndownloadedLanguages = resident.count < all.count
-        case .parakeetUltra, .parakeetUnified, .parakeetStreaming:
+        case .parakeetUltra, .parakeetStreaming:
             languages = []
             hasUndownloadedLanguages = false
         }

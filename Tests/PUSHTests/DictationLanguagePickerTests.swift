@@ -28,15 +28,13 @@ final class DictationLanguagePickerTests: XCTestCase {
 
         // Selected, but English-only by construction.
         XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
-            for: .parakeetUnified, selectedModel: .parakeetUnified))
-        XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
             for: .parakeetStreaming, selectedModel: .parakeetStreaming))
         XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
             for: .parakeetUltra, selectedModel: .parakeetUltra))
 
         // Takes a language, but is not the row the user has chosen.
         XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(
-            for: .nemotronMultilingual, selectedModel: .parakeetUnified))
+            for: .nemotronMultilingual, selectedModel: .parakeetStreaming))
     }
 
     /// Holds the rule to `supportsLanguageSelection` rather than to today's list
@@ -49,7 +47,7 @@ final class DictationLanguagePickerTests: XCTestCase {
                 "\(model.rawValue) disagrees with its own supportsLanguageSelection")
 
             // Never under an unselected row, whatever the engine.
-            let other: WhisperModel = model == .parakeetUltra ? .parakeetUnified : .parakeetUltra
+            let other: WhisperModel = model == .parakeetUltra ? .parakeetStreaming : .parakeetUltra
             XCTAssertFalse(ModelsSettingsView.showsLanguagePicker(for: model, selectedModel: other))
         }
     }
@@ -133,7 +131,7 @@ final class DictationLanguagePickerTests: XCTestCase {
     func testChangingAnIdleModelsLanguageDoesNotReload() {
         XCTAssertFalse(ModelLoader.languageChangeNeedsReload(
             changed: .nemotronMultilingual,
-            activeModel: .parakeetUnified,
+            activeModel: .parakeetStreaming,
             isModelReady: true))
     }
 

@@ -8,7 +8,7 @@ import FluidAudio
 /// the whole utterance.
 ///
 /// Trade-off to evaluate, in FluidAudio's own numbers: the chunked streaming
-/// export is 2.15% WER vs 1.82% for the offline encoder `ParakeetUnifiedEngine`
+/// export is 2.15% WER vs 1.82% for the offline encoder (retired in 8.2.5)
 /// uses. So this may give back the accuracy that won the offline A/B.
 ///
 /// Falls back to transcribing the whole buffer if it was never fed live, so
@@ -50,21 +50,20 @@ public actor ParakeetStreamingEngine {
     private init() {}
 
     public nonisolated static var modelDirectory: URL {
-        // Same model bundle as the offline Unified engine.
-        ParakeetUnifiedEngine.modelDirectory
+        ParakeetUnifiedFiles.modelDirectory
     }
 
-    /// Only the streaming encoder counts — the offline one alone would
-    /// report "downloaded" and then fetch 600 MB on first use.
+    /// Only the streaming encoder counts — the retired offline one alone
+    /// would report "downloaded" and then fetch 600 MB on first use.
     public nonisolated static func isModelDownloaded() -> Bool {
-        ParakeetUnifiedEngine.hasMode(encoder: ParakeetUnifiedEngine.streamingEncoderFile)
+        ParakeetUnifiedFiles.hasMode(encoder: ParakeetUnifiedFiles.streamingEncoderFile)
     }
 
-    /// Removes the streaming encoder, keeping Parakeet Unified's if present.
+    /// Removes the streaming encoder, and with it the folder.
     public nonisolated static func deleteModel() throws {
-        try ParakeetUnifiedEngine.deleteMode(
-            encoder: ParakeetUnifiedEngine.streamingEncoderFile,
-            keepingIfPresent: ParakeetUnifiedEngine.offlineEncoderFile)
+        try ParakeetUnifiedFiles.deleteMode(
+            encoder: ParakeetUnifiedFiles.streamingEncoderFile,
+            keepingIfPresent: ParakeetUnifiedFiles.offlineEncoderFile)
     }
 
     // MARK: - Lifecycle

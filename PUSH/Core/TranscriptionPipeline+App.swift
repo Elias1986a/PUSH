@@ -25,7 +25,7 @@ extension TranscriptionPipeline {
     /// The language the *active* engine is actually transcribing in.
     ///
     /// Deliberately not just `AppState.language(for:)`. The English-only
-    /// engines (`.parakeetUnified`, `.parakeetStreaming`) are English by
+    /// engine (`.parakeetStreaming`) is English by
     /// construction — their FluidAudio repos are literally named `-en-` — and
     /// `.parakeetUltra` reads its language from each transcript instead
     /// (`transcriptLanguage`). `supportsLanguageSelection` is false for all three, so no picker

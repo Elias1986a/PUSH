@@ -126,7 +126,7 @@ struct DictationLanguagePicker: View {
             // dictionary and deliberately has no hardcoded fallback, so an
             // undownloaded engine has genuinely nothing to offer.
             return "Download the model to see its languages."
-        case .parakeetUltra, .parakeetUnified, .parakeetStreaming:
+        case .parakeetUltra, .parakeetStreaming:
             // Unreachable — `showsLanguagePicker` keeps the English engines out
             // of this view. Listed rather than defaulted so adding an engine is
             // a compile error here instead of a wrong sentence at runtime.
@@ -157,7 +157,7 @@ struct DictationLanguagePicker: View {
         switch model.engineType {
         case .nemotronMultilingual:
             resolved = await NemotronMultilingualEngine.shared.supportedLanguages()
-        case .parakeetUltra, .parakeetUnified, .parakeetStreaming:
+        case .parakeetUltra, .parakeetStreaming:
             resolved = []
         }
         languages = resolved
