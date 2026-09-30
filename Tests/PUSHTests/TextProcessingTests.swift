@@ -830,6 +830,17 @@ final class CaliforniaLikeTests: XCTestCase {
         }
     }
 
+    /// The website's "these stay" list, through the whole chain as the app
+    /// runs it — California mode or not. The default filler pass used to take
+    /// "Like I said" and "he was like," out ("He was , no way.").
+    func testMeaningfulLikesSurviveTheWholeChain() {
+        for s in ["I like it.", "It looks like rain.", "Like I said, we're done.",
+                  "He was like, no way.", "It'll take like 30 minutes."] {
+            XCTAssertEqual(TranscriptionPipeline.postProcess(s, hasNativePunctuation: true), s)
+            XCTAssertEqual(TranscriptionPipeline.postProcess(ca(s), hasNativePunctuation: true), s)
+        }
+    }
+
     func testTheVerbStays() {
         for s in ["I like it.", "Kids like candy.", "I'd really like that.",
                   "Would you like some coffee?", "We don't like the new logo.",

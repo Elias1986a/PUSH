@@ -17,6 +17,20 @@ extension TranscriptionPipeline {
         "i", "he", "she", "it", "they", "we", "you"
     ]
 
+    /// "Like I said" (a pronoun and a speech verb follow) or quoted speech
+    /// ("was like, no way": a form of "be" before, a comma after).
+    static func likeIsDoingAJob(at range: Range<String.Index>, after previousWord: String, in text: String) -> Bool {
+        let rest = text[range.upperBound...]
+        let next = rest.split(whereSeparator: { !$0.isLetter && $0 != "'" && $0 != "\u{2019}" })
+            .prefix(2).map { $0.lowercased() }
+        if next.count == 2, ["i", "we", "you", "they", "he", "she"].contains(next[0]),
+           speechVerbs.contains(next[1]) {
+            return true
+        }
+        let commaAfter = rest.first(where: { !$0.isWhitespace }) == ","
+        return commaAfter && quotativeBe.contains(previousWord)
+    }
+
     /// Strip filler "like" using the on-device part-of-speech tagger.
     ///
     /// String patterns alone cannot do this. Measured against the tagger, the
@@ -47,6 +61,12 @@ extension TranscriptionPipeline {
             let word = text[range].lowercased()
             defer { previousWord = word }
             guard word == "like" else { return true }
+
+            // "Like I said" and "he was like, no way" are doing a job — the
+            // tagger calls both interjections, and removing them left "I
+            // said" and "He was , no way". The same two rules California
+            // mode keeps.
+            if Self.likeIsDoingAJob(at: range, after: previousWord, in: text) { return true }
 
             switch tag {
             case .verb:

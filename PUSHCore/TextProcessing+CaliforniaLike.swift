@@ -36,12 +36,13 @@ extension TranscriptionPipeline {
     ]
 
     /// Forms of "be" that introduce quoted speech: "he was like, no way".
-    private static let quotativeBe: Set<String> = [
+    /// Shared with the default filler pass, which must keep these too.
+    static let quotativeBe: Set<String> = [
         "was", "is", "am", "were", "are", "be", "been", "i'm", "he's", "she's", "it's",
         "you're", "we're", "they're", "that's"
     ]
 
-    private static let speechVerbs: Set<String> = [
+    static let speechVerbs: Set<String> = [
         "said", "say", "mentioned", "told", "explained", "discussed", "promised", "thought"
     ]
 
