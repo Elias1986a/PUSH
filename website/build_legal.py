@@ -100,11 +100,16 @@ TEMPLATE = """<!doctype html>
 <link rel="stylesheet" href="../assets/tokens.css">
 <link rel="stylesheet" href="../assets/components.css">
 <link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/theme.js"></script>
 </head>
 <body>
 <header class="wrap nav">
 <a class="brand" href="../"><span class="disp">PUSH</span><span class="dot"></span></a>
 <span style="flex-grow: 1;"></span>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+<svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+<svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+</button>
 <a href="../" style="text-decoration: none; font-size: 15px; font-weight: 500;">← Back to PUSH</a>
 </header>
 <main class="wrap doc">
