@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 
 /// Comparison history, appended as JSONL beside the app's own support directory.
@@ -45,10 +46,45 @@ enum RunLog {
 
     static func delete(id: UUID) {
         rewrite(load().filter { $0.id != id })
+        try? FileManager.default.removeItem(at: recording(for: id))
     }
 
     static func clear() {
         try? FileManager.default.removeItem(at: fileURL)
+        try? FileManager.default.removeItem(at: recordingsDirectory)
+    }
+
+    // MARK: - Recordings
+
+    /// Every live reading, kept so an engine or pipeline fix can be checked
+    /// against the real voice instead of asking for the passage to be read
+    /// again. Local only, like the log; deleting a row deletes its audio.
+    private static var recordingsDirectory: URL {
+        let dir = directory.appendingPathComponent("Recordings", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    static func recording(for id: UUID) -> URL {
+        recordingsDirectory.appendingPathComponent("\(id.uuidString).wav")
+    }
+
+    /// `audio` is `Recorder`'s 16 kHz mono Float32, written as a WAV that
+    /// "Open audio file…" reads straight back.
+    static func saveRecording(_ audio: Data, id: UUID) {
+        let format = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false)!
+        let frames = AVAudioFrameCount(audio.count / MemoryLayout<Float>.size)
+        guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
+              let channel = buffer.floatChannelData?[0] else { return }
+        audio.withUnsafeBytes { raw in
+            _ = raw.copyBytes(to: UnsafeMutableRawBufferPointer(start: channel, count: audio.count))
+        }
+        buffer.frameLength = frames
+        guard let file = try? AVAudioFile(
+            forWriting: recording(for: id), settings: format.settings,
+            commonFormat: .pcmFormatFloat32, interleaved: false) else { return }
+        try? file.write(from: buffer)
     }
 
     private static func rewrite(_ comparisons: [Comparison]) {

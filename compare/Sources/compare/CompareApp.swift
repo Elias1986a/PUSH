@@ -124,6 +124,7 @@ final class ComparisonModel {
             date: Date(), audioSeconds: seconds, sourceFile: sourceFile,
             scriptVersion: sourceFile == nil ? BenchmarkScript.version : nil, runs: [])
         comparisons.insert(comparison, at: 0)
+        if sourceFile == nil { RunLog.saveRecording(audio, id: comparison.id) }
         pending = models.count
         status = "Transcribing with \(models.count) engine\(models.count == 1 ? "" : "s")…"
 
