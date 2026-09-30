@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 8.2.4</title>
-            <pubDate>Wed, 30 Sep 2026 14:48:29 -0700</pubDate>
-            <sparkle:version>98</sparkle:version>
-            <sparkle:shortVersionString>8.2.4</sparkle:shortVersionString>
+            <title>Version 8.2.5</title>
+            <pubDate>Wed, 30 Sep 2026 15:26:48 -0700</pubDate>
+            <sparkle:version>99</sparkle:version>
+            <sparkle:shortVersionString>8.2.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,13 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 8.2.4 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 8.2.5 <span class="tag">New</span></h2>
+<h3>Changed</h3>
+<ul>
+<li><strong>A simpler choice of speech models.</strong> PUSH now offers three: Parakeet Streaming, Parakeet Ultra and Nemotron Multilingual. Parakeet Unified is gone. With PUSH transcribing while you talk, it was no faster and no more accurate than Ultra, and it only did English. If you used it, PUSH switches you to the recommended model, and its 600 MB download is removed to free the space.</li>
+<li><strong>The recommended model follows your Mac's language.</strong> On an English Mac it's Parakeet Streaming, which shows your words in the pill as you speak. Anywhere else it's Parakeet Ultra, which understands English and the European languages and switches between them on its own. You can still pick any model in Settings ▸ Models.</li>
+</ul></div>
+<div class="older"><h2>Version 8.2.4</h2>
 <h3>Faster</h3>
 <ul>
 <li><strong>Long dictation lands almost instantly.</strong> PUSH now transcribes finished sentences while you're still talking, so letting go leaves only your last sentence or two. On a 25-second dictation, the wait after you let go drops from about a quarter of a second to a few hundredths.</li>
@@ -113,6 +119,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.5/PUSH-v8.2.5.zip" type="application/octet-stream" sparkle:edSignature="scatgugBJI9hyrnlbD3c/8kMxO5KbjYq1fFnnrl8etbUWNoVJ/jRdXCoI5Z7Gs3HHudMzAwi1NvM98QvALVQDA==" length="14235119" />
+        </item>
+        <item>
+            <title>Version 8.2.4</title>
+            <pubDate>Wed, 30 Sep 2026 14:48:29 -0700</pubDate>
+            <sparkle:version>98</sparkle:version>
+            <sparkle:shortVersionString>8.2.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.4/PUSH-v8.2.4.zip" type="application/octet-stream" sparkle:edSignature="nMCaYAlCGZgKHnFm7fY4zpjyjkPg3hefEleW2fTtp3g1dqRh6QTHyrmZQVmtAwdJ6RrissDufbJdQA5nuoALDw==" length="14247035" />
         </item>
         <item>
