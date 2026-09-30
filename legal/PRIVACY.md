@@ -30,13 +30,14 @@ analytics, no ads and no account.
 | You press **Download** for a speech model | Hugging Face (huggingface.co) | A standard download request: your IP address and the files requested | To fetch the open model you picked. [Hugging Face privacy policy](https://huggingface.co/privacy) |
 | Once a day, if automatic updates are on | Our update feed at [yourdomain] | A standard web request: your IP address, PUSH version and macOS version | To check for updates (Sparkle). |
 | If "Sync settings and dictionary across my Macs" is on (Settings ▸ General) | Apple iCloud, through your own iCloud account | Your PUSH settings and personal dictionary entries | To keep your Macs in step. We can't read this data; it's stored under your Apple Account. Switch it off at any time. |
-| When you activate a licence [once the licence check ships] | Polar (polar.sh) | Your licence key and a device label so you can tell your Macs apart | To count seats (3 Macs per licence). |
+| When you enter a licence key, when you remove a Mac from your licence, and at most once a day to confirm the licence is still valid | Polar (polar.sh), our merchant of record | Your licence key, an activation ID, and your Mac's model (for example "Mac mini (M4)") so you can tell your Macs apart. Like any web request, it also carries your IP address | To check the key is genuine and to count Macs (3 per licence). [Polar's privacy policy](https://polar.sh/legal/privacy) |
 
 None of these connections carries audio or transcripts.
 
 ## When you buy PUSH
 
-Polar, our merchant of record, collects your name, email, billing
+The Buy buttons on our website open Polar's checkout. Polar, our merchant of
+record, collects your name, email, billing
 details and payment information to process the sale, under
 [Polar's privacy policy](https://polar.sh/legal/privacy). We receive your name, email, country and order
 details so we can deliver your licence, support you and issue refunds. We never
