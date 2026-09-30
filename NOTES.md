@@ -206,6 +206,19 @@ means it is filler. Script v3 is final: don't edit it mid-series.
 | date | held | Ultra | Unified | Streaming | Wispr Flow |
 |---|---|---|---|---|---|
 
+**2026-09-30, first 10 v3 readings (unreleased fixes since 8.2.2):**
+- Ultra/Unified lost all punctuation after the first 15 s seam in 4 of 10
+  readings. Cause: a window that *starts mid-sentence* sometimes decodes with
+  no punctuation or capitals (the window alone, no merge, does it too). Fix:
+  `SentenceAlignedWindows` cuts after the last sentence end ≥1.5 s before the
+  window's end; Unified also takes a 1 s discarded lead-in (it drops a
+  window's first word). 10/10 clean on the saved audio.
+- The compare tool keeps each live reading's WAV and can "Re-run saved
+  readings" (Wispr row kept). Pre-fix live log backed up as
+  `comparisons.live-2026-09-30.jsonl`.
+- "five million dollar" → "$5 million" (was "$5,000,000"); ".." → ".".
+- Next: re-run + a few fresh readings, then release PUSH with these.
+
 #### Off-script runs (not comparable to the series)
 
 **2026-09-29, one 15.2s utterance, before the script existed.** Ultra 0.18s/84×,
