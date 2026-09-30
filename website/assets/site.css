@@ -204,7 +204,9 @@ a:hover { color: var(--on-air); }
 .bench td.app { font-weight: 600; }
 .bench td.num { font-weight: 700; white-space: nowrap; }
 .bench td.hot, .bench td.win { color: var(--on-air); font-weight: 700; }
-.bench .tag { font: 600 11px/1 var(--font-body); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--chrome); border-radius: var(--radius-pill); padding: 3px 7px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+/* Its own line under the model's name, flush with it: beside the name it
+   wrapped on some rows and not others, and kept its left margin when it did. */
+.bench .tag { display: block; width: fit-content; margin-top: 6px; font: 600 11px/1 var(--font-body); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); box-shadow: inset 0 0 0 1px var(--chrome); border-radius: var(--radius-pill); padding: 4px 8px; white-space: nowrap; }
 .bench .aside { display: block; font-size: 13px; color: var(--ink-muted); font-weight: 400; }
 .bench table.acc td:not(:first-child), .bench table.acc th:not(:first-child) { text-align: center; font-variant-numeric: tabular-nums; }
 .bench table.acc td:first-child { min-width: 200px; }
