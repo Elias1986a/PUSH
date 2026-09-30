@@ -44,6 +44,11 @@ enum RunLog {
         }
     }
 
+    /// Replace one row in place, keeping the log's order.
+    static func update(_ comparison: Comparison) {
+        rewrite(load().map { $0.id == comparison.id ? comparison : $0 })
+    }
+
     static func delete(id: UUID) {
         rewrite(load().filter { $0.id != id })
         try? FileManager.default.removeItem(at: recording(for: id))

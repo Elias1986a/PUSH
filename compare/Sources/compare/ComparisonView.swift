@@ -81,6 +81,10 @@ struct ComparisonView: View {
                 Text("Engine comparison")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                 Spacer()
+                if !model.rerunnable.isEmpty {
+                    Button("Re-run saved readings") { model.rerunSaved() }
+                        .disabled(model.pending > 0 || !model.status.isEmpty)
+                }
                 if !model.comparisons.isEmpty {
                     Button("Clear") { model.clear() }
                 }
@@ -215,6 +219,9 @@ private struct ComparisonCard: View {
                 }
                 if let version = comparison.scriptVersion {
                     Text("· script v\(version)")
+                }
+                if let rerun = comparison.rerun {
+                    Text("· re-run \(rerun.formatted(date: .omitted, time: .shortened))")
                 }
                 Spacer()
                 if let verdict {

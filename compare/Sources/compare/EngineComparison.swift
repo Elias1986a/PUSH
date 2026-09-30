@@ -39,6 +39,9 @@ struct Comparison: Codable, Identifiable, Sendable {
     var wispr: WisprRun?
     /// Why there is no Wispr result. Rendered, so an absent row never reads as a bug.
     var wisprAbsence: String?
+    /// When the engine rows were last re-run from the saved recording. The
+    /// Wispr row is never re-run — it can only come from the live reading.
+    var rerun: Date?
 }
 
 

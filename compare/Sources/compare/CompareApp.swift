@@ -173,4 +173,38 @@ final class ComparisonModel {
         comparisons.removeAll()
         RunLog.clear()
     }
+
+    /// Live readings whose audio was kept, so the engines can hear them again.
+    var rerunnable: [Comparison] {
+        comparisons.filter {
+            $0.sourceFile == nil && FileManager.default.fileExists(atPath: RunLog.recording(for: $0.id).path)
+        }
+    }
+
+    /// Run every kept reading through today's engines, in place: same audio,
+    /// same sequential timing, Wispr's row untouched. This is how an engine or
+    /// pipeline fix reaches the benchmark without anyone reading it again.
+    func rerunSaved() {
+        let targets = rerunnable
+        guard !targets.isEmpty, pending == 0 else { return }
+        let models = self.models
+        Task {
+            for (n, original) in targets.enumerated() {
+                guard let audio = try? AudioFileLoader.load(RunLog.recording(for: original.id)) else { continue }
+                var comparison = original
+                comparison.runs = []
+                comparison.rerun = Date()
+                await EngineComparison.run(
+                    audio: audio,
+                    models: models,
+                    onPhase: { self.status = "Reading \(n + 1) of \(targets.count): \($0)" },
+                    onResult: { comparison.runs.append($0) })
+                if let index = self.comparisons.firstIndex(where: { $0.id == original.id }) {
+                    self.comparisons[index] = comparison
+                }
+                RunLog.update(comparison)
+            }
+            self.status = ""
+        }
+    }
 }

@@ -165,7 +165,17 @@ public actor ParakeetUnifiedEngine {
         guard let manager else {
             throw ParakeetEngineError.notInitialized
         }
-        let text = try await manager.transcribe(floatArray)
+        // Past one encoder window, cut at sentence ends (see `SentenceAlignedWindows`).
+        let text = floatArray.count <= SentenceAlignedWindows.windowSamples
+            ? try await manager.transcribe(floatArray)
+            : try await SentenceAlignedWindows.transcribe(
+                floatArray,
+                leadIn: 1.0,
+                window: { chunk in
+                    let result = try await manager.transcribeWithTimings(chunk)
+                    return .init(text: result.text, tokens: result.tokenTimings)
+                },
+                whole: { try await manager.transcribe($0) })
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

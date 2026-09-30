@@ -132,15 +132,29 @@ public actor ParakeetEngine {
             throw ParakeetEngineError.notInitialized
         }
 
-        // A fresh decoder state per utterance: each dictation is independent,
-        // so no RNNT context should carry over from the previous one.
+        // Past one encoder window, cut at sentence ends rather than let
+        // FluidAudio's fixed seams start a window mid-sentence.
+        guard floatArray.count <= SentenceAlignedWindows.windowSamples else {
+            return try await SentenceAlignedWindows.transcribe(
+                floatArray,
+                window: { chunk in
+                    let result = try await Self.decode(chunk, with: manager)
+                    return .init(text: result.text, tokens: result.tokenTimings ?? [])
+                },
+                whole: { try await Self.decode($0, with: manager).text })
+        }
+        return try await Self.decode(floatArray, with: manager).text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func decode(_ samples: [Float], with manager: AsrManager) async throws -> ASRResult {
+        // A fresh decoder state per decode: each dictation — and each window
+        // of a long one — is independent, so no RNNT context carries over.
         var decoderState = try TdtDecoderState()
         // Ultra is v3-derived and auto-detects language, so an accented or
         // mumbled English word can surface in Cyrillic. The hint is a *script*
         // filter (Latin vs Cyrillic/Greek), not a language picker.
-        let result = try await manager.transcribe(
-            floatArray, decoderState: &decoderState, language: .english)
-        return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return try await manager.transcribe(samples, decoderState: &decoderState, language: .english)
     }
 
     private func audioDataToFloatArray(_ data: Data) -> [Float] {
