@@ -27,38 +27,45 @@
 <main class="wrap doc">
 <p class="eyebrow">How we measured</p>
 <h1 class="disp" style="margin-top: 16px;">Same passage. Same Mac. Same stopwatch.</h1>
-<p>We read one passage aloud three times into each app and timed how long each took to hand back the text after the key was released. These are medians of three, not best runs. Measured 29 September 2026 on [Mac model].</p>
+<p>We read one passage aloud 13 times, speaking into PUSH and Wispr Flow at once, and timed how long each took to hand back the text after the key was released. These are medians of all 13 readings, not best runs. Measured 30 September 2026 on a Mac mini (M4, 24 GB), macOS 27.2, PUSH 8.2.4.</p>
 
 <h2>The passage</h2>
-<blockquote><p style="font-size: 19px; color: var(--ink);">“Let's move the Q3 review to Tuesday, March 3rd at 4:30 PM — Larry, Priya and Joe are all in, which puts us at 37% of the $5 million target. Um, latency came back at 15.2 seconds, I mean 1.52 seconds, so ask the Zürich team to re-run it. Priya said, quote, ship it anyway, end quote. Can you confirm before Friday?”</p></blockquote>
-<p>It's built from the things dictation apps disagree about: money, times, a self-correction, a filler word, a quotation, an accented name. Each reading took 23–26 seconds.</p>
+<blockquote><p style="font-size: 19px; color: var(--ink);">“Let's move the Q3 planning review to Tuesday, March 3rd at 4:30 PM, since that's like the only slot that works for the Zürich office. Um, we've spent 37% of the $5 million budget, and the new build loads in 15.2 seconds, I mean 1.52 seconds. Everyone who tried it said, quote, it feels like a real improvement, end quote. New paragraph. Could you like send the final numbers before Friday?”</p></blockquote>
+<p>Every phrase is there to test something: a date, a time of day, a percentage, money, decimals, an acronym, an accented place name, a filler word, a correction mid-sentence, a spoken quotation, a spoken paragraph break and a question. Two casual “like”s test PUSH's California mode, and “feels like” must survive it. Each reading took 23–29 seconds.</p>
 
 <h2>Speed: release to text</h2>
 <div class="table-wrap"><table>
-<thead><tr><th>App</th><th>Where it runs</th><th>Median</th><th>Real-time speed</th></tr></thead>
+<thead><tr><th>App</th><th>Where it runs</th><th>Median</th><th>Range</th></tr></thead>
 <tbody>
-<tr><td><strong>PUSH · Parakeet Ultra</strong> (default)</td><td>On your Mac</td><td class="mono" style="color: var(--on-air); font-weight: 700;">0.17 s</td><td class="mono">147×</td></tr>
-<tr><td><strong>PUSH · Parakeet Unified</strong></td><td>On your Mac, English only</td><td class="mono" style="font-weight: 700;">0.15 s</td><td class="mono">150×</td></tr>
-<tr><td><strong>Wispr Flow</strong></td><td>Their servers</td><td class="mono" style="font-weight: 700;">0.79 s + 0.13 s network</td><td class="mono">31×</td></tr>
+<tr><td><strong>PUSH · Parakeet Ultra</strong> (default)</td><td>On your Mac</td><td class="mono" style="color: var(--on-air); font-weight: 700;">0.04 s</td><td class="mono">0.041–0.046 s</td></tr>
+<tr><td><strong>PUSH · Parakeet Unified</strong></td><td>On your Mac, English only</td><td class="mono" style="font-weight: 700;">0.05 s</td><td class="mono">0.042–0.064 s</td></tr>
+<tr><td><strong>PUSH · Parakeet Streaming</strong></td><td>On your Mac, English only</td><td class="mono" style="font-weight: 700;">0.02 s</td><td class="mono">0.019–0.041 s</td></tr>
+<tr><td><strong>Wispr Flow</strong></td><td>Their servers</td><td class="mono" style="font-weight: 700;">0.74 s + 0.13 s network</td><td class="mono">0.70–0.98 s in total</td></tr>
 </tbody>
 </table></div>
-<p>That makes PUSH <strong>4.6× faster</strong> than Wispr Flow's server processing alone, and <strong>5.4× faster</strong> once their network round trip is counted. The second number is the one on our home page.</p>
-<p>Real-time speed is seconds of speech per second of processing. Wispr Flow's figure leaves out its network time, just as ours has no network to leave out. PUSH's Streaming model measured 0.45 s, but it transcribes while you talk, so most of that is done before you let go.</p>
+<p>With its default model, PUSH is <strong>20× faster</strong> than Wispr Flow once their network round trip is counted, and <strong>17× faster</strong> than their server processing alone. The first number is the one on our home page. PUSH's Streaming model, which shows your words as you speak, is quicker still.</p>
+<p>How PUSH gets there: all three models transcribe while you talk. Ultra and Unified finish each sentence as soon as you've said it; Streaming works through the audio continuously. When you let go, only the last moment is left. Decoding a whole 25-second recording from scratch instead would take Ultra 0.23 s. Both apps' numbers are the wait after the key comes up. Wispr Flow's times are its own, read from its local records; PUSH's are measured by our comparison tool on the same recordings.</p>
 
 <h2>Accuracy: what each one typed</h2>
+<p>Counted over every reading: 13 for each PUSH model, 12 for Wispr Flow (one reading was made without it). PUSH ran with its default settings plus California mode.</p>
 <div class="table-wrap"><table>
-<thead><tr><th>The passage asks for</th><th>PUSH (default settings)</th><th>Wispr Flow</th></tr></thead>
+<thead><tr><th>The passage asks for</th><th>PUSH<br>Ultra</th><th>PUSH<br>Unified</th><th>PUSH<br>Streaming</th><th>Wispr<br>Flow</th></tr></thead>
 <tbody>
-<tr><td>“five million dollars” → <code>$5 million</code></td><td><code>$5 million</code>, 3 of 3, straight from the model</td><td><code>$5 million</code> after their server's cleanup</td></tr>
-<tr><td><code>4:30 PM</code></td><td><code>4:30 p.m.</code></td><td><code>4:30 PM</code></td></tr>
-<tr><td>“15.2 seconds, I mean 1.52 seconds”</td><td><code>1.52 seconds</code>, 3 of 3</td><td><code>1.52 seconds</code>, 3 of 3</td></tr>
-<tr><td>“Um, latency…”</td><td>Filler removed</td><td>Filler removed</td></tr>
-<tr><td>“quote, ship it anyway, end quote”</td><td>Quoted, as <code>“Ship it anyways.”</code></td><td>Quoted, as <code>“Ship it anyways.”</code></td></tr>
-<tr><td><code>Zürich</code></td><td><code>Zurich</code> (no umlaut)</td><td><code>Zürich</code></td></tr>
-<tr><td><code>37%</code>, <code>Q3</code>, <code>March 3rd</code>, the question mark</td><td>All correct</td><td>All correct</td></tr>
+<tr><td>“five million dollars” → <code>$5 million</code></td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td>A time of day</td><td><code>4:30 p.m.</code> 13 of 13</td><td><code>4:30 p.m.</code> 13 of 13</td><td><code>4:30 p.m.</code> 13 of 13</td><td><code>4:30 pm</code> 12 of 12</td></tr>
+<tr><td>“15.2 seconds, I mean 1.52 seconds” → <code>1.52 seconds</code></td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td>“quote … end quote” → quotation marks</td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td>“New paragraph” → a paragraph break</td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td>Casual “like” removed, “feels like” kept</td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td>The question mark</td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td>“Um” removed</td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td><code>37%</code></td><td>12 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td><code>Q3</code></td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>12 of 12</td></tr>
+<tr><td><code>March 3rd</code></td><td>13 of 13</td><td>13 of 13</td><td>13 of 13</td><td>2 of 12 (writes <code>March 3</code>)</td></tr>
+<tr><td><code>Zürich</code></td><td>0 of 13 (<code>Zurich</code>)</td><td>0 of 13</td><td>0 of 13</td><td>5 of 12</td></tr>
 </tbody>
 </table></div>
-<p>Where Wispr Flow did better, we say so: its server restores the umlaut in Zürich, and PUSH misheard one phrase once in three readings. You can switch off PUSH's self-correction in Settings ▸ Text, because it's the one step that deletes words you actually said.</p>
+<p>Where Wispr Flow did better, we say so. Its server sometimes restores the umlaut in Zürich, and it rewrites words using the rest of the sentence: once it turned a misheard “bill” back into “build”, and once it put back a word the reader had skipped. PUSH types what it heard; the one 37% it missed came from a reading where the reader stumbled on the number. Every app, Wispr Flow included, sometimes mishears a word; the table counts only what the passage was built to test. You can switch off PUSH's self-correction in Settings ▸ Text, because it's the one step that deletes words you actually said.</p>
 <p>Wispr Flow is a trademark of its owner. We measured it ourselves on the same Mac, the same day. Results depend on your Mac, your network and their servers, and we'll re-run this when either app changes.</p>
 </main>
 
