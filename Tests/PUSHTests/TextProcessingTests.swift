@@ -856,6 +856,12 @@ final class SpokenFormattingTests: XCTestCase {
         XCTAssertEqual(fmt("New line. And one more thing."), "\nAnd one more thing.")
     }
 
+    func testACommandAfterAClosingQuoteStillBreaks() {
+        XCTAssertEqual(fmt("She said, quote, it works, end quote. New paragraph. Can you ship it?"),
+                       "She said, \"It works.\"\n\nCan you ship it?")
+        XCTAssertEqual(fmt("Here it is (the draft). New line. Thanks."), "Here it is (the draft).\nThanks.")
+    }
+
     func testBulletPoints() {
         XCTAssertEqual(fmt("Groceries: bullet point milk, bullet point eggs, bullet point bread."),
                        "Groceries:\n- Milk\n- Eggs\n- Bread")

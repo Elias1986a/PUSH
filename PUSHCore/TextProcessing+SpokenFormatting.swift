@@ -11,16 +11,17 @@ extension TranscriptionPipeline {
     /// new line, thanks" or "Groceries: bullet point milk". Mid-phrase the words
     /// are the ordinary noun ("we launched a new line of shoes"), and so they
     /// are before a preposition or verb even after a comma ("Okay, new line of
-    /// products is out").
+    /// products is out"). A closing quote or bracket may sit between the
+    /// punctuation and the command: `said, "It works." New paragraph.`
     private static let spokenLayout = try! NSRegularExpression(pattern:
-        "(?i)(^|[.,;:!?])\\s*\\b(new\\s*line|new\\s+paragraph|bullet\\s+point)\\b"
+        "(?i)(^|[.,;:!?][\"\u{201D}\u{2019})]?)\\s*\\b(new\\s*line|new\\s+paragraph|bullet\\s+point)\\b"
         + "(?!\\s+(?:of|for|to|in|on|at|from|with|by|is|was|are|were|has|had|will)\\b)"
         + "[.,;:!]?[ \\t]*")
 
     /// "Number one, …" at a break. The model writes small numbers as words
     /// and may write any as digits, so both count.
     private static let spokenListItem = try! NSRegularExpression(pattern:
-        "(?i)(^|[.,;:!?])\\s*\\bnumber\\s+(one|two|three|four|five|six|seven|eight|nine|ten|\\d{1,2})\\b"
+        "(?i)(^|[.,;:!?][\"\u{201D}\u{2019})]?)\\s*\\bnumber\\s+(one|two|three|four|five|six|seven|eight|nine|ten|\\d{1,2})\\b"
         + "[.,;:!]?[ \\t]*")
 
     private static let listNumberWords = ["one", "two", "three", "four", "five",

@@ -23,7 +23,8 @@ enum BenchmarkScript {
     /// different scripts are never averaged together. 1 was the passage without the
     /// quotation (two runs, 2026-09-29); 2 added it; 3 (2026-09-30) is the passage
     /// rewritten for the public page — no named people, nothing a reader could take
-    /// as being about them — and adds California mode's casual "like".
+    /// as being about them — and adds California mode's casual "like" and a spoken
+    /// "new paragraph".
     static let version = 3
 
     /// How many readings make a published figure. Three was enough to see a spread;
@@ -42,7 +43,7 @@ enum BenchmarkScript {
         like the only slot that works for the Zürich office. Um, we've spent 37% of the \
         $5 million budget, and the new build loads in 15.2 seconds, I mean 1.52 seconds. \
         Everyone who tried it said, quote, it feels like a real improvement, end quote. \
-        Could you like send the final numbers before Friday?
+        New paragraph. Could you like send the final numbers before Friday?
         """
 
     /// What each part of the script is there to expose. Rendered under the script so
@@ -50,6 +51,6 @@ enum BenchmarkScript {
     static let exercises = [
         "date", "time of day", "percent", "currency", "decimals", "acronym",
         "accented place", "filler word", "self-correction", "casual \u{201C}like\u{201D}",
-        "\u{201C}like\u{201D} that stays", "spoken quote", "question mark"
+        "\u{201C}like\u{201D} that stays", "spoken quote", "new paragraph", "question mark"
     ]
 }

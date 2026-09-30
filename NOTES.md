@@ -192,7 +192,7 @@ chosen anyway (`TranscriptLanguage.ultraCovers`).
 
 **Script v3 (2026-09-30 on):** rewritten for the public "How we measured"
 page — no named people, nothing a reader could take personally — and adds
-California mode's casual "like" (read without pauses; comma-wrapped ", like,"
+California mode's casual "like" and a spoken "New paragraph" (read the likes without pauses; comma-wrapped ", like,"
 is removed by the default filler pass, so it would show nothing). Target is
 **25 readings**; the compare tool's header shows medians and "n of 25" for the
 current script. California mode is a header toggle, **on** by default here

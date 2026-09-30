@@ -3,7 +3,7 @@ import XCTest
 
 /// The compare tool's benchmark passage (`compare/…/BenchmarkScript.swift`, v3), as
 /// Parakeet Ultra writes it raw, through the chain the app runs: self-corrections,
-/// then California mode, then formatting. Pinned because the passage is published on
+/// then California mode, then formatting (spoken layout included). Pinned because the passage is published on
 /// the website — a pipeline change that breaks it should fail here, not surface as a
 /// wrong row in the next benchmark.
 final class BenchmarkPassageTests: XCTestCase {
@@ -13,7 +13,7 @@ final class BenchmarkPassageTests: XCTestCase {
         + "Um, we've spent 37% of the $5 million budget, and the new build loads in "
         + "15.2 seconds, I mean 1.52 seconds. "
         + "Everyone who tried it said, quote, it feels like a real improvement, end quote. "
-        + "Could you like send the final numbers before Friday"
+        + "New paragraph. Could you like send the final numbers before Friday"
 
     private func paste(california: Bool) -> String {
         let corrected = TranscriptionPipeline.resolveSelfCorrections(raw)
@@ -26,7 +26,7 @@ final class BenchmarkPassageTests: XCTestCase {
             "Let's move the Q3 planning review to Tuesday, March 3rd at 4:30 p.m., "
             + "since that's the only slot that works for the Zurich office. "
             + "We've spent 37% of the $5 million budget, and the new build loads in 1.52 seconds. "
-            + "Everyone who tried it said, \"It feels like a real improvement.\" "
+            + "Everyone who tried it said, \"It feels like a real improvement.\"\n\n"
             + "Could you send the final numbers before Friday?")
     }
 
