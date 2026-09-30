@@ -3,7 +3,7 @@
 **Offline voice-to-text for macOS.** Hold a key, speak, release — the text lands
 in whatever you were typing in. Nothing leaves your Mac.
 
-**[Download the latest release](https://github.com/Elias1986a/PUSH/releases/latest)** · macOS 15+ · Apple silicon · MIT
+**[Download the latest release](https://github.com/Elias1986a/PUSH/releases/latest)** · macOS 15+ · Apple silicon
 
 ---
 
@@ -204,6 +204,8 @@ can be deleted any time.
 
 Swift · SwiftUI · [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet + Silero VAD on CoreML/ANE) · Sparkle
 
-## Contributing
+## License
 
-[Issues](https://github.com/Elias1986a/PUSH/issues) and pull requests welcome. MIT licensed.
+Proprietary. See [LICENSE](LICENSE) and the [EULA](legal/EULA.md). Versions up
+to 8.2.2 were MIT-licensed and remain so. Open-source components and speech
+models are credited in [Third-party notices](legal/THIRD_PARTY_NOTICES.md).
