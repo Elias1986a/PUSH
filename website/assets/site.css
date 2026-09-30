@@ -92,7 +92,7 @@ a:hover { color: var(--on-air); }
 .prompter .past { color: #6b6862; }
 .prompter mark { background: #ff5a45; color: #1a0b08; border-radius: 6px; padding: 0 5px; }
 .screen-video { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.screen-video video { display: block; width: 100%; height: auto; aspect-ratio: 968 / 532; background: #000; border-radius: 18px; box-shadow: inset 0 0 0 1px #2e2e36; }
+.screen-video video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000; border-radius: 18px; box-shadow: inset 0 0 0 1px #2e2e36; }
 .screen-video .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .screen-video .pb-chip { background: #1e1e22; color: #efede8; box-shadow: inset 0 0 0 1px #3a3d44; }
 .screen .chips { position: absolute; left: 24px; bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
