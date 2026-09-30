@@ -15,12 +15,16 @@ public struct PolarConfig: Sendable, Equatable {
     public let productIDs: [String]
     /// Polar's checkout for the $22 product, for the app's "Buy PUSH".
     public let checkoutURL: URL
+    /// The $10 add-on: its own key, good for one more Mac, which that Mac
+    /// activates with instead of the main key.
+    public let addMacCheckoutURL: URL
 
     public static let sandbox = PolarConfig(
         baseURL: URL(string: "https://sandbox-api.polar.sh")!,
         organizationID: "21f8034d-1eee-41d6-ab5a-2b0155b63ac9",
         productIDs: ["58216768-28a6-4085-9dd6-7f376cbc9a46", "ccab8f5e-2cf2-4805-a78c-e951cfbbe21a"],
-        checkoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_7n1SDHPmt2qyrWcz7AW4Y0GDXv3OqSvYn4Umm1GoH0g/redirect")!)
+        checkoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_7n1SDHPmt2qyrWcz7AW4Y0GDXv3OqSvYn4Umm1GoH0g/redirect")!,
+        addMacCheckoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_XkVCacARGDt7LJSerw0sCknoNYMY96wrE4VVE4Js4Er/redirect")!)
 
     /// What the app uses. Sandbox until the store opens.
     public static let current = sandbox

@@ -227,3 +227,6 @@ a:hover { color: var(--on-air); }
 @media (max-width: 620px) {
   .hero-video { margin: 0; }
 }
+
+/* Thank-you page (thanks/) */
+.thanks-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 14px; font: 400 clamp(16px, 1.6vw, 19px)/1.5 var(--font-body); color: var(--ink); }

@@ -9,6 +9,7 @@ struct LicenseSettingsView: View {
 
     /// Polar's checkout for PUSH (sandbox until the store opens).
     private let buyURL = PolarConfig.current.checkoutURL
+    private let addMacURL = PolarConfig.current.addMacCheckoutURL
 
     var body: some View {
         Form {
@@ -44,11 +45,12 @@ struct LicenseSettingsView: View {
                         if license.isWorking { ProgressView().controlSize(.small) }
                         Spacer()
                         Link("Buy PUSH", destination: buyURL)
+                        Link("Add a Mac ($10)", destination: addMacURL)
                     }
                 } header: {
                     Text("Licence")
                 } footer: {
-                    Text("One key works on 3 Macs. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSH. Never your audio or anything you dictate.")
+                    Text("One key works on 3 Macs; a fourth needs its own $10 key. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSH. Never your audio or anything you dictate.")
                 }
             }
 
