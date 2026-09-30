@@ -75,7 +75,7 @@ public actor TranscriptionPipeline {
         // is not.
         guard language.isEnglish else { return text }
 
-        var out = normalizeCause(text)
+        var out = collapseDoubledPeriods(normalizeCause(text))
         out = removeFillerWords(out)
         out = removeStutteredWords(out)
         out = stripConnectingAnd(out)

@@ -204,11 +204,25 @@ extension TranscriptionPipeline {
             // Years are never comma-grouped, so they bypass formatSpokenNumber.
             if let year = parseSpokenYear(runText) {
                 result.replaceSubrange(range, with: String(year))
+            } else if let millions = spokenMillions(runText) {
+                result.replaceSubrange(range, with: "\(millions) million")
             } else if let value = parseNumberRun(runText), value >= 10 {
                 result.replaceSubrange(range, with: formatSpokenNumber(value))
             }
         }
         return result
+    }
+
+    /// "five million" → 5, for "5 million": AP style keeps a round million as a
+    /// word, and it is what Parakeet writes itself ("$5 million") — spelled out,
+    /// the same amount came out "$5,000,000". Only a whole count of millions;
+    /// "five million three hundred thousand" is a figure and stays one.
+    static func spokenMillions(_ run: String) -> Int? {
+        let words = run.lowercased().replacingOccurrences(of: "-", with: " ").split(separator: " ")
+        guard words.count >= 2, words.last == "million",
+              let count = parseNumberRun(words.dropLast().joined(separator: " ")),
+              (1..<1000).contains(count) else { return nil }
+        return count
     }
 
     /// Comma-group a bare digit string. No length rule — callers decide what to group.

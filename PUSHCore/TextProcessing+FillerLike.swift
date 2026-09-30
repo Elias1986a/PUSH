@@ -242,6 +242,12 @@ extension TranscriptionPipeline {
         return result
     }
 
+    /// "1.52 seconds.." → "1.52 seconds.": Parakeet Ultra now and then doubles
+    /// a full stop. Exactly two — "..." is an ellipsis someone meant.
+    public static func collapseDoubledPeriods(_ text: String) -> String {
+        text.replacingOccurrences(of: "(?<!\\.)\\.\\.(?!\\.)", with: ".", options: .regularExpression)
+    }
+
     /// Strip the leading apostrophe Whisper adds to the contraction of "because":
     /// "'cause" → "cause" (handles straight and curly apostrophes, preserves casing).
     public static func normalizeCause(_ text: String) -> String {

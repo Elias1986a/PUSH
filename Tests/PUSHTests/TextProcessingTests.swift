@@ -273,9 +273,11 @@ final class TextProcessingTests: XCTestCase {
     }
 
     func testSpokenLargeNumbersEndUpGrouped() {
-        // The full path the bug report hits: "thirty million" → digits → commas.
-        let digits = TranscriptionPipeline.normalizeNumberWords("thirty million")
-        XCTAssertEqual(TranscriptionPipeline.groupThousands(digits), "30,000,000")
+        // The full path the bug report hits: words → digits → commas. A round
+        // million stays a word ("30 million", AP style); anything finer is a figure.
+        let digits = TranscriptionPipeline.normalizeNumberWords("thirty million five hundred thousand")
+        XCTAssertEqual(TranscriptionPipeline.groupThousands(digits), "30,500,000")
+        XCTAssertEqual(TranscriptionPipeline.normalizeNumberWords("thirty million"), "30 million")
     }
 
     func testMagnitudeWordAfterDigitsStaysSpelled() {
@@ -329,7 +331,7 @@ final class TextProcessingTests: XCTestCase {
     func testDollarAmountsTakeTheWholeNumber() {
         // Was "5,000,$000": the dollar rule runs after comma-grouping and a bare
         // \d+ matched only the final group.
-        XCTAssertEqual(push("five million dollars"), "$5,000,000")
+        XCTAssertEqual(push("five million dollars"), "$5 million")
         XCTAssertEqual(push("twelve thousand dollars"), "$12,000")
         XCTAssertEqual(push("one hundred thousand dollars"), "$100,000")
         // A trailing magnitude word belongs to the amount.
@@ -854,6 +856,20 @@ final class SpokenFormattingTests: XCTestCase {
                        "That's the plan.\n\nThe second thing is cost.")
         XCTAssertEqual(fmt("Thanks, newline Elias."), "Thanks,\nElias.")
         XCTAssertEqual(fmt("New line. And one more thing."), "\nAnd one more thing.")
+    }
+
+    func testADoubledFullStopBecomesOne() {
+        XCTAssertEqual(fmt("It loads in 1.52 seconds.. Everyone liked it."),
+                       "It loads in 1.52 seconds. Everyone liked it.")
+        XCTAssertEqual(fmt("Well... maybe."), "Well... maybe.")
+    }
+
+    func testRoundMillionsSpokenInWordsStayMillions() {
+        XCTAssertEqual(fmt("We've spent 37% of our five million dollar budget."),
+                       "We've spent 37% of our $5 million budget.")
+        XCTAssertEqual(fmt("It cost twenty five million dollars."), "It cost $25 million.")
+        XCTAssertEqual(fmt("About two million people came."), "About 2 million people came.")
+        XCTAssertEqual(fmt("It was five million three hundred thousand."), "It was 5,300,000.")
     }
 
     func testACommandAfterAClosingQuoteStillBreaks() {
