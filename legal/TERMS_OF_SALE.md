@@ -13,7 +13,7 @@ apply to your purchase.
 
 | Item | Price (USD, before tax) | What you get |
 |---|---|---|
-| PUSH licence | **$[19]**, once | One person, up to 3 Macs, every future PUSH for macOS update |
+| PUSH licence | **$22**, once | One person, up to 3 Macs, every future PUSH for macOS update |
 | Extra Mac | **$10** each, once | One more Mac on your existing licence |
 
 There is **no subscription**. You pay once and aren't charged again unless you

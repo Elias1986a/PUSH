@@ -7,7 +7,7 @@
 **Push to talk. Nothing leaves your Mac.** PUSH is the vintage desk
 microphone from the icon, rebuilt for 2026: hold a key, speak, let go, and
 your words land wherever you were typing, faster than Wispr Flow's servers can
-answer. It costs **$19, once**, for three Macs, with every update included.
+answer. It costs **$22, once**, for three Macs, with every update included.
 There's also a switch that takes the "like" out of your sentences, because we
 live here too. 🌴
 
@@ -34,10 +34,10 @@ What this tells us:
    architecture that makes the question pointless.
 2. **The local apps sell on "private".** None of them sells on "faster than
    the cloud". We can, because we have a published benchmark behind it (§5).
-3. **Price.** $19 for 3 Macs undercuts VoiceInk's 3-Mac tier by $30 and costs
+3. **Price.** $22 for 3 Macs undercuts VoiceInk's 3-Mac tier by $27 and costs
    less than two months of Wispr Flow. Free local apps exist, so we don't win on
    price alone. We win on price plus speed plus polish.
-   **Recommendation: $19 for up to 3 Macs, +$10 per extra Mac, 14-day
+   **Decided: $22 for up to 3 Macs, +$10 per extra Mac, 14-day
    no-questions refund.** A launch-week price of $15 is an option if you want
    urgency on Product Hunt.
 4. **No competitor has a personality.** Every site is cream, gradients and
@@ -49,7 +49,7 @@ Three claims, in this order, everywhere:
 
 1. **Fast.** Your words are there the moment you let go. (0.17 s, 4.6× Wispr Flow.)
 2. **Private.** Your voice never leaves your Mac. No account, no cloud, works on a plane.
-3. **Yours.** $19 once for 3 Macs. Every update included. No subscription, ever.
+3. **Yours.** $22 once for 3 Macs. Every update included. No subscription, ever.
 
 The personality comes from push-to-talk (the mic, the button, the "on air"
 light) and from California mode.
@@ -66,10 +66,10 @@ One long landing page plus `/legal`, `/privacy` and `/benchmark`. There is no
 blog at launch.
 
 1. **Nav.** PUSH wordmark · Features · California mode · Pricing · FAQ ·
-   **Buy — $19** (pill button).
+   **Buy — $22** (pill button).
 2. **Hero.** A big headline ("Push to talk. / Nothing leaves your Mac.") and a
    sub ("Hold a key, speak, let go. Your words appear in any app, transcribed
-   on your Mac in under a fifth of a second."). CTAs: **Buy for $19** and
+   on your Mac in under a fifth of a second."). CTAs: **Buy for $22** and
    **Download free trial** (drop the second one if there's no trial). The visual
    is a looping recording of a real Mac: a Slack or Mail window, the PUSH pill
    appearing with its voice glow, text landing. Caption chip: "Recorded live,
@@ -95,7 +95,7 @@ blog at launch.
    automatically; Chinese, Japanese, Arabic, Hindi and more with the
    multilingual model. A marquee of "hello" in 20 languages.
 9. **Pricing.** One card, no tiers:
-   **$19, once.** · Up to 3 Macs · Every future update included · No
+   **$22, once.** · Up to 3 Macs · Every future update included · No
    subscription, ever · 14-day refund, no questions · +$10 per extra Mac.
    Beside it, a small, factual "vs. a year of Wispr Flow Pro: $144" line.
 10. **FAQ.** Does it need internet? (Only to download a model once.) · What
@@ -231,7 +231,7 @@ The fix is to make the design system *first*, from what PUSH already is:
       publication).
 - [ ] **Merchant of record: Polar (decided).** 5% + 50¢ per sale, accepts
       individuals, and has built-in licence keys with **activation limits**.
-      Product 1: "PUSH", $19, key with 3 activations. Product 2: "PUSH, extra
+      Product 1: "PUSH", $22, key with 3 activations. Product 2: "PUSH, extra
       Mac", $10, key with 1 activation. The app accepts more than one key, so
       extra Macs never need Polar to change an existing key. The app talks to
       Polar's licence-key activate/validate API. Paddle is the fallback.
@@ -241,7 +241,7 @@ The fix is to make the design system *first*, from what PUSH already is:
 - [ ] **Replace `nextel_chirp.mp3`** (you're finding the alternative). The
       chirp isn't a registered trademark (Motorola's application was refused),
       but the recording's source is unknown and "Nextel" is T-Mobile's brand.
-      Licensing it isn't realistic for a $19 app. A chirp we synthesise
+      Licensing it isn't realistic for a $22 app. A chirp we synthesise
       ourselves from scratch, with a different pitch and rhythm and never
       called "Nextel", is ours outright. The `push_chime.wav` stash from
       2026-09-04 is another candidate.
