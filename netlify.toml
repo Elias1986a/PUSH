@@ -1,0 +1,14 @@
+# Netlify serves only the marketing site in website/, never the app.
+# No build step: the site is plain HTML and CSS. After editing legal/*.md,
+# run `python3 website/build_legal.py` and commit the regenerated pages.
+[build]
+  base = "website"
+  publish = "."
+  command = ""
+
+# The update feed and downloads can move here later (see docs/website/PLAN.md).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

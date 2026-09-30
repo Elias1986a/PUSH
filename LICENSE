@@ -1,21 +1,12 @@
-MIT License
+Copyright (c) 2026 Elias Atalah. All rights reserved.
 
-Copyright (c) 2026 PUSH Contributors
+PUSH is proprietary software. Use of the application is governed by the
+PUSH End User License Agreement (legal/EULA.md). No licence to this source
+code is granted by its availability; you may not copy, modify or distribute
+it without written permission.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Versions of PUSH up to and including 8.2.2 were released under the MIT
+License, and copies of those versions remain available under that licence.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Third-party components keep their own licences: see
+legal/THIRD_PARTY_NOTICES.md and legal/third-party/.

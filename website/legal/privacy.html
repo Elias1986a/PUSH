@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy · PUSH</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/components.css">
+<link rel="stylesheet" href="../assets/site.css">
+<script src="../assets/theme.js"></script>
+</head>
+<body>
+<header class="wrap nav">
+<a class="brand" href="../"><span class="disp">PUSH</span><span class="dot"></span></a>
+<span style="flex-grow: 1;"></span>
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+<svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+<svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+</button>
+<a href="../" style="text-decoration: none; font-size: 15px; font-weight: 500;">← Back to PUSH</a>
+</header>
+<main class="wrap doc">
+<h1 class="disp">PUSH Privacy Policy</h1>
+<blockquote><p><strong>DRAFT. Not legal advice.</strong> California's Online Privacy Protection Act (CalOPPA) requires a commercial website that collects personal information from Californians to post a privacy policy. This is it. Review it before launch.</p></blockquote>
+<p><strong>Effective:</strong> [date] · <strong>Who we are:</strong> Elias Atalah, California ("we"). Contact: [support@yourdomain]</p>
+<h2>The short version</h2>
+<p>Your voice stays on your Mac. PUSH turns speech into text on your Mac's own chip. We never receive your audio, your transcripts or what you type, and there's nothing to opt out of because we don't collect it. PUSH has no analytics, no ads and no account.</p>
+<h2>What PUSH does on your Mac</h2>
+<ul><li><strong>Audio</strong> from the microphone is held in memory while you dictate, turned into text, and then thrown away. It's never saved to disk or sent anywhere.</li><li><strong>Transcripts</strong> are pasted where you're typing, through the clipboard. PUSH doesn't keep a history of them.</li><li><strong>A diagnostic log</strong> at <code>~/Library/Application Support/PUSH/push_debug.log</code> records operational events such as "model loaded" and timings. It never records what you said. It stays on your Mac unless you send it to us yourself.</li></ul>
+<h2>The network connections PUSH makes</h2>
+<div class="table-wrap"><table><thead><tr><th>When</th><th>To whom</th><th>What they receive</th><th>Why</th></tr></thead><tbody><tr><td>You press <strong>Download</strong> for a speech model</td><td>Hugging Face (huggingface.co)</td><td>A standard download request: your IP address and the files requested</td><td>To fetch the open model you picked. <a href="https://huggingface.co/privacy">Hugging Face privacy policy</a></td></tr><tr><td>Once a day, if automatic updates are on</td><td>Our update feed at [yourdomain]</td><td>A standard web request: your IP address, PUSH version and macOS version</td><td>To check for updates (Sparkle).</td></tr><tr><td>If "Sync settings and dictionary across my Macs" is on (Settings ▸ General)</td><td>Apple iCloud, through your own iCloud account</td><td>Your PUSH settings and personal dictionary entries</td><td>To keep your Macs in step. We can't read this data; it's stored under your Apple Account. Switch it off at any time.</td></tr><tr><td>When you activate a licence [once the licence check ships]</td><td>Polar (polar.sh)</td><td>Your licence key and a device label so you can tell your Macs apart</td><td>To count seats (3 Macs per licence).</td></tr></tbody></table></div>
+<p>None of these connections carries audio or transcripts.</p>
+<h2>When you buy PUSH</h2>
+<p>Polar, our merchant of record, collects your name, email, billing details and payment information to process the sale, under <a href="https://polar.sh/legal/privacy">Polar's privacy policy</a>. We receive your name, email, country and order details so we can deliver your licence, support you and issue refunds. We never see your full card number.</p>
+<p>We use your email only for your purchase and for support. We'll send occasional product news only if you opt in, and every email lets you unsubscribe.</p>
+<h2>The website</h2>
+<p>[yourdomain] is hosted by Netlify, which keeps standard server logs (IP address, pages requested) for security and operations. We don't use advertising cookies or cross-site tracking. [If you add privacy-friendly analytics, name the tool here.]</p>
+<h2>Your rights</h2>
+<p>You can ask what we hold about you, ask us to correct or delete it, or opt out of marketing email by writing to [support@yourdomain]. We'll answer within 30 days. We don't sell or share personal information for cross-context behavioural advertising, as the CCPA/CPRA defines it. PUSH isn't directed at children under 13, and we don't knowingly collect their information.</p>
+<h2>Changes</h2>
+<p>If this policy changes, we'll post the new version here with a new effective date. If a change would materially affect you, we'll say so in the release notes.</p>
+</main>
+<footer class="footer">
+<div class="wrap">
+<div class="row" style="gap: 28px;">
+<a href="privacy.html">Privacy</a>
+<a href="terms.html">Terms of sale</a>
+<a href="eula.html">Licence (EULA)</a>
+<a href="notices.html">Third-party notices</a>
+</div>
+<p>© 2026 Elias Atalah.</p>
+</div>
+</footer>
+</body>
+</html>
