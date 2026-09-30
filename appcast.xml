@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 8.2.2</title>
-            <pubDate>Tue, 29 Sep 2026 16:13:06 -0700</pubDate>
-            <sparkle:version>96</sparkle:version>
-            <sparkle:shortVersionString>8.2.2</sparkle:shortVersionString>
+            <title>Version 8.2.3</title>
+            <pubDate>Wed, 30 Sep 2026 14:17:33 -0700</pubDate>
+            <sparkle:version>97</sparkle:version>
+            <sparkle:shortVersionString>8.2.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,16 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 8.2.2 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 8.2.3 <span class="tag">New</span></h2>
+<h3>Fixed</h3>
+<ul>
+<li><strong>Long dictation keeps its punctuation.</strong> Past about 15 seconds, PUSH sometimes stopped adding full stops, commas and capitals partway through, so everything after that point also missed its cleanup. PUSH now splits long dictation where a sentence ends, which keeps the punctuation all the way through. On Parakeet Unified, the first word after each split is no longer dropped either.</li>
+<li><strong>"New paragraph" after a quote.</strong> Saying "new line" or "new paragraph" right after "end quote" now breaks the line instead of typing the words.</li>
+<li><strong>Money in words.</strong> "Five million dollars" pastes as <code>$5 million</code>, not <code>$5,000,000</code>.</li>
+<li><strong>Doubled full stops.</strong> "seconds.." pastes as "seconds.". A real "..." is left alone.</li>
+<li><strong>California mode.</strong> "Could you like send it" now drops the "like"; "would you like to come" and "I like cooking" keep theirs.</li>
+</ul></div>
+<div class="older"><h2>Version 8.2.2</h2>
 <h3>New</h3>
 <ul>
 <li><strong>Lay out text by voice.</strong> Say "new line" or "new paragraph" where you pause and PUSH breaks the line. Say "bullet point" before each item for a bulleted list.</li>
@@ -94,6 +103,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.3/PUSH-v8.2.3.zip" type="application/octet-stream" sparkle:edSignature="GYKsebK9RAb6f2KhA/6jbD3zH/30vnTaVuMG9P70o+LeaAxQSYk/F4aiMkFo6aW2N/n92zYbovP88S8ipiWOBw==" length="14226952" />
+        </item>
+        <item>
+            <title>Version 8.2.2</title>
+            <pubDate>Tue, 29 Sep 2026 16:13:06 -0700</pubDate>
+            <sparkle:version>96</sparkle:version>
+            <sparkle:shortVersionString>8.2.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.2/PUSH-v8.2.2.zip" type="application/octet-stream" sparkle:edSignature="rhxpjeDdvlo4wuglYQkEBr0xr8gtofmRCgIdmCDBM9lJC+oBIhz7ufgN0LFUkFUxjpVAXHqXTp8M+0R8CYxfBg==" length="14183331" />
         </item>
         <item>
