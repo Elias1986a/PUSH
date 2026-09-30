@@ -127,6 +127,29 @@ enum EngineComparison {
             // What the app does now: decode while the recording is "spoken",
             // then time only what is left after release.
             let samples = audio.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+            if model.engineType == .parakeetStreaming {
+                // Streaming processes each buffer as it is fed — the live path —
+                // so only the final flush is what the user waits for.
+                let engine = ParakeetStreamingEngine.shared
+                await engine.beginUtterance()
+                var index = 0
+                while index < samples.count {
+                    let end = min(index + 1_365, samples.count)
+                    await engine.feed(Array(samples[index..<end]))
+                    index = end
+                }
+                let flushStart = Date()
+                let streamed = try await engine.transcribe(audioData: audio)
+                return EngineRun(
+                    engine: model.displayName,
+                    raw: streamed,
+                    final: TranscriptionPipeline.postProcess(
+                        streamed, hasNativePunctuation: model.hasNativePunctuation),
+                    seconds: Date().timeIntervalSince(flushStart),
+                    loadSeconds: loadSeconds,
+                    failed: false,
+                    wholeSeconds: seconds)
+            }
             if let live = await LiveDecoder.replay(samples, model: model) {
                 return EngineRun(
                     engine: model.displayName,
