@@ -190,6 +190,21 @@ next word capitalised (`stripSentenceOpener`).
 Nemotron has no row: it is not on disk, and for English it would not be
 chosen anyway (`TranscriptLanguage.ultraCovers`).
 
+**Script v3 (2026-09-30 on):** rewritten for the public "How we measured"
+page — no named people, nothing a reader could take personally — and adds
+California mode's casual "like" (read without pauses; comma-wrapped ", like,"
+is removed by the default filler pass, so it would show nothing). Target is
+**25 readings**; the compare tool's header shows medians and "n of 25" for the
+current script. California mode is a header toggle, **on** by default here
+(off in PUSH). Expected paste pinned in `BenchmarkPassageTests`. Known gap it
+avoids: "could you like send…" keeps its "like" (after "you" it reads as the
+verb) — worth a rule someday.
+
+#### Script v3 — append here
+
+| date | held | Ultra | Unified | Streaming | Wispr Flow |
+|---|---|---|---|---|---|
+
 #### Off-script runs (not comparable to the series)
 
 **2026-09-29, one 15.2s utterance, before the script existed.** Ultra 0.18s/84×,

@@ -6,6 +6,9 @@ struct ComparisonView: View {
     @State private var model = ComparisonModel()
     /// The tool's own preference, not PUSH's: this app has its own defaults domain.
     @AppStorage("resolveSelfCorrections") private var resolveSelfCorrections = true
+    /// On by default here although it is off in PUSH: the passage says "like" on
+    /// purpose, and a benchmark should show everything the cleanup can do.
+    @AppStorage("californiaMode") private var californiaMode = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -20,6 +23,7 @@ struct ComparisonView: View {
                             ComparisonCard(comparison: comparison,
                                            pending: comparison.id == model.comparisons.first?.id ? model.pending : 0,
                                            resolveSelfCorrections: resolveSelfCorrections,
+                                           californiaMode: californiaMode,
                                            onDelete: { model.delete(comparison) })
                         }
                     }
@@ -119,6 +123,11 @@ struct ComparisonView: View {
             Toggle("Resolve spoken self-corrections (\"15.2, I mean 1.52\" → \"1.52\")",
                    isOn: $resolveSelfCorrections)
                 .font(.caption)
+            Toggle("California mode (\"that's like the only slot\" → \"that's the only slot\")",
+                   isOn: $californiaMode)
+                .font(.caption)
+
+            SeriesSummary(comparisons: model.comparisons)
 
             Text(model.status.isEmpty ? engineSummary : model.status)
                 .font(.caption)
@@ -165,6 +174,7 @@ private struct ComparisonCard: View {
     let comparison: Comparison
     let pending: Int
     let resolveSelfCorrections: Bool
+    let californiaMode: Bool
     let onDelete: () -> Void
 
     /// Fastest first. Engines are measured in sequence, so arrival order says which ran
@@ -236,6 +246,7 @@ private struct ComparisonCard: View {
                 EngineRow(run: run,
                           audioSeconds: comparison.audioSeconds,
                           resolveSelfCorrections: resolveSelfCorrections,
+                          californiaMode: californiaMode,
                           isFastest: index == 0 && !run.failed && comparison.runs.count > 1)
             }
 
@@ -261,18 +272,21 @@ private struct EngineRow: View {
     let run: EngineRun
     let audioSeconds: Double
     let resolveSelfCorrections: Bool
+    let californiaMode: Bool
     let isFastest: Bool
 
-    /// What PUSH would paste with the self-correction setting as toggled here. Same
-    /// order as the app: resolve first, while the "I mean" commas are intact, then
-    /// format. Rows whose engine is no longer known keep the text they were saved with.
+    /// What PUSH would paste with the settings as toggled here. Same order as the
+    /// app: resolve first, while the "I mean" commas are intact, then California
+    /// mode, then format. Rows whose engine is no longer known keep the text they
+    /// were saved with.
     private var final: String {
-        guard resolveSelfCorrections, !run.failed,
+        guard !run.failed,
               let model = WhisperModel.allCases.first(where: { $0.displayName == run.engine })
         else { return run.final }
-        return TranscriptionPipeline.postProcess(
-            TranscriptionPipeline.resolveSelfCorrections(run.raw),
-            hasNativePunctuation: model.hasNativePunctuation)
+        var text = run.raw
+        if resolveSelfCorrections { text = TranscriptionPipeline.resolveSelfCorrections(text) }
+        if californiaMode { text = TranscriptionPipeline.removeCasualLike(text) }
+        return TranscriptionPipeline.postProcess(text, hasNativePunctuation: model.hasNativePunctuation)
     }
 
     var body: some View {
@@ -367,6 +381,65 @@ private struct LabeledText: View {
                 .foregroundStyle(text.isEmpty ? .secondary : (emphasised ? .primary : .secondary))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// Medians over every live reading of the current script — the figure that gets
+/// published, and how far the series is from `BenchmarkScript.targetRuns`.
+private struct SeriesSummary: View {
+    let comparisons: [Comparison]
+
+    private var series: [Comparison] {
+        comparisons.filter { $0.sourceFile == nil && $0.scriptVersion == BenchmarkScript.version }
+    }
+
+    private static func median(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let mid = sorted.count / 2
+        return sorted.count.isMultiple(of: 2) ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+    }
+
+    private static func seconds(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(2))) + "s"
+    }
+
+    /// One line per engine, in the order engines first appear; failed runs don't count.
+    private var lines: [String] {
+        var names: [String] = []
+        var runs: [String: [(seconds: Double, rate: Double)]] = [:]
+        for comparison in series {
+            for run in comparison.runs where !run.failed {
+                if runs[run.engine] == nil { names.append(run.engine) }
+                runs[run.engine, default: []].append(
+                    (run.seconds, comparison.audioSeconds / max(run.seconds, 0.0001)))
+            }
+        }
+        var lines = names.compactMap { name -> String? in
+            let values = runs[name] ?? []
+            guard let secs = Self.median(values.map(\.seconds)),
+                  let rate = Self.median(values.map(\.rate)) else { return nil }
+            return "\(name): \(Self.seconds(secs)) · \(Int(rate))× (\(values.count))"
+        }
+        let wispr = series.compactMap(\.wispr)
+        if let processing = Self.median(wispr.map(\.processingSeconds)),
+           let network = Self.median(wispr.map(\.networkSeconds)) {
+            lines.append("Wispr Flow: \(Self.seconds(processing)) + \(Self.seconds(network)) network (\(wispr.count))")
+        }
+        return lines
+    }
+
+    var body: some View {
+        if !series.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Script v\(BenchmarkScript.version) · \(series.count) of \(BenchmarkScript.targetRuns) readings · medians")
+                    .font(.caption.weight(.semibold))
+                ForEach(lines, id: \.self) { Text($0) }
+                    .font(.caption).monospacedDigit()
+            }
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
         }
     }
 }

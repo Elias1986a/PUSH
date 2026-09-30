@@ -21,25 +21,35 @@ enum BenchmarkScript {
 
     /// Bumped whenever `text` changes, and stamped on every live recording, so runs on
     /// different scripts are never averaged together. 1 was the passage without the
-    /// quotation (two runs, 2026-09-29); 2 added it.
-    static let version = 2
+    /// quotation (two runs, 2026-09-29); 2 added it; 3 (2026-09-30) is the passage
+    /// rewritten for the public page — no named people, nothing a reader could take
+    /// as being about them — and adds California mode's casual "like".
+    static let version = 3
 
-    /// Roughly 23 seconds read at a normal pace. Long enough that per-second rates are
-    /// stable, short enough to read twice without irritation.
+    /// How many readings make a published figure. Three was enough to see a spread;
+    /// it is not enough to publish a median against someone else's product.
+    static let targetRuns = 25
+
+    /// Roughly 25 seconds read at a normal pace. Long enough that per-second rates are
+    /// stable, short enough to read 25 times.
     ///
-    /// The quotation is spoken with its markers, "quote … end quote", because that is
-    /// what a person dictating says; PUSH should paste `Priya said, "ship it anyway."`.
+    /// Read the casual "like"s straight through, without a pause: set off by commas
+    /// the default filler pass removes them anyway, and California mode would have
+    /// nothing to show. "feels like" is a comparison and must survive. The expected
+    /// paste is pinned in `Tests/PUSHTests/BenchmarkPassageTests.swift`.
     static let text = """
-        Let's move the Q3 review to Tuesday, March 3rd at 4:30 PM — Larry, Priya and \
-        Joe are all in, which puts us at 37% of the $5 million target. Um, latency came \
-        back at 15.2 seconds, I mean 1.52 seconds, so ask the Zürich team to re-run it. \
-        Priya said, quote, ship it anyway, end quote. Can you confirm before Friday?
+        Let's move the Q3 planning review to Tuesday, March 3rd at 4:30 PM, since that's \
+        like the only slot that works for the Zürich office. Um, we've spent 37% of the \
+        $5 million budget, and the new build loads in 15.2 seconds, I mean 1.52 seconds. \
+        Everyone who tried it said, quote, it feels like a real improvement, end quote. \
+        Could you send me like the final numbers before Friday?
         """
 
     /// What each part of the script is there to expose. Rendered under the script so
     /// the reason for every awkward phrase is visible to whoever is holding the mic.
     static let exercises = [
-        "date", "time of day", "percent", "currency", "decimals",
-        "acronym", "accented name", "filler word", "self-correction", "spoken quote", "question mark"
+        "date", "time of day", "percent", "currency", "decimals", "acronym",
+        "accented place", "filler word", "self-correction", "casual \u{201C}like\u{201D}",
+        "\u{201C}like\u{201D} that stays", "spoken quote", "question mark"
     ]
 }
