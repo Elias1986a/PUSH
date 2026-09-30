@@ -1,0 +1,4 @@
+# Read when website/ is the base directory (see ../netlify.toml).
+[build]
+  publish = "."
+  command = ""
