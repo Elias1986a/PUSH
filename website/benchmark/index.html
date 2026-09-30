@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How we measured · PUSH</title>
+<meta name="description" content="The passage, the timings and the accuracy table behind PUSH's speed claims.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../assets/icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/components.css">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="wrap nav">
+<a class="brand" href="../"><span class="disp">PUSH</span><span class="dot"></span></a>
+<span style="flex-grow: 1;"></span>
+<a href="../" style="text-decoration: none; font-size: 15px; font-weight: 500;">← Back to PUSH</a>
+</header>
+
+<main class="wrap doc">
+<p class="eyebrow">How we measured</p>
+<h1 class="disp" style="margin-top: 16px;">Same passage. Same Mac. Same stopwatch.</h1>
+<p>We read one passage aloud three times into each app and timed how long each took to hand back the text after the key was released. These are medians of three, not best runs. Measured 29 September 2026 on [Mac model].</p>
+
+<h2>The passage</h2>
+<blockquote><p style="font-size: 19px; color: var(--ink);">“Let's move the Q3 review to Tuesday, March 3rd at 4:30 PM — Larry, Priya and Joe are all in, which puts us at 37% of the $5 million target. Um, latency came back at 15.2 seconds, I mean 1.52 seconds, so ask the Zürich team to re-run it. Priya said, quote, ship it anyway, end quote. Can you confirm before Friday?”</p></blockquote>
+<p>It's built from the things dictation apps disagree about: money, times, a self-correction, a filler word, a quotation, an accented name. Each reading took 23–26 seconds.</p>
+
+<h2>Speed: release to text</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>App</th><th>Where it runs</th><th>Median</th><th>Real-time speed</th></tr></thead>
+<tbody>
+<tr><td><strong>PUSH · Parakeet Ultra</strong> (default)</td><td>On your Mac</td><td class="mono" style="color: var(--on-air); font-weight: 700;">0.17 s</td><td class="mono">147×</td></tr>
+<tr><td><strong>PUSH · Parakeet Unified</strong></td><td>On your Mac, English only</td><td class="mono" style="font-weight: 700;">0.15 s</td><td class="mono">150×</td></tr>
+<tr><td><strong>Wispr Flow</strong></td><td>Their servers</td><td class="mono" style="font-weight: 700;">0.79 s + 0.13 s network</td><td class="mono">31×</td></tr>
+</tbody>
+</table></div>
+<p>That makes PUSH <strong>4.6× faster</strong> than Wispr Flow's server processing alone, and <strong>5.4× faster</strong> once their network round trip is counted. The second number is the one on our home page.</p>
+<p>Real-time speed is seconds of speech per second of processing. Wispr Flow's figure leaves out its network time, just as ours has no network to leave out. PUSH's Streaming model measured 0.45 s, but it transcribes while you talk, so most of that is done before you let go.</p>
+
+<h2>Accuracy: what each one typed</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>The passage asks for</th><th>PUSH (default settings)</th><th>Wispr Flow</th></tr></thead>
+<tbody>
+<tr><td>“five million dollars” → <code>$5 million</code></td><td><code>$5 million</code>, 3 of 3, straight from the model</td><td><code>$5 million</code> after their server's cleanup</td></tr>
+<tr><td><code>4:30 PM</code></td><td><code>4:30 p.m.</code></td><td><code>4:30 PM</code></td></tr>
+<tr><td>“15.2 seconds, I mean 1.52 seconds”</td><td><code>1.52 seconds</code>, 3 of 3</td><td><code>1.52 seconds</code>, 3 of 3</td></tr>
+<tr><td>“Um, latency…”</td><td>Filler removed</td><td>Filler removed</td></tr>
+<tr><td>“quote, ship it anyway, end quote”</td><td>Quoted, as <code>“Ship it anyways.”</code></td><td>Quoted, as <code>“Ship it anyways.”</code></td></tr>
+<tr><td><code>Zürich</code></td><td><code>Zurich</code> (no umlaut)</td><td><code>Zürich</code></td></tr>
+<tr><td><code>37%</code>, <code>Q3</code>, <code>March 3rd</code>, the question mark</td><td>All correct</td><td>All correct</td></tr>
+</tbody>
+</table></div>
+<p>Where Wispr Flow did better, we say so: its server restores the umlaut in Zürich, and PUSH misheard one phrase once in three readings. You can switch off PUSH's self-correction in Settings ▸ Text, because it's the one step that deletes words you actually said.</p>
+<p>Wispr Flow is a trademark of its owner. We measured it ourselves on the same Mac, the same day. Results depend on your Mac, your network and their servers, and we'll re-run this when either app changes.</p>
+</main>
+
+<footer class="footer">
+<div class="wrap">
+<div class="row" style="gap: 28px;">
+<a href="../">Home</a>
+<a href="../legal/privacy.html">Privacy</a>
+<a href="../legal/terms.html">Terms of sale</a>
+<a href="../legal/eula.html">Licence (EULA)</a>
+<a href="../legal/notices.html">Third-party notices</a>
+</div>
+<p>© 2026 Elias Atalah.</p>
+</div>
+</footer>
+</body>
+</html>
