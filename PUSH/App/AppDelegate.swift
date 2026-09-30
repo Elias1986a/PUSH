@@ -345,6 +345,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // something already on disk can serve.
             await ModelLoader.activateAtLaunch()
 
+            // The licence's daily check with Polar, in its own task: a slow or
+            // absent network must never hold up anything else at launch.
+            Task { await LicenseModel.shared.revalidateIfDue() }
+
             // Only now start Sparkle. `startUpdater` can put up a modal (an
             // update prompt, a permission request, an error), and a modal runs
             // its own loop *inside* the main-queue block that opened it. The
