@@ -206,11 +206,34 @@ extension TranscriptionPipeline {
                 result.replaceSubrange(range, with: String(year))
             } else if let millions = spokenMillions(runText) {
                 result.replaceSubrange(range, with: "\(millions) million")
+            } else if let parts = splitNonArithmetic(runText) {
+                result.replaceSubrange(range, with: parts.map { part in
+                    parseNumberRun(part).flatMap { $0 >= 10 ? formatSpokenNumber($0) : nil } ?? part
+                }.joined(separator: " "))
             } else if let value = parseNumberRun(runText), value >= 10 {
                 result.replaceSubrange(range, with: formatSpokenNumber(value))
             }
         }
         return result
+    }
+
+    /// "four thirty" is two numbers, not 34: no English number puts a word
+    /// under twenty straight before a tens word ("thirty four" is 34). Summed,
+    /// "four thirty PM" pasted as "34 p.m."; split, the clock pass reads
+    /// "four 30 PM" as 4:30. Nil when the run is ordinary arithmetic.
+    static func splitNonArithmetic(_ run: String) -> [String]? {
+        let words = run.replacingOccurrences(of: "-", with: " ").split(separator: " ").map(String.init)
+        var parts: [[String]] = [[]]
+        var previous: Int?
+        for word in words {
+            let value = baseNumberWords[word.lowercased()]
+            if let value, let previous, (1..<20).contains(previous), (20..<100).contains(value), value % 10 == 0 {
+                parts.append([])
+            }
+            parts[parts.count - 1].append(word)
+            previous = value
+        }
+        return parts.count > 1 ? parts.map { $0.joined(separator: " ") } : nil
     }
 
     /// "five million" → 5, for "5 million": AP style keeps a round million as a

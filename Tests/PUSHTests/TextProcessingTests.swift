@@ -881,6 +881,12 @@ final class SpokenFormattingTests: XCTestCase {
         XCTAssertEqual(fmt("New line. And one more thing."), "\nAnd one more thing.")
     }
 
+    func testASpokenTimeInWordsIsNotSummed() {
+        XCTAssertEqual(fmt("Meet at four thirty PM."), "Meet at 4:30 p.m.")
+        XCTAssertEqual(fmt("It costs thirty four dollars."), "It costs $34.")
+        XCTAssertEqual(fmt("Twenty five people came."), "25 people came.")
+    }
+
     func testTimesOfDayTakeOneStyle() {
         XCTAssertEqual(fmt("Tuesday at 4:30 pm. Since that works."), "Tuesday at 4:30 p.m. Since that works.")
         XCTAssertEqual(fmt("Meet at 4:30 PM on Friday."), "Meet at 4:30 p.m. on Friday.")
