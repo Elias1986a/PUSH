@@ -101,9 +101,9 @@ blog at launch.
 10. **FAQ.** Does it need internet? (Only to download a model once.) · What
     Macs? (Apple silicon, macOS 15+.) · How accurate? · Is it really private? ·
     What does "every update" mean? · Refunds? · Team/volume licences?
-11. **About, a small band above the footer.** "PUSH is made by one person in
-    California. Yes, California mode was built by a Californian, for
-    Californians, with love. 🌴" Keep it to two lines, with a photo or
+11. **About, a small band above the footer.** "Built in Los Angeles by an
+    Angeleno. Yes, California mode was made by someone who says 'like' a lot,
+    for everyone who does, with love. 🌴" Keep it to two lines, with a photo or
     signature if you want one.
 12. **Footer.** Privacy · Terms · EULA · Third-party notices · contact email ·
     "Speech models by NVIDIA and Moondream, used under their open licences."
@@ -153,7 +153,7 @@ don't pop, all from the tests: *"I like it."*, *"It looks like rain."*,
 
 **Tone rule:** we laugh with Valley-speak, not at it. The copy is written by
 someone who says "like" a lot, and the About band confirms it: "Built in
-California by a Californian."
+Los Angeles by an Angeleno."
 
 Visual treatment: this section alone can go sunset gradient (peach to coral to
 violet), a palm silhouette, and the one place we allow a handwritten or rounded
@@ -229,30 +229,47 @@ The fix is to make the design system *first*, from what PUSH already is:
       If you want the storefront to say "PUSH" as the business name, file a
       Fictitious Business Name with your county (about $30–50 plus newspaper
       publication).
-- [ ] Merchant of record: **Polar** (5% + 50¢, accepts individuals, built-in
-      licence keys with **activation limits**, which gives the 3-Mac rule for
-      free) or **Paddle** (5% + 50¢, all-in, very established; needs your legal
-      name in the T&Cs; licence keys only through webhooks). Avoid Lemon Squeezy
-      for now: it's winding down into Stripe Managed Payments.
+- [ ] **Merchant of record: Polar (decided).** 5% + 50¢ per sale, accepts
+      individuals, and has built-in licence keys with **activation limits**.
+      Product 1: "PUSH", $19, key with 3 activations. Product 2: "PUSH, extra
+      Mac", $10, key with 1 activation. The app accepts more than one key, so
+      extra Macs never need Polar to change an existing key. The app talks to
+      Polar's licence-key activate/validate API. Paddle is the fallback.
 - [ ] Attorney review of EULA, Terms of Sale and Privacy, then fill the `[placeholders]`.
 - [ ] Confirm each model licence on its Hugging Face card (see the note in
       `legal/THIRD_PARTY_NOTICES.md`).
-- [ ] **Replace `nextel_chirp.mp3`.** The Nextel chirp isn't a registered
-      trademark (Motorola's application was refused), but we don't know where
-      this recording came from, and "Nextel" is a brand. A paid product needs a
-      sound we own. The `push_chime.wav` stash from 2026-09-04 is a candidate.
+- [ ] **Replace `nextel_chirp.mp3`** (you're finding the alternative). The
+      chirp isn't a registered trademark (Motorola's application was refused),
+      but the recording's source is unknown and "Nextel" is T-Mobile's brand.
+      Licensing it isn't realistic for a $19 app. A chirp we synthesise
+      ourselves from scratch, with a different pitch and rhythm and never
+      called "Nextel", is ours outright. The `push_chime.wav` stash from
+      2026-09-04 is another candidate.
 - [ ] Add an "Acknowledgements" link in Settings ▸ About that opens
       `Contents/Resources/Legal` or the website's `/legal` page.
 
 **App changes needed before charging:**
 - [ ] Licence-key entry and activation (Polar or Paddle API), with a trial if
       you want one.
-- [ ] **Move the update feed off GitHub before making the repo private.**
-      `SUFeedURL` points at `raw.githubusercontent.com/Elias1986a/PUSH/main/appcast.xml`,
-      and every `<enclosure>` at GitHub Releases. Making the repo private breaks
-      updates for every installed copy. Order: host `appcast.xml` and the ZIPs on
-      the Netlify site → ship one release whose `SUFeedURL` points there → wait
-      for users to update → then make the repo private.
+- [ ] **Move the update feed before making the repo private.** Every
+      installed PUSH has `SUFeedURL` baked into its `Info.plist`:
+      `raw.githubusercontent.com/Elias1986a/PUSH/main/appcast.xml`. Once a day,
+      Sparkle fetches that file and, if it lists a newer version, downloads the
+      ZIP from GitHub Releases. A private repo returns 404 for both, and Sparkle
+      treats that as "no update". Installed copies would go quiet for good,
+      because the only way to change the feed URL is to ship an update, and
+      that update can only arrive through the old feed. Order:
+      1. Create a new home for the feed: either a small **public** repo holding
+         only `appcast.xml` and the release ZIPs (e.g. `Elias1986a/PUSH-releases`,
+         no source code), or the Netlify site (`/appcast.xml`, `/download/…`).
+         A public releases repo is the least work and survives a domain change.
+      2. Ship a "bridge" release (8.2.3) through the *current* feed, with
+         `SUFeedURL` and `DOWNLOAD_URL` in `build_distribution.sh` pointing at
+         the new home. Publish its appcast in both places.
+      3. Wait until the Macs you care about have updated (every copy checks
+         daily). If PUSH is only on your own Macs, just install 8.2.3 by hand.
+      4. Make the source repo private. Old copies that never updated keep
+         working; they just stop getting updates.
 
 **Site:**
 - [ ] Design system → landing page in Claude Design → Netlify import.

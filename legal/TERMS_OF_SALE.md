@@ -4,10 +4,10 @@
 > Placeholders are in `[brackets]`.
 
 **Seller of the software licence:** Elias Atalah, an individual in California.
-**Payments:** handled by [Polar Software Inc. / Paddle.com Market Ltd], our
-merchant of record. They process your payment, calculate and collect sales tax
-or VAT, and issue your receipt, under their own buyer terms, which also apply
-to your purchase.
+**Payments:** handled by Polar ([polar.sh](https://polar.sh)), our merchant
+of record. They process your payment, calculate and collect sales tax
+or VAT, and issue your receipt, under [Polar's buyer terms](https://polar.sh/legal/checkout-buyer-terms), which also
+apply to your purchase.
 
 ## What you're buying
 
