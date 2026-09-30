@@ -44,34 +44,33 @@
 <div class="card bench-table"><div class="table-scroll"><table>
 <thead><tr><th>App</th><th>Where it runs</th><th>Median</th><th>Range</th></tr></thead>
 <tbody>
-<tr><td class="app">PUSH · Parakeet Ultra <span class="tag">default</span></td><td>On your Mac</td><td class="mono num hot">0.04 s</td><td class="mono">0.041–0.046 s</td></tr>
-<tr><td class="app">PUSH · Parakeet Unified</td><td>On your Mac, English only</td><td class="mono num">0.05 s</td><td class="mono">0.042–0.064 s</td></tr>
-<tr><td class="app">PUSH · Parakeet Streaming</td><td>On your Mac, English only</td><td class="mono num">0.02 s</td><td class="mono">0.019–0.041 s</td></tr>
+<tr><td class="app">PUSH · Parakeet Streaming <span class="tag">default in English</span></td><td>On your Mac, English only</td><td class="mono num hot">0.02 s</td><td class="mono">0.019–0.041 s</td></tr>
+<tr><td class="app">PUSH · Parakeet Ultra <span class="tag">default elsewhere</span></td><td>On your Mac, English and European languages</td><td class="mono num hot">0.04 s</td><td class="mono">0.041–0.046 s</td></tr>
 <tr><td class="app">Wispr Flow</td><td>Their servers</td><td class="mono num">0.74 s + 0.13 s network</td><td class="mono">0.70–0.98 s total</td></tr>
 </tbody>
 </table></div></div>
 <div class="bench-stats">
-<div class="card"><span class="mono stat">20×</span><p class="body">faster than Wispr Flow once their network round trip is counted. This is the number on our home page.</p></div>
-<div class="card"><span class="mono stat">17×</span><p class="body">faster than Wispr Flow's server processing alone.</p></div>
+<div class="card"><span class="mono stat">38×</span><p class="body">Parakeet Streaming, faster than Wispr Flow once their network round trip is counted (32× against their processing alone).</p></div>
+<div class="card"><span class="mono stat">20×</span><p class="body">Parakeet Ultra, the same comparison (17× against processing alone). The smaller of the two is the number on our home page.</p></div>
 </div>
-<p class="note">Both apps are timed from the moment the key comes up. PUSH transcribes while you talk: Ultra and Unified finish each sentence as soon as you've said it, and Streaming works through the audio continuously, so only the last moment is left when you let go. Decoding a whole 25-second recording from scratch would take Ultra 0.23&nbsp;s. Wispr Flow's times are its own, read from its local records.</p>
+<p class="note">Both apps are timed from the moment the key comes up. PUSH transcribes while you talk: Streaming works through the audio continuously, and Ultra finishes each sentence as soon as you've said it, so only the last moment is left when you let go. Decoding a whole 25-second recording from scratch would take Ultra 0.23&nbsp;s. Wispr Flow's times are its own, read from its local records.</p>
 </section>
 
 <section class="bench-section">
 <p class="eyebrow">Accuracy: what each one typed</p>
 <div class="card bench-table"><div class="table-scroll"><table class="acc">
-<thead><tr><th>The passage asks for</th><th>PUSH<br>Ultra</th><th>PUSH<br>Unified</th><th>PUSH<br>Streaming</th><th>Wispr<br>Flow</th></tr></thead>
+<thead><tr><th>The passage asks for</th><th>PUSH<br>Streaming</th><th>PUSH<br>Ultra</th><th>Wispr<br>Flow</th></tr></thead>
 <tbody>
-<tr><td>“five million dollars” → <span class="mono">$5 million</span></td><td>13/13</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
-<tr><td>“15.2 seconds, I mean 1.52 seconds” → <span class="mono">1.52 seconds</span></td><td>13/13</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
-<tr><td>“quote … end quote” → quotation marks</td><td>13/13</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
-<tr><td>“New paragraph” → a paragraph break</td><td>13/13</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
-<tr><td>Casual “like” removed, “feels like” kept</td><td>13/13</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
-<tr><td>“Um” removed</td><td>13/13</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
-<tr><td>The question mark</td><td>13/13</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
-<tr><td><span class="mono">37%</span> and <span class="mono">Q3</span></td><td>12/13</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
-<tr><td><span class="mono">March 3rd</span></td><td>13/13</td><td>13/13</td><td>13/13</td><td>2/12 <span class="aside">writes “March 3”</span></td></tr>
-<tr><td><span class="mono">Zürich</span></td><td>0/13 <span class="aside">writes “Zurich”</span></td><td>0/13</td><td>0/13</td><td class="win">5/12</td></tr>
+<tr><td>“five million dollars” → <span class="mono">$5 million</span></td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
+<tr><td>“15.2 seconds, I mean 1.52 seconds” → <span class="mono">1.52 seconds</span></td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
+<tr><td>“quote … end quote” → quotation marks</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
+<tr><td>“New paragraph” → a paragraph break</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
+<tr><td>Casual “like” removed, “feels like” kept</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
+<tr><td>“Um” removed</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
+<tr><td>The question mark</td><td>13/13</td><td>13/13</td><td>12/12</td></tr>
+<tr><td><span class="mono">37%</span> and <span class="mono">Q3</span></td><td>13/13</td><td>12/13</td><td>12/12</td></tr>
+<tr><td><span class="mono">March 3rd</span></td><td>13/13</td><td>13/13</td><td>2/12 <span class="aside">writes “March 3”</span></td></tr>
+<tr><td><span class="mono">Zürich</span></td><td>0/13</td><td>0/13 <span class="aside">writes “Zurich”</span></td><td class="win">5/12</td></tr>
 </tbody>
 </table></div></div>
 <p class="note">Counted over every reading: 13 for each PUSH model, 12 for Wispr Flow (one reading was made without it). PUSH ran with its default settings plus California mode. The one <span class="mono">37%</span> Ultra missed came from a reading where the reader stumbled on the number.</p>
