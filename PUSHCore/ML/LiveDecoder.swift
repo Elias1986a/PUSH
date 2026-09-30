@@ -32,6 +32,9 @@ public actor LiveDecoder {
     typealias Window = @Sendable ([Float]) async throws -> SentenceAlignedWindows.Decoded
     typealias Whole = @Sendable ([Float]) async throws -> String
 
+    /// The engine this decoder feeds, so a result is never used for another.
+    public nonisolated let model: WhisperModel
+
     private let window: Window
     private let whole: Whole
     private let leadIn: Double
@@ -49,7 +52,8 @@ public actor LiveDecoder {
     private var stuck = false
     private var closed = false
 
-    init(leadIn: Double, window: @escaping Window, whole: @escaping Whole) {
+    init(model: WhisperModel, leadIn: Double, window: @escaping Window, whole: @escaping Whole) {
+        self.model = model
         self.leadIn = leadIn
         self.window = window
         self.whole = whole
@@ -60,12 +64,12 @@ public actor LiveDecoder {
         switch model.engineType {
         case .parakeetUltra:
             let engine = ParakeetEngine.ultra
-            return LiveDecoder(leadIn: 0,
+            return LiveDecoder(model: model, leadIn: 0,
                                window: { try await engine.decodeWindow($0) },
                                whole: { try await engine.decodeWhole($0) })
         case .parakeetUnified:
             let engine = ParakeetUnifiedEngine.shared
-            return LiveDecoder(leadIn: ParakeetUnifiedEngine.leadIn,
+            return LiveDecoder(model: model, leadIn: ParakeetUnifiedEngine.leadIn,
                                window: { try await engine.decodeWindow($0) },
                                whole: { try await engine.decodeWhole($0) })
         case .parakeetStreaming, .nemotronMultilingual:
@@ -89,22 +93,29 @@ public actor LiveDecoder {
               samples.count - offset >= Self.triggerSamples,
               samples.count - attemptedAt >= Self.retrySamples else { return }
         attemptedAt = samples.count
-        let (snapshot, from, limit, leadIn, window) = (samples, offset, samples.count, leadIn, window)
+        // Only the window's own audio leaves the actor: a copy of the whole
+        // take per pass would be megabytes a minute into a long dictation.
+        let from = offset
+        let lead = from == 0 ? 0 : min(Int(leadIn * SentenceAlignedWindows.sampleRate), from)
+        let base = from - lead
+        let slice = Array(samples[base..<min(base + SentenceAlignedWindows.windowSamples, samples.count)])
+        let (leadIn, window) = (leadIn, window)
         inFlight = Task {
             let pass = try? await SentenceAlignedWindows.pass(
-                snapshot, from: from, limit: limit, leadIn: leadIn, window: window)
-            await self.keep(pass, from: from)
+                slice, from: lead, limit: slice.count, leadIn: leadIn, window: window)
+            await self.keep(pass, base: base, from: from)
         }
     }
 
     /// Keep the finished sentences a pass found, and go again if more audio
     /// is already waiting.
-    private func keep(_ pass: SentenceAlignedWindows.Pass?, from: Int) {
+    /// `base` is where the pass's audio sits in the take.
+    private func keep(_ pass: SentenceAlignedWindows.Pass?, base: Int, from: Int) {
         inFlight = nil
         guard !closed, let pass, from == offset else { return }
         if let cut = SentenceAlignedWindows.cut(in: pass.tokens, windowSeconds: pass.seconds) {
             pieces.append(pass.text(through: cut.through))
-            offset = pass.start + Int(cut.at * SentenceAlignedWindows.sampleRate)
+            offset = base + pass.start + Int(cut.at * SentenceAlignedWindows.sampleRate)
         } else if pass.end - pass.start == SentenceAlignedWindows.windowSamples {
             stuck = true
         }

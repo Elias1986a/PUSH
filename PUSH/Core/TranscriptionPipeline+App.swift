@@ -71,7 +71,20 @@ extension TranscriptionPipeline {
                 return (model, Self.activeLanguage(for: model))
             }
             PushLogger.log("TranscriptionPipeline: Using \(activeModel.engineType) engine...")
-            let rawText = try await Self.transcribe(audioData: audioData, using: activeModel)
+            let rawText: String
+            // Most of a long take was decoded while it was spoken; finish that
+            // rather than start over. Any mismatch or failure falls through to
+            // transcribing the recording as before.
+            let live = await MainActor.run { AudioRecorder.shared.takeLiveDecoder() }
+            if let live, live.model == activeModel,
+               let text = await live.finish(expectedSamples: audioData.count / MemoryLayout<Float>.size) {
+                let progress = await live.progress
+                PushLogger.log("TranscriptionPipeline: live decode — \(progress.kept) sentences kept while speaking, \(String(format: "%.1f", progress.remainingSeconds))s decoded at release")
+                rawText = text
+            } else {
+                if live != nil { PushLogger.log("TranscriptionPipeline: live decode unavailable, transcribing the recording") }
+                rawText = try await Self.transcribe(audioData: audioData, using: activeModel)
+            }
 
             // Filter out empty results and Whisper's blank audio markers
             var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)

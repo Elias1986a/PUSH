@@ -455,6 +455,7 @@ final class HotkeyManager: @unchecked Sendable {
                 await TranscriptionPipeline.shared.process(audioData: data)
                 PushLogger.log("HotkeyManager: Transcription complete")
             } else if !hadSpeech {
+                AudioRecorder.shared.discardLiveDecoder()
                 PushLogger.log("HotkeyManager: No speech detected, skipping transcription")
             } else {
                 PushLogger.log("HotkeyManager: No audio data to process")
@@ -486,6 +487,7 @@ final class HotkeyManager: @unchecked Sendable {
         Task { @MainActor in
             // Stop recording and discard audio
             _ = await AudioRecorder.shared.stopRecording()
+            AudioRecorder.shared.discardLiveDecoder()
 
             // Reset state
             isRightOptionPressed = false

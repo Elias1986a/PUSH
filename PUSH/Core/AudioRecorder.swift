@@ -31,6 +31,9 @@ final class AudioRecorder: @unchecked Sendable {
     // which could interleave chunks and garble the recording.
     private var sampleContinuation: AsyncStream<[Float]>.Continuation?
     private var drainTask: Task<Void, Never>?
+    /// Decoding the take while it is spoken (`LiveDecoder`); handed to the
+    /// pipeline on release, or discarded.
+    private var liveDecoder: LiveDecoder?
 
     // Callback for VAD-triggered stop
     var onSilenceDetected: (() -> Void)?
@@ -271,6 +274,10 @@ final class AudioRecorder: @unchecked Sendable {
         // the first sample is consumed — the AsyncStream buffers until this
         // task is ready, so no leading audio is lost.
         let isStreamingModel = AppState.shared.activeModel.engineType == .parakeetStreaming
+        // A previous take's decoder that nobody collected (cancelled, no speech).
+        discardLiveDecoder()
+        let live = mode == .dictation ? LiveDecoder.make(for: AppState.shared.activeModel) : nil
+        liveDecoder = live
 
         let segmentSamples = Int(sampleRate * Self.continuousSegment)
 
@@ -288,6 +295,8 @@ final class AudioRecorder: @unchecked Sendable {
                 // is sitting in front of.
                 AudioLevelMonitor.shared.consume(samples)
                 self.audioData?.append(samples.withUnsafeBufferPointer { Data(buffer: $0) })
+                // Returns at once; the decode runs behind it.
+                await live?.append(samples)
                 // Continuous capture has nothing to auto-stop, and Silero is a
                 // CoreML inference per buffer — not worth running for the length
                 // of a take to answer a question nobody asked.
@@ -351,6 +360,20 @@ final class AudioRecorder: @unchecked Sendable {
             sampleContinuation = nil
             drainTask = nil
         }
+    }
+
+    /// The live decoder for the take that just stopped, for the pipeline to
+    /// finish. Taken once.
+    func takeLiveDecoder() -> LiveDecoder? {
+        defer { liveDecoder = nil }
+        return liveDecoder
+    }
+
+    /// Stop the live decoder of a take whose audio is going nowhere.
+    func discardLiveDecoder() {
+        guard let live = liveDecoder else { return }
+        liveDecoder = nil
+        Task { await live.cancel() }
     }
 
     func stopRecording() async -> Data? {
