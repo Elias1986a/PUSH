@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 8.2.3</title>
-            <pubDate>Wed, 30 Sep 2026 14:17:33 -0700</pubDate>
-            <sparkle:version>97</sparkle:version>
-            <sparkle:shortVersionString>8.2.3</sparkle:shortVersionString>
+            <title>Version 8.2.4</title>
+            <pubDate>Wed, 30 Sep 2026 14:48:29 -0700</pubDate>
+            <sparkle:version>98</sparkle:version>
+            <sparkle:shortVersionString>8.2.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,17 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 8.2.3 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 8.2.4 <span class="tag">New</span></h2>
+<h3>Faster</h3>
+<ul>
+<li><strong>Long dictation lands almost instantly.</strong> PUSH now transcribes finished sentences while you're still talking, so letting go leaves only your last sentence or two. On a 25-second dictation, the wait after you let go drops from about a quarter of a second to a few hundredths.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li><strong>"I mean" without a pause.</strong> "15.2 seconds I mean 1.52 seconds" now pastes as "1.52 seconds" even when you don't pause before "I mean".</li>
+<li><strong>Times of day.</strong> "4:30 pm" and "4:30 PM" paste as "4:30 p.m.", like the rest of PUSH.</li>
+</ul></div>
+<div class="older"><h2>Version 8.2.3</h2>
 <h3>Fixed</h3>
 <ul>
 <li><strong>Long dictation keeps its punctuation.</strong> Past about 15 seconds, PUSH sometimes stopped adding full stops, commas and capitals partway through, so everything after that point also missed its cleanup. PUSH now splits long dictation where a sentence ends, which keeps the punctuation all the way through. On Parakeet Unified, the first word after each split is no longer dropped either.</li>
@@ -103,6 +113,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.4/PUSH-v8.2.4.zip" type="application/octet-stream" sparkle:edSignature="nMCaYAlCGZgKHnFm7fY4zpjyjkPg3hefEleW2fTtp3g1dqRh6QTHyrmZQVmtAwdJ6RrissDufbJdQA5nuoALDw==" length="14247035" />
+        </item>
+        <item>
+            <title>Version 8.2.3</title>
+            <pubDate>Wed, 30 Sep 2026 14:17:33 -0700</pubDate>
+            <sparkle:version>97</sparkle:version>
+            <sparkle:shortVersionString>8.2.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.3/PUSH-v8.2.3.zip" type="application/octet-stream" sparkle:edSignature="GYKsebK9RAb6f2KhA/6jbD3zH/30vnTaVuMG9P70o+LeaAxQSYk/F4aiMkFo6aW2N/n92zYbovP88S8ipiWOBw==" length="14226952" />
         </item>
         <item>
