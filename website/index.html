@@ -40,7 +40,7 @@
 <div class="stack" style="gap: 28px;">
 <p class="eyebrow">Offline dictation for the Mac</p>
 <h1 class="disp">Push to talk. Nothing leaves your Mac.</h1>
-<p class="lede">Hold a key, speak, let go. Your words appear wherever you were typing, transcribed on your Mac in under a fifth of a second.</p>
+<p class="lede">Hold a key, speak, let go. Your words appear wherever you were typing, transcribed on your Mac a few hundredths of a second after you let go.</p>
 <div class="row">
 <a class="pb-btn pb-btn-push" href="#pricing">Buy PUSH <span class="pb-price">$22</span></a>
 <a class="pb-btn pb-btn-quiet" href="#speed">See it race the cloud</a>
@@ -73,7 +73,7 @@
 <div class="pb-speed-label">PUSH<small>on your Mac</small></div><div class="pb-speed-track"><div class="pb-speed-fill is-push" style="width: 5%;"></div></div><div class="pb-speed-num">0.04 s</div>
 <div class="pb-speed-label">Wispr Flow<small>cloud, incl. network</small></div><div class="pb-speed-track"><div class="pb-speed-fill" style="width: 97%;"></div></div><div class="pb-speed-num">0.87 s</div>
 </div>
-<p class="footnote mono">Median of 13 readings of the same 25-second passage · 30 Sep 2026 · Mac mini (M4). PUSH transcribes as you speak; times run from letting go of the key. Wispr Flow = 0.74 s server processing + 0.13 s network. <a href="benchmark/">How we measured →</a></p>
+<p class="footnote mono">Median of 13 readings of the same 25-second passage · 30 Sep 2026 · Mac mini (M4). PUSH shown with Parakeet Ultra; Parakeet Streaming, the default on English Macs, measured 0.02 s. PUSH transcribes as you speak; times run from letting go of the key. Wispr Flow = 0.74 s server processing + 0.13 s network. <a href="benchmark/">How we measured →</a></p>
 </div>
 </div>
 </section>
@@ -161,7 +161,7 @@
 <div class="card" style="gap: 18px;">
 <div style="height: 44px; display: flex; align-items: center;"><div class="pb-pill" style="min-width: 0; height: 36px; padding: 8px 14px 8px 12px;"><span class="pb-pill-dot" style="width: 8px; height: 8px;"></span><span class="pb-pill-label" style="font-size: 13px;">let's ship it on Tues<span style="opacity: .45;">day</span></span></div></div>
 <h3>Watch it listen</h3>
-<p class="body small">Your words stream into the pill while you're still talking, so you know it heard you before you let go.</p>
+<p class="body small">With Parakeet Streaming, the default in English, your words stream into the pill while you're still talking, so you know it heard you before you let go.</p>
 </div>
 <div class="card" style="gap: 18px;">
 <div class="row" style="gap: 8px;"><span class="keycap">⌥</span><span class="keycap">⌘</span><span class="keycap on">⌃</span></div>
@@ -182,7 +182,7 @@
 <div class="grid g4 feature-lists">
 <div><h3>While you talk</h3><ul class="bullets"><li>Lowers other apps' volume, then restores it</li><li>Choose which microphone to use</li><li>Optional sound when recording starts</li></ul></div>
 <div><h3>Cleaning up</h3><ul class="bullets"><li>Drops “um” and “uh”</li><li>Follows “I mean”, “no wait”, “scratch that”</li><li>Times, money and percentages, typed properly</li><li>Say “quote … end quote” and get real quotation marks</li><li>“New line”, “new paragraph”, bullets and numbered lists</li><li>Adds the question mark the model forgot</li><li>Two spaces after a full stop, if that's how you type</li><li>California mode, if you need it</li></ul></div>
-<div><h3>Your words</h3><ul class="bullets"><li>Personal dictionary for names and jargon</li><li>Fixes that apply always, or only in context</li><li>Syncs across your Macs through your own iCloud</li><li>English plus about 25 languages detected automatically</li><li>Switch language from the menu bar</li></ul></div>
+<div><h3>Your words</h3><ul class="bullets"><li>Personal dictionary for names and jargon</li><li>Fixes that apply always, or only in context</li><li>Syncs across your Macs through your own iCloud</li><li>English plus about 25 languages detected automatically, with Parakeet Ultra</li><li>Switch language from the menu bar</li></ul></div>
 <div><h3>Stays out of the way</h3><ul class="bullets"><li>Lives in the menu bar, no Dock icon</li><li>Opens at login if you like</li><li>Three on-device speech models to choose from</li><li>Updates itself quietly</li><li>A guided setup on first launch</li></ul></div>
 </div>
 </div>
@@ -197,8 +197,8 @@
 <p style="margin: 0; font: 400 20px/1.5 var(--font-body);">One switch takes the "like" out of your sentences. It was, like, made by someone who needs it.</p>
 </div>
 <div class="cali-card">
-<p id="cali-off">“So <mark>like</mark> I went to the store and <mark>like</mark> bought milk. It was, <mark>like</mark>, amazing. We should <mark>like</mark> totally go back.”</p>
-<p id="cali-on" hidden>“So I went to the store and bought milk. It was amazing. We should totally go back.”</p>
+<p id="cali-off">“So <mark>like</mark> I went to the store and <mark>like</mark> bought milk. It was, <mark>like</mark>, amazing. We should <mark>like</mark> totally go back. Let's <mark>like</mark> take the 405.”</p>
+<p id="cali-on" hidden>“So I went to the store and bought milk. It was amazing. We should totally go back. Let's take the 405.”</p>
 <div class="row" style="justify-content: space-between; gap: 24px;">
 <button class="pb-cali" id="cali-toggle" type="button" role="switch" aria-checked="false"><span class="pb-cali-track"><span class="pb-cali-knob"></span></span><span id="cali-label">California mode: OFF</span></button>
 <span class="mono setting">Settings ▸ Text ▸ California mode</span>
@@ -220,7 +220,7 @@
 <section class="wrap section tight">
 <div class="stack" style="gap: 24px;">
 <p class="eyebrow">Speaks your language</p>
-<p class="body head">English and about 25 European languages, detected as you speak. Chinese, Japanese, Arabic, Hindi, Russian, Greek and more with the multilingual model.</p>
+<p class="body head">English and about 25 European languages, detected as you speak with Parakeet Ultra. Chinese, Japanese, Arabic, Hindi, Russian, Greek and more with the multilingual model.</p>
 <div class="chips">
 <span class="pb-chip">Hello</span><span class="pb-chip">Hola</span><span class="pb-chip">Bonjour</span><span class="pb-chip">Hallo</span><span class="pb-chip">Ciao</span><span class="pb-chip">Olá</span><span class="pb-chip">Hej</span><span class="pb-chip">Cześć</span><span class="pb-chip">Ahoj</span><span class="pb-chip">Γεια σας</span><span class="pb-chip">Привет</span><span class="pb-chip">你好</span><span class="pb-chip">こんにちは</span><span class="pb-chip">مرحبا</span><span class="pb-chip">नमस्ते</span>
 </div>
