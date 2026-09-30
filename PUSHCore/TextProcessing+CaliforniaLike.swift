@@ -100,7 +100,12 @@ extension TranscriptionPipeline {
             let prevAdjacent = i > 0 && text[tokens[i - 1].range.upperBound..<token.range.lowerBound]
                 .allSatisfy(\.isWhitespace)
 
-            let isVerb = prevAdjacent && (
+            // "Could you like send the numbers": a bare verb straight after means
+            // "like" cannot be the verb itself, whatever precedes it. "-ing" is
+            // excluded because a gerund is an object: "I like cooking".
+            let bareVerbFollows = !commaAfter && i + 1 < tokens.count && !next.hasSuffix("ing")
+                && tag(tokens[i + 1].range) == .verb
+            let isVerb = prevAdjacent && !bareVerbFollows && (
                 verbLikePredecessors.contains(prev)
                 || (verbAdverbs.contains(prev) && verbLikePredecessors.contains(prevPrev))
                 // "Kids like candy", "dogs like walks": a plural noun subject and

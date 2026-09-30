@@ -196,9 +196,10 @@ California mode's casual "like" (read without pauses; comma-wrapped ", like,"
 is removed by the default filler pass, so it would show nothing). Target is
 **25 readings**; the compare tool's header shows medians and "n of 25" for the
 current script. California mode is a header toggle, **on** by default here
-(off in PUSH). Expected paste pinned in `BenchmarkPassageTests`. Known gap it
-avoids: "could you like send…" keeps its "like" (after "you" it reads as the
-verb) — worth a rule someday.
+(off in PUSH). Expected paste pinned in `BenchmarkPassageTests`. Writing it
+exposed "could you like send…" keeping its "like" (after "you" it read as the
+verb); fixed — a bare verb right after "like" (NLTagger `.verb`, not "-ing")
+means it is filler. Script v3 is final: don't edit it mid-series.
 
 #### Script v3 — append here
 

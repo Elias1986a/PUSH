@@ -802,6 +802,20 @@ final class CaliforniaLikeTests: XCTestCase {
         XCTAssertEqual(ca("He like lives there now."), "He lives there now.")
     }
 
+    /// After "you", "I" or a modal, "like" is normally the verb, unless another
+    /// bare verb follows it: then it cannot be.
+    func testLikeBeforeABareVerbGoesEvenAfterASubject() {
+        XCTAssertEqual(ca("Could you like send the final numbers before Friday?"),
+                       "Could you send the final numbers before Friday?")
+        XCTAssertEqual(ca("Can you like check them again?"), "Can you check them again?")
+        XCTAssertEqual(ca("Can you like give me a call?"), "Can you give me a call?")
+        XCTAssertEqual(ca("Could you like make it quicker?"), "Could you make it quicker?")
+        for s in ["I like cooking dinner.", "Would you like to come?", "Would you like help with that?",
+                  "Would you like help?", "Do you like dance music?", "Would you like fries with that?"] {
+            XCTAssertEqual(ca(s), s)
+        }
+    }
+
     func testTheVerbStays() {
         for s in ["I like it.", "Kids like candy.", "I'd really like that.",
                   "Would you like some coffee?", "We don't like the new logo.",

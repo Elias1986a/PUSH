@@ -42,7 +42,7 @@ enum BenchmarkScript {
         like the only slot that works for the Zürich office. Um, we've spent 37% of the \
         $5 million budget, and the new build loads in 15.2 seconds, I mean 1.52 seconds. \
         Everyone who tried it said, quote, it feels like a real improvement, end quote. \
-        Could you send me like the final numbers before Friday?
+        Could you like send the final numbers before Friday?
         """
 
     /// What each part of the script is there to expose. Rendered under the script so
