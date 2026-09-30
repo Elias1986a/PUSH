@@ -16,6 +16,10 @@ struct EngineRun: Codable, Identifiable, Sendable {
     /// first run, and hiding it makes the tool look hung.
     let loadSeconds: Double
     let failed: Bool
+    /// Decoding the whole recording after release, as before the app decoded
+    /// while you talk. `seconds` is then only what is left at release.
+    /// Optional so rows written before it existed still decode.
+    var wholeSeconds: Double?
 
     var realtimeFactor: (Double) -> Double { { audio in audio / max(self.seconds, 0.0001) } }
 }
@@ -119,6 +123,21 @@ enum EngineComparison {
                 try await TranscriptionPipeline.transcribe(audioData: audio, using: model)
             }
             let seconds = Date().timeIntervalSince(start)
+
+            // What the app does now: decode while the recording is "spoken",
+            // then time only what is left after release.
+            let samples = audio.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+            if let live = await LiveDecoder.replay(samples, model: model) {
+                return EngineRun(
+                    engine: model.displayName,
+                    raw: live.text,
+                    final: TranscriptionPipeline.postProcess(
+                        live.text, hasNativePunctuation: model.hasNativePunctuation),
+                    seconds: live.seconds,
+                    loadSeconds: loadSeconds,
+                    failed: false,
+                    wholeSeconds: seconds)
+            }
 
             return EngineRun(
                 engine: model.displayName,

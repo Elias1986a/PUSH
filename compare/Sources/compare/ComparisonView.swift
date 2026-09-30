@@ -312,6 +312,12 @@ private struct EngineRow: View {
                 }
             }
 
+            if let whole = run.wholeSeconds {
+                Text("after release, decoded while you talked · \(whole, format: .number.precision(.fractionLength(2)))s to decode the whole recording")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
             // Shown separately from the transcription time and never mixed into it: a
             // cold Neural Engine compile is minutes for a large model and seconds for a
             // small one, which would swamp the number this tool exists to compare.
