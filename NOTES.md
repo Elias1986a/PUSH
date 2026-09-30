@@ -219,6 +219,14 @@ means it is filler. Script v3 is final: don't edit it mid-series.
 - "five million dollar" → "$5 million" (was "$5,000,000"); ".." → ".".
 - Next: re-run + a few fresh readings, then release PUSH with these.
 
+**2026-09-30, 8.2.4–8.2.5:** `LiveDecoder` decodes Ultra while you talk
+(0.04 s after release on 13 readings; Streaming 0.02 s, Wispr 0.87 s).
+Unified retired in 8.2.5 (tied Ultra, English only); default now follows
+the Mac's language — Streaming on English Macs, Ultra elsewhere. **Open:**
+the user is using Streaming by feel for a few days; if it misses more words
+than Ultra, revert the English default to Ultra. Next idea: wake the ANE at
+key press — a 4.9 s dictation after idle took 0.28 s.
+
 #### Off-script runs (not comparable to the series)
 
 **2026-09-29, one 15.2s utterance, before the script existed.** Ultra 0.18s/84×,
