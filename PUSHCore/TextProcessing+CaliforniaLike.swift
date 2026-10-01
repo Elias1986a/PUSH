@@ -116,7 +116,18 @@ extension TranscriptionPipeline {
                     && i + 1 < tokens.count && [NLTag.noun, .determiner].contains(tag(tokens[i + 1].range))))
             let isComparison = (prevAdjacent && comparisonPredecessors.contains(prev))
                 || (!commaAfter && comparisonSuccessors.contains(next))
-            let isApproximation = !commaAfter && (next.first?.isNumber == true || numberWords.contains(next))
+            // "like 30 minutes" is about 30; "like 90s themes" and "like 8-bit"
+            // are a decade and a style, not quantities. Only a bare number —
+            // or a range, "like 2-3 days" — makes "like" mean "about".
+            let nextIsQuantity: Bool = {
+                guard i + 1 < tokens.count else { return false }
+                if numberWords.contains(next) { return true }
+                guard next.allSatisfy(\.isNumber) else { return false }
+                let after = text[tokens[i + 1].range.upperBound...]
+                if after.first == "-" { return after.dropFirst().first?.isNumber == true }
+                return true
+            }()
+            let isApproximation = !commaAfter && nextIsQuantity
             let isQuotative = prevAdjacent && quotativeBe.contains(prev) && commaAfter
             let isLikeISaid = !commaAfter && ["i", "we", "you", "they", "he", "she"].contains(next)
                 && speechVerbs.contains(nextNext)

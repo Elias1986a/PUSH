@@ -857,6 +857,15 @@ final class CaliforniaLikeTests: XCTestCase {
         }
     }
 
+    /// A decade or a style is not a quantity: "like" there is filler.
+    func testLikeBeforeADecadeOrAStyleGoes() {
+        XCTAssertEqual(ca("Can you make a couple like 90s themes?"), "Can you make a couple 90s themes?")
+        XCTAssertEqual(ca("So think like 8-bit."), "So think 8-bit.")
+        for s in ["It'll take like 30 minutes.", "There were like 40 people.", "Give it like 2-3 days.", "It's like twenty bucks."] {
+            XCTAssertEqual(ca(s), s)
+        }
+    }
+
     func testMeaningfulUsesStay() {
         for s in ["Like I said, we're done.", "It'll take like 30 minutes.",
                   "He was like, no way.", "I'm like, whatever.",
