@@ -16,6 +16,11 @@ import PUSHCore
 final class LicenseModel {
     static let shared = LicenseModel()
 
+    /// Whether Settings shows the Licence pane. Off until PUSH is sold: the
+    /// checkout links are still Polar's sandbox, and the user's own copies
+    /// have no key. Turn on at launch, with the production `PolarConfig`.
+    static let isOffered = false
+
     struct Stored: Codable, Equatable {
         var key: String
         var activation: LicenseActivation

@@ -62,7 +62,7 @@ struct SettingsView: View {
     }
 
     private var sidebar: some View {
-        List(Pane.allCases, selection: $pane) { item in
+        List(Pane.allCases.filter { $0 != .licence || LicenseModel.isOffered }, selection: $pane) { item in
             Label(item.title, systemImage: item.symbol)
                 .tag(item)
         }
