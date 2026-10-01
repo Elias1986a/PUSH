@@ -7,11 +7,11 @@ import PUSHCore
 /// Deliberately NOT solved by delaying the duck — that left music loud too long.
 private let chirpVolume: Float = 0.75
 
-/// The start-of-recording sound. All four are PUSH's own, synthesised for it
+/// The start-of-recording sound. All are PUSH's own, synthesised for it
 /// (2026-09-30) — they replaced a Nextel chirp of unknown origin, which was
 /// T-Mobile's brand and not ours to ship.
 enum ChirpSound: String, CaseIterable, Identifiable {
-    case deepTap, micTap, brightTap, keyUp
+    case deepTap, micTap, brightTap, keyUp, powerOn8bit, ready8bit
 
     var id: String { rawValue }
 
@@ -21,6 +21,8 @@ enum ChirpSound: String, CaseIterable, Identifiable {
         case .deepTap: return "Deep Tap"
         case .brightTap: return "Bright Tap"
         case .keyUp: return "Key Up"
+        case .powerOn8bit: return "8-bit Power On"
+        case .ready8bit: return "8-bit Ready"
         }
     }
 
@@ -30,6 +32,8 @@ enum ChirpSound: String, CaseIterable, Identifiable {
         case .deepTap: return "deep_tap"
         case .brightTap: return "bright_tap"
         case .keyUp: return "key_up"
+        case .powerOn8bit: return "power_on_8bit"
+        case .ready8bit: return "ready_8bit"
         }
     }
 }
