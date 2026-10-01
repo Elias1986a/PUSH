@@ -227,6 +227,18 @@ the user is using Streaming by feel for a few days; if it misses more words
 than Ultra, revert the English default to Ultra. Next idea: wake the ANE at
 key press — a 4.9 s dictation after idle took 0.28 s.
 
+**Licensing (Polar, sandbox) — 2026-09-30.** `PolarLicense.swift` (PUSHCore)
++ `LicenseModel` (Keychain, this Mac only) + Settings ▸ Licence. Activate /
+remove this Mac / daily re-check that ignores offline. Seat label is the Mac's
+model ("Mac mini (M4)"), never its name — the privacy policy says so. Sandbox
+org `21f8034d…`, PUSH $22 `58216768…` (3 seats), extra Mac $10 `ccab8f5e…`
+(its own 1-seat key). **Nothing gates dictation, by the user's choice, until
+they are ready to charge** — their own copies have no key. Held until then:
+first-run licence step, gating/trial decision, production org + checkout
+links, Buy buttons on the site, making the repo private (move the Sparkle feed
+first). User's preferred purchase flow: Buy → Polar checkout → DMG (Polar
+File Downloads benefit) + key → first launch asks for the key.
+
 #### Off-script runs (not comparable to the series)
 
 **2026-09-29, one 15.2s utterance, before the script existed.** Ultra 0.18s/84×,
