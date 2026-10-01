@@ -25,6 +25,7 @@ final class AppState {
         static let wakeWord = "wakeWord"
         static let doubleSpaceAfterSentence = "doubleSpaceAfterSentence"
         static let mediaBehavior = "mediaBehavior"
+        static let chirpSound = "chirpSound"
         static let showLivePreview = "showLivePreview"
         static let previewSize = "previewSize"
         static let pillPosition = "pillPosition"
@@ -178,6 +179,14 @@ final class AppState {
     /// (media key), or duck the output volume. Defaults to ducking — it works
     /// on every setup and can't mis-target the wrong app, whereas pausing
     /// depends on the media app honoring the play/pause key.
+    /// Which start sound plays, when `playSoundOnStart` is on.
+    var chirpSound: ChirpSound = .deepTap {
+        didSet {
+            UserDefaults.standard.set(chirpSound.rawValue, forKey: UserDefaultsKeys.chirpSound)
+            if chirpSound != oldValue { SoundPlayer.shared.selectionChanged() }
+        }
+    }
+
     var mediaBehavior: MediaBehavior = .duck {
         didSet {
             UserDefaults.standard.set(mediaBehavior.rawValue, forKey: UserDefaultsKeys.mediaBehavior)
@@ -275,6 +284,10 @@ final class AppState {
         if let raw = d.string(forKey: UserDefaultsKeys.mediaBehavior),
            let v = MediaBehavior(rawValue: raw), v != mediaBehavior {
             mediaBehavior = v
+        }
+        if let raw = d.string(forKey: UserDefaultsKeys.chirpSound),
+           let v = ChirpSound(rawValue: raw), v != chirpSound {
+            chirpSound = v
         }
         if let raw = d.string(forKey: UserDefaultsKeys.previewSize),
            let v = PreviewSize(rawValue: raw), v != previewSize {
@@ -518,6 +531,11 @@ final class AppState {
         // Defaults to true when never set, unlike every other flag here.
         if UserDefaults.standard.object(forKey: UserDefaultsKeys.iCloudSyncEnabled) != nil {
             self.iCloudSyncEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.iCloudSyncEnabled)
+        }
+
+        if let saved = UserDefaults.standard.string(forKey: UserDefaultsKeys.chirpSound),
+           let sound = ChirpSound(rawValue: saved) {
+            self.chirpSound = sound
         }
 
         // Load media behavior (keeps the .duck default when never set)

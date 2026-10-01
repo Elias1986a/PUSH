@@ -7,25 +7,73 @@ import PUSHCore
 /// Deliberately NOT solved by delaying the duck — that left music loud too long.
 private let chirpVolume: Float = 0.75
 
+/// The start-of-recording sound. All four are PUSH's own, synthesised for it
+/// (2026-09-30) — they replaced a Nextel chirp of unknown origin, which was
+/// T-Mobile's brand and not ours to ship.
+enum ChirpSound: String, CaseIterable, Identifiable {
+    case deepTap, micTap, brightTap, keyUp
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .micTap: return "Mic Tap"
+        case .deepTap: return "Deep Tap"
+        case .brightTap: return "Bright Tap"
+        case .keyUp: return "Key Up"
+        }
+    }
+
+    var fileName: String {
+        switch self {
+        case .micTap: return "mic_tap"
+        case .deepTap: return "deep_tap"
+        case .brightTap: return "bright_tap"
+        case .keyUp: return "key_up"
+        }
+    }
+}
+
 /// Plays sound effects
 @MainActor
 class SoundPlayer {
     static let shared = SoundPlayer()
 
     private var chirpPlayer: AVAudioPlayer?
+    /// Which sound `chirpPlayer` holds, so a changed setting is noticed.
+    private var preparedSound: ChirpSound?
     private var isPreparing = false
 
     private init() {}
 
-    /// Locate the chirp — SPM resource bundle in Contents/Resources/ first,
+    /// Locate a sound — SPM resource bundle in Contents/Resources/ first,
     /// then the main bundle.
-    private static var chirpURL: URL? {
+    private static func url(for sound: ChirpSound) -> URL? {
         if let bundleURL = Bundle.main.url(forResource: "PUSH_PUSH", withExtension: "bundle"),
            let resourceBundle = Bundle(url: bundleURL),
-           let soundURL = resourceBundle.url(forResource: "nextel_chirp", withExtension: "mp3") {
+           let soundURL = resourceBundle.url(forResource: sound.fileName, withExtension: "wav") {
             return soundURL
         }
-        return Bundle.main.url(forResource: "nextel_chirp", withExtension: "mp3")
+        return Bundle.main.url(forResource: sound.fileName, withExtension: "wav")
+    }
+
+    /// The setting changed: prepare the new sound and let the user hear it.
+    func selectionChanged() {
+        chirpPlayer = nil
+        preparedSound = nil
+        Task {
+            await prewarm()
+            preview()
+        }
+    }
+
+    /// Play the chosen sound now, from Settings.
+    func preview() {
+        guard let player = chirpPlayer, preparedSound == AppState.shared.chirpSound else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            player.currentTime = 0
+            player.play()
+        }
     }
 
     /// Build the chirp player at launch instead of on the user's first press,
@@ -43,8 +91,9 @@ class SoundPlayer {
     /// pill visibly hung mid-animation.
     func prewarm() async {
         guard chirpPlayer == nil, !isPreparing else { return }
-        guard let url = Self.chirpURL else {
-            PushLogger.log("SoundPlayer: Could not find nextel_chirp.mp3")
+        let sound = AppState.shared.chirpSound
+        guard let url = Self.url(for: sound) else {
+            PushLogger.log("SoundPlayer: Could not find \(sound.fileName).wav")
             return
         }
         isPreparing = true
@@ -80,6 +129,7 @@ class SoundPlayer {
         // Published only once it is genuinely ready to chirp, so `playChirp` can
         // treat "no player" as "not warm yet" and skip rather than block.
         chirpPlayer = player
+        preparedSound = sound
         PushLogger.log("SoundPlayer: chirp pre-warmed")
     }
 
@@ -89,7 +139,7 @@ class SoundPlayer {
     /// `startRecording`, so a slow path here costs them the opening words of the
     /// dictation. The chirp is a courtesy; capturing audio is the point.
     func playChirp() {
-        guard let player = chirpPlayer else {
+        guard let player = chirpPlayer, preparedSound == AppState.shared.chirpSound else {
             // Pressed before launch prewarming finished. Building the player now
             // would cost ~1s right in front of the recording, so skip the cue for
             // this press and warm up behind it instead.

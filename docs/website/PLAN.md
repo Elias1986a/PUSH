@@ -238,7 +238,7 @@ The fix is to make the design system *first*, from what PUSH already is:
 - [ ] Attorney review of EULA, Terms of Sale and Privacy, then fill the `[placeholders]`.
 - [ ] Confirm each model licence on its Hugging Face card (see the note in
       `legal/THIRD_PARTY_NOTICES.md`).
-- [ ] **Replace `nextel_chirp.mp3`** (you're finding the alternative). The
+- [x] **Replaced `nextel_chirp.mp3`** (2026-09-30: four original synthesised sounds — Deep Tap (default), Mic Tap, Bright Tap, Key Up — chosen in Settings ▸ Dictation). (you're finding the alternative). The
       chirp isn't a registered trademark (Motorola's application was refused),
       but the recording's source is unknown and "Nextel" is T-Mobile's brand.
       Licensing it isn't realistic for a $22 app. A chirp we synthesise

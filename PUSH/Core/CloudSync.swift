@@ -38,6 +38,7 @@ final class CloudSync: ObservableObject {
         "wakeWord",
         "doubleSpaceAfterSentence",
         "mediaBehavior",
+        "chirpSound",
         "showLivePreview",
         "previewSize",
         "resolveSelfCorrections",

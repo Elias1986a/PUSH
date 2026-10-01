@@ -70,6 +70,14 @@ struct DictationSettingsView: View {
             Section("While recording") {
                 Toggle("Play a sound when recording starts", isOn: $appState.playSoundOnStart)
 
+                // Choosing one plays it, so the menu doubles as a preview.
+                Picker("Sound", selection: $appState.chirpSound) {
+                    ForEach(ChirpSound.allCases) { sound in
+                        Text(sound.displayName).tag(sound)
+                    }
+                }
+                .disabled(!appState.playSoundOnStart)
+
                 Picker("Other apps' audio", selection: $appState.mediaBehavior) {
                     ForEach(MediaBehavior.allCases) { behavior in
                         Text(behavior.displayName).tag(behavior)
