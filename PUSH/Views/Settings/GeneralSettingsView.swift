@@ -15,6 +15,10 @@ struct GeneralSettingsView: View {
     /// binding, and writes straight back through on change.
     @State private var checksAutomatically = UpdaterManager.shared.automaticallyChecksForUpdates
 
+    /// The website's pages. Move with the site when it gets its own domain.
+    static let acknowledgementsURL = URL(string: "https://pushtype.netlify.app/legal/notices.html")!
+    static let privacyURL = URL(string: "https://pushtype.netlify.app/legal/privacy.html")!
+
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
     }
@@ -41,6 +45,15 @@ struct GeneralSettingsView: View {
                         Text("Offline voice to text")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        // The open-source licences PUSH ships under ask for
+                        // credit where users can find it; the full texts are
+                        // also in the app bundle (Contents/Resources/Legal).
+                        HStack(spacing: 10) {
+                            Link("Acknowledgements", destination: Self.acknowledgementsURL)
+                            Link("Privacy Policy", destination: Self.privacyURL)
+                        }
+                        .font(.caption)
+                        .padding(.top, 2)
                     }
 
                     Spacer()
