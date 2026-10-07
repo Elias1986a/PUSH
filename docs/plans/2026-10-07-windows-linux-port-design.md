@@ -9,8 +9,14 @@ stack and estimates no longer hold.
 
 The same product on Windows and Linux: hold a key, speak, and the text lands in
 the focused field, all on-device. Windows is the commercial target, a market
-roughly ten times the Mac's. Linux comes along because, once the core is shared,
-it costs only its own input and windowing layer. The Mac app is not part of this
+roughly ten times the Mac's. Linux follows once Windows sells. Because the core
+is shared, it costs only its own input and windowing layer.
+
+**Scope rule: draw a line, as the Mac does.** The Mac app is Apple Silicon and
+macOS 15 only. Windows gets the same kind of cutoff (Windows 11, 16 GB, a
+measured speed check) and a v1 that matches what a non-English Mac gets today:
+Parakeet Ultra, no live preview. Everything else is a follow-up that has to earn
+its place. The Mac app is not part of this
 plan. It stays Swift on CoreML/ANE, which is where its speed comes from.
 
 ## What changed since the August plan
@@ -19,12 +25,12 @@ plan. It stays Swift on CoreML/ANE, which is where its speed comes from.
 |---|---|---|
 | Default is Parakeet Unified (CoreML-only); Windows "cannot inherit" it | Unified was removed in 8.2.5. The default is **Streaming** on English Macs and **Ultra** elsewhere | Ultra is moondream's post-training of **TDT v3**. It keeps v3's architecture and tokenizer and is CC-BY-4.0. TDT v3 already has ONNX exports that run well on CPU (Handy ships it). The default can now cross platforms. |
 | Phase 0 candidates: TDT v2, Moonshine, whisper-small | TDT v2 was removed in 8.0.5 | Replace the candidates with the actual lineup (below) |
-| Streaming partials cut from v1 | Streaming is the English default and what the website shows | It cannot be cut. It becomes a v1 requirement if a CPU engine can carry it |
+| Streaming partials cut from v1 | Streaming is the English default, but **the live preview is off by default** (`showLivePreview = false`). Streaming's case as default is latency after release (0.02 s vs Ultra's 0.04 s) | Ultra with LiveDecoder covers release latency on CPU. Streaming and the preview stay **v1.1**, gated on a CPU engine passing |
 | No multilingual | Ultra auto-detects European languages. Nemotron 3.5 Multilingual covers the rest, with a per-engine language picker | Needs a CPU Nemotron and a non-Apple language ID |
 | Text pipeline: 928 lines | **~1,960 lines across 8 files.** Self-corrections, California mode, quotes, numbers, filler "like", plus `ScriptAligner` (454) | A second implementation would cost twice what August assumed, and it would drift. **Share it instead of porting** (see Stack) |
 | Licensing is net-new | `PolarLicense` exists: $22 for 3 Macs, $10 per extra Mac. Keys are in the Keychain and the machine identity comes from IOKit | The HTTP client ports as it is. Only the key storage and the device ID are per-OS |
 | Windows only, so WPF | Linux is now in scope | **WPF is out.** Two native shells would double the UI work |
-| — | New since then: LiveDecoder (sentence-aligned windows), teleprompter, media ducking, start sounds, ModelLoader stall watchdog | LiveDecoder matters *more* on CPU. The teleprompter waits for later |
+| — | New since then: LiveDecoder (sentence-aligned windows), teleprompter, media ducking, start sounds, ModelLoader stall watchdog | LiveDecoder matters *more* on CPU, and it is what makes Ultra-only v1 viable. The teleprompter waits for later |
 
 The app is now ~15,500 lines (10,800 app, 4,700 `PUSHCore`) with ~4,500 lines of
 tests. The share that is platform-neutral has grown, which is what makes sharing
@@ -34,18 +40,19 @@ code worth doing now.
 
 | Decision | Choice | Why |
 |---|---|---|
-| Platforms | Windows 10/11 x64 + arm64 first. Linux second (x64, Ubuntu LTS + Fedora; X11, KDE and wlroots first-class; GNOME reduced) | Windows is the market. Linux is cheap once the core is shared, and its Wayland input story caps how good it can be |
-| Hardware floor | CPU-only, AVX2 (~2015+ Intel / Zen), 8 GB RAM | No NPU or GPU assumed. An NPU/GPU tier can slot in later through the EP interface |
+| Platforms | **Windows 11 only**, x64 + arm64. Linux after Windows v1 ships (x64, Ubuntu LTS + Fedora; X11, KDE and wlroots first-class; GNOME reduced) | Windows 10 left support in October 2025. Windows 11's own CPU list (~2018+) already removes most of the old-hardware long tail. Linux is cheap once the core is shared, but it is not worth paying for up front |
+| Hardware floor | Windows 11, 16 GB RAM, CPU-only, **plus a speed check in onboarding**: transcribe a bundled 5 s clip, and if it takes over ~700 ms, say "this PC is too slow for PUSH" before purchase | A measured gate beats a CPU list: the same chip runs at very different speeds across laptop cooling and power plans. Copilot+ NPUs are *not* the cutoff: three vendors and three toolchains is a wider matrix than CPUs. NPU is a later speed tier through the EP interface |
 | Core + shell | **Rust core + Tauri 2 shell** | One UI for both OSes. A crate exists for every interop piece (ort, cpal, ashpd, wayland-client, windows-rs). Handy is the precedent: the same product category on the same stack, shipping on all three OSes with Parakeet v3 on CPU. Runner-up: C#/Avalonia |
 | Text pipeline | **Compile the Swift `PUSHCore` text rules for Windows/Linux as a C library.** Fall back to a Rust port + golden corpus only if the Phase 0 spike fails | The rules then live in one place and change once. The existing 4,500 lines of tests run on Windows/Linux CI as the drift check |
 | ASR runtime | ONNX Runtime (via `ort`), int8 or int4, CPU EP. sherpa-onnx where it already supports the model | Same reasoning as August. The EP seam later admits Windows ML (which downloads vendor NPU EPs), DirectML or CUDA |
-| v1 scope | Hotkey → record → VAD → engine → text pipeline → paste. Streaming partials in the pill. Dictionary + context gate. Multilingual. Media ducking. Licensing | Wake word, teleprompter and sync wait. See "Cut from v1" |
+| v1 scope | Hotkey → record → VAD → **Ultra** (with LiveDecoder) → text pipeline → paste. Pill (recording state, no preview). Dictionary + context gate. Media ducking. Licensing | This is what a non-English Mac runs today, and Ultra covers English plus the Latin-script European languages. Live preview, Nemotron, wake word, teleprompter and sync wait. See "Cut from v1" |
 | Elevated apps (Windows) | Detect and explain, as in August | Unchanged |
 
 ## Engine lineup off the Mac
 
-The Mac rule still holds: **the bake-off decides, not the leaderboard.** The
-candidates are now concrete, and each maps onto a slot the Mac app already has:
+The Mac rule still holds: **the bake-off decides, not the leaderboard.** v1
+ships one engine, Ultra. The other two slots are v1.1, and the bake-off
+measures them now so that decision is ready when it comes:
 
 | Mac slot | Mac engine (CoreML/ANE) | CPU candidate | Status of the ONNX export |
 |---|---|---|---|
@@ -58,7 +65,7 @@ multilingual extension with a language prompt. If its English WER on our corpus
 matches Nemotron EN, ship one streaming engine instead of two. Phase 0 decides
 this.
 
-**LiveDecoder ports with the engines.** Sentence-aligned windows decoded while
+**LiveDecoder ports with Ultra, in v1.** Sentence-aligned windows decoded while
 the user speaks are what keep Ultra's latency after release flat on long
 dictation. On a CPU the gap is bigger than on the ANE, so this is a core
 feature, not an optimisation. The logic is pure (`SentenceAlignedWindows`,
@@ -84,7 +91,7 @@ which allows commercial use per the model card. Read the text before shipping.
 │  input/      hotkey + injection, one impl per OS/session (below)          │
 │  audio/      cpal capture → 16 kHz mono f32, device list, ducking          │
 │  vad/        Silero ONNX                                                   │
-│  asr/        AsrEngine trait: Ultra (batch+LiveDecoder), Nemotron stream  │
+│  asr/        AsrEngine trait: Ultra (batch+LiveDecoder); Nemotron in v1.1 │
 │  models/     ModelLoader port: generation-ordered activation, explicit     │
 │              timeouts, stall watchdog, launch never downloads              │
 │  license/    Polar client, device ID, key in OS credential store          │
@@ -209,6 +216,14 @@ carry no secret, so `PolarLicense` ports to Rust as a direct translation. Per OS
 
 ## Cut from v1
 
+- **Live preview and Parakeet Streaming's slot.** Off by default on the Mac, so
+  v1 doesn't need it. v1.1 if Nemotron EN (or 3.5) keeps up live on the floor
+  box (RTF < 0.5).
+- **Nemotron multilingual** (Chinese, Japanese, Arabic, Hindi, Russian, Greek…).
+  Ultra already covers English and the European languages. v1.1, alongside the
+  preview, since it is the same streaming plumbing.
+- **Linux.** It follows once Windows v1 ships. Phase L0 can still run at any
+  time, because it is cheap and needs nothing from Windows.
 - **Wake word.** Today it runs the active ASR engine on a 1.5 s buffer every
   0.3 s. On the ANE that is cheap. On a laptop CPU it is a constant 600M-param
   load and a battery drain. Revisit it with a dedicated keyword-spotting model
@@ -225,24 +240,29 @@ As in August, the phases are kill gates, not a march.
 
 | Phase | Work | Effort | Gate |
 |---|---|---|---|
-| **0a** | **Engine bake-off.** A Rust console harness using `ort` and sherpa-onnx. Contestants: Ultra-ONNX (or TDT v3), Nemotron EN streaming, Nemotron 3.5. The same WAV corpus `compare/` uses. Measures WER, latency after release and RTF on a floor box (2018 i5, 8 GB) and on a Snapdragon X | ~1.5 wk | **p50 ≤ 700 ms** from end of speech to text on a 5 s utterance. A streaming engine must keep up live (RTF < 0.5) or partials ship as "Ultra only, no preview" |
+| **0a** | **Engine bake-off.** A Rust console harness using `ort` and sherpa-onnx. Ultra-ONNX (or TDT v3) is the v1 contestant. Nemotron EN and 3.5 are measured for v1.1. The same WAV corpus `compare/` uses. Measures WER, latency after release and RTF on two boxes: a 2019 Windows 11 laptop (8th-gen i5, 16 GB) and a Snapdragon X | ~1 wk | **Ultra p50 ≤ 700 ms** from end of speech to text on a 5 s utterance on the 2019 box. If it fails, raise the cutoff (newer CPUs) before cutting the product |
 | **0b** | **Swift text spike.** Extract `PUSHText` with the four providers abstracted. Build it on Windows + Linux CI, run the existing tests, call it through the C ABI from a Rust test | ~1 wk | Tests green on all three OSes. If not → port to Rust + golden corpus (+4–5 wk to Phase 2) |
-| **1** | **Windows walking skeleton.** Hook thread → WASAPI (cpal) → Silero → engine → libpushtext → clipboard paste. Tray icon only | 2–3 wk | Does it type into Chrome, Word, Slack, VS Code, Windows Terminal, Teams? |
-| **2** | **Core parity.** LiveDecoder, ModelLoader port (generation, timeouts, watchdog), language picker + Ultra/Nemotron routing, dictionary/context gate, ducking | 2–3 wk | The Mac's dictation behaviour reproduced on the bake-off corpus |
-| **3** | **Product surface (Tauri).** Pill with live partials, onboarding (mic consent, hotkey with the AltGr warning), settings panes, model download with progress, launch at login | 4–5 wk | — |
+| **1** | **Windows walking skeleton.** Hook thread → WASAPI (cpal) → Silero → Ultra → libpushtext → clipboard paste. Tray icon only | 2–3 wk | Does it type into Chrome, Word, Slack, VS Code, Windows Terminal, Teams? |
+| **2** | **Core parity.** LiveDecoder, ModelLoader port (generation, timeouts, watchdog), dictionary/context gate, ducking | 1–2 wk | Ultra-on-Mac behaviour reproduced on the bake-off corpus |
+| **3** | **Product surface (Tauri).** Pill (state only), onboarding (mic consent, hotkey with the AltGr warning, **speed check**), settings panes, model download with progress, launch at login | 3–4 wk | — |
 | **4** | **Windows distribution.** Trusted Signing, NSIS, updater feed, AV submissions, model mirror (see open question 3) | ~2 wk | Clean install/update/uninstall; no SmartScreen wall |
 | **5** | **Licensing.** Rust Polar client, device ID, credential store, store copy | ~1 wk | Activation, offline grace and deactivation, tested against Polar sandbox |
-| **L0** | **Linux input matrix spike.** One small binary per row of the table above, logging press/release timing and attempting a paste | ~1 wk | Which rows are Full, Reduced or unsupported. This is the only Linux gate |
-| **L1** | **Linux.** The input/window backends L0 justified, packaging, beta page | 2–4 wk | Works on Ubuntu LTS (GNOME), Fedora KDE, and one wlroots compositor |
 
-**Windows: ~14–19 weeks. Linux on top: ~3–5 weeks.** August estimated 12–17
-weeks for Windows alone. The increase is the streaming requirement and the
-multilingual routing. Sharing the text pipeline saves most of what its doubled
-size would otherwise have cost.
+**Windows v1: ~11–14 weeks.** August estimated 12–17 for Windows alone, and the
+first draft of this plan 14–19. The Windows 11 cutoff and the Ultra-only v1 take
+out the streaming engines, the language routing and the live pill.
+
+**Afterwards, each as its own decision:**
+
+| Follow-up | Work | Effort |
+|---|---|---|
+| **v1.1 — Streaming** | Nemotron EN or 3.5 behind the `AsrEngine` trait, live preview in the pill (off by default, as on the Mac), multilingual picker | 3–4 wk |
+| **L0 — Linux input spike** | One small binary per row of the Linux table, logging press/release timing and attempting a paste. It can run at any time | ~1 wk |
+| **L1 — Linux** | The input/window backends L0 justified, packaging, beta page | 2–4 wk |
+| **NPU tier** | Windows ML execution providers for Copilot+ machines, if the CPU path leaves users wanting | open |
 
 **Start with 0a and 0b.** Both are cheap, and together they decide most of the
 plan. 0b's extraction also improves the Mac codebase if the port never happens.
-L0 can run at any time and needs nothing from the Windows phases.
 
 ## Open questions
 
