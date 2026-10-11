@@ -74,6 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Type's model, when Type is on and its model is on disk. Never a
         // download — and independent of dictation's warm-up.
         TypingEngineLoader.apply()
+        TypingCoordinator.shared.setActive(AppState.shared.typeEnabled)
 
         if showingWizard {
             showOnboarding()

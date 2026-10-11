@@ -44,6 +44,8 @@ final class AppState {
             // mid fade-out. Doing it here also covers engines that emit no
             // partials, so stale text can never carry into the next dictation.
             if isListening { livePartialText = "" }
+            // A suggestion has no business on screen while you dictate.
+            if isListening { TypingCoordinator.shared.hide() }
             notifyStateChange()
         }
     }
@@ -177,7 +179,10 @@ final class AppState {
     var typeEnabled: Bool = FeatureSwitches.typeEnabled() {
         didSet {
             UserDefaults.standard.set(typeEnabled, forKey: FeatureSwitches.typeKey)
-            if typeEnabled != oldValue { TypingEngineLoader.apply() }
+            if typeEnabled != oldValue {
+                TypingEngineLoader.apply()
+                TypingCoordinator.shared.setActive(typeEnabled)
+            }
         }
     }
 

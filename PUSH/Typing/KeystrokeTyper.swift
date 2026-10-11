@@ -16,6 +16,8 @@ enum KeystrokeTyper {
             for keyDown in [true, false] {
                 guard let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: keyDown) else { continue }
                 event.flags = []
+                // So Type's own tap knows this text came from PUSH, not the user.
+                event.setIntegerValueField(.eventSourceUserData, value: TypingKeyTap.ownEventMarker)
                 event.keyboardSetUnicodeString(stringLength: units.count, unicodeString: units)
                 event.post(tap: .cghidEventTap)
             }
