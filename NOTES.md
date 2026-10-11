@@ -31,7 +31,19 @@ SPACE produced years/numbers/HTML ('love to ' → '2018.'); fixed by healing the
 trailing space. Also: anchored 4,000-char window, repetition penalty,
 50 ms debounce, Cotabby-style content policy, sign-in/Mail-header stand-down,
 typo hold, Esc pause, centred ghost text, suppression-reason logging.
-Open decision for the user: Phase 6 personalization before Phase 5 polish?
+Phases 5 + 6 (2026-10-11, user kept the original order): fixed "theweekend"
+(a suggestion wrapped to the next line lost its leading space on accept).
+Settings → Typing (models, length, space after last word, code editors,
+color — Blue default, apps to turn off in, pause on battery, macOS
+predictions tip), Settings → Personal (name, About note, opt-in "Learn from
+my writing" — encrypted, Keychain key, never synced, Delete All), menu bar
+Type section (model, length, Pause), onboarding typing step. Dictionary words
+are never typos and finish from "Kub" (not in the prompt — user's call).
+History examples A/B: big win on Gemma and Qwen 2B. Still gated as "coming
+soon" in release builds (`OnboardingView.typeAvailable`) — lift in Phase 7.
+Next: the replay eval through the real pipeline, then a full bug pass (user's
+plan), then Phase 7. Debug hooks: PUSH_SETTINGS_PANE, PUSH_ONBOARDING_STEP,
+PUSH_OPEN_MENU (with PUSH_OPEN_SETTINGS) for screenshots.
 Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
 filters for invented personas/self-descriptions, explicit words, web debris,
 other scripts; titles only for chat/email/browser; spell-checked glued words;
