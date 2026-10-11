@@ -234,6 +234,13 @@ final class TypingCoordinator {
 
     // MARK: - Field icon
 
+    /// The focused field: PUSH's own try-it box directly, anything else
+    /// through Accessibility off the main thread.
+    private func readFocus() async -> FocusSnapshot? {
+        if allowsOwnWindows, let own = FocusReader.readOwn() { return own }
+        return await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
+    }
+
     /// The field icon for `focus`: shown where Type works, hidden elsewhere.
     private func updateIndicator(for focus: FocusSnapshot?) {
         guard mayRun, AppState.shared.typingShowIndicator, let focus, let field = focus.fieldFrame,
@@ -254,7 +261,7 @@ final class TypingCoordinator {
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             guard mayRun, AppState.shared.typingShowIndicator else { return TypeIndicatorPanel.shared.hide() }
-            let focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
+            let focus = await readFocus()
             guard !Task.isCancelled else { return }
             updateIndicator(for: focus)
         }
@@ -414,7 +421,7 @@ final class TypingCoordinator {
         for attempt in 0..<3 {
             if attempt > 0 { try? await Task.sleep(for: .milliseconds(60)) }
             guard stamp == keystrokes else { return nil }
-            focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
+            focus = await readFocus()
             guard let snapshot = focus, let before = snapshot.before, !typed.isEmpty,
                   snapshot.elementID == bufferElement else { return focus }
             if before.hasSuffix(typed) { return focus }
@@ -499,7 +506,7 @@ final class TypingCoordinator {
         let stamp = keystrokes
         Task {
             if delay > .zero { try? await Task.sleep(for: delay) }
-            let focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
+            let focus = await readFocus()
             guard stamp == keystrokes, let current = shown else { return }
             var placement = focus.flatMap {
                 TypingPlacement.decide(caretRect: $0.caretRect, after: $0.after, fieldFrame: $0.fieldFrame)

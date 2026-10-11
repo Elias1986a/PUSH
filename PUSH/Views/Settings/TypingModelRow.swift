@@ -7,6 +7,8 @@ struct TypingModelRow: View {
     @Environment(AppState.self) private var appState
     let model: TypingModel
     var allowsDelete = true
+    /// One line, no description: the onboarding page also holds a try-it box.
+    var compact = false
 
     private var store: TypingModelStore { .shared }
     private var isSelected: Bool { appState.selectedTypingModel == model }
@@ -28,10 +30,12 @@ struct TypingModelRow: View {
                         .background(Capsule().fill(Color.secondary.opacity(0.15)))
                         .foregroundStyle(.secondary)
                 }
-                Text(model.blurb)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !compact {
+                    Text(model.blurb)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Text(ByteCountFormatter.string(fromByteCount: model.bytes, countStyle: .file)
                      + " · up to \(model.maxLength.words.upperBound) words at a time")
                     .font(.caption)

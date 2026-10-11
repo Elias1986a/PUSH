@@ -93,6 +93,30 @@ enum FocusReader {
         return snapshot
     }
 
+    /// PUSH's own focused text view, read directly: Accessibility asked about
+    /// its own process came back empty. Only for the onboarding try-it box.
+    @MainActor
+    static func readOwn() -> FocusSnapshot? {
+        guard NSApp.isActive, let window = NSApp.keyWindow,
+              let view = window.firstResponder as? NSTextView, view.isEditable else { return nil }
+        let text = view.string as NSString
+        let selection = view.selectedRange()
+        let caret = min(selection.location, text.length)
+        let end = min(caret + selection.length, text.length)
+        let start = PromptWindow.start(length: caret, maximum: beforeWindow)
+        let caretRect = view.firstRect(forCharacterRange: NSRange(location: caret, length: 0), actualRange: nil)
+        let box = view.enclosingScrollView ?? view
+        let fieldFrame = window.convertToScreen(box.convert(box.bounds, to: nil))
+        return FocusSnapshot(
+            pid: ProcessInfo.processInfo.processIdentifier, bundleID: Bundle.main.bundleIdentifier,
+            appName: "PUSH", windowTitle: nil, placeholder: nil, url: nil,
+            before: text.substring(with: NSRange(location: start, length: caret - start)),
+            after: String(text.substring(from: end).prefix(afterWindow)),
+            caretRect: caretRect.height > 0 ? CGRect(x: caretRect.minX, y: caretRect.minY, width: 0, height: caretRect.height) : nil,
+            fieldFrame: fieldFrame, isSecure: false, isTextInput: true, role: "AXTextArea",
+            labels: [], domIdentifier: nil, elementID: ObjectIdentifier(view).hashValue)
+    }
+
     /// WebKit's text-marker attributes: the text from the start of the editable
     /// area to the caret, and the caret's bounds.
     private static func textMarkerRead(_ element: AXUIElement) -> (before: String?, caret: CGRect?)? {

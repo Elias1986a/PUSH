@@ -29,16 +29,17 @@ struct OnboardingView: View {
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
 
     @State private var step: OnboardingFlow.Step = Self.initialStep
+    @State private var typingStepSeen = false
+    @State private var typingSandbox = ""
+    @FocusState private var typingSandboxFocused: Bool
 
     /// `PUSH_ONBOARDING_STEP=typingModel` opens the wizard on that step, for
-    /// screenshots. DEBUG-only.
+    /// screenshots and testing. Debug builds and the Type preview only.
     private static var initialStep: OnboardingFlow.Step {
-        #if DEBUG
-        if let raw = ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"],
+        if previewHooks, let raw = ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"],
            let step = OnboardingFlow.Step.allCases.first(where: { "\($0)" == raw }) {
             return step
         }
-        #endif
         return .welcome
     }
     /// What the user dictated into the sandbox on step 3. Its contents are
@@ -54,15 +55,19 @@ struct OnboardingView: View {
     @State private var downloadProgress: Double = 0
     @State private var downloadError: String?
 
-    /// Type is built in phases; until its typing model step and sandbox exist
-    /// (Phase 5), release builds show it as coming soon with its switch off.
-    static let typeAvailable: Bool = {
+    /// Type is not ready for release (user, 2026-10-11): release builds show
+    /// it as coming soon with its switch off, unless the hidden preview switch
+    /// is on (`defaults write com.push.voicetotext feature.typePreview -bool true`).
+    static var typeAvailable: Bool {
         #if DEBUG
         return true
         #else
-        return false
+        return UserDefaults.standard.bool(forKey: "feature.typePreview")
         #endif
-    }()
+    }
+
+    /// Debug builds, or the Type preview: launch hooks that open a step.
+    static var previewHooks: Bool { typeAvailable }
 
     private var typeChosen: Bool { Self.typeAvailable && appState.typeEnabled }
 
@@ -70,7 +75,8 @@ struct OnboardingView: View {
     /// the features step change; `step` is a value, not an index, so it stays
     /// put when the list around it grows or shrinks.
     private var steps: [OnboardingFlow.Step] {
-        OnboardingFlow.steps(dictation: appState.dictationEnabled, type: typeChosen)
+        OnboardingFlow.steps(dictation: appState.dictationEnabled, type: typeChosen,
+                             typingSeen: typingStepSeen && Self.typeAvailable)
             // The try-it sandbox is dictation's until Type gets its own (Phase 5).
             .filter { $0 != .tryIt || appState.dictationEnabled }
     }
@@ -442,50 +448,105 @@ struct OnboardingView: View {
         modelsOnDisk = ModelAvailability.downloaded()
     }
 
-    // MARK: - Typing model
+    // MARK: - Type: switch, model, try it
 
+    /// One page decides Type: switch it on, pick and download a model, try it
+    /// in the box — and if it is not for you, switch it off right here and
+    /// carry on with dictation alone.
     private var typingModelStep: some View {
         @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 14) {
+        let ready = typingModelOnDisk && appState.typingModelReady
+        return VStack(alignment: .leading, spacing: 12) {
             stepHeader(
-                title: "Choose a typing model",
-                subtitle: "It runs on this Mac and suggests how your sentence goes on. You can switch later in Settings → Typing."
+                title: "Suggestions as you type",
+                subtitle: "PUSH suggests how your sentence goes on, in any app, on this Mac. Tab takes the next word."
             )
 
-            VStack(spacing: 6) {
-                ForEach(TypingModel.allCases) { model in
-                    TypingModelRow(model: model, allowsDelete: false)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
-                }
-            }
-
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Also suggest in code editors")
-                    Text("Xcode, VS Code and Cursor use Tab for their own completions, so this starts off.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text("Suggest as I type").fontWeight(.medium)
                 Spacer()
-                Toggle("Also suggest in code editors", isOn: $appState.typingInCodeEditors)
+                Toggle("Suggest as I type", isOn: $appState.typeEnabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
             }
             .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
 
-            if TypingSettingsView.macInlinePredictionsOn() {
-                statusLine(
-                    icon: "info.circle",
-                    text: "Tip: turn off macOS’s own gray predictions so two suggestions never compete for Tab — System Settings → Keyboard → Text Input → Edit.",
-                    tint: .secondary
-                )
+            if appState.typeEnabled {
+                VStack(spacing: 4) {
+                    ForEach(TypingModel.allCases) { model in
+                        TypingModelRow(model: model, allowsDelete: false, compact: true)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 2)
+                    }
+                }
+                .padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
+
+                HStack {
+                    Text("Also suggest in code editors")
+                    Spacer()
+                    Toggle("Also suggest in code editors", isOn: $appState.typingInCodeEditors)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .labelsHidden()
+                }
+                .padding(.horizontal, 12)
+                .help("Xcode, VS Code and Cursor use Tab for their own completions, so this starts off.")
+
+                if ready {
+                    TextEditor(text: $typingSandbox)
+                        .font(.system(size: 15))
+                        .scrollContentBackground(.hidden)
+                        .padding(8)
+                        .frame(height: 84)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(nsColor: .textBackgroundColor)))
+                        .overlay(alignment: .topLeading) {
+                            if typingSandbox.isEmpty {
+                                Text("Try it: type “Thanks for the update, I’ll” and wait a moment. Tab takes a word.")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 8)
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(typingSandboxFocused ? Color.accentColor : Color.secondary.opacity(0.35),
+                                          lineWidth: typingSandboxFocused ? 2 : 1))
+                        .focused($typingSandboxFocused)
+                        .onAppear {
+                            TypingCoordinator.shared.allowsOwnWindows = true
+                            typingSandboxFocused = true
+                        }
+                        .onDisappear { TypingCoordinator.shared.allowsOwnWindows = false }
+                    Text("Not for you? Switch it off above and continue — PUSH stays a dictation app.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    statusLine(
+                        icon: TypingModelStore.shared.downloading != nil || typingModelOnDisk ? "hourglass" : "arrow.down.circle",
+                        text: TypingModelStore.shared.downloading != nil ? "Downloading — you can try it here as soon as it’s done."
+                            : typingModelOnDisk ? "Getting the model ready…"
+                            : "Download a model to try it here.",
+                        tint: .secondary
+                    )
+                }
+            } else {
+                statusLine(icon: "info.circle",
+                           text: appState.dictationEnabled
+                               ? "Type is off. You can switch it on any time in Settings → Typing."
+                               : "Type is off, and so is Dictation. Switch one on to continue.",
+                           tint: .secondary)
             }
 
             Spacer(minLength: 0)
         }
-        .onAppear { TypingModelStore.shared.refresh() }
+        .onAppear {
+            typingStepSeen = true
+            TypingModelStore.shared.refresh()
+        }
     }
 
     // MARK: - Step 4 · try it here
@@ -825,7 +886,9 @@ struct OnboardingView: View {
         case .features: return !appState.dictationEnabled && !typeChosen
         case .speechModel: return !isReady(appState.selectedWhisperModel)
         // A download in progress carries on in the background.
-        case .typingModel: return !typingModelOnDisk && TypingModelStore.shared.downloading == nil
+        case .typingModel:
+            return typeChosen ? !typingModelOnDisk && TypingModelStore.shared.downloading == nil
+                : !appState.dictationEnabled
         default: return false
         }
     }

@@ -5,12 +5,15 @@ enum OnboardingFlow {
         case welcome, features, permissions, speechModel, typingModel, tryIt, pill, more, finish
     }
 
-    static func steps(dictation: Bool, type: Bool) -> [Step] {
+    /// `typingSeen`: the Type page was reached. It stays in the list even if
+    /// Type is switched off there — that page is where you try it and decide.
+    static func steps(dictation: Bool, type: Bool, typingSeen: Bool = false) -> [Step] {
+        let typing = type || typingSeen
         // Nothing chosen: the wizard cannot continue past the choice.
-        guard dictation || type else { return [.welcome, .features] }
+        guard dictation || typing else { return [.welcome, .features] }
         var s: [Step] = [.welcome, .features, .permissions]
         if dictation { s.append(.speechModel) }
-        if type { s.append(.typingModel) }
+        if typing { s.append(.typingModel) }
         s.append(.tryIt)
         if dictation { s.append(.pill) }
         s += [.more, .finish]
