@@ -230,15 +230,27 @@ do not delay the first words.
   clipboard-paste only", which is about dictation-length text. Phase 0 checks it
   in Mail, Slack, Chrome, Safari, Notes and an Electron app, and falls back to
   `TextInjector` where it fails.
-  **Insertion spike (Task 0.6, in progress)** — `KeystrokeTyper` from the
-  Developer-ID-signed build (inherits PUSH's Accessibility grant), test string
-  `hello wörld 👋 naïve café 🎬 across chunks` (accents, emoji, >20 UTF-16 units):
+  **Insertion spike (Task 0.6, 2026-10-10): works everywhere tried.**
+  `KeystrokeTyper` from the Developer-ID-signed build (it inherits PUSH's
+  Accessibility grant), test string `hello wörld 👋 naïve café 🎬 across chunks`
+  (accents, emoji, more than 20 UTF-16 units, so two events):
 
-  | App | Result |
-  |---|---|
-  | Notes | correct (exact, read back over AX) |
-  | Mail, Chrome (Gmail + textarea), Safari | not yet run |
-  | Slack, VS Code | not installed; stand-ins Discord / Claude.app (Electron) and Antigravity IDE (VS Code fork) not yet run |
+  | App | Field | Result | Read back by |
+  |---|---|---|---|
+  | Notes | note body | correct | AX value |
+  | Mail | compose body | correct | screenshot — body is an `AXWebArea` with **no AXValue** |
+  | Safari | textarea, contenteditable | correct, correct | AX value |
+  | Chrome | textarea, contenteditable | correct, correct | AX value |
+  | Chrome · Gmail | compose body | correct | AX value (Gmail prefixes a zero-width char) |
+  | Claude.app (Electron) | message composer | correct | AX value |
+  | Discord (Electron; Slack stand-in) | quick switcher | correct | screenshot — app exposes **no focused element** until `AXManualAccessibility` |
+  | Antigravity IDE (VS Code fork) | Monaco editor | correct | AX value (its "Screen Reader Optimized" mode was on) |
+
+  Slack and VS Code are not installed on the test Mac; Discord and Antigravity
+  stand in (same Electron / Monaco stacks). No `TextInjector` fallback has been
+  needed yet. Phase 4 notes: Mail needs a range-based read
+  (`AXStringForRange` / `AXSelectedTextMarkerRange`), not `AXValue`; Electron apps
+  need the `AXManualAccessibility` enabler before anything is readable.
 - Hidden while dictation is recording and while a teleprompter take runs.
 
 ### Compatibility: as universal as possible
