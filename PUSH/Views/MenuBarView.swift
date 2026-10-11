@@ -41,10 +41,14 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider()
-            hotkeyRow
-            Divider()
-            controls
-            Divider()
+            // Dictation's own rows mean nothing with it off — and the model
+            // picker would load a speech model nobody is using.
+            if appState.dictationEnabled {
+                hotkeyRow
+                Divider()
+                controls
+                Divider()
+            }
             commands
         }
         .frame(width: 290)
@@ -63,7 +67,7 @@ struct MenuBarView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(statusText)
                     .font(.system(size: 12, weight: .medium))
-                Text(appState.activeModel.shortName)
+                Text(appState.dictationEnabled ? appState.activeModel.shortName : "Switched off on this Mac")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
@@ -279,6 +283,15 @@ struct MenuBarView: View {
                 symbol: "text.alignleft",
                 action: { run { Task { await Teleprompter.toggle() } } }
             )
+            // It listens through dictation's speech model.
+            .disabled(!appState.dictationEnabled)
+            if !appState.dictationEnabled {
+                Text("Needs Dictation, which is switched off.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 4)
+            }
             CommandRow(title: "Welcome to PUSH…", symbol: "sparkles") {
                 run { OnboardingWindowController.shared.show() }
             }
@@ -332,6 +345,7 @@ struct MenuBarView: View {
     // MARK: - Derived
 
     private var statusColor: Color {
+        if !appState.dictationEnabled { return .secondary }
         if appState.modelUnavailable { return .red }
         if appState.isProcessing { return .orange }
         if appState.isCapturing { return .green }
@@ -340,6 +354,7 @@ struct MenuBarView: View {
     }
 
     private var statusText: String {
+        if !appState.dictationEnabled { return "Dictation off" }
         if appState.modelUnavailable { return "Model unavailable" }
         if appState.isCapturing { return "Listening" }
         if appState.isListening { return "Warming up…" }

@@ -69,7 +69,7 @@ final class HotkeyManager: @unchecked Sendable {
         }
 
         // Start wake word listener if enabled
-        if AppState.shared.wakeWordEnabled {
+        if AppState.shared.wakeWordEnabled && AppState.shared.dictationEnabled {
             WakeWordListener.shared.startListening()
         }
 
@@ -367,6 +367,12 @@ final class HotkeyManager: @unchecked Sendable {
     private func handleKeyDown() {
         PushLogger.log("HotkeyManager: handleKeyDown called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled), modelReady=\(AppState.shared.isModelReady)")
         guard AppState.shared.hotkeyEnabled else { return }
+        // Dictation switched off: the key does nothing. The tap itself keeps
+        // running for the teleprompter's arrows and the Accessibility retry.
+        guard AppState.shared.dictationEnabled else {
+            PushLogger.log("HotkeyManager: dictation is off, ignoring hotkey")
+            return
+        }
         // Recording does not need the model — only transcription does. Start
         // capturing immediately rather than silently swallowing the press
         // during startup; the engine finishes loading long before the user
@@ -475,6 +481,14 @@ final class HotkeyManager: @unchecked Sendable {
         PushLogger.log("HotkeyManager: \(hotkeyName) released - processing")
     }
 
+    // MARK: - Dictation switched off
+
+    /// Drops a recording in flight exactly as Esc would. Called by
+    /// `DictationSwitch` when the user turns dictation off.
+    func cancelForDictationOff() {
+        if isCurrentlyRecording || isCurrentlyProcessing { handleCancelRecording() }
+    }
+
     // MARK: - Cancel Recording
 
     private func handleCancelRecording() {
@@ -496,7 +510,7 @@ final class HotkeyManager: @unchecked Sendable {
             AppState.shared.statusMessage = "Ready"
 
             // Resume wake word listener if enabled
-            if AppState.shared.wakeWordEnabled {
+            if AppState.shared.wakeWordEnabled && AppState.shared.dictationEnabled {
                 WakeWordListener.shared.resumeListening()
             }
 

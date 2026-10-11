@@ -13,6 +13,8 @@ enum Teleprompter {
     static var isRunning: Bool { TeleprompterSession.shared.isRunning }
 
     static func start() async {
+        // The prompter listens through dictation's streaming model.
+        guard AppState.shared.dictationEnabled else { return }
         let settings = TeleprompterState.shared
         // Show first: the window is what tells the user the take began, and
         // starting the session can spend a few seconds swapping the model in.

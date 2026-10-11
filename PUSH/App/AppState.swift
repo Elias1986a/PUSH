@@ -103,7 +103,10 @@ final class AppState {
     /// to only one of them meant the window was ordered out before the view could
     /// ever draw "Warming up…".
     var pillShouldShow: Bool {
-        isListening || isProcessing || !isModelReady || isWarmingUp || isPrewarming
+        // No dictation, no pill: with no speech model loading, `!isModelReady`
+        // would otherwise hold "Loading model…" on screen for good.
+        dictationEnabled
+            && (isListening || isProcessing || !isModelReady || isWarmingUp || isPrewarming)
     }
 
     /// `WhisperModel.defaultModel` (Parakeet Ultra since 8.0.9) is the default for
@@ -165,7 +168,10 @@ final class AppState {
 
     /// Feature switches (per-machine, never synced — see `FeatureSwitches`).
     var dictationEnabled: Bool = FeatureSwitches.dictationEnabled() {
-        didSet { UserDefaults.standard.set(dictationEnabled, forKey: FeatureSwitches.dictationKey) }
+        didSet {
+            UserDefaults.standard.set(dictationEnabled, forKey: FeatureSwitches.dictationKey)
+            if dictationEnabled != oldValue { DictationSwitch.apply(dictationEnabled) }
+        }
     }
 
     var typeEnabled: Bool = FeatureSwitches.typeEnabled() {

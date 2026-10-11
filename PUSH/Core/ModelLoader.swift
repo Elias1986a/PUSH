@@ -180,8 +180,10 @@ enum ModelLoader {
     }
 
     /// Unload the active model and mark the app as having no model (used when
-    /// the user deletes the active model's files).
-    static func deactivate() async {
+    /// the user deletes the active model's files). `markUnavailable: false` is
+    /// for dictation being switched off: nothing is missing, it is just not in
+    /// use, and turning dictation on again reactivates it.
+    static func deactivate(markUnavailable: Bool = true) async {
         let state = AppState.shared
         // Nothing already in flight may commit after this. The user has just
         // deleted the files a load was reading, and a late success would report
@@ -190,8 +192,8 @@ enum ModelLoader {
         activationGeneration &+= 1
         await unload(state.activeModel)
         state.isModelReady = false
-        state.modelUnavailable = true
-        state.statusMessage = "Model unavailable"
+        state.modelUnavailable = markUnavailable
+        state.statusMessage = markUnavailable ? "Model unavailable" : "Dictation off"
         PushLogger.log("ModelLoader: Deactivated \(state.activeModel.rawValue)")
     }
 

@@ -48,7 +48,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let showingWizard = OnboardingWindowController.isPending
         HotkeyManager.suppressesAccessibilityPrompt = showingWizard
 
-        if !showingWizard {
+        // Dictation off: no microphone request, no speech model, no pill
+        // (`pillShouldShow`), no wake word (`HotkeyManager`).
+        if !showingWizard && AppState.shared.dictationEnabled {
             requestMicrophonePermission()
         }
 
@@ -371,14 +373,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // starts earlier is a moment shaved off the window where a press
             // finds the app deaf. The model load only takes ~0.1s, but it was
             // 0.1s the microphone was not warming.
-            async let capture: Void = AudioRecorder.shared.prewarm()
-            async let chirp: Void = SoundPlayer.shared.prewarm()
+            let dictation = AppState.shared.dictationEnabled
+            async let capture: Void = dictation ? AudioRecorder.shared.prewarm() : ()
+            async let chirp: Void = dictation ? SoundPlayer.shared.prewarm() : ()
 
             // ModelLoader handles status, warmup, and failure surfacing — and
             // picks what to load, which is not always the saved preference: it
             // will not start a several-hundred-megabyte download here when
             // something already on disk can serve.
-            await ModelLoader.activateAtLaunch()
+            if dictation {
+                await ModelLoader.activateAtLaunch()
+            } else {
+                PushLogger.log("AppDelegate: dictation is off, no speech model at launch")
+            }
 
             // The licence's daily check with Polar, in its own task: a slow or
             // absent network must never hold up anything else at launch.
