@@ -131,6 +131,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager?.stopListening()
         // Don't leave the user's audio quieted if they quit mid-dictation.
         MediaController.shared.endDictation()
+        TypingHistoryStore.shared.flush()
     }
 
     // MARK: - Permissions

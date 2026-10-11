@@ -221,6 +221,9 @@ final class TypingCoordinator {
             surfaceLine = SurfaceLine.render(surface: .chat, appName: focus.appName, windowTitle: focus.windowTitle,
                                              url: nil, placeholder: nil)
         }
+        if surface != .terminal {
+            TypingHistoryStore.shared.observe(element: focus.elementID, bundleID: focus.bundleID, before: before)
+        }
         guard SuggestionText.shouldSuggest(before: before, after: surface == .terminal ? nil : focus.after) else {
             return skip("too little text, or caret inside a word")
         }
@@ -246,7 +249,9 @@ final class TypingCoordinator {
             before: heal.prompt, after: surface == .terminal ? nil : focus.after,
             surfaceLine: surfaceLine,
             style: Self.nonEmpty(AppState.shared.typingAbout),
-            userName: TypingPreferences.signOffName(saved: AppState.shared.typingName))
+            userName: TypingPreferences.signOffName(saved: AppState.shared.typingName),
+            examples: surface == .terminal ? [] : TypingHistoryStore.shared.examples(
+                before: before, bundleID: focus.bundleID, windowTitle: focus.windowTitle))
         let prompt = TypingPrompt.render(context)
         let length = AppState.shared.typingLength
         let maxWords = length.words.upperBound
