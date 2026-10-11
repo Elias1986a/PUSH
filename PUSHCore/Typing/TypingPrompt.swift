@@ -31,6 +31,8 @@ public struct TypingContext: Sendable, Equatable {
 /// blank line, then the text before the caret as the very last bytes, so the
 /// model simply continues it. No instructions — a base model only continues.
 public enum TypingPrompt {
+    /// Room for the whole caret window (4,000) plus the preface, so the
+    /// window is never cut again here (a cut would slide with every key).
     public static let defaultBudget = 6_000
     /// However small the budget, the caret text keeps this many characters.
     static let beforeFloor = 1_000

@@ -29,7 +29,10 @@ struct FocusSnapshot: Sendable, Equatable {
 /// Accessibility call to a busy app can stall, and a stalled main thread makes
 /// macOS disable PUSH's dictation event tap. Every call has a short timeout.
 enum FocusReader {
-    static let beforeWindow = 1_500
+    /// Up to this much text before the caret (Cotabby sends up to 14,000; its
+    /// recall eval found facts far back invisible with less). The start moves
+    /// in steps (`PromptWindow`) so the KV cache keeps matching.
+    static let beforeWindow = 4_000
     static let afterWindow = 200
     private static let timeout: Float = 0.08
 
@@ -66,7 +69,8 @@ enum FocusReader {
             let text = value as NSString
             let caret = min(range.location, text.length)
             let end = min(caret + range.length, text.length)
-            snapshot.before = lastCharacters(text.substring(to: caret), beforeWindow)
+            let start = PromptWindow.start(length: caret, maximum: beforeWindow)
+            snapshot.before = text.substring(with: NSRange(location: start, length: caret - start))
             snapshot.after = String(text.substring(from: end).prefix(afterWindow))
             // Chrome's rich-text boxes have a value but no range bounds; their
             // text markers still know where the caret is.
@@ -94,7 +98,9 @@ enum FocusReader {
            let range: CFTypeRef = parameterized(element, "AXTextMarkerRangeForUnorderedTextMarkers",
                                                 [start, caretMarker] as CFArray),
            let text: String = parameterized(element, "AXStringForTextMarkerRange", range) {
-            before = lastCharacters(text, beforeWindow)
+            let ns = text as NSString
+            let start = PromptWindow.start(length: ns.length, maximum: beforeWindow)
+            before = ns.substring(from: start)
         }
         return before == nil && caret == nil ? nil : (before, caret)
     }
@@ -181,9 +187,6 @@ enum FocusReader {
         return nil
     }
 
-    private static func lastCharacters(_ text: String, _ n: Int) -> String {
-        text.count > n ? String(text.suffix(n)) : text
-    }
 }
 
 /// Electron and Chromium build their Accessibility tree only when asked.
