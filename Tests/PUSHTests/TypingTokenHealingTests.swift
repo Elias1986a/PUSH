@@ -51,4 +51,17 @@ final class TypingTokenHealingTests: XCTestCase {
         XCTAssertNil(TokenHealing.strip(" something else", forced: " appreci"))
         XCTAssertEqual(TokenHealing.strip(" for the", forced: ""), " for the")
     }
+
+    func testGluedWordJoinsThePartialWithTheLettersThatFollow() {
+        XCTAssertEqual(TokenHealing.gluedWord(forced: " appreci", continuation: "ate it."), "appreciate")
+        XCTAssertEqual(TokenHealing.gluedWord(forced: "Hello", continuation: "u, I'm"), "Hellou")
+        XCTAssertNil(TokenHealing.gluedWord(forced: "Hello", continuation: ", how are you"))
+        XCTAssertNil(TokenHealing.gluedWord(forced: " your", continuation: " time."))
+        XCTAssertNil(TokenHealing.gluedWord(forced: "", continuation: "abc"))
+    }
+
+    func testBoundaryGrammarForbidsALetterRightAfterTheWord() {
+        XCTAssertEqual(TokenHealing.grammar(forcing: "Hello", wordBoundary: true),
+                       #"root ::= "Hello" [ ,.!?;:'"’)\-] ([^\n] | "\n")*"#)
+    }
 }

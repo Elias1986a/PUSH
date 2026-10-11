@@ -61,10 +61,41 @@ final class TypingSuggestionPolishTests: XCTestCase {
         XCTAssertEqual(SuggestionText.polish("World", before: "Hello "), "World")
     }
 
-    func testNeedsTwoWordsOfContext() {
-        XCTAssertFalse(SuggestionText.hasEnoughContext("hello"))
-        XCTAssertFalse(SuggestionText.hasEnoughContext("  hi  "))
-        XCTAssertTrue(SuggestionText.hasEnoughContext("hello there"))
-        XCTAssertTrue(SuggestionText.hasEnoughContext("Thanks,\n"))  // a sign-off line still counts
+    func testSuggestsFromTheFirstCharacter() {
+        // Like Cotabby: any typed text is enough — a first word just gets the
+        // model's ordinary guess at how a sentence goes on.
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "hello", after: nil))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "H", after: ""))
+        XCTAssertFalse(SuggestionText.shouldSuggest(before: "   \n", after: nil))
+        XCTAssertFalse(SuggestionText.shouldSuggest(before: "", after: nil))
+    }
+
+    func testNotWithTheCaretInsideAWord() {
+        // "hel|lo world": anything suggested would splice into "lo".
+        XCTAssertFalse(SuggestionText.shouldSuggest(before: "say hel", after: "lo world"))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "say hello", after: " world"))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "say hello ", after: "world"))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "say hel", after: "\nnext line"))
+    }
+}
+
+final class TypingScriptMatchTests: XCTestCase {
+    func testRejectsAnotherWritingSystemThanTheText() {
+        XCTAssertFalse(SuggestionText.matchesScript(" 你好吗", before: "Hello"))
+        XCTAssertFalse(SuggestionText.matchesScript("、こんにちは", before: "hello"))
+        XCTAssertFalse(SuggestionText.matchesScript(" 안녕하세요", before: "Hi there"))
+        XCTAssertFalse(SuggestionText.matchesScript(" привет", before: "Hello"))
+    }
+
+    func testAcceptsTheSameWritingSystem() {
+        XCTAssertTrue(SuggestionText.matchesScript(" how are you?", before: "Hello"))
+        XCTAssertTrue(SuggestionText.matchesScript(" café à côté", before: "On se voit au"))
+        XCTAssertTrue(SuggestionText.matchesScript("ですね", before: "今日はいい天気"))   // kana + kanji are one group
+        XCTAssertTrue(SuggestionText.matchesScript(" 3.5% 🎬", before: "It grew"))           // no letters: fine
+    }
+
+    func testTextWithoutLettersAcceptsLatinOnly() {
+        XCTAssertTrue(SuggestionText.matchesScript(" items", before: "1. "))
+        XCTAssertFalse(SuggestionText.matchesScript(" 项目", before: "1. "))
     }
 }

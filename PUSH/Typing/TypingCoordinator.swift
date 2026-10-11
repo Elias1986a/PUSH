@@ -178,7 +178,7 @@ final class TypingCoordinator {
             surfaceLine = SurfaceLine.render(surface: .chat, appName: focus.appName, windowTitle: focus.windowTitle,
                                              url: nil, placeholder: nil)
         }
-        guard SuggestionText.hasEnoughContext(before) else { return }
+        guard SuggestionText.shouldSuggest(before: before, after: surface == .terminal ? nil : focus.after) else { return }
         guard let placement = TypingPlacement.decide(
             caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame) else { return }
 
@@ -189,25 +189,67 @@ final class TypingCoordinator {
             userName: NSFullUserName().split(separator: " ").first.map(String.init))
         let prompt = TypingPrompt.render(context)
         let length = AppState.shared.typingLength
-        let grammar = TokenHealing.grammar(forcing: heal.forced)
 
+        startGeneration(prompt: prompt, forced: heal.forced, before: before, length: length,
+                        placement: placement, surface: surface, stamp: stamp, wordBoundary: false)
+    }
+
+    /// Streams one suggestion. When the model glues letters onto the word at
+    /// the caret, the joined word must be a real one ("appreci" + "ate");
+    /// otherwise ("Hello" + "u") it asks again with a word break forced after
+    /// the word — Cotabby checks the caret word with the spell checker too.
+    private func startGeneration(prompt: String, forced: String, before: String, length: LengthPreset,
+                                 placement: GhostTextPanel.Placement, surface: SurfaceClass, stamp: Int,
+                                 wordBoundary: Bool) {
         generationTask?.cancel()
         generationTask = Task {
             var raw = ""
+            var judged = wordBoundary || forced.isEmpty
+            let grammar = TokenHealing.grammar(forcing: forced, wordBoundary: wordBoundary)
+            @MainActor func retryWithBoundary() {
+                startGeneration(prompt: prompt, forced: forced, before: before, length: length,
+                                placement: placement, surface: surface, stamp: stamp, wordBoundary: true)
+            }
+            /// False when the attempt was abandoned for a retry.
+            @MainActor func consider(final: Bool) -> Bool {
+                guard let text = TokenHealing.strip(raw, forced: forced) else { return true }
+                if !judged {
+                    if let word = TokenHealing.gluedWord(forced: forced, continuation: text) {
+                        let wordEnded = text.contains { !($0.isLetter || $0 == "'" || $0 == "’") }
+                        guard wordEnded || final else { return true }     // wait for the whole word
+                        judged = true
+                        if !Self.isRealWord(word) {
+                            retryWithBoundary()
+                            return false
+                        }
+                    } else {
+                        judged = true
+                    }
+                }
+                if let clean = SuggestionText.clean(text, maxWords: length.words.upperBound),
+                   let polished = SuggestionText.polish(length.trim(clean), before: before),
+                   SuggestionText.matchesScript(polished, before: before) {
+                    show(polished, at: placement, surface: surface)
+                }
+                return true
+            }
             do {
                 for try await piece in await LlamaEngine.shared.complete(
                     prompt: prompt, maxTokens: length.maxTokens, grammar: grammar) {
                     guard stamp == keystrokes, !Task.isCancelled else { return }
                     raw += piece
-                    guard let text = TokenHealing.strip(raw, forced: heal.forced),
-                          let clean = SuggestionText.clean(text, maxWords: length.words.upperBound),
-                          let polished = SuggestionText.polish(length.trim(clean), before: before) else { continue }
-                    show(polished, at: placement, surface: surface)
+                    if !consider(final: false) { return }
                 }
+                guard stamp == keystrokes, !Task.isCancelled else { return }
+                _ = consider(final: true)
             } catch {
                 PushLogger.log("TypingCoordinator: generation failed: \(error)")
             }
         }
+    }
+
+    private static func isRealWord(_ word: String) -> Bool {
+        NSSpellChecker.shared.checkSpelling(of: word, startingAt: 0).location == NSNotFound
     }
 
     private func show(_ text: String, at placement: GhostTextPanel.Placement, surface: SurfaceClass) {

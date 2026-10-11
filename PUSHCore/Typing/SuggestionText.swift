@@ -46,10 +46,47 @@ public enum SuggestionText {
         return suggestion.replacingCharacters(in: index...index, with: String(first).uppercased())
     }
 
-    /// One word gives a model nothing to continue; wait for a second (or a
-    /// sign-off line, where the next line is the name).
-    public static func hasEnoughContext(_ before: String) -> Bool {
-        before.split(whereSeparator: \.isWhitespace).count >= 2 || TypingPrompt.endsAtSignOff(before)
+    /// Any typed text is enough — a first word gets the model's ordinary
+    /// guess at how a sentence goes on (Cotabby's rule too). The exception is
+    /// a caret parked inside a word ("hel|lo"), where a suggestion would
+    /// splice into the letters after it.
+    public static func shouldSuggest(before: String, after: String?) -> Bool {
+        guard before.contains(where: { !$0.isWhitespace }) else { return false }
+        if let last = before.last, isWordCharacter(last),
+           let next = after?.first, isWordCharacter(next) { return false }
+        return true
+    }
+
+    private static func isWordCharacter(_ c: Character) -> Bool { c.isLetter || c.isNumber || c == "'" || c == "’" }
+
+    /// Every letter in the suggestion is in a writing system the text already
+    /// uses. Small multilingual models (Qwen especially) drift into Chinese,
+    /// Japanese or Korean when there is little context; that output is
+    /// rejected. Text with no letters yet counts as Latin.
+    public static func matchesScript(_ suggestion: String, before: String) -> Bool {
+        var allowed = Set(before.unicodeScalars.compactMap(script))
+        if allowed.isEmpty { allowed = [.latin] }
+        return suggestion.unicodeScalars.allSatisfy { scalar in script(scalar).map(allowed.contains) ?? true }
+    }
+
+    enum Script { case latin, greek, cyrillic, hebrew, arabic, devanagari, thai, hangul, cjk, other }
+
+    /// The writing system of a letter; nil for anything that is not a letter.
+    static func script(_ scalar: Unicode.Scalar) -> Script? {
+        guard scalar.properties.isAlphabetic else { return nil }
+        switch scalar.value {
+        case 0x0041...0x024F, 0x1E00...0x1EFF: return .latin
+        case 0x0370...0x03FF: return .greek
+        case 0x0400...0x052F: return .cyrillic
+        case 0x0590...0x05FF: return .hebrew
+        case 0x0600...0x06FF, 0x0750...0x077F: return .arabic
+        case 0x0900...0x097F: return .devanagari
+        case 0x0E00...0x0E7F: return .thai
+        case 0x1100...0x11FF, 0x3130...0x318F, 0xAC00...0xD7AF: return .hangul
+        // Kana and Han together: Japanese mixes them, Chinese uses Han.
+        case 0x3040...0x30FF, 0x3400...0x4DBF, 0x4E00...0x9FFF, 0xF900...0xFAFF: return .cjk
+        default: return .other
+        }
     }
 
     /// What one press of the next-word key types: leading space plus the

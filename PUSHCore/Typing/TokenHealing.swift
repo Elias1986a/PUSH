@@ -20,11 +20,27 @@ public enum TokenHealing {
     /// anything. The line is cut by the caller's newline stop, not here —
     /// forbidding "\n" made models run on, and a token like "\n@" fell off the
     /// grammar's end.
-    public static func grammar(forcing forced: String) -> String? {
+    /// `wordBoundary`: the word is finished — the next character is a space
+    /// or punctuation. Used when the model glued letters onto a complete word
+    /// ("Hello" + "u").
+    public static func grammar(forcing forced: String, wordBoundary: Bool = false) -> String? {
         guard !forced.isEmpty else { return nil }
         let literal = forced.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
-        return #"root ::= ""# + literal + #"" ([^\n] | "\n")*"#
+        // A space or punctuation — not "any non-letter", which let a model
+        // switch to Chinese characters right after an English word.
+        let boundary = wordBoundary ? #" [ ,.!?;:'"’)\-]"# : ""
+        return #"root ::= ""# + literal + #"""# + boundary + #" ([^\n] | "\n")*"#
+    }
+
+    /// The word formed when a continuation glues letters straight onto the
+    /// partial word ("appreci" + "ate" = "appreciate"), or nil when it starts
+    /// with a space or punctuation. The app checks it with the spell checker.
+    public static func gluedWord(forced: String, continuation: String) -> String? {
+        let partial = forced.trimmingCharacters(in: .whitespaces)
+        let letters = continuation.prefix { $0.isLetter || $0 == "'" || $0 == "’" }
+        guard !partial.isEmpty, !letters.isEmpty else { return nil }
+        return partial + letters
     }
 
     /// The output with the forced start removed, or nil if it does not begin
