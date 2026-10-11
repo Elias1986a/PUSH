@@ -18,6 +18,9 @@ struct FocusSnapshot: Sendable, Equatable {
     /// The focused element's frame, AppKit coordinates — for the mirror card.
     var fieldFrame: CGRect?
     var isSecure: Bool
+    /// The focused element is somewhere text is typed (not a menu item, list
+    /// row or button that happens to hold the focus).
+    var isTextInput: Bool
     /// Identifies the focused element, to tell a stale result from a fresh one.
     var elementID: Int
 }
@@ -52,7 +55,8 @@ enum FocusReader {
             windowTitle: (attribute(app, kAXFocusedWindowAttribute) as AXUIElement?).flatMap { attribute($0, kAXTitleAttribute) },
             placeholder: attribute(element, kAXPlaceholderValueAttribute),
             url: nil, before: nil, after: nil, caretRect: nil, fieldFrame: frame(of: element),
-            isSecure: isSecure, elementID: Int(CFHash(element)))
+            isSecure: isSecure, isTextInput: Self.textRoles.contains(role ?? ""),
+            elementID: Int(CFHash(element)))
         // A password field: nothing more is read from it, ever.
         guard !isSecure else { return snapshot }
 
@@ -101,6 +105,10 @@ enum FocusReader {
               let value else { return nil }
         return value as? T
     }
+
+    /// Roles text is typed into. A web area counts: Mail's body and other
+    /// web editors are one.
+    static let textRoles: Set<String> = ["AXTextArea", "AXTextField", "AXComboBox", "AXSearchField", "AXWebArea"]
 
     // MARK: - Pieces
 

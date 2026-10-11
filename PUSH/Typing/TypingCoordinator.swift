@@ -157,27 +157,34 @@ final class TypingCoordinator {
     private func suggest(stamp: Int) async {
         guard mayRun else { return }
         let focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
-        guard stamp == keystrokes, mayRun, let focus, !focus.isSecure,
+        guard stamp == keystrokes, mayRun, let focus, !focus.isSecure, focus.isTextInput,
               !TypingExclusions.isExcluded(bundleID: focus.bundleID),
               focus.pid != ProcessInfo.processInfo.processIdentifier else { return }
         let surface = SurfaceClass.classify(bundleID: focus.bundleID)
-        guard surface != .terminal else { return }          // terminals come with Task 4.1d
 
         // Keys typed into another field are not this field's text.
         if focus.elementID != bufferElement {
             if bufferElement != nil { buffer.apply(.reset) }
             bufferElement = focus.elementID
         }
-        let before = focus.before ?? buffer.text
+        var before = focus.before ?? buffer.text
+        var surfaceLine = SurfaceLine.render(surface: surface, appName: focus.appName, windowTitle: focus.windowTitle,
+                                             url: focus.url, placeholder: focus.placeholder)
+        if surface == .terminal {
+            // Only an agent's prompt (prose); a plain shell is commands.
+            guard let line = TerminalLine.parse(textBeforeCaret: before), line.kind == .agentPrompt else { return }
+            before = line.text
+            surfaceLine = SurfaceLine.render(surface: .chat, appName: focus.appName, windowTitle: focus.windowTitle,
+                                             url: nil, placeholder: nil)
+        }
         guard before.contains(where: { !$0.isWhitespace }) else { return }
         guard let placement = TypingPlacement.decide(
             caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame) else { return }
 
         let heal = TokenHealing.split(before)
         let context = TypingContext(
-            before: heal.prompt, after: focus.after,
-            surfaceLine: SurfaceLine.render(surface: surface, appName: focus.appName, windowTitle: focus.windowTitle,
-                                            url: focus.url, placeholder: focus.placeholder),
+            before: heal.prompt, after: surface == .terminal ? nil : focus.after,
+            surfaceLine: surfaceLine,
             userName: NSFullUserName().split(separator: " ").first.map(String.init))
         let prompt = TypingPrompt.render(context)
         let length = AppState.shared.typingLength
@@ -193,7 +200,7 @@ final class TypingCoordinator {
                     raw += piece
                     guard let text = TokenHealing.strip(raw, forced: heal.forced),
                           let clean = SuggestionText.clean(text, maxWords: length.words.upperBound) else { continue }
-                    show(length.trim(clean), at: placement)
+                    show(length.trim(clean), at: placement, surface: surface)
                 }
             } catch {
                 PushLogger.log("TypingCoordinator: generation failed: \(error)")
@@ -201,9 +208,14 @@ final class TypingCoordinator {
         }
     }
 
-    private func show(_ text: String, at placement: GhostTextPanel.Placement) {
+    private func show(_ text: String, at placement: GhostTextPanel.Placement, surface: SurfaceClass) {
         guard mayRun, !text.isEmpty else { return }
         let appearing = shown == nil
+        // → in terminals, where Tab is the shell's completion.
+        if appearing {
+            TypingKeyTap.shared.setKeys(nextWord: AcceptKeyResolver.nextWordKey(surface: surface),
+                                        whole: AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()))
+        }
         shown = Shown(text: text, placement: placement)
         GhostTextPanel.shared.show(text, at: placement)
         TypingKeyTap.shared.setSuggestionVisible(true)
