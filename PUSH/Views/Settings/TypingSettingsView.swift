@@ -53,6 +53,33 @@ struct TypingSettingsView: View {
                 }
             }
 
+            Section {
+                Toggle(isOn: $appState.typingUsesClipboard) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Use what I just copied")
+                        Text("Something you copied in the last few minutes can shape the suggestion — an address, a name, a line to reply to.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Toggle(isOn: $appState.typingUsesScreen) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Use the text around the field")
+                        Text("The message you’re replying to, the chat above, the page you’re on.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Context")
+            } footer: {
+                Text("Read only at the moment of a suggestion, on this Mac. Never kept, never sent. Passwords and anything a password manager copies are never read.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             Section("Appearance") {
                 HStack(spacing: 10) {
                     ForEach(SuggestionColor.Preset.allCases) { preset in

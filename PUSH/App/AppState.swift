@@ -209,6 +209,16 @@ final class AppState {
         didSet { UserDefaults.standard.set(typingColor.saved, forKey: TypingPreferences.colorKey) }
     }
 
+    /// Context Type may read (Settings → Typing): what was just copied, and
+    /// the text around the field on screen.
+    var typingUsesClipboard: Bool = TypingPreferences.useClipboard() {
+        didSet { UserDefaults.standard.set(typingUsesClipboard, forKey: TypingPreferences.clipboardKey) }
+    }
+
+    var typingUsesScreen: Bool = TypingPreferences.useScreen() {
+        didSet { UserDefaults.standard.set(typingUsesScreen, forKey: TypingPreferences.screenKey) }
+    }
+
     var typingShowIndicator: Bool = TypingPreferences.showIndicator() {
         didSet {
             UserDefaults.standard.set(typingShowIndicator, forKey: TypingPreferences.showIndicatorKey)

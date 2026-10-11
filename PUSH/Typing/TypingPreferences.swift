@@ -13,6 +13,8 @@ enum TypingPreferences {
     static let excludedAppsKey = "typing.excludedApps"
     static let pausedUntilKey = "typing.pausedUntil"
     static let showIndicatorKey = "typing.showIndicator"
+    static let clipboardKey = "typing.context.clipboard"
+    static let screenKey = "typing.context.screen"
     static let nameKey = "typing.profile.name"
     static let aboutKey = "typing.profile.about"
     /// The About note's limit (Cotabby keeps its style line to 300).
@@ -74,5 +76,15 @@ enum TypingPreferences {
     /// On by default: the field icon is how the user knows Type is working there.
     static func showIndicator(in d: UserDefaults = .standard) -> Bool {
         d.object(forKey: showIndicatorKey) as? Bool ?? true
+    }
+
+    /// On by default (user, 2026-10-11): read at the moment of a suggestion,
+    /// never stored.
+    static func useClipboard(in d: UserDefaults = .standard) -> Bool {
+        d.object(forKey: clipboardKey) as? Bool ?? true
+    }
+
+    static func useScreen(in d: UserDefaults = .standard) -> Bool {
+        d.object(forKey: screenKey) as? Bool ?? true
     }
 }

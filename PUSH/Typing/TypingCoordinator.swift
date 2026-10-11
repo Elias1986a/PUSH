@@ -67,13 +67,15 @@ final class TypingCoordinator {
         var style: String?
         var userName: String?
         var examples: [String]
+        var clipboard: String?
+        var screen: String?
         var surface: SurfaceClass
         var length: LengthPreset
 
         var prompt: (text: String, forced: String) {
             let heal = TokenHealing.split(before)
             let context = TypingContext(before: heal.prompt, after: after, surfaceLine: surfaceLine, style: style,
-                                        userName: userName, examples: examples)
+                                        userName: userName, clipboard: clipboard, screen: screen, examples: examples)
             return (TypingPrompt.render(context), heal.forced)
         }
 
@@ -123,6 +125,7 @@ final class TypingCoordinator {
                         whole: AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()))
             tap.onEvent = { [weak self] event in self?.handle(event) }
             tap.start()
+            ClipboardContext.shared.start()
             activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
                 forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.refreshIndicator(after: .milliseconds(300)) }
@@ -130,6 +133,7 @@ final class TypingCoordinator {
             refreshIndicator(after: .milliseconds(300))
         } else {
             TypingKeyTap.shared.stop()
+            ClipboardContext.shared.stop()
             if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
             activationObserver = nil
             cancelWork()
@@ -389,6 +393,9 @@ final class TypingCoordinator {
             userName: TypingPreferences.signOffName(saved: AppState.shared.typingName),
             examples: surface == .terminal ? [] : TypingHistoryStore.shared.examples(
                 before: before, bundleID: focus.bundleID, windowTitle: focus.windowTitle),
+            clipboard: surface != .terminal && AppState.shared.typingUsesClipboard
+                ? ClipboardContext.shared.text(for: before) : nil,
+            screen: nil,
             surface: surface, length: AppState.shared.typingLength)
         nextInField = surface == .terminal ? nil : focus.after?.first
         if let ready = prefetched, ready.before == before {
