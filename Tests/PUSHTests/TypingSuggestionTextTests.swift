@@ -66,21 +66,20 @@ final class TypingSuggestionPolishTests: XCTestCase {
         XCTAssertEqual(SuggestionText.polish("World", before: "Hello "), "World")
     }
 
-    func testSuggestsFromTheFirstCharacter() {
-        // Like Cotabby: any typed text is enough — a first word just gets the
-        // model's ordinary guess at how a sentence goes on.
-        XCTAssertTrue(SuggestionText.shouldSuggest(before: "hello", after: nil))
-        XCTAssertTrue(SuggestionText.shouldSuggest(before: "H", after: ""))
+    func testWaitsForThreeWords() {
+        XCTAssertFalse(SuggestionText.shouldSuggest(before: "hello", after: nil))
+        XCTAssertFalse(SuggestionText.shouldSuggest(before: "Hello, I", after: ""))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "Hello, I wanted", after: nil))
         XCTAssertFalse(SuggestionText.shouldSuggest(before: "   \n", after: nil))
-        XCTAssertFalse(SuggestionText.shouldSuggest(before: "", after: nil))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "Thanks,\n", after: nil))   // sign-off: the name is next
     }
 
     func testNotWithTheCaretInsideAWord() {
         // "hel|lo world": anything suggested would splice into "lo".
-        XCTAssertFalse(SuggestionText.shouldSuggest(before: "say hel", after: "lo world"))
-        XCTAssertTrue(SuggestionText.shouldSuggest(before: "say hello", after: " world"))
-        XCTAssertTrue(SuggestionText.shouldSuggest(before: "say hello ", after: "world"))
-        XCTAssertTrue(SuggestionText.shouldSuggest(before: "say hel", after: "\nnext line"))
+        XCTAssertFalse(SuggestionText.shouldSuggest(before: "we should say hel", after: "lo world"))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "we should say hello", after: " world"))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "we should say hello ", after: "world"))
+        XCTAssertTrue(SuggestionText.shouldSuggest(before: "we should say hel", after: "\nnext line"))
     }
 }
 
@@ -156,11 +155,6 @@ final class TypingSuggestionSafetyTests: XCTestCase {
         XCTAssertFalse(SuggestionText.isUnwanted(" Essex office", before: "Meet at the"))   // word, not substring
     }
 
-    func testColdStartIsOneWord() {
-        XCTAssertEqual(LengthPreset.long.maxWords(for: "Hello"), 1)
-        XCTAssertEqual(LengthPreset.medium.maxWords(for: "Hi there"), 1)
-        XCTAssertEqual(LengthPreset.medium.maxWords(for: "Hi there, I wanted"), 12)
-    }
 }
 
 final class TypingSuggestionWebJunkTests: XCTestCase {

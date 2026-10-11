@@ -96,15 +96,6 @@ public enum LengthPreset: String, CaseIterable, Sendable, Comparable {
 
     public var label: String { "\(words.lowerBound)–\(words.upperBound) words" }
 
-    /// The most words a suggestion may have here. On a near-empty page
-    /// (under three words) it is one word or the punctuation, like a phone
-    /// keyboard: with nothing to go on every longer guess scored the same
-    /// (mean log-prob −1.3 to −1.8 for ", everyone." and "I am a student of
-    /// the" alike), so no confidence floor can tell them apart.
-    public func maxWords(for before: String) -> Int {
-        before.split(whereSeparator: \.isWhitespace).count < 3 ? 1 : words.upperBound
-    }
-
     /// Tokens to ask the model for: words run about 1.3 tokens in English;
     /// the margin lets the trim, not the token limit, decide where to stop.
     public var maxTokens: Int { words.upperBound * 2 + 4 }

@@ -48,12 +48,17 @@ public enum SuggestionText {
         return suggestion.replacingCharacters(in: index...index, with: String(first).uppercased())
     }
 
-    /// Any typed text is enough — a first word gets the model's ordinary
-    /// guess at how a sentence goes on (Cotabby's rule too). The exception is
-    /// a caret parked inside a word ("hel|lo"), where a suggestion would
-    /// splice into the letters after it.
+    /// Wait for about three words (the user's call, 2026-10-10): on a blank
+    /// page every model filled the gap with web text — forum introductions,
+    /// markup, stories. A sign-off line counts, since the name comes next.
+    /// Never with the caret parked inside a word ("hel|lo"), where a
+    /// suggestion would splice into the letters after it (Cotabby's rule).
+    static let minimumWords = 3
+
     public static func shouldSuggest(before: String, after: String?) -> Bool {
-        guard before.contains(where: { !$0.isWhitespace }) else { return false }
+        let words = before.split(whereSeparator: \.isWhitespace)
+            .filter { $0.contains(where: { $0.isLetter || $0.isNumber }) }.count
+        guard words >= minimumWords || TypingPrompt.endsAtSignOff(before) else { return false }
         if let last = before.last, isWordCharacter(last),
            let next = after?.first, isWordCharacter(next) { return false }
         return true
