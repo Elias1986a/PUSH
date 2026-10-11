@@ -586,22 +586,57 @@ CLI in `compare/` so eval and app share one prompt.
 - **4.7 Compatibility matrix**: create `docs/TYPE_COMPATIBILITY.md` (~30 apps: native, browsers, Electron, terminals incl. Claude Code in Terminal/iTerm2) and fill it in; every failing app gets a note and, where possible, a fix task.
 - **Verify** in Mail, Slack, Chrome (Gmail), Safari, Notes, Messages; 375-px-wide isn't relevant here, but test on the built-in display and an external one (caret rect coordinates differ per screen).
 
-## Phase 5 — Settings, menu bar, onboarding (expand at phase start)
+## Phase 5 — Settings, menu bar, onboarding (expanded 2026-10-11)
 
-- **5.1 Settings → Type pane** (`SettingsView.Pane.type`): switch, model cards (same look as speech cards), length, excluded apps, accept key.
-- **5.2 Menu bar Type section**: on/off, Pause ▾ (1 hour / until tomorrow / in <App>), Model picker (downloaded only), Length picker (capped by model), clipboard switch after Phase 6.
-- **5.2b Shortcut recorders** for both accept keys, with conflict checks.
-- **5.3 Onboarding `.typingModel` step**: real model cards + download; remove the Phase-1 "Coming soon" gate.
-- **5.4 Onboarding try-it**: a text field with live suggestions when autocomplete is on.
+User's picks (2026-10-11): color choice with Blue as default; "space after the
+last word"; "pause on battery". Not wanted: size/opacity sliders, per-website
+switch. Cotabby's settings were read for ideas (AGPL, nothing copied).
+
+- **5.1 Preferences** (`TypingPreferences`, per-machine, never synced):
+  suggestion color (preset id or custom hex; Blue default, plus Gray and a
+  palette), space after the last word (on), pause on battery (off), the user's
+  excluded apps, pause-until date. Pure parts tested.
+- **5.2 Behaviour**: `GhostTextPanel` reads the color; accepting the end of a
+  suggestion types a space when the next character is not already one; Type
+  stands down on battery when asked (IOKit power source, Low Power Mode too),
+  in user-excluded apps, and while paused.
+- **5.3 Settings → Typing pane**: model cards (download / use / delete, size,
+  speed), length, accept keys shown, space after last word, code editors,
+  color swatches with a live preview, excluded apps (add from running apps),
+  pause on battery, macOS inline-prediction advice.
+- **5.4 Menu bar Type section**: on/off, Pause ▾ (1 hour / until tomorrow / in
+  <frontmost app>), model (downloaded only), length.
+- **5.5 Onboarding `.typingModel` step**: real model cards + download, the
+  code-editor option, inline-prediction advice.
 - **Verify** with screenshots of every new screen, light and dark.
+- Later, if asked: shortcut recorders for the accept keys; an onboarding
+  try-it field (needs PUSH's own window allowed while onboarding).
 
-## Phase 6 — More context (each opt-in, off by default; expand at phase start)
+## Phase 6 — Personalization (expanded 2026-10-11)
 
-- **6.1 Custom instructions** text field → `style` section.
-- **6.2 Clipboard**: change-count baseline, 5-minute freshness, shared-word rule.
-- **6.3 Screen text**: Screen Recording permission row, ScreenCaptureKit window capture, Vision OCR off the main actor, nearest-lines selection, pixel-hash cache.
-- **6.4 Own-writing examples**: local store of the user's accepted/typed sentences, never synced, delete button.
-- Re-run the Phase 0 eval with each source on/off before enabling by default anywhere.
+User's picks: "Profile + opt-in history" and "Spelling + word completion" for
+the dictionary (dictionary words are NOT given to the model).
+
+- **6.1 Profile**: "What should PUSH call you?" (replaces `NSFullUserName`,
+  still used only at a sign-off) and an "About you" note → the prompt's
+  `style` section (Cotabby: "Writing style: …"; Cotypist: custom
+  instructions). Settings → Personal pane.
+- **6.2 Dictionary → typing**: the Dictionary's right-hand words are never
+  typos (typo hold, glued-word check), and the start of one, case-matched, at
+  least three letters, unique, is completed straight from the Dictionary
+  without the model.
+- **6.3 Learn from my writing** (off by default): records what the user types
+  where Type is active — never secure, credential or terminal fields, never
+  excluded apps; scrubbed of keys, card numbers and long tokens; at least 20
+  characters; capped (20,000 entries, 12,000 characters each). AES-GCM with a
+  Keychain key, one file in Application Support, never synced; Delete All
+  removes the file and the key. Retrieval: IDF word-overlap index (no model),
+  queried on 8-word blocks plus the window title so the prompt head stays
+  cached; the current field's own draft is never an example; at most two
+  passages, ≤760 characters, as "Earlier writing by the same author:" ahead of
+  the text. Settings: switch, entry count, apps not recorded, Delete All.
+- Clipboard and screen text (old 6.2/6.3) stay deferred.
+- Then: the replay eval through the real pipeline, and a full bug pass.
 
 ## Phase 7 — Release
 
