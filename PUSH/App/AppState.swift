@@ -175,8 +175,28 @@ final class AppState {
     }
 
     var typeEnabled: Bool = FeatureSwitches.typeEnabled() {
-        didSet { UserDefaults.standard.set(typeEnabled, forKey: FeatureSwitches.typeKey) }
+        didSet {
+            UserDefaults.standard.set(typeEnabled, forKey: FeatureSwitches.typeKey)
+            if typeEnabled != oldValue { TypingEngineLoader.apply() }
+        }
     }
+
+    /// Type's chosen model and length (per-machine — see `TypingPreferences`).
+    var selectedTypingModel: TypingModel = TypingPreferences.model() {
+        didSet {
+            UserDefaults.standard.set(selectedTypingModel.rawValue, forKey: TypingPreferences.modelKey)
+            let clamped = typingLength.clamped(to: selectedTypingModel)
+            if clamped != typingLength { typingLength = clamped }
+            if selectedTypingModel != oldValue { TypingEngineLoader.apply() }
+        }
+    }
+
+    var typingLength: LengthPreset = TypingPreferences.length() {
+        didSet { UserDefaults.standard.set(typingLength.rawValue, forKey: TypingPreferences.lengthKey) }
+    }
+
+    /// The typing model is loaded and warm.
+    var typingModelReady = false
 
     var wakeWordEnabled: Bool = false {
         didSet {

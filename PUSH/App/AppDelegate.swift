@@ -71,6 +71,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Pre-load the speech model in background (will download if needed)
         preloadModels()
 
+        // Type's model, when Type is on and its model is on disk. Never a
+        // download — and independent of dictation's warm-up.
+        TypingEngineLoader.apply()
+
         if showingWizard {
             showOnboarding()
         }

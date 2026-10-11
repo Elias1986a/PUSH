@@ -17,7 +17,15 @@ dictation round-trip on a signed build (launch path checked in the log; the
 user chose to skip the hands-on press).
 Phase 2 (2026-10-10): pure core in PUSHCore/Typing — SurfaceClass,
 SurfaceLine, PromptBudget, TypingPrompt, SuggestionText, TokenHealing (2.6,
-added). 376 tests green. Next: Phase 3 (LlamaEngine, catalog, downloads).
+added). 376 tests green.
+Phase 3 (2026-10-10): LlamaEngine (KV reuse; Qwen3.5 is HYBRID and cannot
+trim its cache, so it snapshots/restores state — reused answers are tested
+equal to cold ones), catalog pinned by revision + SHA-256, resumable verified
+downloader (live-tested against HF), TypingModelStore
+(~/Library/Application Support/PUSH/TypingModels), TypingEngineLoader (loads
+while Type is on; warm-up in background: 15.8s first ever, 0.27s after).
+Lite model is cloned into TypingModels for dev testing. Next: Phase 4 — the
+first visible suggestions.
 
 ## Latest (2026-10-10, v8.2.8)
 
