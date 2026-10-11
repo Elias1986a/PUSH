@@ -91,12 +91,6 @@ struct PersonalSettingsView: View {
                 Text("Your writing")
             }
 
-            Section("Dictionary") {
-                Text("Names and terms in your Dictionary are finished for you as you type (“Kub” → “Kubernetes”), and never count as typos.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
         .formStyle(.grouped)
         .confirmationDialog("Delete everything PUSH has kept of your writing?", isPresented: $confirmingDelete) {

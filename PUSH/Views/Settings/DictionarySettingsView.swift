@@ -5,6 +5,7 @@ import PUSHCore
 // MARK: - Dictionary
 
 struct DictionarySettingsView: View {
+    @Environment(AppState.self) private var appState
     @ObservedObject private var store = CorrectionsStore.shared
 
     /// A row being typed, held here rather than in the store: `addCorrection`
@@ -77,6 +78,13 @@ struct DictionarySettingsView: View {
                 Text(footnote)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                // The right-hand words serve Type too (DictionaryCompletion).
+                if appState.typeEnabled {
+                    Label("When you type, PUSH finishes these words for you (“Kub” → “Kubernetes”) and never treats them as typos.",
+                          systemImage: "keyboard")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)

@@ -210,29 +210,7 @@ struct MenuBarView: View {
                 }
                 .labelsHidden()
             }
-            HStack(spacing: 8) {
-                if let until = appState.typingPausedUntil, until > Date() {
-                    Text("Paused until \(until.formatted(date: .omitted, time: .shortened))")
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                    Button("Resume") { appState.typingPausedUntil = nil }
-                } else {
-                    Text("Suggestions").foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                    Menu("Pause") {
-                        Button("For 1 Hour") { appState.typingPausedUntil = Date().addingTimeInterval(3600) }
-                        Button("Until Tomorrow") {
-                            appState.typingPausedUntil = Calendar.current.startOfDay(for: Date().addingTimeInterval(86_400))
-                        }
-                        if let app = TypingCoordinator.shared.lastApp,
-                           !appState.typingExcludedApps.contains(app.bundleID) {
-                            Divider()
-                            Button("Turn Off in \(app.name)") { appState.typingExcludedApps.append(app.bundleID) }
-                        }
-                    }
-                    .fixedSize()
-                }
-            }
+            TypingPauseControl()
         }
         .font(.system(size: 12))
         .controlSize(.small)

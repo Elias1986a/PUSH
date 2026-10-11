@@ -22,14 +22,7 @@ struct TypingSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                if let until = appState.typingPausedUntil, until > Date() {
-                    HStack {
-                        Text("Paused until \(until.formatted(date: .omitted, time: .shortened))")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button("Resume") { appState.typingPausedUntil = nil }
-                    }
-                }
+                if appState.typeEnabled { TypingPauseControl() }
             }
 
             Section("Model") {
