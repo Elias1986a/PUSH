@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 8.2.7</title>
-            <pubDate>Wed, 30 Sep 2026 22:06:57 -0700</pubDate>
-            <sparkle:version>101</sparkle:version>
-            <sparkle:shortVersionString>8.2.7</sparkle:shortVersionString>
+            <title>Version 8.2.8</title>
+            <pubDate>Sat, 10 Oct 2026 18:24:54 -0700</pubDate>
+            <sparkle:version>102</sparkle:version>
+            <sparkle:shortVersionString>8.2.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,12 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 8.2.7 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 8.2.8 <span class="tag">New</span></h2>
+<h3>New</h3>
+<ul>
+<li><strong>Drag to allow Accessibility.</strong> When PUSH sends you to System Settings for Accessibility, a PUSH card now rides along at the bottom of the window. Drag PUSH from the card into the list and you're done: no hunting for the + button, no digging through Applications. The card follows the window, steps aside when you switch apps, and goes away by itself the moment access is on. The push-to-talk key starts working straight away, no restart needed.</li>
+</ul></div>
+<div class="older"><h2>Version 8.2.7</h2>
 <h3>New</h3>
 <ul>
 <li><strong>Pick your start sound</strong> (Settings ▸ Dictation). Six sounds made for PUSH: Deep Tap (the new default), Mic Tap, Bright Tap, Key Up, and two 8-bit ones, Power On and Ready. Choosing one plays it. They replace the old radio chirp.</li>
@@ -134,6 +139,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.8/PUSH-v8.2.8.zip" type="application/octet-stream" sparkle:edSignature="O8z4nHzi4zWZtMrED/2eaAoki4CL6XTWvy27eq6CtLpN8iUwcVVX5H51mk/Z0d+Xa+TYg4x/x7HuwdIg9+iFBg==" length="14363193" />
+        </item>
+        <item>
+            <title>Version 8.2.7</title>
+            <pubDate>Wed, 30 Sep 2026 22:06:57 -0700</pubDate>
+            <sparkle:version>101</sparkle:version>
+            <sparkle:shortVersionString>8.2.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.7/PUSH-v8.2.7.zip" type="application/octet-stream" sparkle:edSignature="F3xky5yifFGmLcxZGgzmnaVrbWRmg2j7JdhcuPozapXGbHznM8T9H2kt9iN4aEkhBnOCA6GfOxsg890UgbqiDg==" length="14326497" />
         </item>
         <item>

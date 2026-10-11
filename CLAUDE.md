@@ -57,6 +57,9 @@ text field of any app. All speech recognition runs on-device.
   on each other: they cancel the one in flight and are ordered by
   `activationGeneration`, and a `stallWatchdog` reports a load that has gone 90s
   without a byte landing. Don't reintroduce awaiting the previous activation.
+- Accessibility is granted by drag: `PermissionGuide.shared.show(.accessibility)`
+  opens the list and floats a card holding PUSH as a drag source
+  (`PUSH/Core/PermissionGuide/`). Only works from a real `.app`.
 - Every window is AppKit's, created by `AppDelegate` (pill), `MenuBarController`
   (status item + popover), `OnboardingWindowController` and
   `SettingsWindowController`. SwiftUI's `MenuBarExtra` cannot produce the

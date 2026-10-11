@@ -187,14 +187,16 @@ struct OnboardingView: View {
                 status: permissions.accessibility,
                 actionTitle: "Open System Settings…",
                 action: {
-                    permissions.requestAccessibility()
-                    permissions.openAccessibilitySettings()
+                    // Opens the list with PUSH on a card beside it to drag in.
+                    // No system prompt first: its dialog would sit on top of
+                    // the very list the card is pointing at.
+                    PermissionGuide.shared.show(.accessibility)
                 }
             )
 
             if !permissions.accessibility.isGranted {
                 Label(
-                    "In System Settings, switch PUSH on under Privacy & Security → Accessibility. This page ticks over on its own once you do — no need to restart PUSH.",
+                    "System Settings opens with PUSH on a card at the bottom — drag it into the list. This page ticks over on its own once you do — no need to restart PUSH.",
                     systemImage: "info.circle"
                 )
                 .font(.callout)
