@@ -1,7 +1,12 @@
 # Permission drag helper — design and plan
 
 Date: 2026-10-10
-Status: approved in principle by the user ("we should do this for PUSH no matter what").
+Status: built 2026-10-10 on `feature/permission-drag-helper`. Verified end to end on a
+Developer-ID-signed build: card shown 01:15:59Z, Accessibility granted by drag
+01:16:10Z, card closed itself, hotkey tap created 01:16:12Z with no relaunch.
+Not yet checked: second display, moving/resizing System Settings mid-flow,
+Reduce Motion. Deviation from plan: the card rises into place instead of
+flying from the button (simpler, same idea).
 Independent of Autocomplete; can ship first, on its own branch off `main`.
 
 ## What this is
