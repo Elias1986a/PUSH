@@ -229,6 +229,15 @@ final class TypingCoordinator {
             return skip("no caret or field position")
         }
 
+        // A name or term from the user's Dictionary, finished without the model.
+        if let partial = SuggestionText.caretWords(before).partial,
+           let rest = DictionaryCompletion.complete(partial: partial, vocabulary: Self.vocabulary,
+                                                    isRealWord: { NSSpellChecker.shared.checkSpelling(of: $0, startingAt: 0).location == NSNotFound }) {
+            generationTask?.cancel()
+            nextInField = surface == .terminal ? nil : focus.after?.first
+            show(rest, at: placement, surface: surface)
+            return
+        }
         // A typo at the caret: whatever follows would build on it (Cotabby
         // holds completions while one forms; Cotypist says fix it first).
         guard !Self.typoAtCaret(before) else { return skip("typo at caret") }
@@ -352,8 +361,17 @@ final class TypingCoordinator {
         return false
     }
 
+    /// A dictionary word, or one in the user's PUSH Dictionary ("Hamer" is
+    /// never a typo to hold back for).
     private static func isRealWord(_ word: String) -> Bool {
-        NSSpellChecker.shared.checkSpelling(of: word, startingAt: 0).location == NSNotFound
+        vocabulary.contains { $0.caseInsensitiveCompare(word) == .orderedSame }
+            || NSSpellChecker.shared.checkSpelling(of: word, startingAt: 0).location == NSNotFound
+    }
+
+    /// The words of the PUSH Dictionary's right-hand side. A few dozen
+    /// entries: rebuilt when asked rather than cached and invalidated.
+    private static var vocabulary: Set<String> {
+        DictionaryCompletion.vocabulary(from: CorrectionsStore.shared.corrections.map(\.right))
     }
 
     private func show(_ text: String, at placement: GhostTextPanel.Placement, surface: SurfaceClass) {
