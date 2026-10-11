@@ -96,6 +96,33 @@ public enum LengthPreset: String, CaseIterable, Sendable, Comparable {
 
     public var label: String { "\(words.lowerBound)–\(words.upperBound) words" }
 
+    /// Tokens to ask the model for: words run about 1.3 tokens in English;
+    /// the margin lets the trim, not the token limit, decide where to stop.
+    public var maxTokens: Int { words.upperBound * 2 + 4 }
+
+    /// Cuts a suggestion to this preset. A sentence end always stops it (past
+    /// the first sentence every model drifted in the Phase 0 eval); a comma or
+    /// semicolon stops it once inside the range; otherwise it stops at the top.
+    public func trim(_ suggestion: String) -> String {
+        var count = 0
+        var end = suggestion.startIndex
+        var i = suggestion.startIndex
+        while i < suggestion.endIndex {
+            while i < suggestion.endIndex, suggestion[i].isWhitespace { i = suggestion.index(after: i) }
+            guard i < suggestion.endIndex else { break }
+            while i < suggestion.endIndex, !suggestion[i].isWhitespace { i = suggestion.index(after: i) }
+            count += 1
+            end = i
+            // Only the word's last character counts, so "3.5" or "4.30" never
+            // reads as a sentence end.
+            let last = suggestion[suggestion.index(before: i)]
+            if ".!?".contains(last) { break }
+            if ",;".contains(last), count >= words.lowerBound { break }
+            if count >= words.upperBound { break }
+        }
+        return String(suggestion[..<end])
+    }
+
     /// Switching to a smaller model brings the setting down with it.
     public func clamped(to model: TypingModel) -> LengthPreset { min(self, model.maxLength) }
 
