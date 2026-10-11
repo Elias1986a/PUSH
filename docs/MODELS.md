@@ -162,6 +162,15 @@ Not picked:
 - **Qwen3 4B instruct + "Continue the following text"** (both earlier prototypes)
   — same hits as the 0.8B base at 3× the per-keystroke and 5× the cold latency.
 
+**Qwen3.5 is a hybrid model** (attention plus recurrent layers): llama.cpp
+cannot trim its cache back to a shared prefix (`llama_memory_seq_rm` returns
+false), so `LlamaEngine` snapshots the sequence state after each prompt and
+restores it instead. Gemma 4 trims normally. The Phase 0 repeat test ignored
+that return value, so its Qwen3.5 "pass" proved nothing; `LlamaEngineTests`
+now checks reused answers equal cold ones on all three models. Measured in the
+engine (M4, ~270-token prompt): first token cold 151 / 317 / 390 ms, per
+keystroke 39 / 51 / 34 ms (0.8B / 2B / Gemma).
+
 Requirements the eval surfaced: **token healing** (back off the partial word and
 force the output to start with it, via the grammar sampler: mid-word 1/15 → 14/15),
 and **KV-cache reuse across keystrokes** (cold prompts miss 150 ms on every model;
