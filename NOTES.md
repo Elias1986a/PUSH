@@ -25,6 +25,13 @@ downloader (live-tested against HF), TypingModelStore
 (~/Library/Application Support/PUSH/TypingModels), TypingEngineLoader (loads
 while Type is on; warm-up in background: 15.8s first ever, 0.27s after).
 All three models are cloned into TypingModels for dev testing.
+Overnight 2026-10-11: gap analysis vs Cotypist + Cotabby in
+docs/plans/2026-10-11-type-gap-analysis.md. Biggest bug: prompts ending in a
+SPACE produced years/numbers/HTML ('love to ' → '2018.'); fixed by healing the
+trailing space. Also: anchored 4,000-char window, repetition penalty,
+50 ms debounce, Cotabby-style content policy, sign-in/Mail-header stand-down,
+typo hold, Esc pause, centred ghost text, suppression-reason logging.
+Open decision for the user: Phase 6 personalization before Phase 5 polish?
 Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
 filters for invented personas/self-descriptions, explicit words, web debris,
 other scripts; titles only for chat/email/browser; spell-checked glued words;
