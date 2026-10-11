@@ -127,6 +127,20 @@ final class TypingSuggestionSafetyTests: XCTestCase {
         XCTAssertTrue(SuggestionText.isUnwanted(" Sarah", before: "Hi, my name is"))
     }
 
+    func testNeverFillsInFactsAboutTheUser() {
+        // Only the user knows who they are; a model can only invent it.
+        for before in ["hello, I am a", "Hi, I'm", "I am from", "I'm from the", "my name is", "I work at",
+                       "I live in", "I work for a", "I study at"] {
+            XCTAssertTrue(SuggestionText.isUnwanted(" student of the university", before: before), before)
+        }
+    }
+
+    func testOrdinarySentencesWithIStillWork() {
+        XCTAssertFalse(SuggestionText.isUnwanted(" to ask you something", before: "I wanted"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" happy to help", before: "I am"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" sure we can", before: "I'm not"))
+    }
+
     func testTheUsersOwnIntroductionIsTheirs() {
         // The user typed the whole pattern themselves: continuing it is fine.
         XCTAssertFalse(SuggestionText.isUnwanted(" and I live in Boston", before: "I'm a 40 year old dad"))

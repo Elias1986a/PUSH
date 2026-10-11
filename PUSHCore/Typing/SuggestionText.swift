@@ -108,6 +108,11 @@ public enum SuggestionText {
         where match.range.location + match.range.length > (tail as NSString).length {
             return true
         }
+        // Text that would state who the user is ("I am a | student of…",
+        // "I'm from | …", "my name is | …"): only they know, a model invents.
+        let beforeTail = NSRange(location: 0, length: (lowerBefore as NSString).length)
+        if selfDescription.firstMatch(in: lowerBefore, range: beforeTail) != nil,
+           text.contains(where: \.isLetter) { return true }
         let words = Set(text.split { !$0.isLetter }.map(String.init))
         let typed = Set(lowerBefore.split { !$0.isLetter }.map(String.init))
         return !words.subtracting(typed).isDisjoint(with: explicit)
@@ -115,6 +120,15 @@ public enum SuggestionText {
 
     private static let persona = try! NSRegularExpression(pattern:
         #"\bmy name is\s+[a-z]|\b(i'?m|i am|im)\s+(a\s+)?(\d{1,2}([\s-]*(years?[\s-]*old|yo|y/o))?\b|(boy|girl|guy|woman|man|male|female|teen|teenager)\b)"#)
+
+    /// The text ends where a fact about the writer would come next.
+    private static let selfDescription = try! NSRegularExpression(pattern: [
+        #"\b(i am|i'm|im) (a|an)\s*$"#,                                   // "I am a | student"
+        #"\b(hi|hello|hey|hiya)[,!.]?\s+(i am|i'm|im)\s*$"#,              // "Hi, I'm | Sarah"
+        #"\b(i am|i'm|im) from( the)?\s*$"#,                              // "I'm from | Manila"
+        #"\bmy name is\s*$"#,
+        #"\bi (work|study|live) (at|for|in)( an?| the)?\s*$"#,           // "I work at | …"
+    ].joined(separator: "|"))
 
     private static let explicit: Set<String> = [
         "sex", "sexy", "sexual", "porn", "porno", "nude", "nudes", "naked", "horny", "fuck", "fucking",
