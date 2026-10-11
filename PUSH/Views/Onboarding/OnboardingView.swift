@@ -28,7 +28,7 @@ struct OnboardingView: View {
     @StateObject private var permissions = PermissionsModel()
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
 
-    @State private var step: Step = .welcome
+    @State private var step: OnboardingFlow.Step = .welcome
     /// What the user dictated into the sandbox on step 3. Its contents are
     /// never read, logged, or persisted — only whether it is empty, to show the
     /// "that worked" confirmation.
@@ -42,8 +42,25 @@ struct OnboardingView: View {
     @State private var downloadProgress: Double = 0
     @State private var downloadError: String?
 
-    enum Step: Int, CaseIterable {
-        case welcome, permissions, model, tryIt, pill, more, finish
+    /// Type is built in phases; until its typing model step and sandbox exist
+    /// (Phase 5), release builds show it as coming soon with its switch off.
+    static let typeAvailable: Bool = {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }()
+
+    private var typeChosen: Bool { Self.typeAvailable && appState.typeEnabled }
+
+    /// The steps for the features chosen so far. Recomputed as the switches on
+    /// the features step change; `step` is a value, not an index, so it stays
+    /// put when the list around it grows or shrinks.
+    private var steps: [OnboardingFlow.Step] {
+        OnboardingFlow.steps(dictation: appState.dictationEnabled, type: typeChosen)
+            // The try-it sandbox is dictation's until Type gets its own (Phase 5).
+            .filter { $0 != .tryIt || appState.dictationEnabled }
     }
 
     var body: some View {
@@ -83,8 +100,10 @@ struct OnboardingView: View {
     private var content: some View {
         switch step {
         case .welcome: welcomeStep
+        case .features: featuresStep
         case .permissions: permissionsStep
-        case .model: modelStep
+        case .speechModel: modelStep
+        case .typingModel: typingModelStep
         case .tryIt: tryItStep
         case .pill: pillStep
         case .more: moreStep
@@ -152,38 +171,88 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 2 · the two permissions
+    // MARK: - Features · what this Mac runs
+
+    private var featuresStep: some View {
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 16) {
+            stepHeader(
+                title: "What should PUSH do?",
+                subtitle: "Turn on what you want. Each one can be switched on or off later in Settings."
+            )
+
+            featureCard(
+                icon: "mic.fill",
+                title: "Dictation",
+                detail: "Hold a key, speak, and your words are typed into any app. Includes the teleprompter, which follows along as you read a script."
+            ) {
+                Toggle("Dictation", isOn: $appState.dictationEnabled)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+            }
+
+            featureCard(
+                icon: "text.cursor",
+                title: Self.typeAvailable ? "Type" : "Type — coming soon",
+                detail: "As you type in any app, PUSH suggests how the sentence goes on. Press Tab to take it a word at a time. Runs on this Mac like everything else."
+            ) {
+                Toggle("Type", isOn: $appState.typeEnabled)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .disabled(!Self.typeAvailable)
+            }
+
+            if !appState.dictationEnabled && !typeChosen {
+                statusLine(icon: "info.circle", text: "Turn on at least one to continue.", tint: .secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    // MARK: - Step 2 · the permissions
 
     private var permissionsStep: some View {
         VStack(alignment: .leading, spacing: 20) {
-            stepHeader(
-                title: "Two permissions",
-                subtitle: "macOS asks for both. PUSH cannot dictate without them, and it asks for nothing else."
-            )
+            if OnboardingFlow.needsMicrophone(dictation: appState.dictationEnabled) {
+                stepHeader(
+                    title: "Two permissions",
+                    subtitle: "macOS asks for both. PUSH cannot dictate without them, and it asks for nothing else."
+                )
+            } else {
+                stepHeader(
+                    title: "One permission",
+                    subtitle: "macOS asks for it. PUSH cannot see what you type without it, and it asks for nothing else."
+                )
+            }
 
-            OnboardingPermissionRow(
-                icon: "mic.fill",
-                title: "Microphone",
-                detail: "So PUSH can hear you. The audio is transcribed on this Mac and thrown away.",
-                status: permissions.microphone,
-                actionTitle: permissions.microphone == .notDetermined
-                    ? "Allow Microphone…"
-                    : "Open System Settings…",
-                action: {
-                    if permissions.microphone == .notDetermined {
-                        Task { await permissions.requestMicrophone() }
-                    } else {
-                        // Already answered once — macOS will not ask again, so
-                        // the switch in System Settings is the only way back.
-                        permissions.openMicrophoneSettings()
+            if OnboardingFlow.needsMicrophone(dictation: appState.dictationEnabled) {
+                OnboardingPermissionRow(
+                    icon: "mic.fill",
+                    title: "Microphone",
+                    detail: "So PUSH can hear you. The audio is transcribed on this Mac and thrown away.",
+                    status: permissions.microphone,
+                    actionTitle: permissions.microphone == .notDetermined
+                        ? "Allow Microphone…"
+                        : "Open System Settings…",
+                    action: {
+                        if permissions.microphone == .notDetermined {
+                            Task { await permissions.requestMicrophone() }
+                        } else {
+                            // Already answered once — macOS will not ask again, so
+                            // the switch in System Settings is the only way back.
+                            permissions.openMicrophoneSettings()
+                        }
                     }
-                }
-            )
+                )
+            }
 
             OnboardingPermissionRow(
                 icon: "hand.tap.fill",
                 title: "Accessibility",
-                detail: "So PUSH can see the push-to-talk key and paste into the app you are using.",
+                detail: appState.dictationEnabled
+                    ? "So PUSH can see the push-to-talk key and paste into the app you are using."
+                    : "So PUSH can read the text around your cursor and type the words you accept.",
                 status: permissions.accessibility,
                 actionTitle: "Open System Settings…",
                 action: {
@@ -359,6 +428,18 @@ struct OnboardingView: View {
 
     private func refreshModelsOnDisk() {
         modelsOnDisk = ModelAvailability.downloaded()
+    }
+
+    // MARK: - Typing model (Phase 5 replaces this placeholder)
+
+    private var typingModelStep: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            stepHeader(
+                title: "Choose a typing model",
+                subtitle: "Typing model — coming in Phase 5."
+            )
+            Spacer(minLength: 0)
+        }
     }
 
     // MARK: - Step 4 · try it here
@@ -647,9 +728,10 @@ struct OnboardingView: View {
     private var footer: some View {
         HStack(spacing: 12) {
             if step == .welcome {
-                // No way round the model step until a model exists: the app
-                // cannot dictate without one, and launch will not fetch it.
-                if !modelsOnDisk.isEmpty {
+                // No way round a model step until that feature has a model on
+                // disk: the app cannot run it without one, and launch will not
+                // fetch it.
+                if canSkip {
                     Button("Skip", action: onFinish)
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
@@ -676,25 +758,44 @@ struct OnboardingView: View {
                     // one they can walk out of, and Settings shows the same two
                     // rows afterwards. The model is different: it is a download
                     // the user can always start, and there is no app without it.
-                    .disabled(step == .model && !isReady(appState.selectedWhisperModel))
+                    .disabled(continueDisabled)
             }
+        }
+    }
+
+    /// Skip is offered only when every feature that is on can already run.
+    /// Typing models do not exist yet, so Type on means no Skip.
+    private var canSkip: Bool {
+        (appState.dictationEnabled || typeChosen)
+            && (!appState.dictationEnabled || !modelsOnDisk.isEmpty)
+            && !typeChosen
+    }
+
+    private var continueDisabled: Bool {
+        switch step {
+        case .features: return !appState.dictationEnabled && !typeChosen
+        case .speechModel: return !isReady(appState.selectedWhisperModel)
+        default: return false
         }
     }
 
     private var stepDots: some View {
-        HStack(spacing: 6) {
-            ForEach(Step.allCases, id: \.rawValue) { dot in
+        let steps = steps
+        let index = steps.firstIndex(of: step) ?? 0
+        return HStack(spacing: 6) {
+            ForEach(steps.indices, id: \.self) { i in
                 Circle()
-                    .fill(dot == step ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .fill(i == index ? Color.accentColor : Color.secondary.opacity(0.3))
                     .frame(width: 6, height: 6)
             }
         }
-        .accessibilityLabel("Step \(step.rawValue + 1) of \(Step.allCases.count)")
+        .accessibilityLabel("Step \(index + 1) of \(steps.count)")
     }
 
     private func advance(to offset: Int) {
-        guard let next = Step(rawValue: step.rawValue + offset) else { return }
-        withAnimation(.easeInOut(duration: 0.16)) { step = next }
+        let steps = steps
+        guard let index = steps.firstIndex(of: step), steps.indices.contains(index + offset) else { return }
+        withAnimation(.easeInOut(duration: 0.16)) { step = steps[index + offset] }
     }
 }
 
