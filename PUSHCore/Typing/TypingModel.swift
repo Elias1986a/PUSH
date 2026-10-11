@@ -96,6 +96,12 @@ public enum LengthPreset: String, CaseIterable, Sendable, Comparable {
 
     public var label: String { "\(words.lowerBound)–\(words.upperBound) words" }
 
+    /// On a near-empty page (under three words) suggestions stay at 1–3
+    /// words: short continuations stay generic, long ones drift into stories.
+    public func forContext(_ before: String) -> LengthPreset {
+        before.split(whereSeparator: \.isWhitespace).count < 3 ? .tiny : self
+    }
+
     /// Tokens to ask the model for: words run about 1.3 tokens in English;
     /// the margin lets the trim, not the token limit, decide where to stop.
     public var maxTokens: Int { words.upperBound * 2 + 4 }

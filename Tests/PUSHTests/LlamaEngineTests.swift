@@ -109,6 +109,20 @@ final class LlamaEngineTests: XCTestCase {
         }
     }
 
+    /// Every grammar the app builds must parse in llama.cpp itself — an
+    /// escaped hyphen once made the word-break retry fail silently.
+    func testTheAppsGrammarsParse() async throws {
+        let (model, path) = try models()[0]
+        let engine = LlamaEngine()
+        try await engine.load(path: path)
+        for (forced, boundary) in [(" appreci", false), ("Hello", true), (#"say "hi\"#, true)] {
+            let grammar = TokenHealing.grammar(forcing: forced, wordBoundary: boundary)
+            let out = try await collect(engine, "Note:\n\n", 16, grammar: grammar)
+            XCTAssertTrue(out.hasPrefix(forced), "\(model) \(forced): \(out.debugDescription)")
+        }
+        await engine.unload()
+    }
+
     func testCancellingStopsAndTheNextRequestWorks() async throws {
         for (model, path) in try models() {
             let engine = LlamaEngine()

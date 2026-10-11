@@ -29,7 +29,8 @@ public enum TokenHealing {
             .replacingOccurrences(of: "\"", with: "\\\"")
         // A space or punctuation — not "any non-letter", which let a model
         // switch to Chinese characters right after an English word.
-        let boundary = wordBoundary ? #" [ ,.!?;:'"’)\-]"# : ""
+        // (No "-": llama.cpp's grammar parser rejects an escaped hyphen.)
+        let boundary = wordBoundary ? #" [ ,.!?;:'"’)]"# : ""
         return #"root ::= ""# + literal + #"""# + boundary + #" ([^\n] | "\n")*"#
     }
 

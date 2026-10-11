@@ -99,3 +99,36 @@ final class TypingScriptMatchTests: XCTestCase {
         XCTAssertFalse(SuggestionText.matchesScript(" 项目", before: "1. "))
     }
 }
+
+final class TypingSuggestionSafetyTests: XCTestCase {
+    func testRejectsAnInventedPersona() {
+        XCTAssertTrue(SuggestionText.isUnwanted(", I'm a 17 year old girl.", before: "Hello"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" I am a 20-year-old guy", before: "Hi"))
+        XCTAssertTrue(SuggestionText.isUnwanted(", my name is Sarah and", before: "Hello"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" I'm 15 and I", before: "Hey"))
+    }
+
+    func testOrdinaryTextPasses() {
+        XCTAssertFalse(SuggestionText.isUnwanted(", how are you?", before: "Hello"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" I'm running about 10 minutes late", before: "Sorry,"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" the 3 year plan", before: "We reviewed"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" I'm tired and need a break", before: "Honestly"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" I am from the product team", before: "Hi,"))
+    }
+
+    func testWhatTheUserWroteThemselvesIsNotPolicedTwice() {
+        // Continuing the user's own sentence about their age is fine.
+        XCTAssertFalse(SuggestionText.isUnwanted(" year old daughter", before: "My 7"))
+    }
+
+    func testRejectsExplicitWordsTheUserDidNotType() {
+        XCTAssertTrue(SuggestionText.isUnwanted(" sexy pics", before: "Check out my"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" Essex office", before: "Meet at the"))   // word, not substring
+    }
+
+    func testColdStartKeepsSuggestionsShort() {
+        XCTAssertEqual(LengthPreset.long.forContext("Hello"), .tiny)
+        XCTAssertEqual(LengthPreset.medium.forContext("Hi there"), .tiny)
+        XCTAssertEqual(LengthPreset.medium.forContext("Hi there, I wanted"), .medium)
+    }
+}

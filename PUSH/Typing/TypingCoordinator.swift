@@ -188,7 +188,7 @@ final class TypingCoordinator {
             surfaceLine: surfaceLine,
             userName: NSFullUserName().split(separator: " ").first.map(String.init))
         let prompt = TypingPrompt.render(context)
-        let length = AppState.shared.typingLength
+        let length = AppState.shared.typingLength.forContext(before)
 
         startGeneration(prompt: prompt, forced: heal.forced, before: before, length: length,
                         placement: placement, surface: surface, stamp: stamp, wordBoundary: false)
@@ -226,11 +226,17 @@ final class TypingCoordinator {
                         judged = true
                     }
                 }
-                if let clean = SuggestionText.clean(text, maxWords: length.words.upperBound),
-                   let polished = SuggestionText.polish(length.trim(clean), before: before),
-                   SuggestionText.matchesScript(polished, before: before) {
-                    show(polished, at: placement, surface: surface)
+                guard let clean = SuggestionText.clean(text, maxWords: length.words.upperBound) else { return true }
+                guard let polished = SuggestionText.polish(length.trim(clean), before: before),
+                      SuggestionText.matchesScript(polished, before: before),
+                      !SuggestionText.isUnwanted(polished, before: before) else {
+                    // A later piece turned it unacceptable: take down what an
+                    // earlier piece showed (", " before "I'm a 17…") and stop.
+                    hide()
+                    generationTask?.cancel()
+                    return false
                 }
+                show(polished, at: placement, surface: surface)
                 return true
             }
             do {

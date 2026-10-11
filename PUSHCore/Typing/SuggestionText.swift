@@ -89,6 +89,28 @@ public enum SuggestionText {
         }
     }
 
+    /// Text Type must never put in someone's mouth. Base models learned from
+    /// raw web text, and on a near-empty page they reach for forum openings
+    /// ("Hello, I'm a 17 year old girl"). Rejected: an invented self-introduction
+    /// (age, gender, name), and explicit words the user did not type.
+    public static func isUnwanted(_ suggestion: String, before: String) -> Bool {
+        let lowerBefore = before.lowercased()
+        let text = suggestion.lowercased()
+        let range = NSRange(text.startIndex..., in: text)
+        if persona.firstMatch(in: text, range: range) != nil { return true }
+        let words = Set(text.split { !$0.isLetter }.map(String.init))
+        let typed = Set(lowerBefore.split { !$0.isLetter }.map(String.init))
+        return !words.subtracting(typed).isDisjoint(with: explicit)
+    }
+
+    private static let persona = try! NSRegularExpression(pattern:
+        #"\bmy name is\b|\b(i'?m|i am|im)\s+(a\s+)?(\d{1,2}([\s-]*(years?[\s-]*old|yo|y/o))?\b|(boy|girl|guy|woman|man|male|female|teen|teenager)\b)"#)
+
+    private static let explicit: Set<String> = [
+        "sex", "sexy", "sexual", "porn", "porno", "nude", "nudes", "naked", "horny", "fuck", "fucking",
+        "dick", "cock", "pussy", "boobs", "tits", "slut", "whore", "cum", "nsfw", "onlyfans",
+    ]
+
     /// What one press of the next-word key types: leading space plus the
     /// first word with any punctuation attached to it.
     public static func nextChunk(of suggestion: String) -> String {

@@ -62,6 +62,6 @@ final class TypingTokenHealingTests: XCTestCase {
 
     func testBoundaryGrammarForbidsALetterRightAfterTheWord() {
         XCTAssertEqual(TokenHealing.grammar(forcing: "Hello", wordBoundary: true),
-                       #"root ::= "Hello" [ ,.!?;:'"’)\-] ([^\n] | "\n")*"#)
+                       #"root ::= "Hello" [ ,.!?;:'"’)] ([^\n] | "\n")*"#)
     }
 }
