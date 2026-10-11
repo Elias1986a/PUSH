@@ -213,6 +213,17 @@ public enum SuggestionText {
 
     private static let legitimateDoubles: Set<String> = ["had", "that"]
 
+    /// The last finished word before the caret, and the word being typed at
+    /// it (nil when the caret follows a space or punctuation) — for the typo
+    /// check: a suggestion built on "teh" continues a mistake.
+    public static func caretWords(_ before: String) -> (finished: String?, partial: String?) {
+        func isWordChar(_ c: Character) -> Bool { c.isLetter || c == "'" || c == "’" }
+        let atWord = before.last.map(isWordChar) ?? false
+        var words = before.split { !isWordChar($0) }.map(String.init)
+        let partial = atWord ? words.popLast() : nil
+        return (words.last, partial)
+    }
+
     /// What one press of the next-word key types: leading space plus the
     /// first word with any punctuation attached to it.
     public static func nextChunk(of suggestion: String) -> String {

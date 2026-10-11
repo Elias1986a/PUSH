@@ -227,3 +227,14 @@ final class TypingSuggestionScaffoldingTests: XCTestCase {
         XCTAssertTrue(SuggestionText.isUnwanted(" I'm not sure what you mean", before: "Okay so"))
     }
 }
+
+final class TypingCaretWordsTests: XCTestCase {
+    func testSplitsTheFinishedWordFromTheOneBeingTyped() {
+        XCTAssertEqual(SuggestionText.caretWords("can we move teh ").finished, "teh")
+        XCTAssertNil(SuggestionText.caretWords("can we move teh ").partial)
+        XCTAssertEqual(SuggestionText.caretWords("can we move teh mee").partial, "mee")
+        XCTAssertEqual(SuggestionText.caretWords("can we move teh mee").finished, "teh")
+        XCTAssertEqual(SuggestionText.caretWords("Thanks, Sarah.").finished, "Sarah")
+        XCTAssertNil(SuggestionText.caretWords("").finished)
+    }
+}

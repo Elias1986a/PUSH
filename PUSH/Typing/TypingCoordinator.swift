@@ -188,6 +188,9 @@ final class TypingCoordinator {
         guard let placement = TypingPlacement.decide(
             caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame) else { return }
 
+        // A typo at the caret: whatever follows would build on it (Cotabby
+        // holds completions while one forms; Cotypist says fix it first).
+        guard !Self.typoAtCaret(before) else { return }
         let heal = TokenHealing.split(before)
         let context = TypingContext(
             before: heal.prompt, after: surface == .terminal ? nil : focus.after,
@@ -278,6 +281,23 @@ final class TypingCoordinator {
             if before.hasSuffix(typed) { return focus }
         }
         return focus   // still differs (autocorrect rewrote it, say): go with the field
+    }
+
+    /// The last finished word is misspelled, or the word being typed is
+    /// neither a word nor the start of one ("apprec" is in progress, fine).
+    private static func typoAtCaret(_ before: String) -> Bool {
+        // Capitalised words are usually names ("Priya"), which the checker
+        // does not know: never a reason to stand down.
+        func checkable(_ word: String) -> Bool { word.count > 1 && word.first?.isLowercase == true }
+        let words = SuggestionText.caretWords(before)
+        if let finished = words.finished, checkable(finished), !isRealWord(finished) { return true }
+        if let partial = words.partial, partial.count >= 3, checkable(partial), !isRealWord(partial) {
+            let range = NSRange(location: 0, length: (partial as NSString).length)
+            let completions = NSSpellChecker.shared.completions(forPartialWordRange: range, in: partial,
+                                                                language: nil, inSpellDocumentWithTag: 0)
+            if completions?.isEmpty ?? true { return true }
+        }
+        return false
     }
 
     private static func isRealWord(_ word: String) -> Bool {
