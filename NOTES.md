@@ -25,6 +25,12 @@ downloader (live-tested against HF), TypingModelStore
 (~/Library/Application Support/PUSH/TypingModels), TypingEngineLoader (loads
 while Type is on; warm-up in background: 15.8s first ever, 0.27s after).
 All three models are cloned into TypingModels for dev testing.
+Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
+filters for invented personas/self-descriptions, explicit words, web debris,
+other scripts; titles only for chat/email/browser; spell-checked glued words;
+fit to field; caret predicted after accept. Test build on Gemma. Known: small
+upward jump after accept/typing (polish). Blank-page junk is web text the
+models learned from — generation is fully offline (verified: no sockets).
 Phase 4 (2026-10-10): live, BLUE suggestions (user's call) — FocusReader (off
 main thread; text markers for web views), own key tap thread, ghost panel /
 card, coordinator, accept, terminal agent prompts. docs/TYPE_COMPATIBILITY.md
