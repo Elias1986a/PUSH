@@ -8,6 +8,7 @@ struct TypingSettingsView: View {
     @Environment(AppState.self) private var appState
     @State private var customColor = Color.blue
     @State private var inlinePredictionsOn = TypingSettingsView.macInlinePredictionsOn()
+    @State private var screenRecordingAllowed = ScreenOCR.isAllowed
 
     var body: some View {
         @Bindable var appState = appState
@@ -68,6 +69,31 @@ struct TypingSettingsView: View {
                         Text("The message you’re replying to, the chat above, the page you’re on.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                    }
+                }
+                if appState.typingUsesScreen {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Apps that hide their text")
+                            Text("A few apps draw text PUSH can’t read directly. With Screen Recording allowed, it reads those from the screen instead.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                        if screenRecordingAllowed {
+                            Label("Allowed", systemImage: "checkmark.circle.fill")
+                                .labelStyle(.titleAndIcon)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Button("Allow…") {
+                                // Asks once; after that only System Settings can change it.
+                                if !CGRequestScreenCaptureAccess() {
+                                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+                                }
+                            }
+                        }
                     }
                 }
             } header: {
@@ -154,6 +180,7 @@ struct TypingSettingsView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             inlinePredictionsOn = Self.macInlinePredictionsOn()
+            screenRecordingAllowed = ScreenOCR.isAllowed
         }
     }
 

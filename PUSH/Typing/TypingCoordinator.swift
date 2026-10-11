@@ -323,9 +323,18 @@ final class TypingCoordinator {
         let pid = focus.pid
         let element = focus.elementID
         screenTask = Task {
-            let text = await Task.detached(priority: .utility) {
-                ScreenTextSelector.select(ScreenTextReader.read(pid: pid), field: field)
-            }.value
+            let started = Date()
+            var items = await Task.detached(priority: .utility) { ScreenTextReader.read(pid: pid) }.value
+            var source = "accessibility"
+            // Next to nothing through Accessibility: read the pixels, when allowed.
+            if items.map(\.text.count).reduce(0, +) < 60, ScreenOCR.isAllowed {
+                items = await ScreenOCR.read(pid: pid).filter { !field.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
+                source = "OCR"
+            }
+            let text = ScreenTextSelector.select(items, field: field)
+            // Sizes only, never the text.
+            PushLogger.log("TypingCoordinator: screen text \(text?.count ?? 0) chars from \(items.count) items (\(source), "
+                           + "\(Int(Date().timeIntervalSince(started) * 1000)) ms)")
             screenTask = nil
             screenCache = (element, text, Date())
         }
