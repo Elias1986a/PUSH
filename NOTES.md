@@ -41,8 +41,16 @@ Type section (model, length, Pause), onboarding typing step. Dictionary words
 are never typos and finish from "Kub" (not in the prompt — user's call).
 History examples A/B: big win on Gemma and Qwen 2B. Still gated as "coming
 soon" in release builds (`OnboardingView.typeAvailable`) — lift in Phase 7.
-Next: the replay eval through the real pipeline, then a full bug pass (user's
-plan), then Phase 7. Debug hooks: PUSH_SETTINGS_PANE, PUSH_ONBOARDING_STEP,
+Later 2026-10-11: replay eval through the app's own pipeline
+(TypingReplayEvalTests + SuggestionJudge; eval/results/replay-latest.md);
+next suggestion prefetched (on screen ~120 ms after accept; also fixed Tab
+mid-stream re-showing accepted words); clipboard + screen context ON by
+default (Accessibility first, Vision OCR fallback with Screen Recording);
+Pro tier Gemma 4 E4B (16 GB+); ⌥Tab = plain Tab; field icon; Pause button;
+onboarding Type page with try-it box (feature.typePreview shows it in signed
+builds). "thanks"→"Thank you" seen in tests is the user's macOS Text
+Replacement, not PUSH. Next: side-by-side vs Cotypist/Cotabby (one app at a
+time), bug pass, Phase 7. Debug hooks: PUSH_SETTINGS_PANE, PUSH_ONBOARDING_STEP,
 PUSH_OPEN_MENU (with PUSH_OPEN_SETTINGS) for screenshots.
 Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
 filters for invented personas/self-descriptions, explicit words, web debris,
