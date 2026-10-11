@@ -58,6 +58,12 @@ final class TypingCoordinator {
     private var shown: Shown?
     /// The field the keystroke buffer belongs to.
     private var bufferElement: Int?
+    /// The field the last suggestion was made for, and an Esc pause on it:
+    /// Esc means "not now", so the next keystroke must not bring one straight
+    /// back (Cotypist pauses the field for a few seconds too).
+    private var suggestedElement: Int?
+    private var paused: (element: Int, until: Date)?
+    static let escPause: TimeInterval = 3
 
     /// On while Type is switched on. Starts and stops the key tap.
     func setActive(_ on: Bool) {
@@ -94,6 +100,7 @@ final class TypingCoordinator {
         case .dismiss:
             cancelWork()
             hide()
+            if let element = suggestedElement { paused = (element, Date().addingTimeInterval(Self.escPause)) }
         case .own(let text):
             buffer.apply(.text(text))
         case .acceptWord:
@@ -166,6 +173,8 @@ final class TypingCoordinator {
         guard !FieldPolicy.isMailHeader(bundleID: focus.bundleID, role: focus.role),
               !FieldPolicy.isCredentialField(role: focus.role, labels: focus.labels,
                                              domIdentifier: focus.domIdentifier, text: focus.before) else { return }
+        if let paused, paused.element == focus.elementID, Date() < paused.until { return }
+        suggestedElement = focus.elementID
         let surface = SurfaceClass.classify(bundleID: focus.bundleID)
         guard surface != .code || AppState.shared.typingInCodeEditors else { return }
 

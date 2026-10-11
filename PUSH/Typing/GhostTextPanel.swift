@@ -72,8 +72,13 @@ final class GhostTextPanel {
             label.wantsLayer = false
             label.stringValue = shown
             label.sizeToFit()
-            panel.setFrame(CGRect(x: origin.x, y: origin.y, width: label.frame.width + 2,
-                                  height: max(label.frame.height, caret.height)), display: true)
+            // Centred on the caret's middle, not hung from its bottom: apps
+            // report slightly different caret heights from one read to the
+            // next, and a top-aligned label jumped up and down with them.
+            let height = label.frame.height
+            let middle = origin.y + caret.height / 2
+            panel.setFrame(CGRect(x: origin.x, y: middle - height / 2, width: label.frame.width + 2, height: height),
+                           display: true)
             panel.orderFrontRegardless()
             return shown
         case .card(let field):
