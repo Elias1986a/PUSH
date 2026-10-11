@@ -13,7 +13,11 @@ The user accepted per-keystroke latency + prefill-on-focus as the gate.
 Phase 1 (2026-10-10): feature switches, wizard follows them, dictation start
 sites gated (DictationSwitch for runtime). Type is "coming soon" in release
 builds, so release users cannot switch dictation off yet. Not yet done: a real
-dictation round-trip on a signed build to confirm nothing regressed.
+dictation round-trip on a signed build (launch path checked in the log; the
+user chose to skip the hands-on press).
+Phase 2 (2026-10-10): pure core in PUSHCore/Typing — SurfaceClass,
+SurfaceLine, PromptBudget, TypingPrompt, SuggestionText, TokenHealing (2.6,
+added). 376 tests green. Next: Phase 3 (LlamaEngine, catalog, downloads).
 
 ## Latest (2026-10-10, v8.2.8)
 
