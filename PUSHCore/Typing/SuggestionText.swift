@@ -29,6 +29,29 @@ public enum SuggestionText {
         return text
     }
 
+    /// Fixes what a small model gets wrong about the text it continues:
+    /// capitalises the first word of a new sentence, and rejects a capital
+    /// glued onto the word at the caret ("hello" + "World"). The sentence
+    /// rule needs whitespace between the stop and the word, so "3." + "5" is
+    /// a decimal, not a new sentence.
+    public static func polish(_ suggestion: String, before: String) -> String? {
+        guard let first = suggestion.first(where: { !$0.isWhitespace }) else { return suggestion }
+        if let last = before.last, last.isLetter, last.isLowercase, suggestion.first?.isUppercase == true {
+            return nil
+        }
+        let trimmedBefore = before.reversed().drop { $0.isWhitespace }
+        let spaced = before.last?.isWhitespace == true || suggestion.first?.isWhitespace == true
+        guard spaced, let stop = trimmedBefore.first, ".!?".contains(stop), first.isLowercase,
+              let index = suggestion.firstIndex(of: first) else { return suggestion }
+        return suggestion.replacingCharacters(in: index...index, with: String(first).uppercased())
+    }
+
+    /// One word gives a model nothing to continue; wait for a second (or a
+    /// sign-off line, where the next line is the name).
+    public static func hasEnoughContext(_ before: String) -> Bool {
+        before.split(whereSeparator: \.isWhitespace).count >= 2 || TypingPrompt.endsAtSignOff(before)
+    }
+
     /// What one press of the next-word key types: leading space plus the
     /// first word with any punctuation attached to it.
     public static func nextChunk(of suggestion: String) -> String {

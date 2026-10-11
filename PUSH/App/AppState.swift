@@ -200,6 +200,11 @@ final class AppState {
         didSet { UserDefaults.standard.set(typingLength.rawValue, forKey: TypingPreferences.lengthKey) }
     }
 
+    /// Suggest in code editors too (off by default — see `TypingPreferences`).
+    var typingInCodeEditors: Bool = TypingPreferences.codeEditors() {
+        didSet { UserDefaults.standard.set(typingInCodeEditors, forKey: TypingPreferences.codeEditorsKey) }
+    }
+
     /// The typing model is loaded and warm.
     var typingModelReady = false
 

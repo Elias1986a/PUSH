@@ -123,7 +123,11 @@ final class TypingKeyTap: @unchecked Sendable {
                 return nil
             }
         }
-        emit(.key(KeystrokeBuffer.Key.classify(
+        // ⌘⇧3/4/5 take a screenshot; they change no text, so the suggestion stays.
+        if flags.contains(.maskCommand), flags.contains(.maskShift), [20, 21, 23].contains(keyCode) {
+            return pass
+        }
+                emit(.key(KeystrokeBuffer.Key.classify(
             keyCode: keyCode, command: flags.contains(.maskCommand), control: flags.contains(.maskControl),
             characters: characters)))
         return pass

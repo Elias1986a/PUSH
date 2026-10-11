@@ -26,8 +26,17 @@ final class TypingSurfaceLineTests: XCTestCase {
 
     func testTitleCappedAt80AndQuotesRemoved() {
         let long = String(repeating: "a", count: 200) + "\""
-        let line = SurfaceLine.render(surface: .other, appName: "Pages", windowTitle: long, url: nil, placeholder: nil)!
-        XCTAssertEqual(line, "Format: text; App: Pages; Title: \(String(repeating: "a", count: 80)).")
+        let line = SurfaceLine.render(surface: .chat, appName: "Slack", windowTitle: long, url: nil, placeholder: nil)!
+        XCTAssertEqual(line, "Format: chat; App: Slack; Title: \(String(repeating: "a", count: 80)).")
+    }
+
+    func testOtherAppsDropTheWindowTitle() {
+        // Notes' title is its folder chrome ("All iCloud – 138 notes"), not the
+        // note; the model wove "138 notes" into a brand-new note.
+        XCTAssertNil(SurfaceLine.render(surface: .other, appName: "Notes", windowTitle: "All iCloud – 138 notes",
+                                        url: nil, placeholder: nil))
+        XCTAssertEqual(SurfaceLine.render(surface: .other, appName: "Pages", windowTitle: "Q4 plan",
+                                          url: nil, placeholder: "Body"), "Format: text; App: Pages; Field: Body.")
     }
 
     func testDashVariantsAndCaseInAppSuffix() {

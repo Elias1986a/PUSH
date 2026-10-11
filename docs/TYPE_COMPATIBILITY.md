@@ -17,7 +17,7 @@ macOS 27.2, Developer-ID-signed build, Qwen3.5 2B, unless noted.
 | Chrome | contenteditable | AX value | **text markers** (no range bounds) | inline | ✅ | |
 | Claude.app (Electron) | composer | AX value | ✅ | inline | ✅ | Slack stand-in. |
 | Discord (Electron) | quick switcher | — | — | none (correct) | — | Focus is reported on the highlighted *result* (AXMenuItem), not the box; Type only suggests in text roles. Message box **not tested**: typing there shows "is typing…" to others. |
-| Antigravity IDE (VS Code fork) | Monaco editor | AX value | ⚠️ off when the line is scrolled sideways | card | ✅ | **Tab conflicts** with the editor's own completion popup / AI completions. Open question: exclude code editors by default? |
+| Antigravity IDE (VS Code fork) | Monaco editor | AX value | ⚠️ off when the line is scrolled sideways | card | ✅ | **Tab conflicts** with the editor's own completion popup / AI completions, so code editors are **off by default** (`typing.codeEditors`; switch in Phase 5's Type settings and onboarding). |
 | Terminal | agent prompt (rule + `>`) | AX value → `TerminalLine` | ✅ | inline | ✅ (→) | Starts on the block cursor (cosmetic). Plain shell prompts: off by design. Tested with a fake prompt, not a live Claude Code session. |
 
 Not yet tested: Slack, VS Code, Gmail compose (Chrome contenteditable passes),
@@ -31,4 +31,5 @@ iTerm2, VS Code's integrated terminal, a second display.
   can still show at once. Recommend turning it off (System Settings ▸ Keyboard ▸
   Text Input ▸ "Show inline predictive text") when Type is on — Cotypist asks
   the same.
+- **Screenshots** (⌘⇧3/4/5) leave the suggestion on screen.
 - **Grammarly** and other overlays drew alongside without interfering.

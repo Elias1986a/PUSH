@@ -37,3 +37,34 @@ final class TypingSuggestionTextTests: XCTestCase {
         XCTAssertNil(SuggestionText.remainder(of: " for", afterTyping: " for"))
     }
 }
+
+final class TypingSuggestionPolishTests: XCTestCase {
+    func testCapitalisesTheFirstWordOfANewSentence() {
+        XCTAssertEqual(SuggestionText.polish(" the meeting is at 3.", before: "Can you review it?"), " The meeting is at 3.")
+        XCTAssertEqual(SuggestionText.polish("the meeting", before: "Done. "), "The meeting")
+        XCTAssertEqual(SuggestionText.polish(" and more", before: "Done!\n"), " And more")
+    }
+
+    func testLeavesMidSentenceAlone() {
+        XCTAssertEqual(SuggestionText.polish(" the meeting", before: "Can you review"), " the meeting")
+        XCTAssertEqual(SuggestionText.polish(" 5 percent", before: "It grew by 3.5"), " 5 percent")
+    }
+
+    func testDecimalPointIsNotASentenceEnd() {
+        XCTAssertEqual(SuggestionText.polish("5 percent", before: "It grew by 3."), "5 percent")
+    }
+
+    func testRejectsACapitalGluedOntoALowercaseWord() {
+        // "hello" + "World" (camelCase junk), when the caret sits right after a word.
+        XCTAssertNil(SuggestionText.polish("World", before: "hello"))
+        XCTAssertEqual(SuggestionText.polish("ate it.", before: "really appreci"), "ate it.")
+        XCTAssertEqual(SuggestionText.polish("World", before: "Hello "), "World")
+    }
+
+    func testNeedsTwoWordsOfContext() {
+        XCTAssertFalse(SuggestionText.hasEnoughContext("hello"))
+        XCTAssertFalse(SuggestionText.hasEnoughContext("  hi  "))
+        XCTAssertTrue(SuggestionText.hasEnoughContext("hello there"))
+        XCTAssertTrue(SuggestionText.hasEnoughContext("Thanks,\n"))  // a sign-off line still counts
+    }
+}

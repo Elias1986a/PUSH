@@ -20,7 +20,12 @@ public enum SurfaceLine {
         }
 
         let app = appName.map(clean) ?? ""
-        let title = windowTitle.map { cap(stripAppSuffix(clean($0), app: app), titleCap) } ?? ""
+        // A title says something in chat (the channel), email (the subject) and
+        // browsers (the page). Elsewhere it is often the app's own chrome —
+        // Notes' is "All iCloud – 138 notes" — which the model then writes in.
+        let titled: Set<SurfaceClass> = [.chat, .email, .browser]
+        let title = titled.contains(surface)
+            ? windowTitle.map { cap(stripAppSuffix(clean($0), app: app), titleCap) } ?? "" : ""
         let field = placeholder.map { cap(clean($0), placeholderCap) } ?? ""
         let domain = url.flatMap(host) ?? ""
 

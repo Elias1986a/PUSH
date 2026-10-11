@@ -33,10 +33,18 @@ final class TypingPreferencesTests: XCTestCase {
         XCTAssertEqual(TypingPreferences.length(in: d), .short)
     }
 
+    func testCodeEditorsAreOffByDefault() {
+        let d = freshDefaults()
+        XCTAssertFalse(TypingPreferences.codeEditors(in: d))
+        d.set(true, forKey: TypingPreferences.codeEditorsKey)
+        XCTAssertTrue(TypingPreferences.codeEditors(in: d))
+    }
+
     @MainActor
     func testNeitherIsSynced() {
         XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingPreferences.modelKey))
         XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingPreferences.lengthKey))
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingPreferences.codeEditorsKey))
     }
 
     func testModelsLiveUnderApplicationSupport() {

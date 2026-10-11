@@ -161,6 +161,7 @@ final class TypingCoordinator {
               !TypingExclusions.isExcluded(bundleID: focus.bundleID),
               focus.pid != ProcessInfo.processInfo.processIdentifier else { return }
         let surface = SurfaceClass.classify(bundleID: focus.bundleID)
+        guard surface != .code || AppState.shared.typingInCodeEditors else { return }
 
         // Keys typed into another field are not this field's text.
         if focus.elementID != bufferElement {
@@ -177,7 +178,7 @@ final class TypingCoordinator {
             surfaceLine = SurfaceLine.render(surface: .chat, appName: focus.appName, windowTitle: focus.windowTitle,
                                              url: nil, placeholder: nil)
         }
-        guard before.contains(where: { !$0.isWhitespace }) else { return }
+        guard SuggestionText.hasEnoughContext(before) else { return }
         guard let placement = TypingPlacement.decide(
             caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame) else { return }
 
@@ -199,8 +200,9 @@ final class TypingCoordinator {
                     guard stamp == keystrokes, !Task.isCancelled else { return }
                     raw += piece
                     guard let text = TokenHealing.strip(raw, forced: heal.forced),
-                          let clean = SuggestionText.clean(text, maxWords: length.words.upperBound) else { continue }
-                    show(length.trim(clean), at: placement, surface: surface)
+                          let clean = SuggestionText.clean(text, maxWords: length.words.upperBound),
+                          let polished = SuggestionText.polish(length.trim(clean), before: before) else { continue }
+                    show(polished, at: placement, surface: surface)
                 }
             } catch {
                 PushLogger.log("TypingCoordinator: generation failed: \(error)")
