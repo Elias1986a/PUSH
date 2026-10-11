@@ -163,6 +163,15 @@ final class AppState {
         }
     }
 
+    /// Feature switches (per-machine, never synced — see `FeatureSwitches`).
+    var dictationEnabled: Bool = FeatureSwitches.dictationEnabled() {
+        didSet { UserDefaults.standard.set(dictationEnabled, forKey: FeatureSwitches.dictationKey) }
+    }
+
+    var typeEnabled: Bool = FeatureSwitches.typeEnabled() {
+        didSet { UserDefaults.standard.set(typeEnabled, forKey: FeatureSwitches.typeKey) }
+    }
+
     var wakeWordEnabled: Bool = false {
         didSet {
             UserDefaults.standard.set(wakeWordEnabled, forKey: UserDefaultsKeys.wakeWordEnabled)
