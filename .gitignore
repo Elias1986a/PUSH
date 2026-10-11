@@ -78,3 +78,4 @@ compare/.build
 eval/.rules_output.json
 eval/.server.log
 eval/.llm_eval_results.json
+eval/.autocomplete_eval.json
