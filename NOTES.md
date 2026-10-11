@@ -1,5 +1,16 @@
 # NOTES
 
+## Latest (2026-10-10, v8.2.8)
+
+8.2.8 shipped the drag-to-grant Accessibility card (`PermissionGuide`), verified
+end to end on a signed build. Untested: second display, moving System Settings
+mid-flow, Reduce Motion. Notarization needs the Apple Developer agreements kept
+current — an expired one returns HTTP 403 "A required agreement is missing".
+
+Next: **Type** (Cotypist-style autocomplete) — plan on branch
+`feature/autocomplete` (`docs/plans/2026-10-10-autocomplete-{design,plan}.md`),
+starting with Phase 0 (model eval + llama.cpp in a signed build).
+
 ## Current state (2026-09-29, v8.2.2)
 
 **Release notes live in `release-notes/<version>.md`** — write one before every
