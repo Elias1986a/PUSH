@@ -13,6 +13,16 @@ final class TypingTokenHealingTests: XCTestCase {
         XCTAssertEqual(h.forced, " your")
     }
 
+    func testATrailingSpaceMovesIntoTheForcedStart() {
+        // A prompt ending in a bare space reads, to a BPE model, as a word
+        // boundary nobody writes (" see" is one token): it predicted a line
+        // break, so every pause after a space got nothing.
+        let h = TokenHealing.split("and would love to ")
+        XCTAssertEqual(h.prompt, "and would love to")
+        XCTAssertEqual(h.forced, " ")
+        XCTAssertEqual(TokenHealing.split("so far,  ").forced, "  ")
+    }
+
     func testNothingToHealAfterPunctuationOrNewline() {
         XCTAssertEqual(TokenHealing.split("Blockers:").forced, "")
         XCTAssertEqual(TokenHealing.split("Thanks,\n").forced, "")

@@ -162,21 +162,32 @@ final class TypingCoordinator {
             && !state.isListening && !state.isProcessing && !Teleprompter.isRunning
     }
 
+    /// Why no suggestion was made — rule names only, never text (Cotabby
+    /// logs its suppression reasons too; without them a quiet rule is
+    /// indistinguishable from a broken one).
+    private func skip(_ reason: String) {
+        PushLogger.log("TypingCoordinator: no suggestion — \(reason)")
+    }
+
     private func suggest(stamp: Int) async {
         guard mayRun else { return }
-        guard let focus = await readFresh(stamp: stamp) else { return }
-        guard stamp == keystrokes, mayRun, !focus.isSecure, focus.isTextInput,
-              !TypingExclusions.isExcluded(bundleID: focus.bundleID),
-              focus.pid != ProcessInfo.processInfo.processIdentifier else { return }
+        guard let focus = await readFresh(stamp: stamp) else { return skip("no focused element") }
+        guard stamp == keystrokes, mayRun else { return }
+        guard !focus.isSecure else { return skip("secure field") }
+        guard focus.isTextInput else { return skip("not a text field (\(focus.role ?? "?"))") }
+        guard !TypingExclusions.isExcluded(bundleID: focus.bundleID),
+              focus.pid != ProcessInfo.processInfo.processIdentifier else { return skip("excluded app") }
         // Sign-in and verification fields, and Mail's header rows (Tab moves
         // to the next field there).
-        guard !FieldPolicy.isMailHeader(bundleID: focus.bundleID, role: focus.role),
-              !FieldPolicy.isCredentialField(role: focus.role, labels: focus.labels,
-                                             domIdentifier: focus.domIdentifier, text: focus.before) else { return }
-        if let paused, paused.element == focus.elementID, Date() < paused.until { return }
+        guard !FieldPolicy.isMailHeader(bundleID: focus.bundleID, role: focus.role) else { return skip("mail header") }
+        guard !FieldPolicy.isCredentialField(role: focus.role, labels: focus.labels,
+                                             domIdentifier: focus.domIdentifier, text: focus.before) else {
+            return skip("sign-in field")
+        }
+        if let paused, paused.element == focus.elementID, Date() < paused.until { return skip("esc pause") }
         suggestedElement = focus.elementID
         let surface = SurfaceClass.classify(bundleID: focus.bundleID)
-        guard surface != .code || AppState.shared.typingInCodeEditors else { return }
+        guard surface != .code || AppState.shared.typingInCodeEditors else { return skip("code editor") }
 
         // Keys typed into another field are not this field's text.
         if focus.elementID != bufferElement {
@@ -188,18 +199,24 @@ final class TypingCoordinator {
                                              url: focus.url, placeholder: focus.placeholder)
         if surface == .terminal {
             // Only an agent's prompt (prose); a plain shell is commands.
-            guard let line = TerminalLine.parse(textBeforeCaret: before), line.kind == .agentPrompt else { return }
+            guard let line = TerminalLine.parse(textBeforeCaret: before), line.kind == .agentPrompt else {
+                return skip("terminal, not an agent prompt")
+            }
             before = line.text
             surfaceLine = SurfaceLine.render(surface: .chat, appName: focus.appName, windowTitle: focus.windowTitle,
                                              url: nil, placeholder: nil)
         }
-        guard SuggestionText.shouldSuggest(before: before, after: surface == .terminal ? nil : focus.after) else { return }
+        guard SuggestionText.shouldSuggest(before: before, after: surface == .terminal ? nil : focus.after) else {
+            return skip("too little text, or caret inside a word")
+        }
         guard let placement = TypingPlacement.decide(
-            caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame) else { return }
+            caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame) else {
+            return skip("no caret or field position")
+        }
 
         // A typo at the caret: whatever follows would build on it (Cotabby
         // holds completions while one forms; Cotypist says fix it first).
-        guard !Self.typoAtCaret(before) else { return }
+        guard !Self.typoAtCaret(before) else { return skip("typo at caret") }
         let heal = TokenHealing.split(before)
         let context = TypingContext(
             before: heal.prompt, after: surface == .terminal ? nil : focus.after,
@@ -245,13 +262,23 @@ final class TypingCoordinator {
                         judged = true
                     }
                 }
-                guard let clean = SuggestionText.clean(text, maxWords: maxWords) else { return true }
-                guard let polished = SuggestionText.polish(length.trim(clean), before: before),
-                      SuggestionText.matchesScript(polished, before: before),
-                      !SuggestionText.isUnwanted(polished, before: before),
-                      !SuggestionText.repeats(polished, before: before) else {
+                guard let clean = SuggestionText.clean(text, maxWords: maxWords) else {
+                    if final { skip("empty after cleanup") }
+                    return true
+                }
+                let rejection: String? = {
+                    guard let polished = SuggestionText.polish(length.trim(clean), before: before) else {
+                        return "capital glued onto the word"
+                    }
+                    if !SuggestionText.matchesScript(polished, before: before) { return "other writing system" }
+                    if SuggestionText.isUnwanted(polished, before: before) { return "unwanted content" }
+                    if SuggestionText.repeats(polished, before: before) { return "repeats or loops" }
+                    return nil
+                }()
+                guard rejection == nil, let polished = SuggestionText.polish(length.trim(clean), before: before) else {
                     // A later piece turned it unacceptable: take down what an
                     // earlier piece showed (", " before "I'm a 17…") and stop.
+                    skip(rejection ?? "rejected")
                     hide()
                     generationTask?.cancel()
                     return false

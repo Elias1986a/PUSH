@@ -7,9 +7,15 @@ import Foundation
 /// covers a caret right after a complete word ("take your").
 public enum TokenHealing {
     /// `prompt` ends on a token boundary; `forced` (the partial word with its
-    /// leading space, if any) is what the output must start with. `forced` is
-    /// empty when the caret is not in or after a word.
+    /// leading space, or the trailing spaces) is what the output must start
+    /// with. `forced` is empty after punctuation or a newline.
     public static func split(_ before: String) -> (prompt: String, forced: String) {
+        // Trailing spaces too: " see" is one token, so a prompt ending in a
+        // bare space made the model predict a line break instead of a word.
+        let spaces = before.reversed().prefix { $0 == " " || $0 == "\t" }
+        if !spaces.isEmpty, spaces.count < before.count {
+            return (String(before.dropLast(spaces.count)), String(spaces))
+        }
         let range = NSRange(before.startIndex..., in: before)
         guard let match = partialWord.firstMatch(in: before, range: range),
               let r = Range(match.range, in: before) else { return (before, "") }
