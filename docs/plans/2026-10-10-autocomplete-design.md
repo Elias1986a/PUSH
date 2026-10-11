@@ -93,7 +93,7 @@ Granite 4.0 1B Base (Apache-2.0), SmolLM3 3B Base (Apache-2.0).
 Excluded: LFM2.5 1.2B Base (custom licence), Llama 3.2 1B (gated community
 licence), Gemma 3 1B (Gemma terms, gated).
 
-**Apple's on-device model (Foundation Models): undecided — see open question.**
+**Apple's on-device model (Foundation Models): left out (decided 2026-10-10).**
 Cotabby offers it as an engine. For: zero download. Against: CLAUDE.md says
 Apple's AI stays out of PUSH by the user's choice; it needs macOS 26 + Apple
 Intelligence switched on (PUSH supports macOS 15); it is instruction-tuned only
@@ -297,12 +297,7 @@ managers, Keychain Access. Everything else is on unless the user excludes it.
 2. Keys: `Tab` = next word, `` ` ``/`~` key = whole suggestion, both rebindable.
 3. Length: presets capped per model; default 4–7.
 
-## Open question
-
-- **Offer Apple's on-device model as a no-download engine?** Needs the
-  CLAUDE.md rule ("Apple's AI stays out") lifted for this feature. If yes: a
-  fourth option shown only on macOS 26+ with Apple Intelligence on, labelled
-  "Apple (no download, slower)", included in the Phase 0 eval.
+4. Apple's on-device model: **left out** — the zero-download appeal doesn't outweigh the macOS 26 requirement, instruct-only model and ~3× latency. Revisit only if Apple ships a faster base model.
 
 ## Phases
 
