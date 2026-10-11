@@ -51,7 +51,43 @@ final class TypingCoordinator {
         var placement: GhostTextPanel.Placement
         /// The field's character after the caret, for "space after the last word".
         var nextInField: Character?
+        /// What it was made from; nil for a Dictionary completion.
+        var request: Request?
+        /// The whole suggestion as first shown: accepting all of it leaves the
+        /// field at `request.before + full`, whatever was taken word by word.
+        var full: String
     }
+
+    /// Everything a suggestion is made from, kept so the next one can be made
+    /// before the field is read again.
+    private struct Request {
+        var before: String
+        var after: String?
+        var surfaceLine: String?
+        var style: String?
+        var userName: String?
+        var examples: [String]
+        var surface: SurfaceClass
+        var length: LengthPreset
+
+        var prompt: (text: String, forced: String) {
+            let heal = TokenHealing.split(before)
+            let context = TypingContext(before: heal.prompt, after: after, surfaceLine: surfaceLine, style: style,
+                                        userName: userName, examples: examples)
+            return (TypingPrompt.render(context), heal.forced)
+        }
+
+        func continued(by text: String) -> Request {
+            var next = self
+            next.before += text
+            return next
+        }
+    }
+
+    /// The suggestion that will follow the one on screen if all of it is
+    /// accepted — made in the background, so it shows the moment it is needed.
+    private var prefetchTask: Task<Void, Never>?
+    private var prefetched: (before: String, text: String)?
 
     private var active = false
     /// While the onboarding try-it box is on screen, PUSH's own windows get
@@ -143,6 +179,7 @@ final class TypingCoordinator {
             buffer.apply(key)
             keystrokes &+= 1
             generationTask?.cancel()
+            prefetchTask?.cancel()   // a ready suggestion stays usable if the keys match it
             // Typing into the suggestion keeps the rest of it on screen.
             if case .text(let typed) = key, let current = shown,
                let rest = SuggestionText.remainder(of: current.text, afterTyping: typed) {
@@ -158,18 +195,39 @@ final class TypingCoordinator {
 
     private func accept(whole: Bool) {
         guard let current = shown else { return }
+        // What is on screen is what gets typed: a generation still streaming
+        // would put the words just accepted back on screen ("to to").
+        generationTask?.cancel()
         let chunk = whole ? current.text : SuggestionText.nextChunk(of: current.text)
         if let rest = SuggestionText.remainder(of: current.text, afterTyping: chunk) {
             KeystrokeTyper.type(chunk)
             shown?.text = rest
             advanceCaret(by: chunk)
             refreshPlacement(after: .milliseconds(300))
-        } else {
-            let spaced = AppState.shared.typingSpaceAfterLastWord
-                && SuggestionText.needsTrailingSpace(finishing: chunk, nextInField: current.nextInField)
-            KeystrokeTyper.type(spaced ? chunk + " " : chunk)
+            return
+        }
+        let after = fieldAfterAccepting(current)
+        let typed = chunk + (after?.typedSpace == true ? " " : "")
+        KeystrokeTyper.type(typed)
+        // The next suggestion, at once: ready-made when the prefetch matches,
+        // otherwise made now from what the field will hold — no waiting for
+        // the app to report the text just typed.
+        guard let request = current.request, let after, case .inline(let caret, let field) = current.placement,
+              SuggestionText.shouldSuggest(before: after.before, after: request.after) else {
             hide()
             scheduleSuggestion()
+            return
+        }
+        hide()
+        let moved = caret.offsetBy(dx: GhostTextPanel.width(of: typed, caretHeight: caret.height), dy: 0)
+        let placement = GhostTextPanel.Placement.inline(caret: moved, field: field)
+        let next = request.continued(by: String(after.before.dropFirst(request.before.count)))
+        if let ready = prefetched, ready.before == next.before {
+            prefetched = nil
+            show(ready.text, at: placement, surface: next.surface, request: next)
+            if let shown { startPrefetch(after: shown) }
+        } else {
+            startGeneration(next, placement: placement, stamp: keystrokes, wordBoundary: false)
         }
     }
 
@@ -178,6 +236,7 @@ final class TypingCoordinator {
     private func cancelWork() {
         debounceTask?.cancel()
         generationTask?.cancel()
+        prefetchTask?.cancel()
     }
 
     private func scheduleSuggestion() {
@@ -317,41 +376,41 @@ final class TypingCoordinator {
                                                     isRealWord: { NSSpellChecker.shared.checkSpelling(of: $0, startingAt: 0).location == NSNotFound }) {
             generationTask?.cancel()
             nextInField = surface == .terminal ? nil : focus.after?.first
-            show(rest, at: placement, surface: surface)
+            show(rest, at: placement, surface: surface, request: nil)
             return
         }
         // A typo at the caret: whatever follows would build on it (Cotabby
         // holds completions while one forms; Cotypist says fix it first).
         guard !Self.typoAtCaret(before) else { return skip("typo at caret") }
-        let heal = TokenHealing.split(before)
-        let context = TypingContext(
-            before: heal.prompt, after: surface == .terminal ? nil : focus.after,
+        let request = Request(
+            before: before, after: surface == .terminal ? nil : focus.after,
             surfaceLine: surfaceLine,
             style: Self.nonEmpty(AppState.shared.typingAbout),
             userName: TypingPreferences.signOffName(saved: AppState.shared.typingName),
             examples: surface == .terminal ? [] : TypingHistoryStore.shared.examples(
-                before: before, bundleID: focus.bundleID, windowTitle: focus.windowTitle))
-        let prompt = TypingPrompt.render(context)
-        let length = AppState.shared.typingLength
-        let maxWords = length.words.upperBound
-
+                before: before, bundleID: focus.bundleID, windowTitle: focus.windowTitle),
+            surface: surface, length: AppState.shared.typingLength)
         nextInField = surface == .terminal ? nil : focus.after?.first
-        startGeneration(prompt: prompt, forced: heal.forced, before: before, length: length, maxWords: maxWords,
-                        placement: placement, surface: surface, stamp: stamp, wordBoundary: false)
+        if let ready = prefetched, ready.before == before {
+            show(ready.text, at: placement, surface: surface, request: request)
+            return
+        }
+        startGeneration(request, placement: placement, stamp: stamp, wordBoundary: false)
     }
 
     /// Streams one suggestion. When the model glues letters onto the word at
     /// the caret, the joined word must be a real one ("appreci" + "ate");
     /// otherwise ("Hello" + "u") it asks again with a word break forced after
     /// the word — Cotabby checks the caret word with the spell checker too.
-    private func startGeneration(prompt: String, forced: String, before: String, length: LengthPreset,
-                                 maxWords: Int, placement: GhostTextPanel.Placement, surface: SurfaceClass, stamp: Int,
+    private func startGeneration(_ request: Request, placement: GhostTextPanel.Placement, stamp: Int,
                                  wordBoundary: Bool) {
         generationTask?.cancel()
+        prefetchTask?.cancel()
+        let (prompt, forced) = request.prompt
         generationTask = Task {
             var raw = ""
-            var judge = SuggestionJudge(forced: forced, before: before, length: length, wordBoundary: wordBoundary,
-                                        isRealWord: Self.isRealWord)
+            var judge = SuggestionJudge(forced: forced, before: request.before, length: request.length,
+                                        wordBoundary: wordBoundary, isRealWord: Self.isRealWord)
             let grammar = TokenHealing.grammar(forcing: forced, wordBoundary: wordBoundary)
             /// False when this attempt is over (rejected, or retried).
             @MainActor func consider(final: Bool) -> Bool {
@@ -359,11 +418,10 @@ final class TypingCoordinator {
                 case .wait:
                     return true
                 case .show(let text):
-                    show(text, at: placement, surface: surface)
+                    show(text, at: placement, surface: request.surface, request: request)
                     return true
                 case .retryWithBoundary:
-                    startGeneration(prompt: prompt, forced: forced, before: before, length: length, maxWords: maxWords,
-                                    placement: placement, surface: surface, stamp: stamp, wordBoundary: true)
+                    startGeneration(request, placement: placement, stamp: stamp, wordBoundary: true)
                     return false
                 case .reject(let reason):
                     // A later piece turned it unacceptable: take down what an
@@ -375,16 +433,53 @@ final class TypingCoordinator {
             }
             do {
                 for try await piece in await LlamaEngine.shared.complete(
-                    prompt: prompt, maxTokens: length.maxTokens, grammar: grammar) {
+                    prompt: prompt, maxTokens: request.length.maxTokens, grammar: grammar) {
                     guard stamp == keystrokes, !Task.isCancelled else { return }
                     raw += piece
                     if !consider(final: false) { return }
                 }
                 guard stamp == keystrokes, !Task.isCancelled else { return }
-                _ = consider(final: true)
+                if consider(final: true), let current = shown, current.request?.before == request.before {
+                    startPrefetch(after: current)
+                }
             } catch {
                 PushLogger.log("TypingCoordinator: generation failed: \(error)")
             }
+        }
+    }
+
+    /// The field once all of `shown` is accepted (with the space after it,
+    /// when that setting applies).
+    private func fieldAfterAccepting(_ shown: Shown) -> (typedSpace: Bool, before: String)? {
+        guard let request = shown.request else { return nil }
+        let spaced = AppState.shared.typingSpaceAfterLastWord
+            && SuggestionText.needsTrailingSpace(finishing: shown.full, nextInField: shown.nextInField)
+        return (spaced, request.before + shown.full + (spaced ? " " : ""))
+    }
+
+    /// Makes the suggestion that follows `shown` in the background. Cancelled
+    /// by any key, click or new request; the engine stops within a token.
+    private func startPrefetch(after shown: Shown) {
+        prefetchTask?.cancel()
+        prefetched = nil
+        guard let request = shown.request, let after = fieldAfterAccepting(shown) else { return }
+        let next = request.continued(by: String(after.before.dropFirst(request.before.count)))
+        guard SuggestionText.shouldSuggest(before: next.before, after: next.after) else { return }
+        let (prompt, forced) = next.prompt
+        prefetchTask = Task {
+            var judge = SuggestionJudge(forced: forced, before: next.before, length: next.length,
+                                        wordBoundary: false, isRealWord: Self.isRealWord)
+            var raw = ""
+            do {
+                for try await piece in await LlamaEngine.shared.complete(
+                    prompt: prompt, maxTokens: next.length.maxTokens,
+                    grammar: TokenHealing.grammar(forcing: forced)) {
+                    guard !Task.isCancelled else { return }
+                    raw += piece
+                }
+            } catch { return }
+            guard !Task.isCancelled, case .show(let text) = judge.judge(raw, final: true) else { return }
+            prefetched = (next.before, text)
         }
     }
 
@@ -441,7 +536,8 @@ final class TypingCoordinator {
         DictionaryCompletion.vocabulary(from: CorrectionsStore.shared.corrections.map(\.right))
     }
 
-    private func show(_ text: String, at placement: GhostTextPanel.Placement, surface: SurfaceClass) {
+    private func show(_ text: String, at placement: GhostTextPanel.Placement, surface: SurfaceClass,
+                      request: Request?) {
         guard mayRun, !text.isEmpty else { return }
         let appearing = shown == nil
         // → in terminals, where Tab is the shell's completion.
@@ -456,7 +552,7 @@ final class TypingCoordinator {
             if appearing { hide() }
             return
         }
-        shown = Shown(text: visible, placement: placement, nextInField: nextInField)
+        shown = Shown(text: visible, placement: placement, nextInField: nextInField, request: request, full: visible)
         TypingKeyTap.shared.setSuggestionVisible(true)
         // An app can still be drawing the last keys (or rewriting them, like
         // TextEdit's text replacement) when the caret was read: measure again.
