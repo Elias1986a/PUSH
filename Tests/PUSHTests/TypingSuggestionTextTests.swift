@@ -191,14 +191,39 @@ final class TypingSuggestionRepeatTests: XCTestCase {
         XCTAssertFalse(SuggestionText.repeats(" had had enough", before: "she"))   // rare but real: allowed once
     }
 
-    func testRejectsReplayingAPhraseAlreadyWritten() {
+    func testRejectsRestartingTheWordsJustWritten() {
+        // Cotabby's rule: the suggestion contains the last four words before the caret.
+        XCTAssertTrue(SuggestionText.repeats(". Hi Sarah, thanks for sending", before: "Hi Sarah, thanks for s"))
+    }
+
+    func testARepeatedParagraphElsewhereIsFine() {
+        // A note that repeats a passage makes reproducing it the right guess
+        // (Cotabby: a whole-window rule threw away 168 of 179 completions).
         let before = "We will be in the city for 3 days. Looking forward to it. "
-        XCTAssertTrue(SuggestionText.repeats("We will be in the city for", before: before))
-        XCTAssertFalse(SuggestionText.repeats("We can meet on Friday", before: before))
+        XCTAssertFalse(SuggestionText.repeats("We will be in the city for", before: before))
+    }
+
+    func testRejectsShortLoops() {
+        XCTAssertTrue(SuggestionText.repeats(" Hi S. Hi S. Hi S.", before: "Dear team"))
+        XCTAssertTrue(SuggestionText.repeats(" go now go now go now", before: "We should"))
     }
 
     func testMidWordContinuationIsNotARepeat() {
         // "appreci" + "ate it" — the suggestion continues the word, it does not repeat it.
         XCTAssertFalse(SuggestionText.repeats("ate it.", before: "really appreci"))
+    }
+}
+
+final class TypingSuggestionScaffoldingTests: XCTestCase {
+    func testRejectsClosingPunctuationRightAfterATypedSpace() {
+        XCTAssertTrue(SuggestionText.isUnwanted(", regards", before: "Best "))
+        XCTAssertFalse(SuggestionText.isUnwanted(", regards", before: "Best"))
+    }
+
+    func testRejectsForumResidueAndTalkBack() {
+        XCTAssertTrue(SuggestionText.isUnwanted(" [User 0001] said", before: "I think"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" 12:03 PM · 1 min read · Reply", before: "Great post"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" As an AI, I cannot", before: "Can you"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" I'm not sure what you mean", before: "Okay so"))
     }
 }

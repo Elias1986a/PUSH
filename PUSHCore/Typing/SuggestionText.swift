@@ -118,6 +118,16 @@ public enum SuggestionText {
         let beforeTail = NSRange(location: 0, length: (lowerBefore as NSString).length)
         if selfDescription.firstMatch(in: lowerBefore, range: beforeTail) != nil,
            text.contains(where: \.isLetter) { return true }
+        // Closing punctuation right after a typed space ("Best " + ", regards"
+        // would give "Best ,").
+        if before.last == " " || before.last == "\t", let first = suggestion.first, ",.;:!?…".contains(first) {
+            return true
+        }
+        // Forum and chat residue, or the model talking back about the prompt.
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if trimmed.range(of: #"^\[/?[a-z][a-z0-9 _-]{0,24}\]"#, options: .regularExpression) != nil { return true }
+        if trimmed.components(separatedBy: " · ").count >= 3 { return true }
+        if talkBack.contains(where: { trimmed.hasPrefix($0) || trimmed.contains(" " + $0) }) { return true }
         // Web-page debris (tags, @handles, links, template braces) unless the
         // user is writing that kind of thing already: base models learned
         // from raw pages ("Hello," → "<strong>@jason-m-smith</strong>").
@@ -147,6 +157,11 @@ public enum SuggestionText {
         ("www.", ["www.", "http"]), ("{", ["{"]), ("}", ["{", "}"]), ("[", ["["]),
     ]
 
+    private static let talkBack = [
+        "i'm not sure what you mean", "i am not sure what you mean", "as an ai", "as a language model",
+        "i cannot help", "i can't help", "i don't understand the question",
+    ]
+
     private static let explicit: Set<String> = [
         "sex", "sexy", "sexual", "porn", "porno", "nude", "nudes", "naked", "horny", "fuck", "fucking",
         "dick", "cock", "pussy", "boobs", "tits", "slut", "whore", "cum", "nsfw", "onlyfans",
@@ -158,7 +173,8 @@ public enum SuggestionText {
     ///   also the mark of a field read a beat before the last keys landed;
     /// - a word repeats back to back ("3 3", "We We"), except the few that
     ///   genuinely double ("had had");
-    /// - its first four words replay a phrase already in the last lines.
+    /// - a short sequence loops three times;
+    /// - it restarts the last four words the user wrote.
     public static func repeats(_ suggestion: String, before: String) -> Bool {
         func words(_ text: String) -> [String] {
             text.lowercased().split(whereSeparator: \.isWhitespace)
@@ -171,9 +187,26 @@ public enum SuggestionText {
         if zip(next, next.dropFirst()).contains(where: { $0 == $1 && !legitimateDoubles.contains($0) }) {
             return true
         }
-        if next.count >= 4 {
-            let phrase = next.prefix(4).joined(separator: " ")
-            if words(String(before.suffix(400))).joined(separator: " ").contains(phrase) { return true }
+        // A one-to-three word sequence looping three times (". Hi S. Hi S. Hi S.").
+        for period in 1...3 where next.count >= period * 3 {
+            var run = 0
+            for index in period..<next.count {
+                run = next[index] == next[index - period] ? run + 1 : 0
+                if run >= period * 2 { return true }
+            }
+        }
+        // Restarting what was just written: the last four words before the
+        // caret appear in the suggestion. Only the tail counts (Cotabby) — a
+        // passage repeated elsewhere in a note is a fair thing to reproduce.
+        let recent = words(String(before.suffix(120)))
+        if recent.count >= 4, next.count >= 4 {
+            let tail = Array(recent.suffix(4))
+            for start in 0...(next.count - 4) {
+                let run = Array(next[start..<start + 4])
+                // The last word may be the half-typed one, finished in the copy
+                // ("thanks for s" → "thanks for sending").
+                if run.prefix(3) == tail.prefix(3), run[3].hasPrefix(tail[3]) { return true }
+            }
         }
         return false
     }
