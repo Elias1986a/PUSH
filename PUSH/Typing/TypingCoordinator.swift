@@ -295,6 +295,42 @@ final class TypingCoordinator {
         return surface
     }
 
+    // MARK: - Screen text
+
+    /// The text around the field, from a cache kept per field: reading a
+    /// window can take a while, and a suggestion never waits for it. A field
+    /// seen for the first time gets it from its second request on (the read
+    /// starts on the click or app switch that focused it, so usually sooner).
+    private var screenCache: (element: Int, text: String?, at: Date)?
+    private var screenTask: Task<Void, Never>?
+    /// Old enough to read again (a chat gets new messages). The text only
+    /// changes the prompt when it changed, so the model's cache keeps matching.
+    static let screenRefresh: TimeInterval = 6
+
+    private func screenText(for focus: FocusSnapshot) -> String? {
+        guard AppState.shared.typingUsesScreen else { return nil }
+        guard let cache = screenCache, cache.element == focus.elementID else {
+            refreshScreen(for: focus)
+            return nil
+        }
+        if Date().timeIntervalSince(cache.at) > Self.screenRefresh { refreshScreen(for: focus) }
+        return cache.text
+    }
+
+    private func refreshScreen(for focus: FocusSnapshot) {
+        guard AppState.shared.typingUsesScreen, screenTask == nil, let field = focus.fieldFrame,
+              focus.pid != ProcessInfo.processInfo.processIdentifier else { return }
+        let pid = focus.pid
+        let element = focus.elementID
+        screenTask = Task {
+            let text = await Task.detached(priority: .utility) {
+                ScreenTextSelector.select(ScreenTextReader.read(pid: pid), field: field)
+            }.value
+            screenTask = nil
+            screenCache = (element, text, Date())
+        }
+    }
+
     // MARK: - Field icon
 
     /// The focused field: PUSH's own try-it box directly, anything else
@@ -314,6 +350,8 @@ final class TypingCoordinator {
             return
         }
         TypeIndicatorPanel.shared.show(field: field, caret: focus.caretRect, color: AppState.shared.typingColor.color)
+        // A field just focused: start reading what is around it now.
+        if surface != .terminal, screenCache?.element != focus.elementID { refreshScreen(for: focus) }
     }
 
     /// Focus may have moved without a key (a click, another app in front):
@@ -395,7 +433,7 @@ final class TypingCoordinator {
                 before: before, bundleID: focus.bundleID, windowTitle: focus.windowTitle),
             clipboard: surface != .terminal && AppState.shared.typingUsesClipboard
                 ? ClipboardContext.shared.text(for: before) : nil,
-            screen: nil,
+            screen: surface != .terminal ? screenText(for: focus) : nil,
             surface: surface, length: AppState.shared.typingLength)
         nextInField = surface == .terminal ? nil : focus.after?.first
         if let ready = prefetched, ready.before == before {
