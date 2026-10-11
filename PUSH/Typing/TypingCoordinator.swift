@@ -56,6 +56,8 @@ final class TypingCoordinator {
     private var active = false
     /// The character after the caret when the last suggestion was asked for.
     private var nextInField: Character?
+    /// The app the user last typed in, for the menu's "Turn Off in <App>".
+    private(set) var lastApp: (bundleID: String, name: String)?
     private var buffer = KeystrokeBuffer()
     private var keystrokes = 0          // bumps on every user key; stale work compares against it
     private var debounceTask: Task<Void, Never>?
@@ -185,6 +187,9 @@ final class TypingCoordinator {
         guard stamp == keystrokes, mayRun else { return }
         guard !focus.isSecure else { return skip("secure field") }
         guard focus.isTextInput else { return skip("not a text field (\(focus.role ?? "?"))") }
+        if let id = focus.bundleID, focus.pid != ProcessInfo.processInfo.processIdentifier {
+            lastApp = (id, focus.appName ?? id)
+        }
         guard !TypingExclusions.isExcluded(bundleID: focus.bundleID, userExcluded: AppState.shared.typingExcludedApps),
               focus.pid != ProcessInfo.processInfo.processIdentifier else { return skip("excluded app") }
         // Sign-in and verification fields, and Mail's header rows (Tab moves

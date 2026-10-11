@@ -430,16 +430,46 @@ struct OnboardingView: View {
         modelsOnDisk = ModelAvailability.downloaded()
     }
 
-    // MARK: - Typing model (Phase 5 replaces this placeholder)
+    // MARK: - Typing model
 
     private var typingModelStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 14) {
             stepHeader(
                 title: "Choose a typing model",
-                subtitle: "Typing model — coming in Phase 5."
+                subtitle: "It runs on this Mac and suggests how your sentence goes on. You can switch later in Settings → Typing."
             )
+
+            VStack(spacing: 6) {
+                ForEach(TypingModel.allCases) { model in
+                    TypingModelRow(model: model, allowsDelete: false)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
+                }
+            }
+
+            Toggle(isOn: $appState.typingInCodeEditors) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Also suggest in code editors")
+                    Text("Xcode, VS Code and Cursor use Tab for their own completions, so this starts off.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .toggleStyle(.switch)
+
+            if TypingSettingsView.macInlinePredictionsOn() {
+                statusLine(
+                    icon: "info.circle",
+                    text: "Tip: turn off macOS’s own gray predictions so two suggestions never compete for Tab — System Settings → Keyboard → Text Input → Edit.",
+                    tint: .secondary
+                )
+            }
+
             Spacer(minLength: 0)
         }
+        .onAppear { TypingModelStore.shared.refresh() }
     }
 
     // MARK: - Step 4 · try it here
@@ -764,17 +794,22 @@ struct OnboardingView: View {
     }
 
     /// Skip is offered only when every feature that is on can already run.
-    /// Typing models do not exist yet, so Type on means no Skip.
     private var canSkip: Bool {
         (appState.dictationEnabled || typeChosen)
             && (!appState.dictationEnabled || !modelsOnDisk.isEmpty)
-            && !typeChosen
+            && (!typeChosen || typingModelOnDisk)
+    }
+
+    private var typingModelOnDisk: Bool {
+        TypingModelStore.shared.onDisk.contains(appState.selectedTypingModel)
     }
 
     private var continueDisabled: Bool {
         switch step {
         case .features: return !appState.dictationEnabled && !typeChosen
         case .speechModel: return !isReady(appState.selectedWhisperModel)
+        // A download in progress carries on in the background.
+        case .typingModel: return !typingModelOnDisk && TypingModelStore.shared.downloading == nil
         default: return false
         }
     }

@@ -218,11 +218,17 @@ final class AppState {
     }
 
     var typingExcludedApps: [String] = TypingPreferences.excludedApps() {
-        didSet { UserDefaults.standard.set(typingExcludedApps, forKey: TypingPreferences.excludedAppsKey) }
+        didSet {
+            UserDefaults.standard.set(typingExcludedApps, forKey: TypingPreferences.excludedAppsKey)
+            TypingCoordinator.shared.hide()
+        }
     }
 
     var typingPausedUntil: Date? = TypingPreferences.pausedUntil() {
-        didSet { UserDefaults.standard.set(typingPausedUntil, forKey: TypingPreferences.pausedUntilKey) }
+        didSet {
+            UserDefaults.standard.set(typingPausedUntil, forKey: TypingPreferences.pausedUntilKey)
+            if typingPausedUntil != nil { TypingCoordinator.shared.hide() }
+        }
     }
 
     /// The typing model is loaded and warm.

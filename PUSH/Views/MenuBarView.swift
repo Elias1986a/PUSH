@@ -49,6 +49,10 @@ struct MenuBarView: View {
                 controls
                 Divider()
             }
+            if appState.typeEnabled {
+                typingControls
+                Divider()
+            }
             commands
         }
         .frame(width: 290)
@@ -175,6 +179,60 @@ struct MenuBarView: View {
                     }
             }
             .padding(.top, 1)
+        }
+        .font(.system(size: 12))
+        .controlSize(.small)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: - Type
+
+    /// Type's model (downloaded only, like dictation's), length and pause.
+    private var typingControls: some View {
+        @Bindable var appState = appState
+        let offered = TypingModel.allCases.filter {
+            TypingModelStore.shared.onDisk.contains($0) || $0 == appState.selectedTypingModel
+        }
+        return VStack(alignment: .leading, spacing: 9) {
+            labelled("Typing") {
+                Picker("", selection: $appState.selectedTypingModel) {
+                    ForEach(offered) { Text("\($0.tier) · \($0.displayName)").tag($0) }
+                }
+                .labelsHidden()
+                .disabled(offered.count < 2)
+            }
+            labelled("Length") {
+                Picker("", selection: $appState.typingLength) {
+                    ForEach(LengthPreset.offered(for: appState.selectedTypingModel), id: \.self) {
+                        Text($0.label).tag($0)
+                    }
+                }
+                .labelsHidden()
+            }
+            HStack(spacing: 8) {
+                if let until = appState.typingPausedUntil, until > Date() {
+                    Text("Paused until \(until.formatted(date: .omitted, time: .shortened))")
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    Button("Resume") { appState.typingPausedUntil = nil }
+                } else {
+                    Text("Suggestions").foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    Menu("Pause") {
+                        Button("For 1 Hour") { appState.typingPausedUntil = Date().addingTimeInterval(3600) }
+                        Button("Until Tomorrow") {
+                            appState.typingPausedUntil = Calendar.current.startOfDay(for: Date().addingTimeInterval(86_400))
+                        }
+                        if let app = TypingCoordinator.shared.lastApp,
+                           !appState.typingExcludedApps.contains(app.bundleID) {
+                            Divider()
+                            Button("Turn Off in \(app.name)") { appState.typingExcludedApps.append(app.bundleID) }
+                        }
+                    }
+                    .fixedSize()
+                }
+            }
         }
         .font(.system(size: 12))
         .controlSize(.small)
