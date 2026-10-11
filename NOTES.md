@@ -1,5 +1,15 @@
 # NOTES
 
+## Type — Phase 0 done (2026-10-10, branch `feature/autocomplete`)
+
+Catalog: Qwen3.5 0.8B / Qwen3.5 2B / Gemma 4 E2B base (max length 4–7 / 8–12 /
+12–20). llama.cpp b11147 pinned, loads in the Developer-ID-signed build.
+Unicode key-event typing is correct in every app tried. Results:
+`eval/results/2026-10-autocomplete.md`, `docs/MODELS.md` "Type models", design
+doc. Open: the 150 ms gate holds only per keystroke (KV reuse), not cold;
+Granite 1B needs a Metal re-test; first launch compiles Metal shaders (16 s).
+Next: Phase 1 after the user signs off on the checkpoint.
+
 ## Latest (2026-10-10, v8.2.8)
 
 8.2.8 shipped the drag-to-grant Accessibility card (`PermissionGuide`), verified
