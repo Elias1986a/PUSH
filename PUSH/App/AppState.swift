@@ -231,6 +231,21 @@ final class AppState {
         }
     }
 
+    /// "About you" (Settings → Personal): the name used at a sign-off, and a
+    /// short note the model reads as the writer's style.
+    var typingName: String = TypingPreferences.name() {
+        didSet { UserDefaults.standard.set(typingName, forKey: TypingPreferences.nameKey) }
+    }
+
+    var typingAbout: String = TypingPreferences.about() {
+        didSet {
+            if typingAbout.count > TypingPreferences.aboutLimit {
+                typingAbout = String(typingAbout.prefix(TypingPreferences.aboutLimit))
+            }
+            UserDefaults.standard.set(typingAbout, forKey: TypingPreferences.aboutKey)
+        }
+    }
+
     /// The typing model is loaded and warm.
     var typingModelReady = false
 

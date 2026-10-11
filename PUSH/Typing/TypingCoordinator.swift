@@ -245,7 +245,8 @@ final class TypingCoordinator {
         let context = TypingContext(
             before: heal.prompt, after: surface == .terminal ? nil : focus.after,
             surfaceLine: surfaceLine,
-            userName: NSFullUserName().split(separator: " ").first.map(String.init))
+            style: Self.nonEmpty(AppState.shared.typingAbout),
+            userName: TypingPreferences.signOffName(saved: AppState.shared.typingName))
         let prompt = TypingPrompt.render(context)
         let length = AppState.shared.typingLength
         let maxWords = length.words.upperBound
@@ -359,6 +360,11 @@ final class TypingCoordinator {
             if completions?.isEmpty ?? true { return true }
         }
         return false
+    }
+
+    private static func nonEmpty(_ text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     /// A dictionary word, or one in the user's PUSH Dictionary ("Hamer" is

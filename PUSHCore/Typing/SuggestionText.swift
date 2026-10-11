@@ -5,7 +5,7 @@ import Foundation
 public enum SuggestionText {
     /// Labels from the prompt's preface. Seeing one means the model is echoing
     /// its context instead of continuing the user's text.
-    private static let leak = try! NSRegularExpression(pattern: #"\b(Format|App|Title|Field|Domain|From):"#)
+    private static let leak = try! NSRegularExpression(pattern: #"\b(Format|App|Title|Field|Domain|From|Style):"#)
 
     /// First line only, at most `maxWords` words, trailing space trimmed. The
     /// leading space is the model's and is kept: it says whether the text

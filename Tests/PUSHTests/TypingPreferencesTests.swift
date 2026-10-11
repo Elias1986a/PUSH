@@ -86,4 +86,10 @@ final class TypingPreferencesTests: XCTestCase {
         XCTAssertFalse(TypingExclusions.isExcluded(bundleID: "com.apple.Notes"))
         XCTAssertTrue(TypingExclusions.isExcluded(bundleID: "com.apple.Notes", userExcluded: ["com.apple.notes"]))
     }
+
+    func testSignOffNamePrefersTheUsersChoice() {
+        XCTAssertEqual(TypingPreferences.signOffName(saved: "  Sam ", fullName: "Samuel Rivera"), "Sam")
+        XCTAssertEqual(TypingPreferences.signOffName(saved: "", fullName: "Samuel Rivera"), "Samuel")
+        XCTAssertNil(TypingPreferences.signOffName(saved: " ", fullName: ""))
+    }
 }

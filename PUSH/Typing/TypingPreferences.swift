@@ -12,6 +12,10 @@ enum TypingPreferences {
     static let pauseOnBatteryKey = "typing.pauseOnBattery"
     static let excludedAppsKey = "typing.excludedApps"
     static let pausedUntilKey = "typing.pausedUntil"
+    static let nameKey = "typing.profile.name"
+    static let aboutKey = "typing.profile.about"
+    /// The About note's limit (Cotabby keeps its style line to 300).
+    static let aboutLimit = 300
 
     static func model(in d: UserDefaults = .standard) -> TypingModel {
         d.string(forKey: modelKey).flatMap(TypingModel.init(rawValue:)) ?? .defaultModel
@@ -53,5 +57,16 @@ enum TypingPreferences {
     /// "Pause for 1 hour / until tomorrow"; a date already past means not paused.
     static func pausedUntil(in d: UserDefaults = .standard) -> Date? {
         (d.object(forKey: pausedUntilKey) as? Date).flatMap { $0 > Date() ? $0 : nil }
+    }
+
+    static func name(in d: UserDefaults = .standard) -> String { d.string(forKey: nameKey) ?? "" }
+    static func about(in d: UserDefaults = .standard) -> String { d.string(forKey: aboutKey) ?? "" }
+
+    /// The name used at a sign-off: the user's own choice, else the first
+    /// word of the account's full name.
+    static func signOffName(saved: String, fullName: String = NSFullUserName()) -> String? {
+        let chosen = saved.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !chosen.isEmpty { return chosen }
+        return fullName.split(separator: " ").first.map(String.init)
     }
 }
