@@ -29,7 +29,25 @@ public actor LlamaEngine {
         public var tokenLogprobs: [Double] = []
     }
 
+    /// How the next token is chosen: greedy, behind a mild repetition penalty
+    /// over the recent text (Cotabby's 1.025 over the last 64 tokens) — pure
+    /// greedy decoding fell into "3 3 3 3". Cotabby also samples at
+    /// temperature 0.1 with top-k/top-p/min-p; measured here that flipped
+    /// "Paris" to "a city that…", broke reused-equals-cold, and doubled the
+    /// per-keystroke time (Gemma 34 → 69 ms), so only the penalty is taken.
+    public struct Sampling: Sendable, Equatable {
+        public var repetitionPenalty: Float = 1.025
+        public var penaltyLastN: Int32 = 64
+
+        public init() {}
+        public static let standard = Sampling()
+    }
+
     public private(set) var lastStats = Stats()
+    /// Record per-token log-probabilities in `lastStats` (a pass over the
+    /// whole vocabulary per token — diagnostics only, off in the app).
+    public var recordsLogprobs = false
+    public func setRecordsLogprobs(_ on: Bool) { recordsLogprobs = on }
     public private(set) var loadedPath: String?
 
     private var model: OpaquePointer?
@@ -104,24 +122,28 @@ public actor LlamaEngine {
     /// newline (not included), an end-of-generation token or `maxTokens`.
     /// `grammar` (GBNF) constrains the output — token healing uses it to force
     /// the start. Cancelling the consuming task stops generation within a token.
-    public func complete(prompt: String, maxTokens: Int, grammar: String? = nil) -> AsyncThrowingStream<String, Error> {
+    public func complete(prompt: String, maxTokens: Int, grammar: String? = nil,
+                         sampling: Sampling = .standard) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
-            let task = Task { await self.run(prompt: prompt, maxTokens: maxTokens, grammar: grammar, into: continuation) }
+            let task = Task {
+                await self.run(prompt: prompt, maxTokens: maxTokens, grammar: grammar, sampling: sampling, into: continuation)
+            }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
 
-    private func run(prompt: String, maxTokens: Int, grammar: String?,
+    private func run(prompt: String, maxTokens: Int, grammar: String?, sampling: Sampling,
                      into continuation: AsyncThrowingStream<String, Error>.Continuation) {
         do {
-            try generate(prompt: prompt, maxTokens: maxTokens, grammar: grammar) { continuation.yield($0) }
+            try generate(prompt: prompt, maxTokens: maxTokens, grammar: grammar, sampling: sampling) { continuation.yield($0) }
             continuation.finish()
         } catch {
             continuation.finish(throwing: error)
         }
     }
 
-    private func generate(prompt: String, maxTokens: Int, grammar: String?, emit: (String) -> Void) throws {
+    private func generate(prompt: String, maxTokens: Int, grammar: String?, sampling: Sampling,
+                          emit: (String) -> Void) throws {
         guard let context, let vocab else { throw Failure.notLoaded }
         let tokens = try tokenize(prompt)
         let start = DispatchTime.now()
@@ -134,13 +156,21 @@ public actor LlamaEngine {
             guard let constraint = llama_sampler_init_grammar(vocab, grammar, "root") else { throw Failure.grammar }
             llama_sampler_chain_add(sampler, constraint)
         }
+        let vocabSize = llama_vocab_n_tokens(vocab)
+        if let penalties = llama_sampler_init_penalties(vocabSize, sampling.penaltyLastN, sampling.repetitionPenalty, 0, 0) {
+            // The penalty sees the user's recent text, not only the model's
+            // own output; the grammar must not see the prompt, so only this
+            // sampler is fed.
+            for token in tokens.suffix(Int(sampling.penaltyLastN)) { llama_sampler_accept(penalties, token) }
+            llama_sampler_chain_add(sampler, penalties)
+        }
         llama_sampler_chain_add(sampler, llama_sampler_init_greedy())
 
         var pending = Data()
         for step in 0..<maxTokens {
             if Task.isCancelled { return }
             let next = llama_sampler_sample(sampler, context, -1)
-            lastStats.tokenLogprobs.append(logprob(of: next))
+            if recordsLogprobs { lastStats.tokenLogprobs.append(logprob(of: next)) }
             if step == 0 {
                 lastStats.firstTokenMilliseconds = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1e6
             }

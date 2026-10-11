@@ -131,6 +131,7 @@ final class LlamaEngineTests: XCTestCase {
         for (model, path) in try models() {
             let engine = LlamaEngine()
             try await engine.load(path: path)
+            await engine.setRecordsLogprobs(true)
             for start in starts {
                 let heal = TokenHealing.split(start)
                 let out = try await collect(engine, "Format: text; App: Notes.\n\n" + heal.prompt, 8,

@@ -40,7 +40,10 @@ enum TypingExclusions {
 final class TypingCoordinator {
     static let shared = TypingCoordinator()
 
-    static let debounce: Duration = .milliseconds(150)
+    /// Short: generation is cancelled within a token when a newer key lands,
+    /// so the pause only collapses bursts. Cotabby uses 20 ms; Cotypist
+    /// "updates to the word you wanted within a letter or two".
+    static let debounce: Duration = .milliseconds(50)
 
     private struct Shown {
         var text: String
