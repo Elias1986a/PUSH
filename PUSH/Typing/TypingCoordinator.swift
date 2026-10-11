@@ -186,16 +186,21 @@ final class TypingCoordinator {
 
     private func show(_ text: String, at placement: GhostTextPanel.Placement) {
         guard mayRun, !text.isEmpty else { return }
+        let appearing = shown == nil
         shown = Shown(text: text, placement: placement)
         GhostTextPanel.shared.show(text, at: placement)
         TypingKeyTap.shared.setSuggestionVisible(true)
+        // An app can still be drawing the last keys (or rewriting them, like
+        // TextEdit's text replacement) when the caret was read: measure again.
+        if appearing { refreshPlacement(after: .milliseconds(200)) }
     }
 
     /// The caret moved (typed into or accepted part of the suggestion): read
     /// it again and redraw what is left.
-    private func refreshPlacement() {
+    private func refreshPlacement(after delay: Duration = .zero) {
         let stamp = keystrokes
         Task {
+            if delay > .zero { try? await Task.sleep(for: delay) }
             let focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
             guard stamp == keystrokes, let current = shown else { return }
             let placement = focus.flatMap {

@@ -83,17 +83,19 @@ enum FocusReader {
         return AXValueGetValue(value, .cfRange, &range) ? range : nil
     }
 
-    /// `kAXBoundsForRangeParameterizedAttribute` at the caret. An empty range
-    /// gives a zero-width rect in most apps; where it fails, the character
-    /// before the caret is measured and its right edge used.
+    /// The caret's position, from `kAXBoundsForRangeParameterizedAttribute`.
+    /// The character before the caret is measured and its right edge used:
+    /// an empty range is the unreliable case (TextEdit puts it a line too
+    /// high). The empty range is the fallback, for a caret at the very start.
     private static func caretRect(_ element: AXUIElement, at caret: Int, length: Int) -> CGRect? {
+        if caret > 0, let rect = bounds(element, CFRange(location: caret - 1, length: 1)), rect.height > 0,
+           rect.width < 200 {   // a newline before the caret measures as a whole line
+            return flipped(CGRect(x: rect.maxX, y: rect.minY, width: 0, height: rect.height))
+        }
         if let rect = bounds(element, CFRange(location: caret, length: 0)), rect.height > 0 {
             return flipped(rect)
         }
-        guard caret > 0, let rect = bounds(element, CFRange(location: caret - 1, length: 1)), rect.height > 0 else {
-            return nil
-        }
-        return flipped(CGRect(x: rect.maxX, y: rect.minY, width: 0, height: rect.height))
+        return nil
     }
 
     private static func bounds(_ element: AXUIElement, _ range: CFRange) -> CGRect? {
