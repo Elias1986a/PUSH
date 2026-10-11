@@ -21,6 +21,11 @@ struct FocusSnapshot: Sendable, Equatable {
     /// The focused element is somewhere text is typed (not a menu item, list
     /// row or button that happens to hold the focus).
     var isTextInput: Bool
+    var role: String?
+    /// What the field says about itself (title, description, placeholder) and
+    /// its web id — for spotting sign-in and verification fields.
+    var labels: [String?]
+    var domIdentifier: String?
     /// Identifies the focused element, to tell a stale result from a fresh one.
     var elementID: Int
 }
@@ -59,6 +64,10 @@ enum FocusReader {
             placeholder: attribute(element, kAXPlaceholderValueAttribute),
             url: nil, before: nil, after: nil, caretRect: nil, fieldFrame: frame(of: element),
             isSecure: isSecure, isTextInput: Self.textRoles.contains(role ?? ""),
+            role: role,
+            labels: [attribute(element, kAXTitleAttribute), attribute(element, kAXDescriptionAttribute),
+                     attribute(element, kAXPlaceholderValueAttribute)],
+            domIdentifier: attribute(element, "AXDOMIdentifier"),
             elementID: Int(CFHash(element)))
         // A password field: nothing more is read from it, ever.
         guard !isSecure else { return snapshot }

@@ -161,6 +161,11 @@ final class TypingCoordinator {
         guard stamp == keystrokes, mayRun, !focus.isSecure, focus.isTextInput,
               !TypingExclusions.isExcluded(bundleID: focus.bundleID),
               focus.pid != ProcessInfo.processInfo.processIdentifier else { return }
+        // Sign-in and verification fields, and Mail's header rows (Tab moves
+        // to the next field there).
+        guard !FieldPolicy.isMailHeader(bundleID: focus.bundleID, role: focus.role),
+              !FieldPolicy.isCredentialField(role: focus.role, labels: focus.labels,
+                                             domIdentifier: focus.domIdentifier, text: focus.before) else { return }
         let surface = SurfaceClass.classify(bundleID: focus.bundleID)
         guard surface != .code || AppState.shared.typingInCodeEditors else { return }
 
