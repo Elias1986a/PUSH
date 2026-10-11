@@ -350,51 +350,28 @@ final class TypingCoordinator {
         generationTask?.cancel()
         generationTask = Task {
             var raw = ""
-            var judged = wordBoundary || forced.isEmpty
+            var judge = SuggestionJudge(forced: forced, before: before, length: length, wordBoundary: wordBoundary,
+                                        isRealWord: Self.isRealWord)
             let grammar = TokenHealing.grammar(forcing: forced, wordBoundary: wordBoundary)
-            @MainActor func retryWithBoundary() {
-                startGeneration(prompt: prompt, forced: forced, before: before, length: length, maxWords: maxWords,
-                                placement: placement, surface: surface, stamp: stamp, wordBoundary: true)
-            }
-            /// False when the attempt was abandoned for a retry.
+            /// False when this attempt is over (rejected, or retried).
             @MainActor func consider(final: Bool) -> Bool {
-                guard let text = TokenHealing.strip(raw, forced: forced) else { return true }
-                if !judged {
-                    if let word = TokenHealing.gluedWord(forced: forced, continuation: text) {
-                        let wordEnded = text.contains { !($0.isLetter || $0 == "'" || $0 == "’") }
-                        guard wordEnded || final else { return true }     // wait for the whole word
-                        judged = true
-                        if !Self.isRealWord(word) {
-                            retryWithBoundary()
-                            return false
-                        }
-                    } else {
-                        judged = true
-                    }
-                }
-                guard let clean = SuggestionText.clean(text, maxWords: maxWords) else {
-                    if final { skip("empty after cleanup") }
+                switch judge.judge(raw, final: final) {
+                case .wait:
                     return true
-                }
-                let rejection: String? = {
-                    guard let polished = SuggestionText.polish(length.trim(clean), before: before) else {
-                        return "capital glued onto the word"
-                    }
-                    if !SuggestionText.matchesScript(polished, before: before) { return "other writing system" }
-                    if SuggestionText.isUnwanted(polished, before: before) { return "unwanted content" }
-                    if SuggestionText.repeats(polished, before: before) { return "repeats or loops" }
-                    return nil
-                }()
-                guard rejection == nil, let polished = SuggestionText.polish(length.trim(clean), before: before) else {
+                case .show(let text):
+                    show(text, at: placement, surface: surface)
+                    return true
+                case .retryWithBoundary:
+                    startGeneration(prompt: prompt, forced: forced, before: before, length: length, maxWords: maxWords,
+                                    placement: placement, surface: surface, stamp: stamp, wordBoundary: true)
+                    return false
+                case .reject(let reason):
                     // A later piece turned it unacceptable: take down what an
                     // earlier piece showed (", " before "I'm a 17…") and stop.
-                    skip(rejection ?? "rejected")
-                    hide()
-                    generationTask?.cancel()
+                    skip(reason)
+                    if reason != "empty after cleanup" { hide() }
                     return false
                 }
-                show(polished, at: placement, surface: surface)
-                return true
             }
             do {
                 for try await piece in await LlamaEngine.shared.complete(

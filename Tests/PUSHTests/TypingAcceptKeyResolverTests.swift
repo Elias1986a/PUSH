@@ -12,9 +12,14 @@ final class TypingAcceptKeyResolverTests: XCTestCase {
         XCTAssertEqual(AcceptKeyResolver.wholeSuggestionKey(layout: ukISO), .init(keyCode: 50, option: false))
     }
 
-    func testFallsBackToOptionTabWhenNoKeyTypesABacktick() {
-        XCTAssertEqual(AcceptKeyResolver.wholeSuggestionKey(layout: german), .init(keyCode: 48, option: true))
-        XCTAssertTrue(AcceptKeyResolver.wholeSuggestionKey(layout: german).isFallback)
+    func testFallsBackToTheKeyAboveTabWhenNoKeyTypesABacktick() {
+        XCTAssertEqual(AcceptKeyResolver.wholeSuggestionKey(layout: german), .init(keyCode: 10, option: false))
+    }
+
+    func testOptionTabAsksForAPlainTab() {
+        XCTAssertTrue(AcceptKeyResolver.isPlainTabRequest(keyCode: 48, option: true, otherModifiers: false))
+        XCTAssertFalse(AcceptKeyResolver.isPlainTabRequest(keyCode: 48, option: false, otherModifiers: false))
+        XCTAssertFalse(AcceptKeyResolver.isPlainTabRequest(keyCode: 48, option: true, otherModifiers: true))
     }
 
     func testNextWordKeyIsTabExceptInTerminals() {

@@ -39,6 +39,9 @@ struct TypingSettingsView: View {
                     Text("\(Text("Tab").bold()) next word · \(Text(Self.wholeKeyName).bold()) the whole suggestion")
                         .foregroundStyle(.secondary)
                 }
+                LabeledContent("Moving between form fields") {
+                    Text("\(Text("⌥Tab").bold()) sends a plain Tab").foregroundStyle(.secondary)
+                }
                 Toggle("Add a space after the last word", isOn: $appState.typingSpaceAfterLastWord)
                 Toggle(isOn: $appState.typingInCodeEditors) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -141,7 +144,9 @@ struct TypingSettingsView: View {
 
     /// The key that accepts the whole suggestion in this keyboard layout.
     static var wholeKeyName: String {
-        AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()).isFallback ? "⌥Tab" : "` (above Tab)"
+        let layout = KeyboardLayoutMap.current()
+        let key = AcceptKeyResolver.wholeSuggestionKey(layout: layout)
+        return "\(layout[key.keyCode].flatMap { $0.isEmpty ? nil : $0 } ?? "`") (above Tab)"
     }
 
     /// macOS 14+ shows inline predictions unless the user turned them off.

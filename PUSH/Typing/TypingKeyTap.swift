@@ -122,6 +122,13 @@ final class TypingKeyTap: @unchecked Sendable {
                 emit(.dismiss)
                 return nil
             }
+            // ⌥Tab: a plain Tab goes to the app. Focus moves to the next form
+            // field, so it is handled like a click there.
+            if AcceptKeyResolver.isPlainTabRequest(keyCode: keyCode, option: option, otherModifiers: others) {
+                event.flags.remove(.maskAlternate)
+                emit(.click)
+                return pass
+            }
         }
         // ⌘⇧3/4/5 take a screenshot; they change no text, so the suggestion stays.
         if flags.contains(.maskCommand), flags.contains(.maskShift), [20, 21, 23].contains(keyCode) {
