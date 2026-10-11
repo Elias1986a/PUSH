@@ -10,7 +10,10 @@ doc. Open: the 150 ms gate holds only per keystroke (KV reuse), not cold;
 Granite 1B ruled out (garbage on Metal with b11147 too); first launch compiles
 Metal shaders (16 s) — fine, warm it in the background (user, 2026-10-10).
 The user accepted per-keystroke latency + prefill-on-focus as the gate.
-Next: Phase 1 after the user signs off on the checkpoint.
+Phase 1 (2026-10-10): feature switches, wizard follows them, dictation start
+sites gated (DictationSwitch for runtime). Type is "coming soon" in release
+builds, so release users cannot switch dictation off yet. Not yet done: a real
+dictation round-trip on a signed build to confirm nothing regressed.
 
 ## Latest (2026-10-10, v8.2.8)
 
