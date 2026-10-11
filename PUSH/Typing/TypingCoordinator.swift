@@ -154,8 +154,8 @@ final class TypingCoordinator {
 
     private func suggest(stamp: Int) async {
         guard mayRun else { return }
-        let focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
-        guard stamp == keystrokes, mayRun, let focus, !focus.isSecure, focus.isTextInput,
+        guard let focus = await readFresh(stamp: stamp) else { return }
+        guard stamp == keystrokes, mayRun, !focus.isSecure, focus.isTextInput,
               !TypingExclusions.isExcluded(bundleID: focus.bundleID),
               focus.pid != ProcessInfo.processInfo.processIdentifier else { return }
         let surface = SurfaceClass.classify(bundleID: focus.bundleID)
@@ -228,7 +228,8 @@ final class TypingCoordinator {
                 guard let clean = SuggestionText.clean(text, maxWords: maxWords) else { return true }
                 guard let polished = SuggestionText.polish(length.trim(clean), before: before),
                       SuggestionText.matchesScript(polished, before: before),
-                      !SuggestionText.isUnwanted(polished, before: before) else {
+                      !SuggestionText.isUnwanted(polished, before: before),
+                      !SuggestionText.repeats(polished, before: before) else {
                     // A later piece turned it unacceptable: take down what an
                     // earlier piece showed (", " before "I'm a 17…") and stop.
                     hide()
@@ -251,6 +252,24 @@ final class TypingCoordinator {
                 PushLogger.log("TypingCoordinator: generation failed: \(error)")
             }
         }
+    }
+
+    /// Reads the field, again (up to three times, 60 ms apart) while its text
+    /// does not yet end with the last keys typed: Notes updates what
+    /// Accessibility reports a beat after drawing, and a stale read ("…would
+    /// love" with "to" already typed) made the model suggest " to see you".
+    private func readFresh(stamp: Int) async -> FocusSnapshot? {
+        let typed = String(buffer.text.suffix(3))
+        var focus: FocusSnapshot?
+        for attempt in 0..<3 {
+            if attempt > 0 { try? await Task.sleep(for: .milliseconds(60)) }
+            guard stamp == keystrokes else { return nil }
+            focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
+            guard let snapshot = focus, let before = snapshot.before, !typed.isEmpty,
+                  snapshot.elementID == bufferElement else { return focus }
+            if before.hasSuffix(typed) { return focus }
+        }
+        return focus   // still differs (autocorrect rewrote it, say): go with the field
     }
 
     private static func isRealWord(_ word: String) -> Bool {

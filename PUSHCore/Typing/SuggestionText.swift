@@ -152,6 +152,34 @@ public enum SuggestionText {
         "dick", "cock", "pussy", "boobs", "tits", "slut", "whore", "cum", "nsfw", "onlyfans",
     ]
 
+    /// The model is looping or echoing (Cotabby suppresses "a short word
+    /// sequence looping back to back" too):
+    /// - it starts with the word just typed ("love to" + " to see you") —
+    ///   also the mark of a field read a beat before the last keys landed;
+    /// - a word repeats back to back ("3 3", "We We"), except the few that
+    ///   genuinely double ("had had");
+    /// - its first four words replay a phrase already in the last lines.
+    public static func repeats(_ suggestion: String, before: String) -> Bool {
+        func words(_ text: String) -> [String] {
+            text.lowercased().split(whereSeparator: \.isWhitespace)
+                .map { $0.trimmingCharacters(in: .punctuationCharacters) }.filter { !$0.isEmpty }
+        }
+        let next = words(suggestion)
+        guard let first = next.first else { return false }
+        let startsNewWord = suggestion.first?.isWhitespace == true || before.last?.isWhitespace == true
+        if startsNewWord, first == words(before).last { return true }
+        if zip(next, next.dropFirst()).contains(where: { $0 == $1 && !legitimateDoubles.contains($0) }) {
+            return true
+        }
+        if next.count >= 4 {
+            let phrase = next.prefix(4).joined(separator: " ")
+            if words(String(before.suffix(400))).joined(separator: " ").contains(phrase) { return true }
+        }
+        return false
+    }
+
+    private static let legitimateDoubles: Set<String> = ["had", "that"]
+
     /// What one press of the next-word key types: leading space plus the
     /// first word with any punctuation attached to it.
     public static func nextChunk(of suggestion: String) -> String {

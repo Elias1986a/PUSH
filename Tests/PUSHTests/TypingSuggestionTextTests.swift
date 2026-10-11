@@ -177,3 +177,28 @@ final class TypingSuggestionWebJunkTests: XCTestCase {
         XCTAssertFalse(SuggestionText.isUnwanted(" (by Friday)", before: "Send it"))
     }
 }
+
+final class TypingSuggestionRepeatTests: XCTestCase {
+    func testRejectsStartingWithTheWordJustTyped() {
+        XCTAssertTrue(SuggestionText.repeats(" to see you", before: "and would love to"))
+        XCTAssertTrue(SuggestionText.repeats(" the city", before: "We will be in the"))
+        XCTAssertFalse(SuggestionText.repeats(" see you", before: "and would love to"))
+    }
+
+    func testRejectsBackToBackRepeats() {
+        XCTAssertTrue(SuggestionText.repeats(" 3 3 3 3", before: "in the city for"))
+        XCTAssertTrue(SuggestionText.repeats(" days. We We will", before: "for 3"))
+        XCTAssertFalse(SuggestionText.repeats(" had had enough", before: "she"))   // rare but real: allowed once
+    }
+
+    func testRejectsReplayingAPhraseAlreadyWritten() {
+        let before = "We will be in the city for 3 days. Looking forward to it. "
+        XCTAssertTrue(SuggestionText.repeats("We will be in the city for", before: before))
+        XCTAssertFalse(SuggestionText.repeats("We can meet on Friday", before: before))
+    }
+
+    func testMidWordContinuationIsNotARepeat() {
+        // "appreci" + "ate it" — the suggestion continues the word, it does not repeat it.
+        XCTAssertFalse(SuggestionText.repeats("ate it.", before: "really appreci"))
+    }
+}
