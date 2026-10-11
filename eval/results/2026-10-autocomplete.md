@@ -18,7 +18,9 @@ greedy, one 32-token run per scenario cut to each length preset.
 
 ¹ Granite on Metal returns `@@@@…` after a few requests (fine on the CPU), and
 llama.cpp's grammar sampler threw on it until it was moved to the CPU. Its quality
-is scored on the CPU; its latency is not comparable.
+is scored on the CPU; its latency is not comparable. Re-tested on the pinned
+b11147 framework (`LlamaSmokeTests.testRepeatedRequestsWithCacheReuseStayCoherent`):
+still garbage on Metal, even single-shot for prompts over ~8 tokens. Ruled out.
 
 **Leaks: 0 for every model** at every length.
 

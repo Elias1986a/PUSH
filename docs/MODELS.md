@@ -152,10 +152,11 @@ and Gemma stop at the sentence end on their own and rarely loop (2/60 at 20
 words); Gemma has the best first-word hit and the steadiest long continuations.
 
 Not picked:
-- **Granite 4.0 1B Base** — ties Gemma on hits (40/60) at 1 GB, but on Metal it
-  returns `@@@@…` after a few requests with Homebrew llama.cpp build 10566, and it
-  invents specifics and loops past one sentence. Re-test on the pinned
-  xcframework before ruling it out for Lite.
+- **Granite 4.0 1B Base** — ties Gemma on hits (40/60) at 1 GB, but **produces
+  garbage on Metal** (`@@@@` / `!!!!`) on both Homebrew build 10566 and the pinned
+  b11147 framework. Not cache reuse: a fresh session fails on any prompt longer
+  than ~8 tokens while 5-token prompts work (likely the batched matmul kernel).
+  CPU-only is correct but 3 s cold. Ruled out 2026-10-10.
 - **SmolLM3 3B Base** — no hit win over Gemma, slowest cold prompt (663 ms), most
   repetitive (12/60 at 20 words).
 - **Qwen3 4B instruct + "Continue the following text"** (both earlier prototypes)
@@ -264,5 +265,5 @@ cache hits are 43–93 ms).
 - **2026-10-10** — **Type models.** Ran six text models through
   `eval/run_autocomplete_eval.py` (60 scenarios). Picked Qwen3.5 0.8B / Qwen3.5 2B /
   Gemma 4 E2B base (see "Type models"). llama.cpp, not MLX, for the KV-cache reuse
-  and grammar-constrained decoding that autocomplete needs. Granite 4.0 1B pending
-  a Metal re-test on the pinned llama.cpp xcframework.
+  and grammar-constrained decoding that autocomplete needs. Granite 4.0 1B ruled out:
+  garbage on Metal with b11147 too (`testRepeatedRequestsWithCacheReuseStayCoherent`).

@@ -7,7 +7,9 @@ Catalog: Qwen3.5 0.8B / Qwen3.5 2B / Gemma 4 E2B base (max length 4–7 / 8–12
 Unicode key-event typing is correct in every app tried. Results:
 `eval/results/2026-10-autocomplete.md`, `docs/MODELS.md` "Type models", design
 doc. Open: the 150 ms gate holds only per keystroke (KV reuse), not cold;
-Granite 1B needs a Metal re-test; first launch compiles Metal shaders (16 s).
+Granite 1B ruled out (garbage on Metal with b11147 too); first launch compiles
+Metal shaders (16 s) — fine, warm it in the background (user, 2026-10-10).
+The user accepted per-keystroke latency + prefill-on-focus as the gate.
 Next: Phase 1 after the user signs off on the checkpoint.
 
 ## Latest (2026-10-10, v8.2.8)

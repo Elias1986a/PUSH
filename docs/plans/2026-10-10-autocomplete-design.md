@@ -88,8 +88,8 @@ prompt; full numbers in `eval/results/2026-10-autocomplete.md` and `docs/MODELS.
 | **Recommended** | Qwen3.5 2B Base | `Qwen3.5-2B-Base.i1-Q4_K_M.gguf` | 1.27 GB | 36/60 | 74 ms | 408 ms |
 | Best quality | Gemma 4 E2B Base | `gemma-4-E2B.i1-Q4_K_M.gguf` | 3.43 GB | 40/60 | 93 ms | 527 ms |
 
-Also evaluated: Granite 4.0 1B Base (40/60 but breaks on Metal in llama.cpp
-build 10566 and runs on past one sentence; re-test on the pinned xcframework),
+Also evaluated: Granite 4.0 1B Base (40/60, but garbage output on Metal in both
+llama.cpp build 10566 and the pinned b11147 for any prompt over ~8 tokens; ruled out),
 SmolLM3 3B Base (no gain, slowest, loops), and the earlier prototypes' Qwen3 4B
 instruct (same hits as the 0.8B base at 3–5× the latency). No model leaked
 the surface line.
