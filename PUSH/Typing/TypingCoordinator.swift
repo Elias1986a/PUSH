@@ -54,6 +54,11 @@ final class TypingCoordinator {
     }
 
     private var active = false
+    /// While the onboarding try-it box is on screen, PUSH's own windows get
+    /// suggestions too (they are excluded everywhere else).
+    var allowsOwnWindows = false
+    private var indicatorTask: Task<Void, Never>?
+    private var activationObserver: NSObjectProtocol?
     /// The character after the caret when the last suggestion was asked for.
     private var nextInField: Character?
     /// The app the user last typed in, for the menu's "Turn Off in <App>".
@@ -82,14 +87,32 @@ final class TypingCoordinator {
                         whole: AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()))
             tap.onEvent = { [weak self] event in self?.handle(event) }
             tap.start()
+            activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.refreshIndicator(after: .milliseconds(300)) }
+            }
+            refreshIndicator(after: .milliseconds(300))
         } else {
             TypingKeyTap.shared.stop()
+            if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
+            activationObserver = nil
             cancelWork()
-            hide()
+            hideAll()
         }
     }
 
-    /// Dictation or the teleprompter started: get out of the way.
+    /// Type stands down here (dictation, a pause, Type switched off): the
+    /// suggestion and the field icon both go.
+    func hideAll() {
+        indicatorTask?.cancel()
+        TypeIndicatorPanel.shared.hide()
+        hide()
+    }
+
+    /// The field icon again, after a setting changed what it shows.
+    func refreshIndicator() { refreshIndicator(after: .zero) }
+
+    /// Takes the suggestion down (a key that does not continue it, Esc).
     func hide() {
         shown = nil
         GhostTextPanel.shared.hide()
@@ -104,6 +127,7 @@ final class TypingCoordinator {
             buffer.apply(.reset)
             cancelWork()
             hide()
+            refreshIndicator(after: .milliseconds(250))
         case .dismiss:
             cancelWork()
             hide()
@@ -181,28 +205,75 @@ final class TypingCoordinator {
         PushLogger.log("TypingCoordinator: no suggestion — \(reason)")
     }
 
+    /// The surface Type works on in this field, or nil — with the rule
+    /// logged when `log` is set. The suggestion and the field icon both ask.
+    private func supportedSurface(_ focus: FocusSnapshot, log: Bool) -> SurfaceClass? {
+        func no(_ reason: String) -> SurfaceClass? {
+            if log { skip(reason) }
+            return nil
+        }
+        guard !focus.isSecure else { return no("secure field") }
+        guard focus.isTextInput else { return no("not a text field (\(focus.role ?? "?"))") }
+        if focus.pid == ProcessInfo.processInfo.processIdentifier {
+            // PUSH's own windows only for the onboarding try-it box.
+            guard allowsOwnWindows else { return no("excluded app") }
+        } else if TypingExclusions.isExcluded(bundleID: focus.bundleID, userExcluded: AppState.shared.typingExcludedApps) {
+            return no("excluded app")
+        }
+        // Sign-in and verification fields, and Mail's header rows (Tab moves
+        // to the next field there).
+        guard !FieldPolicy.isMailHeader(bundleID: focus.bundleID, role: focus.role) else { return no("mail header") }
+        guard !FieldPolicy.isCredentialField(role: focus.role, labels: focus.labels,
+                                             domIdentifier: focus.domIdentifier, text: focus.before) else {
+            return no("sign-in field")
+        }
+        let surface = SurfaceClass.classify(bundleID: focus.bundleID)
+        guard surface != .code || AppState.shared.typingInCodeEditors else { return no("code editor") }
+        return surface
+    }
+
+    // MARK: - Field icon
+
+    /// The field icon for `focus`: shown where Type works, hidden elsewhere.
+    private func updateIndicator(for focus: FocusSnapshot?) {
+        guard mayRun, AppState.shared.typingShowIndicator, let focus, let field = focus.fieldFrame,
+              let surface = supportedSurface(focus, log: false),
+              surface != .terminal || TerminalLine.parse(textBeforeCaret: focus.before ?? "")?.kind == .agentPrompt
+        else {
+            TypeIndicatorPanel.shared.hide()
+            return
+        }
+        TypeIndicatorPanel.shared.show(field: field, caret: focus.caretRect, color: AppState.shared.typingColor.color)
+    }
+
+    /// Focus may have moved without a key (a click, another app in front):
+    /// read it again and place or hide the icon.
+    private func refreshIndicator(after delay: Duration) {
+        indicatorTask?.cancel()
+        indicatorTask = Task {
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            guard mayRun, AppState.shared.typingShowIndicator else { return TypeIndicatorPanel.shared.hide() }
+            let focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
+            guard !Task.isCancelled else { return }
+            updateIndicator(for: focus)
+        }
+    }
+
     private func suggest(stamp: Int) async {
         guard mayRun else { return }
         guard let focus = await readFresh(stamp: stamp) else { return skip("no focused element") }
         guard stamp == keystrokes, mayRun else { return }
-        guard !focus.isSecure else { return skip("secure field") }
-        guard focus.isTextInput else { return skip("not a text field (\(focus.role ?? "?"))") }
-        if let id = focus.bundleID, focus.pid != ProcessInfo.processInfo.processIdentifier {
+        if let id = focus.bundleID, focus.pid != ProcessInfo.processInfo.processIdentifier, focus.isTextInput {
             lastApp = (id, focus.appName ?? id)
         }
-        guard !TypingExclusions.isExcluded(bundleID: focus.bundleID, userExcluded: AppState.shared.typingExcludedApps),
-              focus.pid != ProcessInfo.processInfo.processIdentifier else { return skip("excluded app") }
-        // Sign-in and verification fields, and Mail's header rows (Tab moves
-        // to the next field there).
-        guard !FieldPolicy.isMailHeader(bundleID: focus.bundleID, role: focus.role) else { return skip("mail header") }
-        guard !FieldPolicy.isCredentialField(role: focus.role, labels: focus.labels,
-                                             domIdentifier: focus.domIdentifier, text: focus.before) else {
-            return skip("sign-in field")
+        guard let surface = supportedSurface(focus, log: true) else {
+            TypeIndicatorPanel.shared.hide()
+            return
         }
+        updateIndicator(for: focus)
         if let paused, paused.element == focus.elementID, Date() < paused.until { return skip("esc pause") }
         suggestedElement = focus.elementID
-        let surface = SurfaceClass.classify(bundleID: focus.bundleID)
-        guard surface != .code || AppState.shared.typingInCodeEditors else { return skip("code editor") }
 
         // Keys typed into another field are not this field's text.
         if focus.elementID != bufferElement {
@@ -215,6 +286,7 @@ final class TypingCoordinator {
         if surface == .terminal {
             // Only an agent's prompt (prose); a plain shell is commands.
             guard let line = TerminalLine.parse(textBeforeCaret: before), line.kind == .agentPrompt else {
+                TypeIndicatorPanel.shared.hide()
                 return skip("terminal, not an agent prompt")
             }
             before = line.text

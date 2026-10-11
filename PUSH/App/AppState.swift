@@ -45,7 +45,7 @@ final class AppState {
             // partials, so stale text can never carry into the next dictation.
             if isListening { livePartialText = "" }
             // A suggestion has no business on screen while you dictate.
-            if isListening { TypingCoordinator.shared.hide() }
+            if isListening { TypingCoordinator.shared.hideAll() }
             notifyStateChange()
         }
     }
@@ -209,6 +209,13 @@ final class AppState {
         didSet { UserDefaults.standard.set(typingColor.saved, forKey: TypingPreferences.colorKey) }
     }
 
+    var typingShowIndicator: Bool = TypingPreferences.showIndicator() {
+        didSet {
+            UserDefaults.standard.set(typingShowIndicator, forKey: TypingPreferences.showIndicatorKey)
+            TypingCoordinator.shared.refreshIndicator()
+        }
+    }
+
     var typingSpaceAfterLastWord: Bool = TypingPreferences.spaceAfterLastWord() {
         didSet { UserDefaults.standard.set(typingSpaceAfterLastWord, forKey: TypingPreferences.spaceAfterKey) }
     }
@@ -220,14 +227,14 @@ final class AppState {
     var typingExcludedApps: [String] = TypingPreferences.excludedApps() {
         didSet {
             UserDefaults.standard.set(typingExcludedApps, forKey: TypingPreferences.excludedAppsKey)
-            TypingCoordinator.shared.hide()
+            TypingCoordinator.shared.hideAll()
         }
     }
 
     var typingPausedUntil: Date? = TypingPreferences.pausedUntil() {
         didSet {
             UserDefaults.standard.set(typingPausedUntil, forKey: TypingPreferences.pausedUntilKey)
-            if typingPausedUntil != nil { TypingCoordinator.shared.hide() }
+            if typingPausedUntil != nil { TypingCoordinator.shared.hideAll() } else { TypingCoordinator.shared.refreshIndicator() }
         }
     }
 
@@ -247,7 +254,12 @@ final class AppState {
     }
 
     /// The typing model is loaded and warm.
-    var typingModelReady = false
+    var typingModelReady = false {
+        didSet {
+            guard typingModelReady != oldValue else { return }
+            if typingModelReady { TypingCoordinator.shared.refreshIndicator() } else { TypingCoordinator.shared.hideAll() }
+        }
+    }
 
     var wakeWordEnabled: Bool = false {
         didSet {

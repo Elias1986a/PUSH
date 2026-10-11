@@ -63,6 +63,7 @@ struct TypingSettingsView: View {
                             appState.typingColor = SuggestionColor(custom: NSColor(color))
                         }
                 }
+                Toggle("Show an icon beside the field you’re typing in", isOn: $appState.typingShowIndicator)
                 (Text("Can we ") + Text("meet at the hotel?").foregroundColor(Color(nsColor: appState.typingColor.color)))
                     .font(.system(size: 15))
                     .padding(.vertical, 2)

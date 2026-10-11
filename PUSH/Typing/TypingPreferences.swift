@@ -12,6 +12,7 @@ enum TypingPreferences {
     static let pauseOnBatteryKey = "typing.pauseOnBattery"
     static let excludedAppsKey = "typing.excludedApps"
     static let pausedUntilKey = "typing.pausedUntil"
+    static let showIndicatorKey = "typing.showIndicator"
     static let nameKey = "typing.profile.name"
     static let aboutKey = "typing.profile.about"
     /// The About note's limit (Cotabby keeps its style line to 300).
@@ -68,5 +69,10 @@ enum TypingPreferences {
         let chosen = saved.trimmingCharacters(in: .whitespacesAndNewlines)
         if !chosen.isEmpty { return chosen }
         return fullName.split(separator: " ").first.map(String.init)
+    }
+
+    /// On by default: the field icon is how the user knows Type is working there.
+    static func showIndicator(in d: UserDefaults = .standard) -> Bool {
+        d.object(forKey: showIndicatorKey) as? Bool ?? true
     }
 }
