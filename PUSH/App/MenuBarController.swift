@@ -73,6 +73,14 @@ final class MenuBarController: NSObject {
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .maxY)
     }
 
+    #if DEBUG
+    /// `PUSH_OPEN_MENU=1` opens the popover on launch, for screenshots.
+    func openIfRequested() {
+        guard ProcessInfo.processInfo.environment["PUSH_OPEN_MENU"] == "1" else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { self.togglePopover() }
+    }
+    #endif
+
     /// Close the panel after an action that opens something else, so the popover
     /// is not left hanging over the window it just summoned.
     func dismiss() {

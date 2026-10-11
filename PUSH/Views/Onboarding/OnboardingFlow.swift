@@ -1,7 +1,7 @@
 /// The wizard's steps for a given choice of features. Pure, so the order is
 /// pinned by tests rather than by reading a view.
 enum OnboardingFlow {
-    enum Step: Equatable {
+    enum Step: Equatable, CaseIterable {
         case welcome, features, permissions, speechModel, typingModel, tryIt, pill, more, finish
     }
 

@@ -101,6 +101,8 @@ struct TypingSettingsView: View {
                 Text("Always off in password managers, Keychain Access and System Settings, and in password and sign-in fields everywhere.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Section("Battery") {
@@ -145,7 +147,7 @@ struct TypingSettingsView: View {
 
     /// The key that accepts the whole suggestion in this keyboard layout.
     static var wholeKeyName: String {
-        AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()).isFallback ? "⌥Tab" : "`"
+        AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()).isFallback ? "⌥Tab" : "` (above Tab)"
     }
 
     /// macOS 14+ shows inline predictions unless the user turned them off.

@@ -34,11 +34,13 @@ struct PersonalSettingsView: View {
                     .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("About you")
+                Text("You")
             } footer: {
-                Text("Suggestions lean toward how you describe yourself. Your name is only offered after a sign-off like “Thanks,”.")
+                Text("Suggestions lean toward how you describe yourself. Your name is only offered after a sign-off, such as “Thanks,” at the end of an email.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Section {

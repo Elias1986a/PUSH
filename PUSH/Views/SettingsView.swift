@@ -11,7 +11,18 @@ import PUSHCore
 /// label can honestly describe and more than fits without scrolling.
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
-    @State private var pane: Pane = .general
+    @State private var pane: Pane = Self.initialPane
+
+    /// `PUSH_SETTINGS_PANE=typing` (with `PUSH_OPEN_SETTINGS=1`) opens on that
+    /// pane, for screenshots. DEBUG-only, like the launch hook.
+    private static var initialPane: Pane {
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["PUSH_SETTINGS_PANE"], let pane = Pane(rawValue: raw) {
+            return pane
+        }
+        #endif
+        return .general
+    }
 
     enum Pane: String, CaseIterable, Identifiable {
         case general, dictation, text, typing, personal, pill, teleprompter, models, dictionary, licence

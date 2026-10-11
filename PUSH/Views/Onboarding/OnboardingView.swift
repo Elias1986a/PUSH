@@ -28,7 +28,19 @@ struct OnboardingView: View {
     @StateObject private var permissions = PermissionsModel()
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
 
-    @State private var step: OnboardingFlow.Step = .welcome
+    @State private var step: OnboardingFlow.Step = Self.initialStep
+
+    /// `PUSH_ONBOARDING_STEP=typingModel` opens the wizard on that step, for
+    /// screenshots. DEBUG-only.
+    private static var initialStep: OnboardingFlow.Step {
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"],
+           let step = OnboardingFlow.Step.allCases.first(where: { "\($0)" == raw }) {
+            return step
+        }
+        #endif
+        return .welcome
+    }
     /// What the user dictated into the sandbox on step 3. Its contents are
     /// never read, logged, or persisted — only whether it is empty, to show the
     /// "that worked" confirmation.
@@ -449,15 +461,19 @@ struct OnboardingView: View {
                 }
             }
 
-            Toggle(isOn: $appState.typingInCodeEditors) {
+            HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Also suggest in code editors")
                     Text("Xcode, VS Code and Cursor use Tab for their own completions, so this starts off.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                Spacer()
+                Toggle("Also suggest in code editors", isOn: $appState.typingInCodeEditors)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
             }
-            .toggleStyle(.switch)
+            .padding(.horizontal, 12)
 
             if TypingSettingsView.macInlinePredictionsOn() {
                 statusLine(
