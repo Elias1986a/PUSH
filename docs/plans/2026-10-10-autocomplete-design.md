@@ -260,6 +260,12 @@ completion. Plan:
   is dangerous). A switch in Settings → Type turns them on later.
 - In terminals the next-word key defaults to `→` (as in fish/zsh autosuggest)
   so `Tab` keeps doing shell completion; the whole-suggestion key is unchanged.
+- **Integrated terminals** (the terminal panel inside VS Code, Cursor and
+  other editors) share the editor's bundle id, so they are detected from the
+  focused element's Accessibility tree (an xterm.js terminal), not the app.
+  Same rules as standalone terminals: agent prompts on, plain shell off.
+  (Cotabby: its "Suggest in Integrated Terminals" switch covers only these;
+  standalone Terminal/iTerm2 are hard-blocked in its code regardless.)
 - Ghostty exposes little through Accessibility today; it falls back to the
   keystroke buffer + mirror card.
 
