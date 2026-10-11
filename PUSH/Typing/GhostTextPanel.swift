@@ -47,10 +47,10 @@ final class GhostTextPanel {
         (text as NSString).size(withAttributes: [.font: font(forCaret: caretHeight)]).width
     }
 
-    /// Shows `text` and returns what is actually on screen: as many whole
-    /// words as fit before the field's (or screen's) right edge. When not even
-    /// one fits, it starts on the next line at the field's left edge, as the
-    /// text itself would wrap. Nil when nothing fits at all.
+    /// Shows `text` and returns what accepting it types: as many whole words
+    /// as fit before the field's (or screen's) right edge. When not even one
+    /// fits, it starts on the next line at the field's left edge, as the text
+    /// itself would wrap. Nil when nothing fits at all.
     @discardableResult
     func show(_ text: String, at placement: Placement) -> String? {
         switch placement {
@@ -60,17 +60,17 @@ final class GhostTextPanel {
                 .visibleFrame.maxX ?? .greatestFiniteMagnitude
             let right = min(field?.maxX ?? screenRight, screenRight) - 4
             var origin = CGPoint(x: caret.maxX, y: caret.minY)
-            var shown = Self.fitting(text, width: right - origin.x, font: font)
+            var shown = Self.fitting(text, width: right - origin.x, font: font).map { (drawn: $0, accepted: $0) }
             if shown == nil, let field {
                 // Wrap: the next line down, at the field's left edge.
                 origin = CGPoint(x: field.minX + 4, y: caret.minY - caret.height * 1.25)
-                shown = Self.fitting(text.drop { $0 == " " }.description, width: right - origin.x, font: font)
+                shown = Self.wrapped(text, width: right - origin.x, font: font)
             }
             guard let shown else { hide(); return nil }
             label.font = font
             label.drawsBackground = false
             label.wantsLayer = false
-            label.stringValue = shown
+            label.stringValue = shown.drawn
             label.sizeToFit()
             // Centred on the caret's middle, not hung from its bottom: apps
             // report slightly different caret heights from one read to the
@@ -80,7 +80,7 @@ final class GhostTextPanel {
             panel.setFrame(CGRect(x: origin.x, y: middle - height / 2, width: label.frame.width + 2, height: height),
                            display: true)
             panel.orderFrontRegardless()
-            return shown
+            return shown.accepted
         case .card(let field):
             label.font = .systemFont(ofSize: 13)
             label.stringValue = "  " + text + "  "
@@ -95,6 +95,15 @@ final class GhostTextPanel {
             panel.orderFrontRegardless()
             return text
         }
+    }
+
+    /// A suggestion wrapped onto the next line is drawn without its leading
+    /// space, flush with the text's left edge, but the space is still typed on
+    /// accept: dropping it from both glued "the" + "weekend?" together.
+    static func wrapped(_ text: String, width: CGFloat, font: NSFont) -> (drawn: String, accepted: String)? {
+        let leading = text.prefix { $0 == " " }
+        guard let drawn = fitting(String(text.dropFirst(leading.count)), width: width, font: font) else { return nil }
+        return (drawn, leading + drawn)
     }
 
     /// The longest run of whole words of `text` that fits `width`.
