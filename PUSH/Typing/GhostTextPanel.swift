@@ -9,7 +9,8 @@ final class GhostTextPanel {
     static let shared = GhostTextPanel()
 
     enum Placement: Equatable {
-        case inline(caret: CGRect)
+        /// `field` bounds the text: a suggestion never runs past its right edge.
+        case inline(caret: CGRect, field: CGRect?)
         case card(below: CGRect)
     }
 
@@ -37,19 +38,44 @@ final class GhostTextPanel {
 
     var isVisible: Bool { panel.isVisible }
 
-    func show(_ text: String, at placement: Placement) {
+    /// Type size for a caret of this height.
+    static func font(forCaret height: CGFloat) -> NSFont {
+        .systemFont(ofSize: max(10, min(height * 0.78, 40)))
+    }
+
+    static func width(of text: String, caretHeight: CGFloat) -> CGFloat {
+        (text as NSString).size(withAttributes: [.font: font(forCaret: caretHeight)]).width
+    }
+
+    /// Shows `text` and returns what is actually on screen: as many whole
+    /// words as fit before the field's (or screen's) right edge. When not even
+    /// one fits, it starts on the next line at the field's left edge, as the
+    /// text itself would wrap. Nil when nothing fits at all.
+    @discardableResult
+    func show(_ text: String, at placement: Placement) -> String? {
         switch placement {
-        case .inline(let caret):
-            // Type size from the caret's height; baseline on the caret's bottom.
-            let size = max(10, min(caret.height * 0.78, 40))
-            label.font = .systemFont(ofSize: size)
+        case .inline(let caret, let field):
+            let font = Self.font(forCaret: caret.height)
+            let screenRight = (NSScreen.screens.first { $0.frame.intersects(caret) } ?? NSScreen.main)?
+                .visibleFrame.maxX ?? .greatestFiniteMagnitude
+            let right = min(field?.maxX ?? screenRight, screenRight) - 4
+            var origin = CGPoint(x: caret.maxX, y: caret.minY)
+            var shown = Self.fitting(text, width: right - origin.x, font: font)
+            if shown == nil, let field {
+                // Wrap: the next line down, at the field's left edge.
+                origin = CGPoint(x: field.minX + 4, y: caret.minY - caret.height * 1.25)
+                shown = Self.fitting(text.drop { $0 == " " }.description, width: right - origin.x, font: font)
+            }
+            guard let shown else { hide(); return nil }
+            label.font = font
             label.drawsBackground = false
             label.wantsLayer = false
-            label.stringValue = text
+            label.stringValue = shown
             label.sizeToFit()
-            let height = max(label.frame.height, caret.height)
-            panel.setFrame(CGRect(x: caret.maxX, y: caret.minY, width: label.frame.width + 2, height: height),
-                           display: true)
+            panel.setFrame(CGRect(x: origin.x, y: origin.y, width: label.frame.width + 2,
+                                  height: max(label.frame.height, caret.height)), display: true)
+            panel.orderFrontRegardless()
+            return shown
         case .card(let field):
             label.font = .systemFont(ofSize: 13)
             label.stringValue = "  " + text + "  "
@@ -61,8 +87,25 @@ final class GhostTextPanel {
             let size = CGSize(width: label.frame.width, height: label.frame.height + 6)
             panel.setFrame(CGRect(x: field.minX, y: field.minY - size.height - 4, width: size.width, height: size.height),
                            display: true)
+            panel.orderFrontRegardless()
+            return text
         }
-        panel.orderFrontRegardless()
+    }
+
+    /// The longest run of whole words of `text` that fits `width`.
+    static func fitting(_ text: String, width: CGFloat, font: NSFont) -> String? {
+        guard width > 0 else { return nil }
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        if (text as NSString).size(withAttributes: attributes).width <= width { return text }
+        // Each candidate is a prefix of the original words, spacing intact.
+        let parts = text.split(separator: " ", omittingEmptySubsequences: false)
+        var best: String?
+        for count in 1...parts.count {
+            let candidate = parts.prefix(count).joined(separator: " ")
+            if (candidate as NSString).size(withAttributes: attributes).width > width { break }
+            if candidate.contains(where: { $0.isLetter || $0.isNumber }) { best = candidate }
+        }
+        return best
     }
 
     func hide() {

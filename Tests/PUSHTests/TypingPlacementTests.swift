@@ -7,9 +7,9 @@ final class TypingPlacementTests: XCTestCase {
     private let field = CGRect(x: 80, y: 400, width: 400, height: 120)
 
     func testInlineWhenNothingFollowsOnTheLine() {
-        XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: "", fieldFrame: field), .inline(caret: caret))
-        XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: nil, fieldFrame: field), .inline(caret: caret))
-        XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: "  \nnext line", fieldFrame: field), .inline(caret: caret))
+        XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: "", fieldFrame: field), .inline(caret: caret, field: field))
+        XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: nil, fieldFrame: field), .inline(caret: caret, field: field))
+        XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: "  \nnext line", fieldFrame: field), .inline(caret: caret, field: field))
     }
 
     func testCardUnderTheCaretWhenTextFollowsOnTheSameLine() {
@@ -41,5 +41,25 @@ final class TypingPlacementTests: XCTestCase {
         XCTAssertTrue(TypingExclusions.isExcluded(bundleID: "com.push.voicetotext"))
         XCTAssertFalse(TypingExclusions.isExcluded(bundleID: "com.apple.Notes"))
         XCTAssertFalse(TypingExclusions.isExcluded(bundleID: nil))
+    }
+}
+
+@MainActor
+final class GhostTextFittingTests: XCTestCase {
+    private let font = NSFont.systemFont(ofSize: 13)
+
+    func testWholeTextWhenItFits() {
+        XCTAssertEqual(GhostTextPanel.fitting(" to ask you", width: 500, font: font), " to ask you")
+    }
+
+    func testWholeWordsOnlyWhenItDoesNot() {
+        let full = " to ask you about the following question"
+        let cut = GhostTextPanel.fitting(full, width: GhostTextPanel.width(of: " to ask you", caretHeight: 16.7) + 2, font: font)
+        XCTAssertEqual(cut, " to ask you")
+    }
+
+    func testNilWhenNotEvenOneWordFits() {
+        XCTAssertNil(GhostTextPanel.fitting(" university", width: 5, font: font))
+        XCTAssertNil(GhostTextPanel.fitting(" a", width: 0, font: font))
     }
 }

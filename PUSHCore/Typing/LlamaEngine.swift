@@ -24,6 +24,9 @@ public actor LlamaEngine {
         /// From the request to the first sampled token, prompt work included
         /// (the GPU finishes lazily, so timing the decode alone undercounts).
         public var firstTokenMilliseconds = 0.0
+        /// Natural-log probability of each generated token, in order — how
+        /// sure the model was. Callers gate low-confidence guesses on it.
+        public var tokenLogprobs: [Double] = []
     }
 
     public private(set) var lastStats = Stats()
@@ -137,6 +140,7 @@ public actor LlamaEngine {
         for step in 0..<maxTokens {
             if Task.isCancelled { return }
             let next = llama_sampler_sample(sampler, context, -1)
+            lastStats.tokenLogprobs.append(logprob(of: next))
             if step == 0 {
                 lastStats.firstTokenMilliseconds = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1e6
             }
@@ -241,6 +245,18 @@ public actor LlamaEngine {
         llama_memory_clear(llama_get_memory(context), true)
         let read = snapshot.withUnsafeBufferPointer { llama_state_seq_set_data(context, $0.baseAddress, $0.count, 0) }
         return read == snapshot.count
+    }
+
+    /// log softmax of the last logits at `token`, over the whole vocabulary
+    /// (before the grammar narrowed it): the model's own confidence.
+    private func logprob(of token: llama_token) -> Double {
+        guard let context, let vocab, let logits = llama_get_logits_ith(context, -1) else { return 0 }
+        let n = Int(llama_vocab_n_tokens(vocab))
+        var maxLogit = -Float.infinity
+        for i in 0..<n where logits[i] > maxLogit { maxLogit = logits[i] }
+        var sum = 0.0
+        for i in 0..<n { sum += exp(Double(logits[i] - maxLogit)) }
+        return Double(logits[Int(token)] - maxLogit) - log(sum)
     }
 
     // MARK: - Tokens and text

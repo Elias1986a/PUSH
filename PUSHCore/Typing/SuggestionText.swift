@@ -19,9 +19,11 @@ public enum SuggestionText {
         while i < line.endIndex, words < maxWords {
             while i < line.endIndex, line[i].isWhitespace { i = line.index(after: i) }
             guard i < line.endIndex else { break }
+            let start = i
             while i < line.endIndex, !line[i].isWhitespace { i = line.index(after: i) }
             end = i
-            words += 1
+            // Bare punctuation (", " before "everyone") is not a word.
+            if line[start..<i].contains(where: { $0.isLetter || $0.isNumber }) { words += 1 }
         }
         let text = String(line[..<end])
         guard text.contains(where: { $0.isLetter || $0.isNumber }) else { return nil }
@@ -96,15 +98,23 @@ public enum SuggestionText {
     public static func isUnwanted(_ suggestion: String, before: String) -> Bool {
         let lowerBefore = before.lowercased()
         let text = suggestion.lowercased()
-        let range = NSRange(text.startIndex..., in: text)
-        if persona.firstMatch(in: text, range: range) != nil { return true }
+        // Look across the join: "I'm a" may already be typed (accepted a word
+        // at a time) with the age arriving now. Only a match that ends inside
+        // the suggestion counts — what the user wrote alone is theirs.
+        let tail = String(lowerBefore.suffix(40))
+        let joined = tail + text
+        let ns = joined as NSString
+        for match in persona.matches(in: joined, range: NSRange(location: 0, length: ns.length))
+        where match.range.location + match.range.length > (tail as NSString).length {
+            return true
+        }
         let words = Set(text.split { !$0.isLetter }.map(String.init))
         let typed = Set(lowerBefore.split { !$0.isLetter }.map(String.init))
         return !words.subtracting(typed).isDisjoint(with: explicit)
     }
 
     private static let persona = try! NSRegularExpression(pattern:
-        #"\bmy name is\b|\b(i'?m|i am|im)\s+(a\s+)?(\d{1,2}([\s-]*(years?[\s-]*old|yo|y/o))?\b|(boy|girl|guy|woman|man|male|female|teen|teenager)\b)"#)
+        #"\bmy name is\s+[a-z]|\b(i'?m|i am|im)\s+(a\s+)?(\d{1,2}([\s-]*(years?[\s-]*old|yo|y/o))?\b|(boy|girl|guy|woman|man|male|female|teen|teenager)\b)"#)
 
     private static let explicit: Set<String> = [
         "sex", "sexy", "sexual", "porn", "porno", "nude", "nudes", "naked", "horny", "fuck", "fucking",

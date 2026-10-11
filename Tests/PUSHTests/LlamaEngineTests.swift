@@ -123,6 +123,28 @@ final class LlamaEngineTests: XCTestCase {
         await engine.unload()
     }
 
+    /// Prints the confidence of short cold-start completions — the data the
+    /// near-empty-page gate's floor is set from.
+    func testColdStartConfidence() async throws {
+        let starts = ["Hello", "Hi", "hey", "Good morning", "Thanks", "So", "Quick question", "I wanted",
+                      "Hello,", "Can you"]
+        for (model, path) in try models() {
+            let engine = LlamaEngine()
+            try await engine.load(path: path)
+            for start in starts {
+                let heal = TokenHealing.split(start)
+                let out = try await collect(engine, "Format: text; App: Notes.\n\n" + heal.prompt, 8,
+                                            grammar: TokenHealing.grammar(forcing: heal.forced, wordBoundary: true))
+                let lp = await engine.lastStats.tokenLogprobs
+                let forcedTokens = heal.forced.isEmpty ? 0 : 1
+                let gen = Array(lp.dropFirst(forcedTokens))
+                let mean = gen.isEmpty ? 0 : gen.reduce(0, +) / Double(gen.count)
+                print("conf \(model.rawValue) \(start.debugDescription) -> \(String(out.dropFirst(heal.forced.count)).debugDescription) mean \(String(format: "%.2f", mean)) first3 \(gen.prefix(3).map { String(format: "%.1f", $0) })")
+            }
+            await engine.unload()
+        }
+    }
+
     func testCancellingStopsAndTheNextRequestWorks() async throws {
         for (model, path) in try models() {
             let engine = LlamaEngine()

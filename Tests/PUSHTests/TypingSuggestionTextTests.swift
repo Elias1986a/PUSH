@@ -6,6 +6,11 @@ final class TypingSuggestionTextTests: XCTestCase {
         XCTAssertEqual(SuggestionText.clean(" ups for the onboarding flow today\nNext", maxWords: 4), " ups for the onboarding")
     }
 
+    func testBarePunctuationIsNotAWord() {
+        XCTAssertEqual(SuggestionText.clean(", everyone. Today we", maxWords: 1), ", everyone.")
+        XCTAssertEqual(LengthPreset.tiny.trim(" - one two three four"), " - one two three")
+    }
+
     func testKeepsTheModelsOwnSpacingAndTrimsTheEnd() {
         XCTAssertEqual(SuggestionText.clean("ate it.  ", maxWords: 6), "ate it.")
     }
@@ -116,6 +121,17 @@ final class TypingSuggestionSafetyTests: XCTestCase {
         XCTAssertFalse(SuggestionText.isUnwanted(" I am from the product team", before: "Hi,"))
     }
 
+    func testCatchesAPersonaCompletedAcrossAccepts() {
+        // ", I'm" then "a" were accepted; the model now offers the age.
+        XCTAssertTrue(SuggestionText.isUnwanted(" 17 year old girl", before: "Hello, I'm a"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" Sarah", before: "Hi, my name is"))
+    }
+
+    func testTheUsersOwnIntroductionIsTheirs() {
+        // The user typed the whole pattern themselves: continuing it is fine.
+        XCTAssertFalse(SuggestionText.isUnwanted(" and I live in Boston", before: "I'm a 40 year old dad"))
+    }
+
     func testWhatTheUserWroteThemselvesIsNotPolicedTwice() {
         // Continuing the user's own sentence about their age is fine.
         XCTAssertFalse(SuggestionText.isUnwanted(" year old daughter", before: "My 7"))
@@ -126,9 +142,9 @@ final class TypingSuggestionSafetyTests: XCTestCase {
         XCTAssertFalse(SuggestionText.isUnwanted(" Essex office", before: "Meet at the"))   // word, not substring
     }
 
-    func testColdStartKeepsSuggestionsShort() {
-        XCTAssertEqual(LengthPreset.long.forContext("Hello"), .tiny)
-        XCTAssertEqual(LengthPreset.medium.forContext("Hi there"), .tiny)
-        XCTAssertEqual(LengthPreset.medium.forContext("Hi there, I wanted"), .medium)
+    func testColdStartIsOneWord() {
+        XCTAssertEqual(LengthPreset.long.maxWords(for: "Hello"), 1)
+        XCTAssertEqual(LengthPreset.medium.maxWords(for: "Hi there"), 1)
+        XCTAssertEqual(LengthPreset.medium.maxWords(for: "Hi there, I wanted"), 12)
     }
 }

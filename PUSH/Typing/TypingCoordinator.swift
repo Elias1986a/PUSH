@@ -6,7 +6,7 @@ enum TypingPlacement {
     static let tallField: CGFloat = 200
     static func decide(caretRect: CGRect?, after: String?, fieldFrame: CGRect?) -> GhostTextPanel.Placement? {
         let restOfLine = (after ?? "").prefix { $0 != "\n" }.trimmingCharacters(in: .whitespaces)
-        if let caretRect, restOfLine.isEmpty { return .inline(caret: caretRect) }
+        if let caretRect, restOfLine.isEmpty { return .inline(caret: caretRect, field: fieldFrame) }
         if let caretRect { return .card(below: caretRect) }
         // No caret: under the field, unless it is tall (a message body) — then
         // inside its top-left corner, where the card cannot fall off screen.
@@ -106,8 +106,8 @@ final class TypingCoordinator {
             if case .text(let typed) = key, let current = shown,
                let rest = SuggestionText.remainder(of: current.text, afterTyping: typed) {
                 shown?.text = rest
-                // The app draws the key a moment after we see it.
-                refreshPlacement(after: .milliseconds(60))
+                advanceCaret(by: typed)
+                refreshPlacement(after: .milliseconds(300))
             } else {
                 hide()
             }
@@ -121,10 +121,8 @@ final class TypingCoordinator {
         KeystrokeTyper.type(chunk)
         if let rest = SuggestionText.remainder(of: current.text, afterTyping: chunk) {
             shown?.text = rest
-            // Off screen until the app has drawn the accepted words, so the
-            // rest never lands on top of them. Tab keeps working meanwhile.
-            GhostTextPanel.shared.hide()
-            refreshPlacement(after: .milliseconds(150))
+            advanceCaret(by: chunk)
+            refreshPlacement(after: .milliseconds(300))
         } else {
             hide()
             scheduleSuggestion()
@@ -188,9 +186,10 @@ final class TypingCoordinator {
             surfaceLine: surfaceLine,
             userName: NSFullUserName().split(separator: " ").first.map(String.init))
         let prompt = TypingPrompt.render(context)
-        let length = AppState.shared.typingLength.forContext(before)
+        let length = AppState.shared.typingLength
+        let maxWords = length.maxWords(for: before)
 
-        startGeneration(prompt: prompt, forced: heal.forced, before: before, length: length,
+        startGeneration(prompt: prompt, forced: heal.forced, before: before, length: length, maxWords: maxWords,
                         placement: placement, surface: surface, stamp: stamp, wordBoundary: false)
     }
 
@@ -199,7 +198,7 @@ final class TypingCoordinator {
     /// otherwise ("Hello" + "u") it asks again with a word break forced after
     /// the word — Cotabby checks the caret word with the spell checker too.
     private func startGeneration(prompt: String, forced: String, before: String, length: LengthPreset,
-                                 placement: GhostTextPanel.Placement, surface: SurfaceClass, stamp: Int,
+                                 maxWords: Int, placement: GhostTextPanel.Placement, surface: SurfaceClass, stamp: Int,
                                  wordBoundary: Bool) {
         generationTask?.cancel()
         generationTask = Task {
@@ -207,7 +206,7 @@ final class TypingCoordinator {
             var judged = wordBoundary || forced.isEmpty
             let grammar = TokenHealing.grammar(forcing: forced, wordBoundary: wordBoundary)
             @MainActor func retryWithBoundary() {
-                startGeneration(prompt: prompt, forced: forced, before: before, length: length,
+                startGeneration(prompt: prompt, forced: forced, before: before, length: length, maxWords: maxWords,
                                 placement: placement, surface: surface, stamp: stamp, wordBoundary: true)
             }
             /// False when the attempt was abandoned for a retry.
@@ -226,7 +225,7 @@ final class TypingCoordinator {
                         judged = true
                     }
                 }
-                guard let clean = SuggestionText.clean(text, maxWords: length.words.upperBound) else { return true }
+                guard let clean = SuggestionText.clean(text, maxWords: maxWords) else { return true }
                 guard let polished = SuggestionText.polish(length.trim(clean), before: before),
                       SuggestionText.matchesScript(polished, before: before),
                       !SuggestionText.isUnwanted(polished, before: before) else {
@@ -266,12 +265,31 @@ final class TypingCoordinator {
             TypingKeyTap.shared.setKeys(nextWord: AcceptKeyResolver.nextWordKey(surface: surface),
                                         whole: AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()))
         }
-        shown = Shown(text: text, placement: placement)
-        GhostTextPanel.shared.show(text, at: placement)
+        // What fits on screen is the suggestion: accepting never types words
+        // the user could not see.
+        guard let visible = GhostTextPanel.shared.show(text, at: placement) else {
+            if appearing { hide() }
+            return
+        }
+        shown = Shown(text: visible, placement: placement)
         TypingKeyTap.shared.setSuggestionVisible(true)
         // An app can still be drawing the last keys (or rewriting them, like
         // TextEdit's text replacement) when the caret was read: measure again.
         if appearing { refreshPlacement(after: .milliseconds(200)) }
+    }
+
+    /// Where the caret must be after `typed` went in, drawn at once — the app
+    /// may not have drawn the text yet, and re-reading now would put the rest
+    /// of the suggestion on top of it.
+    private func advanceCaret(by typed: String) {
+        guard let current = shown, case .inline(let caret, let field) = current.placement else {
+            GhostTextPanel.shared.hide()
+            return
+        }
+        let moved = caret.offsetBy(dx: GhostTextPanel.width(of: typed, caretHeight: caret.height), dy: 0)
+        let placement = GhostTextPanel.Placement.inline(caret: moved, field: field)
+        shown?.placement = placement
+        if let visible = GhostTextPanel.shared.show(current.text, at: placement) { shown?.text = visible }
     }
 
     /// The caret moved (typed into or accepted part of the suggestion): read
@@ -282,11 +300,17 @@ final class TypingCoordinator {
             if delay > .zero { try? await Task.sleep(for: delay) }
             let focus = await Task.detached(priority: .userInitiated) { FocusReader.read() }.value
             guard stamp == keystrokes, let current = shown else { return }
-            let placement = focus.flatMap {
+            var placement = focus.flatMap {
                 TypingPlacement.decide(caretRect: $0.caretRect, after: $0.after, fieldFrame: $0.fieldFrame)
             } ?? current.placement
+            // An app still drawing reports the caret where it was: on the same
+            // line, never move back left of where the typed text must reach.
+            if case .inline(let read, let field) = placement, case .inline(let known, _) = current.placement,
+               abs(read.midY - known.midY) < known.height / 2, read.maxX < known.maxX - 1 {
+                placement = .inline(caret: known, field: field)
+            }
             shown?.placement = placement
-            GhostTextPanel.shared.show(current.text, at: placement)
+            if let visible = GhostTextPanel.shared.show(current.text, at: placement) { shown?.text = visible }
         }
     }
 }

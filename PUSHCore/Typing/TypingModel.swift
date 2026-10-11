@@ -96,10 +96,13 @@ public enum LengthPreset: String, CaseIterable, Sendable, Comparable {
 
     public var label: String { "\(words.lowerBound)–\(words.upperBound) words" }
 
-    /// On a near-empty page (under three words) suggestions stay at 1–3
-    /// words: short continuations stay generic, long ones drift into stories.
-    public func forContext(_ before: String) -> LengthPreset {
-        before.split(whereSeparator: \.isWhitespace).count < 3 ? .tiny : self
+    /// The most words a suggestion may have here. On a near-empty page
+    /// (under three words) it is one word or the punctuation, like a phone
+    /// keyboard: with nothing to go on every longer guess scored the same
+    /// (mean log-prob −1.3 to −1.8 for ", everyone." and "I am a student of
+    /// the" alike), so no confidence floor can tell them apart.
+    public func maxWords(for before: String) -> Int {
+        before.split(whereSeparator: \.isWhitespace).count < 3 ? 1 : words.upperBound
     }
 
     /// Tokens to ask the model for: words run about 1.3 tokens in English;
@@ -116,8 +119,9 @@ public enum LengthPreset: String, CaseIterable, Sendable, Comparable {
         while i < suggestion.endIndex {
             while i < suggestion.endIndex, suggestion[i].isWhitespace { i = suggestion.index(after: i) }
             guard i < suggestion.endIndex else { break }
+            let start = i
             while i < suggestion.endIndex, !suggestion[i].isWhitespace { i = suggestion.index(after: i) }
-            count += 1
+            if suggestion[start..<i].contains(where: { $0.isLetter || $0.isNumber }) { count += 1 }
             end = i
             // Only the word's last character counts, so "3.5" or "4.30" never
             // reads as a sentence end.
