@@ -64,9 +64,42 @@ enum FocusReader {
             let end = min(caret + range.length, text.length)
             snapshot.before = lastCharacters(text.substring(to: caret), beforeWindow)
             snapshot.after = String(text.substring(from: end).prefix(afterWindow))
+            // Chrome's rich-text boxes have a value but no range bounds; their
+            // text markers still know where the caret is.
             snapshot.caretRect = caretRect(element, at: caret, length: text.length)
+                ?? textMarkerRead(element)?.caret
+        } else if let marked = textMarkerRead(element) {
+            // Web views (Mail's body, many browser editors) have no plain value.
+            snapshot.before = marked.before
+            snapshot.caretRect = marked.caret
         }
         return snapshot
+    }
+
+    /// WebKit's text-marker attributes: the text from the start of the editable
+    /// area to the caret, and the caret's bounds.
+    private static func textMarkerRead(_ element: AXUIElement) -> (before: String?, caret: CGRect?)? {
+        guard let selection: CFTypeRef = attribute(element, "AXSelectedTextMarkerRange") else { return nil }
+        let caret: CGRect? = parameterized(element, "AXBoundsForTextMarkerRange", selection).flatMap { (value: AXValue) in
+            var rect = CGRect.zero
+            return AXValueGetValue(value, .cgRect, &rect) && rect.height > 0 ? flipped(rect) : nil
+        }
+        var before: String?
+        if let start: CFTypeRef = attribute(element, "AXStartTextMarker"),
+           let caretMarker: CFTypeRef = parameterized(element, "AXStartTextMarkerForTextMarkerRange", selection),
+           let range: CFTypeRef = parameterized(element, "AXTextMarkerRangeForUnorderedTextMarkers",
+                                                [start, caretMarker] as CFArray),
+           let text: String = parameterized(element, "AXStringForTextMarkerRange", range) {
+            before = lastCharacters(text, beforeWindow)
+        }
+        return before == nil && caret == nil ? nil : (before, caret)
+    }
+
+    private static func parameterized<T>(_ element: AXUIElement, _ name: String, _ parameter: CFTypeRef) -> T? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(element, name as CFString, parameter, &value) == .success,
+              let value else { return nil }
+        return value as? T
     }
 
     // MARK: - Pieces

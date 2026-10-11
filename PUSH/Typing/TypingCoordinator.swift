@@ -3,11 +3,17 @@ import PUSHCore
 
 /// Where a suggestion is drawn. Pure, so it is pinned by tests.
 enum TypingPlacement {
+    static let tallField: CGFloat = 200
     static func decide(caretRect: CGRect?, after: String?, fieldFrame: CGRect?) -> GhostTextPanel.Placement? {
         let restOfLine = (after ?? "").prefix { $0 != "\n" }.trimmingCharacters(in: .whitespaces)
         if let caretRect, restOfLine.isEmpty { return .inline(caret: caretRect) }
-        if let fieldFrame { return .card(below: fieldFrame) }
         if let caretRect { return .card(below: caretRect) }
+        // No caret: under the field, unless it is tall (a message body) — then
+        // inside its top-left corner, where the card cannot fall off screen.
+        if let fieldFrame {
+            if fieldFrame.height <= tallField { return .card(below: fieldFrame) }
+            return .card(below: CGRect(x: fieldFrame.minX + 8, y: fieldFrame.maxY - 40, width: 0, height: 0))
+        }
         return nil
     }
 }
@@ -47,6 +53,8 @@ final class TypingCoordinator {
     private var debounceTask: Task<Void, Never>?
     private var generationTask: Task<Void, Never>?
     private var shown: Shown?
+    /// The field the keystroke buffer belongs to.
+    private var bufferElement: Int?
 
     /// On while Type is switched on. Starts and stops the key tap.
     func setActive(_ on: Bool) {
@@ -98,7 +106,8 @@ final class TypingCoordinator {
             if case .text(let typed) = key, let current = shown,
                let rest = SuggestionText.remainder(of: current.text, afterTyping: typed) {
                 shown?.text = rest
-                refreshPlacement()
+                // The app draws the key a moment after we see it.
+                refreshPlacement(after: .milliseconds(60))
             } else {
                 hide()
             }
@@ -112,7 +121,10 @@ final class TypingCoordinator {
         KeystrokeTyper.type(chunk)
         if let rest = SuggestionText.remainder(of: current.text, afterTyping: chunk) {
             shown?.text = rest
-            refreshPlacement()
+            // Off screen until the app has drawn the accepted words, so the
+            // rest never lands on top of them. Tab keeps working meanwhile.
+            GhostTextPanel.shared.hide()
+            refreshPlacement(after: .milliseconds(150))
         } else {
             hide()
             scheduleSuggestion()
@@ -151,6 +163,11 @@ final class TypingCoordinator {
         let surface = SurfaceClass.classify(bundleID: focus.bundleID)
         guard surface != .terminal else { return }          // terminals come with Task 4.1d
 
+        // Keys typed into another field are not this field's text.
+        if focus.elementID != bufferElement {
+            if bufferElement != nil { buffer.apply(.reset) }
+            bufferElement = focus.elementID
+        }
         let before = focus.before ?? buffer.text
         guard before.contains(where: { !$0.isWhitespace }) else { return }
         guard let placement = TypingPlacement.decide(

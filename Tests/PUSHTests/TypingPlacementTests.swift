@@ -12,12 +12,18 @@ final class TypingPlacementTests: XCTestCase {
         XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: "  \nnext line", fieldFrame: field), .inline(caret: caret))
     }
 
-    func testCardWhenTextFollowsOnTheSameLine() {
-        XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: " and more", fieldFrame: field), .card(below: field))
+    func testCardUnderTheCaretWhenTextFollowsOnTheSameLine() {
+        XCTAssertEqual(TypingPlacement.decide(caretRect: caret, after: " and more", fieldFrame: field), .card(below: caret))
     }
 
     func testCardUnderTheFieldWithoutACaret() {
         XCTAssertEqual(TypingPlacement.decide(caretRect: nil, after: nil, fieldFrame: field), .card(below: field))
+    }
+
+    func testTallFieldWithoutACaretGetsTheCardInsideItsTopLeft() {
+        let body = CGRect(x: 80, y: 100, width: 600, height: 500)
+        XCTAssertEqual(TypingPlacement.decide(caretRect: nil, after: nil, fieldFrame: body),
+                       .card(below: CGRect(x: 88, y: 560, width: 0, height: 0)))
     }
 
     func testCardUnderTheCaretWithoutAField() {
