@@ -1,4 +1,4 @@
-# Autocomplete — design
+# Type — design
 
 Date: 2026-10-10
 Status: draft, awaiting review before Phase 0
@@ -16,7 +16,7 @@ PUSH then has three features, each one switched on or off on its own:
 |---|---|---|
 | **Dictation** (voice to text) | Microphone, Accessibility | Speech model (~600 MB) |
 | **Teleprompter** | Dictation's streaming speech model | none of its own |
-| **Autocomplete** (this doc) | Accessibility (+ optional Screen Recording later) | Text model (0.6–3.4 GB) |
+| **Type** (this doc) | Accessibility (+ optional Screen Recording later) | Text model (0.6–3.4 GB) |
 
 Hard rule, same as the teleprompter's: **this must not be able to regress
 dictation.** Its own event tap, its own window, its own model, its own settings
@@ -74,7 +74,7 @@ as ideas:
   if latency fails the gate.
 - Runs on the GPU. Speech models run on the ANE, so the two do not contend, and
   dictation and typing do not happen at the same instant.
-- Model is loaded only while Autocomplete is on.
+- Model is loaded only while Type is on.
 
 ### Model catalog (starting point — Phase 0 eval decides)
 
@@ -91,14 +91,20 @@ Also evaluated in Phase 0, added only if they beat a tier above:
 Granite 4.0 1B Base (Apache-2.0), SmolLM3 3B Base (Apache-2.0).
 
 Excluded: LFM2.5 1.2B Base (custom licence), Llama 3.2 1B (gated community
-licence), Gemma 3 1B (Gemma terms, gated). Apple Foundation Models: out by the
-user's standing choice (CLAUDE.md).
+licence), Gemma 3 1B (Gemma terms, gated).
+
+**Apple's on-device model (Foundation Models): undecided — see open question.**
+Cotabby offers it as an engine. For: zero download. Against: CLAUDE.md says
+Apple's AI stays out of PUSH by the user's choice; it needs macOS 26 + Apple
+Intelligence switched on (PUSH supports macOS 15); it is instruction-tuned only
+(no base model); Cotabby's own measurement (2026-09-24) put it at ~420–520 ms to
+first suggestion vs our ≤150 ms gate, with gaps where it produced nothing.
 
 ### Feature switches
 
 - `dictationEnabled` — new, **defaults to true** when the key is absent, so every
   existing install is unchanged.
-- `autocompleteEnabled` — new, defaults to false.
+- `typeEnabled` — new, defaults to false.
 - Teleprompter needs dictation's streaming model; when dictation is off its menu
   item is disabled with one line saying why.
 - Neither key goes into `CloudSync.mirroredSettingKeys`: models are per-machine,
@@ -110,13 +116,13 @@ user's standing choice (CLAUDE.md).
 ### Onboarding
 
 New step order, computed from the switches by a pure function
-(`OnboardingFlow.steps(dictation:autocomplete:)`, unit-tested):
+(`OnboardingFlow.steps(dictation:type:)`, unit-tested):
 
 ```
 welcome → features → permissions → [speech model] → [typing model] → [try it] → [pill] → more → finish
 ```
 
-- **features** (new): two cards with switches — Dictation (on) and Autocomplete
+- **features** (new): two cards with switches — Dictation (on) and Type
   (off). Teleprompter is described under Dictation. Continue needs at least one on.
 - **permissions:** Microphone row only when dictation is on. Accessibility always.
 - **speech model:** today's step, unchanged, only when dictation is on.
@@ -128,7 +134,7 @@ welcome → features → permissions → [speech model] → [typing model] → [
 - **Skip** on welcome: allowed when every enabled feature already has a model on
   disk (today: when a speech model is on disk).
 
-Existing users never see onboarding again; they turn Autocomplete on from its
+Existing users never see onboarding again; they turn Type on from its
 Settings pane, which offers the download there.
 
 ### Context captured
@@ -155,15 +161,53 @@ Settings pane, which offers the download there.
 - Debounce ~150 ms after a keystroke. A new keystroke cancels the generation in
   flight; a result is shown only if focus, caret and field text still match the
   request.
-- Up to ~6 words; stop at a newline. Mid-word: only show a continuation that
+- Length comes from the user's length setting (below); stop at a newline. Mid-word: only show a continuation that
   starts with the letters already typed (token-constrained decoding is a later
   improvement).
 - Ghost text in a non-activating, click-through `NSPanel` at the caret rect
   (`kAXBoundsForRangeParameterizedAttribute`). Never takes focus. When the caret
   rect cannot be read, no suggestion is shown (no guessing in v1).
-- Its own `CGEvent` tap, separate from `HotkeyManager`. Swallows `Tab` (accept
-  next word) and `Esc` (dismiss) only while a suggestion is visible; every other
+- Its own `CGEvent` tap, separate from `HotkeyManager`. Swallows the accept keys
+  (below) and `Esc` (dismiss) only while a suggestion is visible; every other
   key passes through untouched.
+
+### Accept keys
+
+| Action | Default | Customisable |
+|---|---|---|
+| Accept next word | `Tab` | yes |
+| Accept whole suggestion | the `` ` ``/`~` key (left of `1`) | yes |
+| Dismiss | `Esc` | no |
+
+- The whole-suggestion key is matched by the **character it types in the current
+  keyboard layout**, not a fixed key code, so it is right on non-US layouts.
+  If no key in the layout types `` ` ``, the default falls back to `⌥Tab` and the
+  Type pane says so.
+- Both keys are only swallowed while a suggestion is showing. Trade-off: someone
+  typing a Markdown backtick while a suggestion is up accepts it instead —
+  `Esc` first, or rebind. Revisit if it bites.
+- Shortcut recorder in Settings → Type, with conflict checks against the
+  dictation hotkey and each other.
+
+### Length
+
+Word-range presets, like Cotabby: **1–3, 4–7, 8–12, 12–20 words.** The model
+stops at a natural break (`.`, `,`, `;`, `?`, `!`) inside the range, otherwise
+at the top of the range.
+
+Each model in the catalog carries a **maximum preset** it handles well, set
+from the Phase 0 eval (quality per length). The picker only offers presets up
+to the selected model's maximum; switching to a smaller model clamps the
+setting down. Starting guesses, to be replaced by measurements:
+
+| Model | Max preset |
+|---|---|
+| Lite (Qwen3.5 0.8B) | 4–7 |
+| Recommended (Qwen3.5 2B) | 8–12 |
+| Best (Gemma 4 E2B) | 12–20 |
+
+Default: 4–7. Tokens stream into the ghost text as they arrive, so long presets
+do not delay the first words.
 - Accepted text is typed with synthesized Unicode key events
   (`CGEventKeyboardSetUnicodeString`), not pasted, so the clipboard is never
   touched for a few words. This is a deliberate exception to "injection is
@@ -181,22 +225,34 @@ Settings pane, which offers the download there.
 
 ### Settings and menu bar
 
-- New **Autocomplete** pane: on/off, model picker with download and delete,
-  suggestion length, accept key, excluded apps; Phase B context toggles later.
+- New **Type** pane: on/off, model picker with download and delete, length,
+  both accept keys, excluded apps; Phase B context toggles later.
 - The existing **Models** pane stays speech-only (no change to dictation UI).
-- Menu bar popover: an Autocomplete row with on/off and "Pause for this app".
+- Menu bar popover gets a **Type** section, modelled on Cotabby's (screenshot
+  2026-10-10): on/off switch · **Pause ▾** (1 hour / until tomorrow / in
+  <frontmost app>) · **Model** picker · **Length** picker · Clipboard context
+  switch (once Phase B ships). The menu's Model picker lists downloaded models
+  only — a menu click must never start a multi-GB download (same rule as the
+  speech model switcher).
 
-## Open questions for the user
+## Decided 2026-10-10
 
-1. User-facing name: "Autocomplete", "Type-ahead", something PUSH-branded?
-2. Accept key: `Tab` (Cotypist and Cotabby both use it) or configurable from day one?
-3. Default suggestion length: short (~3 words) or longer (~6)?
+1. Name: **Type** (for now). Code uses `Typing…` names (`Type` is a Swift keyword-ish metatype name).
+2. Keys: `Tab` = next word, `` ` ``/`~` key = whole suggestion, both rebindable.
+3. Length: presets capped per model; default 4–7.
+
+## Open question
+
+- **Offer Apple's on-device model as a no-download engine?** Needs the
+  CLAUDE.md rule ("Apple's AI stays out") lifted for this feature. If yes: a
+  fourth option shown only on macOS 26+ with Apple Intelligence on, labelled
+  "Apple (no download, slower)", included in the Phase 0 eval.
 
 ## Phases
 
 0. Spike + model eval (go/no-go)
 1. Feature switches + onboarding restructure
-2. Pure core in `PUSHCore/Autocomplete` (TDD)
+2. Pure core in `PUSHCore/Typing` (TDD)
 3. Engine + model catalog + downloads
 4. Focus reading, ghost text, key tap, coordinator
 5. Settings pane, menu bar, onboarding typing step + try-it

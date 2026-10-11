@@ -1,4 +1,4 @@
-# Autocomplete Implementation Plan
+# Type Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -6,9 +6,9 @@
 feature beside Dictation and Teleprompter, each switchable, without being able
 to regress dictation.
 
-**Architecture:** Pure prompt/context logic in `PUSHCore/Autocomplete` (TDD,
+**Architecture:** Pure prompt/context logic in `PUSHCore/Typing` (TDD,
 no AppKit). llama.cpp in-process via a pinned xcframework `binaryTarget`.
-App-side pieces in `PUSH/Autocomplete`: an Accessibility focus reader, its own
+App-side pieces in `PUSH/Typing`: an Accessibility focus reader, its own
 `CGEvent` tap, a click-through ghost-text panel and a coordinator. Feature
 switches gate existing dictation start sites in `AppDelegate`; nothing inside
 the dictation path changes. Design and rationale:
@@ -36,7 +36,7 @@ Exit gate: (a) a chosen catalog of 3 models with measured latency and quality,
 (c) Unicode key-event insertion works in the target apps. If (a) or (b) fails,
 stop and re-plan (MLX is the fallback runtime).
 
-### Task 0.1: Autocomplete eval scenarios
+### Task 0.1: Type eval scenarios
 
 **Files:**
 - Create: `eval/autocomplete_scenarios.jsonl`
@@ -81,6 +81,10 @@ Score per scenario:
 Print one table per model: median/p90 first-token ms, mean prefix_words,
 first_word_hit rate, leak count, and the same split by surface vs no-surface.
 
+Run every model at each length preset (`n_predict` sized for 3, 7, 12, 20
+words) and report prefix_words and leak/repetition rate per preset — this sets
+each model's maximum length preset.
+
 Models:
 
 ```python
@@ -107,9 +111,10 @@ model. Save output to `eval/results/2026-10-autocomplete.md`.
 
 **Files:**
 - Modify: `docs/plans/2026-10-10-autocomplete-design.md` (Model catalog section)
-- Modify: `docs/MODELS.md` (add an "Autocomplete models" section + review-log entry)
+- Modify: `docs/MODELS.md` (add an "Type models" section + review-log entry)
 
-**Step 1:** Pick Lite / Recommended / Best from the table. Gate: Recommended
+**Step 1:** Pick Lite / Recommended / Best from the table, and each one's
+maximum length preset (the longest preset before quality drops sharply). Gate: Recommended
 p90 first-token ≤ 150 ms on this Mac with a 1,500-char prompt, and 0 leaks.
 **Step 2:** Record the measured numbers and the reason for each pick. Commit.
 
@@ -117,7 +122,7 @@ p90 first-token ≤ 150 ms on this Mac with a 1,500-char prompt, and 0 leaks.
 
 **Files:**
 - Modify: `Package.swift`
-- Create: `PUSHCore/Autocomplete/LlamaSmoke.swift` (temporary)
+- Create: `PUSHCore/Typing/LlamaSmoke.swift` (temporary)
 - Create: `Tests/PUSHTests/LlamaSmokeTests.swift` (temporary)
 
 **Step 1:** Pick the latest llama.cpp release tag ≥ 2 weeks old. Download
@@ -164,7 +169,7 @@ build script but do not commit `appcast.xml` or upload. Launch
 ### Task 0.6: Insertion spike
 
 **Files:**
-- Create: `PUSH/Autocomplete/KeystrokeTyper.swift`
+- Create: `PUSH/Typing/KeystrokeTyper.swift`
 
 **Step 1:** `KeystrokeTyper.type(_ text: String)`: for each chunk of ≤ 20 UTF-16
 units, post a keyDown/keyUp pair with `CGEventKeyboardSetUnicodeString` to
@@ -202,23 +207,23 @@ final class FeatureSwitchTests: XCTestCase {
         XCTAssertTrue(FeatureSwitches.dictationEnabled(in: d))
     }
 
-    func testAutocompleteDefaultsOff() {
+    func testTypeDefaultsOff() {
         let d = UserDefaults(suiteName: #function)!
         d.removePersistentDomain(forName: #function)
-        XCTAssertFalse(FeatureSwitches.autocompleteEnabled(in: d))
+        XCTAssertFalse(FeatureSwitches.typeEnabled(in: d))
     }
 
     func testStoredValuesWin() {
         let d = UserDefaults(suiteName: #function)!
         d.set(false, forKey: FeatureSwitches.dictationKey)
-        d.set(true, forKey: FeatureSwitches.autocompleteKey)
+        d.set(true, forKey: FeatureSwitches.typeKey)
         XCTAssertFalse(FeatureSwitches.dictationEnabled(in: d))
-        XCTAssertTrue(FeatureSwitches.autocompleteEnabled(in: d))
+        XCTAssertTrue(FeatureSwitches.typeEnabled(in: d))
     }
 
     func testNeitherSwitchIsSynced() {
         XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(FeatureSwitches.dictationKey))
-        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(FeatureSwitches.autocompleteKey))
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(FeatureSwitches.typeKey))
     }
 }
 ```
@@ -234,7 +239,7 @@ import Foundation
 /// feature needs a model on disk, and models are never synced.
 enum FeatureSwitches {
     static let dictationKey = "feature.dictationEnabled"
-    static let autocompleteKey = "feature.autocompleteEnabled"
+    static let typeKey = "feature.typeEnabled"
 
     /// Absent means on, so every install from before this switch existed
     /// keeps dictating exactly as it did.
@@ -242,8 +247,8 @@ enum FeatureSwitches {
         d.object(forKey: dictationKey) as? Bool ?? true
     }
 
-    static func autocompleteEnabled(in d: UserDefaults = .standard) -> Bool {
-        d.bool(forKey: autocompleteKey)
+    static func typeEnabled(in d: UserDefaults = .standard) -> Bool {
+        d.bool(forKey: typeKey)
     }
 }
 ```
@@ -254,8 +259,8 @@ Add to `AppState`:
 var dictationEnabled: Bool = FeatureSwitches.dictationEnabled() {
     didSet { UserDefaults.standard.set(dictationEnabled, forKey: FeatureSwitches.dictationKey) }
 }
-var autocompleteEnabled: Bool = FeatureSwitches.autocompleteEnabled() {
-    didSet { UserDefaults.standard.set(autocompleteEnabled, forKey: FeatureSwitches.autocompleteKey) }
+var typeEnabled: Bool = FeatureSwitches.typeEnabled() {
+    didSet { UserDefaults.standard.set(typeEnabled, forKey: FeatureSwitches.typeKey) }
 }
 ```
 
@@ -279,22 +284,22 @@ final class OnboardingFlowTests: XCTestCase {
     typealias S = OnboardingFlow.Step
 
     func testDictationOnlyMatchesTodaysWizardPlusFeatures() {
-        XCTAssertEqual(OnboardingFlow.steps(dictation: true, autocomplete: false),
+        XCTAssertEqual(OnboardingFlow.steps(dictation: true, type: false),
                        [.welcome, .features, .permissions, .speechModel, .tryIt, .pill, .more, .finish])
     }
 
-    func testAutocompleteOnlySkipsSpeechAndPill() {
-        XCTAssertEqual(OnboardingFlow.steps(dictation: false, autocomplete: true),
+    func testTypeOnlySkipsSpeechAndPill() {
+        XCTAssertEqual(OnboardingFlow.steps(dictation: false, type: true),
                        [.welcome, .features, .permissions, .typingModel, .tryIt, .more, .finish])
     }
 
     func testBoth() {
-        XCTAssertEqual(OnboardingFlow.steps(dictation: true, autocomplete: true),
+        XCTAssertEqual(OnboardingFlow.steps(dictation: true, type: true),
                        [.welcome, .features, .permissions, .speechModel, .typingModel, .tryIt, .pill, .more, .finish])
     }
 
     func testNeitherStopsAtFeatures() {
-        XCTAssertEqual(OnboardingFlow.steps(dictation: false, autocomplete: false),
+        XCTAssertEqual(OnboardingFlow.steps(dictation: false, type: false),
                        [.welcome, .features])
     }
 
@@ -317,7 +322,7 @@ enum OnboardingFlow {
         case welcome, features, permissions, speechModel, typingModel, tryIt, pill, more, finish
     }
 
-    static func steps(dictation: Bool, autocomplete: Bool) -> [Step] {
+    static func steps(dictation: Bool, type: Bool) -> [Step] {
         // Nothing chosen: the wizard cannot continue past the choice.
         guard dictation || autocomplete else { return [.welcome, .features] }
         var s: [Step] = [.welcome, .features, .permissions]
@@ -342,10 +347,10 @@ enum OnboardingFlow {
 
 **Steps:**
 1. Replace `enum Step: Int, CaseIterable` with an index into
-   `OnboardingFlow.steps(dictation: appState.dictationEnabled, autocomplete: appState.autocompleteEnabled)`.
+   `OnboardingFlow.steps(dictation: appState.dictationEnabled, type: appState.typeEnabled)`.
    `advance(to:)` moves the index; `stepDots` iterates the computed list.
 2. Add `featuresStep`: two `featureCard`s with switches bound to
-   `$appState.dictationEnabled` and `$appState.autocompleteEnabled`. Dictation's
+   `$appState.dictationEnabled` and `$appState.typeEnabled`. Dictation's
    card mentions the teleprompter. Continue disabled when both are off, with one
    line: "Turn on at least one to continue."
 3. `permissionsStep`: show the Microphone row only when
@@ -354,7 +359,7 @@ enum OnboardingFlow {
 4. Rename the case `.model` → `.speechModel` in the view; body unchanged.
 5. `.typingModel`: placeholder text "Typing model — coming in Phase 5" behind a
    DEBUG flag; Phase 5 replaces it. Until Phase 5 ships, the features step
-   shows Autocomplete as "Coming soon" and its switch disabled in release builds.
+   shows Type as "Coming soon" and its switch disabled in release builds.
 6. `.tryIt`: unchanged dictation sandbox when dictation is on; when only
    autocomplete is on, skip it (Phase 5 adds the typing sandbox).
 7. Footer Skip: shown when every enabled feature has a model on disk.
@@ -391,14 +396,14 @@ if autocomplete slips.
 
 ---
 
-## Phase 2 — Pure core (`PUSHCore/Autocomplete`), TDD
+## Phase 2 — Pure core (`PUSHCore/Typing`), TDD
 
-All types `Sendable`, no AppKit. Tests in `Tests/PUSHTests/Autocomplete*Tests.swift`
+All types `Sendable`, no AppKit. Tests in `Tests/PUSHTests/Typing*Tests.swift`
 with `@testable import PUSHCore`.
 
 ### Task 2.1: Surface classifier
 
-**Files:** Create `PUSHCore/Autocomplete/SurfaceClass.swift`; test `AutocompleteSurfaceClassTests.swift`.
+**Files:** Create `PUSHCore/Typing/SurfaceClass.swift`; test `TypingSurfaceClassTests.swift`.
 
 **Test:**
 
@@ -423,7 +428,7 @@ Warp, WezTerm, kitty, Alacritty). Run → PASS → commit.
 
 ### Task 2.2: Surface line
 
-**Files:** Create `PUSHCore/Autocomplete/SurfaceLine.swift`; test `AutocompleteSurfaceLineTests.swift`.
+**Files:** Create `PUSHCore/Typing/SurfaceLine.swift`; test `TypingSurfaceLineTests.swift`.
 
 **Tests:**
 
@@ -459,7 +464,7 @@ placeholder 60, host via `URL(string:)?.host` minus `www.`. Run → PASS → com
 
 ### Task 2.3: Section budget
 
-**Files:** Create `PUSHCore/Autocomplete/PromptBudget.swift`; test `AutocompletePromptBudgetTests.swift`.
+**Files:** Create `PUSHCore/Typing/PromptBudget.swift`; test `TypingPromptBudgetTests.swift`.
 
 **Tests:**
 
@@ -497,9 +502,9 @@ return kept sections in input order. Run → PASS → commit.
 
 ### Task 2.4: Prompt renderer
 
-**Files:** Create `PUSHCore/Autocomplete/AutocompletePrompt.swift`; test `AutocompletePromptTests.swift`.
+**Files:** Create `PUSHCore/Typing/TypingPrompt.swift`; test `TypingPromptTests.swift`.
 
-**Input:** `AutocompleteContext { before, after, surfaceLine?, style?, language?, userName?, clipboard?, screen?, examples: [String] }`.
+**Input:** `TypingContext { before, after, surfaceLine?, style?, language?, userName?, clipboard?, screen?, examples: [String] }`.
 
 **Tests (behaviour, not exact prose):**
 - caret text is the exact last bytes of the prompt
@@ -514,7 +519,7 @@ examples 38 (all-or-nothing), screen 45, clipboard 35. Run → PASS → commit.
 
 ### Task 2.5: Suggestion normaliser
 
-**Files:** Create `PUSHCore/Autocomplete/SuggestionText.swift`; test `AutocompleteSuggestionTextTests.swift`.
+**Files:** Create `PUSHCore/Typing/SuggestionText.swift`; test `TypingSuggestionTextTests.swift`.
 
 **Tests:**
 
@@ -544,31 +549,33 @@ func testRemainderAfterTyping() {
 Run → PASS → commit.
 
 **Phase 2 checkpoint:** `swift test` green; the eval runner (Task 0.2) can
-optionally switch to building prompts through `AutocompletePrompt` via a tiny
+optionally switch to building prompts through `TypingPrompt` via a tiny
 CLI in `compare/` so eval and app share one prompt.
 
 ---
 
 ## Phase 3 — Engine and models (expand at phase start)
 
-- **3.1 `LlamaEngine` actor** (`PUSHCore/Autocomplete/LlamaEngine.swift`): load/unload, `complete(prompt:maxTokens:) -> AsyncStream<String>`, cancellation per token, KV-cache reuse of the longest common token prefix with the previous request, UTF-8-safe detokenising. Replaces `LlamaSmoke`. Tests: gated on `PUSH_LLAMA_SMOKE_MODEL`; prefix reuse measurably cuts second-call prompt time.
-- **3.2 `TypingModel` catalog** (`PUSHCore/Autocomplete/TypingModel.swift`): the three Phase-0 picks with repo, file, pinned revision, byte size, SHA-256, licence. Test: every entry has all fields; URLs are revision-pinned.
-- **3.3 `TypingModelStore`** (`PUSH/Autocomplete/`): downloads to `~/Library/Application Support/PUSH/TypingModels/` with progress (real byte progress, unlike speech), resume, SHA-256 verify, delete. Never downloads at launch (same rule as speech).
-- **3.4 Lifecycle**: load the selected model when Autocomplete turns on, unload when off; `PushLogger` events only.
+- **3.1 `LlamaEngine` actor** (`PUSHCore/Typing/LlamaEngine.swift`): load/unload, `complete(prompt:maxTokens:) -> AsyncStream<String>`, cancellation per token, KV-cache reuse of the longest common token prefix with the previous request, UTF-8-safe detokenising. Replaces `LlamaSmoke`. Tests: gated on `PUSH_LLAMA_SMOKE_MODEL`; prefix reuse measurably cuts second-call prompt time.
+- **3.2 `TypingModel` catalog** (`PUSHCore/Typing/TypingModel.swift`): the three Phase-0 picks with repo, file, pinned revision, byte size, SHA-256, licence. Test: every entry has all fields; URLs are revision-pinned.
+- **3.3 `TypingModelStore`** (`PUSH/Typing/`): downloads to `~/Library/Application Support/PUSH/TypingModels/` with progress (real byte progress, unlike speech), resume, SHA-256 verify, delete. Never downloads at launch (same rule as speech).
+- **3.4 Lifecycle**: load the selected model when Type turns on, unload when off; `PushLogger` events only.
 
 ## Phase 4 — Live autocomplete (expand at phase start)
 
 - **4.1 `FocusReader`**: focused element, value, selected range, `before`/`after` windows, placeholder, window title, URL host (web area / window `kAXURLAttribute`), caret rect via `kAXBoundsForRangeParameterizedAttribute`; secure-field check. All AX on the main actor with tight timeouts (`AXUIElementSetMessagingTimeout`).
-- **4.2 `AutocompleteKeyTap`**: own `CGEvent` tap (keyDown only). Consumes `Tab`/`Esc` only while a suggestion is visible; re-enables itself on `tapDisabledByTimeout`; callback does no work beyond enqueueing.
+- **4.2 `TypingKeyTap`**: own `CGEvent` tap (keyDown only). Consumes `Tab`/`Esc` only while a suggestion is visible; re-enables itself on `tapDisabledByTimeout`; callback does no work beyond enqueueing.
 - **4.3 `GhostTextPanel`**: non-activating, click-through `NSPanel`, `.screenSaver`-safe level, `sharingType` default; draws gray text at the caret rect with font size from caret height.
-- **4.4 `AutocompleteCoordinator`**: debounce 150 ms, request identity (focus + text hash + caret), cancel on keystroke, `SuggestionText.remainder` to keep a suggestion alive while the user types into it, hide during dictation and teleprompter, per-app exclusions, never logs text.
-- **4.5 Accept**: `Tab` types `nextChunk` via `KeystrokeTyper` (fallback `TextInjector` for apps that failed in Task 0.6); `⌥Tab` accepts all.
+- **4.4 `TypingCoordinator`**: debounce 150 ms, request identity (focus + text hash + caret), cancel on keystroke, `SuggestionText.remainder` to keep a suggestion alive while the user types into it, hide during dictation and teleprompter, per-app exclusions, never logs text.
+- **4.5 Accept**: `Tab` types `nextChunk` via `KeystrokeTyper` (fallback `TextInjector` for apps that failed in Task 0.6); the key that types `` ` `` in the current layout (`UCKeyTranslate` over key codes; fallback `⌥Tab`) accepts the whole suggestion. Pure `AcceptKeyResolver` with tests for US, UK-ISO and German layouts' key maps.
+- **4.6 Length**: `LengthPreset` (1–3, 4–7, 8–12, 12–20) + per-model maximum in the catalog; trim at a clause break inside the range. Pure, TDD.
 - **Verify** in Mail, Slack, Chrome (Gmail), Safari, Notes, Messages; 375-px-wide isn't relevant here, but test on the built-in display and an external one (caret rect coordinates differ per screen).
 
 ## Phase 5 — Settings, menu bar, onboarding (expand at phase start)
 
-- **5.1 Settings → Autocomplete pane** (`SettingsView.Pane.autocomplete`): switch, model cards (same look as speech cards), length, excluded apps, accept key.
-- **5.2 Menu bar row**: on/off, "Pause for <App>".
+- **5.1 Settings → Type pane** (`SettingsView.Pane.type`): switch, model cards (same look as speech cards), length, excluded apps, accept key.
+- **5.2 Menu bar Type section**: on/off, Pause ▾ (1 hour / until tomorrow / in <App>), Model picker (downloaded only), Length picker (capped by model), clipboard switch after Phase 6.
+- **5.2b Shortcut recorders** for both accept keys, with conflict checks.
 - **5.3 Onboarding `.typingModel` step**: real model cards + download; remove the Phase-1 "Coming soon" gate.
 - **5.4 Onboarding try-it**: a text field with live suggestions when autocomplete is on.
 - **Verify** with screenshots of every new screen, light and dark.
@@ -587,4 +594,4 @@ CLI in `compare/` so eval and app share one prompt.
   `./build_distribution.sh` with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`,
   install the DMG on a clean account and walk onboarding with all three
   combinations, then commit `appcast.xml`. Update `docs/MODELS.md`, `CLAUDE.md`
-  (Autocomplete section, insertion exception) and `NOTES.md`.
+  (Type section, insertion exception) and `NOTES.md`.
