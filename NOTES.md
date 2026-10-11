@@ -24,8 +24,14 @@ equal to cold ones), catalog pinned by revision + SHA-256, resumable verified
 downloader (live-tested against HF), TypingModelStore
 (~/Library/Application Support/PUSH/TypingModels), TypingEngineLoader (loads
 while Type is on; warm-up in background: 15.8s first ever, 0.27s after).
-Lite model is cloned into TypingModels for dev testing. Next: Phase 4 — the
-first visible suggestions.
+All three models are cloned into TypingModels for dev testing.
+Phase 4 (2026-10-10): live, BLUE suggestions (user's call) — FocusReader (off
+main thread; text markers for web views), own key tap thread, ghost panel /
+card, coordinator, accept, terminal agent prompts. docs/TYPE_COMPATIBILITY.md
+has the first pass. Open: exclude code editors by default (Tab clash)? macOS
+inline predictive text also takes Tab. Test build left running with
+com.push.voicetotext feature.dictationEnabled=false / feature.typeEnabled=true
+/ typing.model=qwen3.5-2b-base — remove those keys when done.
 
 ## Latest (2026-10-10, v8.2.8)
 
