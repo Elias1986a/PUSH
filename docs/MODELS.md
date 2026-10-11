@@ -134,6 +134,38 @@ considering, found by looking beyond what PUSH already ships.
 > gateway speech-to-speech offerings (Vercel AI Gateway / OpenAI Realtime /
 > xAI Grok voice). Off-axis for PUSH's offline, on-device, privacy-first design.
 
+## Type models (text, for autocomplete)
+
+Separate from the speech models: these power **Type** (inline autocomplete,
+`docs/plans/2026-10-10-autocomplete-design.md`). llama.cpp on the GPU, GGUF base
+checkpoints, all Apache-2.0. Chosen 2026-10-10 from
+`eval/results/2026-10-autocomplete.md` (Mac mini M4, 24 GB).
+
+| Tier | Model | File | Size | Hit | Per keystroke p90 | Cold 1,500 chars p90 | Max length |
+|---|---|---|---|---|---|---|---|
+| Lite | Qwen3.5 0.8B Base | `mradermacher/Qwen3.5-0.8B-Base-i1-GGUF` `…i1-Q6_K.gguf` | 0.63 GB | 34/60 | 43 ms | 180 ms | 4–7 |
+| **Recommended** | Qwen3.5 2B Base | `mradermacher/Qwen3.5-2B-Base-i1-GGUF` `…i1-Q4_K_M.gguf` | 1.27 GB | 36/60 | 74 ms | 408 ms | 8–12 |
+| Best | Gemma 4 E2B Base | `mradermacher/gemma-4-E2B-i1-GGUF` `…i1-Q4_K_M.gguf` | 3.43 GB | 40/60 | 93 ms | 527 ms | 12–20 |
+
+Why: Qwen 0.8B is the fastest and is coherent for a clause, then drifts. Qwen 2B
+and Gemma stop at the sentence end on their own and rarely loop (2/60 at 20
+words); Gemma has the best first-word hit and the steadiest long continuations.
+
+Not picked:
+- **Granite 4.0 1B Base** — ties Gemma on hits (40/60) at 1 GB, but on Metal it
+  returns `@@@@…` after a few requests with Homebrew llama.cpp build 10566, and it
+  invents specifics and loops past one sentence. Re-test on the pinned
+  xcframework before ruling it out for Lite.
+- **SmolLM3 3B Base** — no hit win over Gemma, slowest cold prompt (663 ms), most
+  repetitive (12/60 at 20 words).
+- **Qwen3 4B instruct + "Continue the following text"** (both earlier prototypes)
+  — same hits as the 0.8B base at 3× the per-keystroke and 5× the cold latency.
+
+Requirements the eval surfaced: **token healing** (back off the partial word and
+force the output to start with it, via the grammar sampler: mid-word 1/15 → 14/15),
+and **KV-cache reuse across keystrokes** (cold prompts miss 150 ms on every model;
+cache hits are 43–93 ms).
+
 ## Sources
 - Parakeet v3: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3 ·
   https://arxiv.org/pdf/2509.14128
@@ -229,3 +261,8 @@ considering, found by looking beyond what PUSH already ships.
   **Not compile-checked here** — see the 2026-06-30 correction above.
   Also new since 0.15.5 but **not adopted**: Parakeet Ultra / Redux (moondream
   post-trains of TDT v3, batch-only), Nemotron 3 Diarization (8-speaker).
+- **2026-10-10** — **Type models.** Ran six text models through
+  `eval/run_autocomplete_eval.py` (60 scenarios). Picked Qwen3.5 0.8B / Qwen3.5 2B /
+  Gemma 4 E2B base (see "Type models"). llama.cpp, not MLX, for the KV-cache reuse
+  and grammar-constrained decoding that autocomplete needs. Granite 4.0 1B pending
+  a Metal re-test on the pinned llama.cpp xcframework.

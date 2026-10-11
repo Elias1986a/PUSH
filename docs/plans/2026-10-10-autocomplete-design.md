@@ -76,19 +76,36 @@ as ideas:
   dictation and typing do not happen at the same instant.
 - Model is loaded only while Type is on.
 
-### Model catalog (starting point — Phase 0 eval decides)
+### Model catalog (chosen by the Phase 0 eval, 2026-10-10)
 
 All Apache-2.0, all base checkpoints, GGUF from `mradermacher/*-i1-GGUF`
-(pinned by revision + SHA-256):
+(pinned by revision + SHA-256). Measured on a Mac mini M4 with a 1,500-char
+prompt; full numbers in `eval/results/2026-10-autocomplete.md` and `docs/MODELS.md`.
 
-| Tier | Model | File | Size |
-|---|---|---|---|
-| Lite | Qwen3.5 0.8B Base | `Qwen3.5-0.8B-Base.i1-Q6_K.gguf` | 0.63 GB |
-| **Recommended** | Qwen3.5 2B Base | `Qwen3.5-2B-Base.i1-Q4_K_M.gguf` | 1.27 GB |
-| Best quality | Gemma 4 E2B Base | `gemma-4-E2B.i1-Q4_K_M.gguf` | 3.43 GB |
+| Tier | Model | File | Size | Hit | Per keystroke p90 | Cold p90 |
+|---|---|---|---|---|---|---|
+| Lite | Qwen3.5 0.8B Base | `Qwen3.5-0.8B-Base.i1-Q6_K.gguf` | 0.63 GB | 34/60 | 43 ms | 180 ms |
+| **Recommended** | Qwen3.5 2B Base | `Qwen3.5-2B-Base.i1-Q4_K_M.gguf` | 1.27 GB | 36/60 | 74 ms | 408 ms |
+| Best quality | Gemma 4 E2B Base | `gemma-4-E2B.i1-Q4_K_M.gguf` | 3.43 GB | 40/60 | 93 ms | 527 ms |
 
-Also evaluated in Phase 0, added only if they beat a tier above:
-Granite 4.0 1B Base (Apache-2.0), SmolLM3 3B Base (Apache-2.0).
+Also evaluated: Granite 4.0 1B Base (40/60 but breaks on Metal in llama.cpp
+build 10566 and runs on past one sentence; re-test on the pinned xcframework),
+SmolLM3 3B Base (no gain, slowest, loops), and the earlier prototypes' Qwen3 4B
+instruct (same hits as the 0.8B base at 3–5× the latency). No model leaked
+the surface line.
+
+**What the eval changed in the design:**
+
+- **Token healing.** A prompt that ends inside a word ("really appreci") makes
+  every model start a new word (mid-word 1–2/15). The engine backs off the
+  partial word and uses llama.cpp's grammar sampler to force the output to start
+  with it again: 13–14/15. This replaces "only show a continuation that starts
+  with the letters already typed" below, and it also covers a caret right after
+  a complete word.
+- **Latency is per keystroke, from the KV cache.** A cold 1,500-char prompt costs
+  180–530 ms on every model, so the 150 ms gate is met only by reusing the
+  previous request's cache (43–93 ms). Cold happens on focus change; Phase 4
+  prefills the context as soon as a field takes focus, before the first key.
 
 Excluded: LFM2.5 1.2B Base (custom licence), Llama 3.2 1B (gated community
 licence), Gemma 3 1B (Gemma terms, gated).
@@ -161,9 +178,9 @@ Settings pane, which offers the download there.
 - Debounce ~150 ms after a keystroke. A new keystroke cancels the generation in
   flight; a result is shown only if focus, caret and field text still match the
   request.
-- Length comes from the user's length setting (below); stop at a newline. Mid-word: only show a continuation that
-  starts with the letters already typed (token-constrained decoding is a later
-  improvement).
+- Length comes from the user's length setting (below); stop at a newline.
+  Mid-word: token healing (see Model catalog) — the partial word is forced as
+  the start of the output by the grammar sampler.
 - Ghost text in a non-activating, click-through `NSPanel` at the caret rect
   (`kAXBoundsForRangeParameterizedAttribute`). Never takes focus. When the caret
   rect cannot be read, no suggestion is shown (no guessing in v1).
@@ -196,15 +213,14 @@ stops at a natural break (`.`, `,`, `;`, `?`, `!`) inside the range, otherwise
 at the top of the range.
 
 Each model in the catalog carries a **maximum preset** it handles well, set
-from the Phase 0 eval (quality per length). The picker only offers presets up
-to the selected model's maximum; switching to a smaller model clamps the
-setting down. Starting guesses, to be replaced by measurements:
+from the Phase 0 eval. The picker only offers presets up to the selected model's
+maximum; switching to a smaller model clamps the setting down.
 
-| Model | Max preset |
-|---|---|
-| Lite (Qwen3.5 0.8B) | 4–7 |
-| Recommended (Qwen3.5 2B) | 8–12 |
-| Best (Gemma 4 E2B) | 12–20 |
+| Model | Max preset | Why (eval, 2026-10-10) |
+|---|---|---|
+| Lite (Qwen3.5 0.8B) | 4–7 | Coherent for a clause, then invents and drifts |
+| Recommended (Qwen3.5 2B) | 8–12 | Stops at the sentence end; a second sentence drifts |
+| Best (Gemma 4 E2B) | 12–20 | Steadiest long continuations, 2/60 loops at 20 words |
 
 Default: 4–7. Tokens stream into the ghost text as they arrive, so long presets
 do not delay the first words.
