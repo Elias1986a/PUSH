@@ -113,6 +113,12 @@ public enum SuggestionText {
         let beforeTail = NSRange(location: 0, length: (lowerBefore as NSString).length)
         if selfDescription.firstMatch(in: lowerBefore, range: beforeTail) != nil,
            text.contains(where: \.isLetter) { return true }
+        // Web-page debris (tags, @handles, links, template braces) unless the
+        // user is writing that kind of thing already: base models learned
+        // from raw pages ("Hello," → "<strong>@jason-m-smith</strong>").
+        for (marker, family) in webMarkers where text.contains(marker) {
+            if !family.contains(where: { lowerBefore.contains($0) }) { return true }
+        }
         let words = Set(text.split { !$0.isLetter }.map(String.init))
         let typed = Set(lowerBefore.split { !$0.isLetter }.map(String.init))
         return !words.subtracting(typed).isDisjoint(with: explicit)
@@ -129,6 +135,12 @@ public enum SuggestionText {
         #"\bmy name is\s*$"#,
         #"\bi (work|study|live) (at|for|in)( an?| the)?\s*$"#,           // "I work at | …"
     ].joined(separator: "|"))
+
+    /// A marker in a suggestion, and what in the user's own text makes it fine.
+    private static let webMarkers: [(String, [String])] = [
+        ("<", ["<"]), (">", ["<", ">"]), ("@", ["@"]), ("http", ["http", "www."]), ("://", ["://"]),
+        ("www.", ["www.", "http"]), ("{", ["{"]), ("}", ["{", "}"]), ("[", ["["]),
+    ]
 
     private static let explicit: Set<String> = [
         "sex", "sexy", "sexual", "porn", "porno", "nude", "nudes", "naked", "horny", "fuck", "fucking",

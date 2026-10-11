@@ -162,3 +162,24 @@ final class TypingSuggestionSafetyTests: XCTestCase {
         XCTAssertEqual(LengthPreset.medium.maxWords(for: "Hi there, I wanted"), 12)
     }
 }
+
+final class TypingSuggestionWebJunkTests: XCTestCase {
+    func testRejectsMarkupHandlesAndLinks() {
+        XCTAssertTrue(SuggestionText.isUnwanted("<strong>@jason-m-smith</strong>,", before: "Hello,"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" @jason", before: "Thanks"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" https://example.com", before: "See"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" www.site.com", before: "Visit"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" {{name}}", before: "Dear"))
+    }
+
+    func testAllowedWhenTheUserIsAlreadyWritingThatKindOfThing() {
+        XCTAssertFalse(SuggestionText.isUnwanted("ason can you check", before: "cc @j"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" docs/setup", before: "See https://example.com/"))
+        XCTAssertFalse(SuggestionText.isUnwanted("div>", before: "<div></"))
+    }
+
+    func testOrdinaryPunctuationIsFine() {
+        XCTAssertFalse(SuggestionText.isUnwanted(", how are you?", before: "Hello"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" (by Friday)", before: "Send it"))
+    }
+}

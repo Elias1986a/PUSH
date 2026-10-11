@@ -228,7 +228,9 @@ final class TypingCoordinator {
                 guard let clean = SuggestionText.clean(text, maxWords: maxWords) else { return true }
                 guard let polished = SuggestionText.polish(length.trim(clean), before: before),
                       SuggestionText.matchesScript(polished, before: before),
-                      !SuggestionText.isUnwanted(polished, before: before) else {
+                      !SuggestionText.isUnwanted(polished, before: before),
+                      // Near-empty page: the one word must be a real one.
+                      maxWords > 1 || Self.realWords(polished) else {
                     // A later piece turned it unacceptable: take down what an
                     // earlier piece showed (", " before "I'm a 17…") and stop.
                     hide()
@@ -251,6 +253,10 @@ final class TypingCoordinator {
                 PushLogger.log("TypingCoordinator: generation failed: \(error)")
             }
         }
+    }
+
+    private static func realWords(_ text: String) -> Bool {
+        text.split { !($0.isLetter || $0 == "'" || $0 == "’") }.allSatisfy { isRealWord(String($0)) }
     }
 
     private static func isRealWord(_ word: String) -> Bool {
