@@ -230,6 +230,15 @@ do not delay the first words.
   clipboard-paste only", which is about dictation-length text. Phase 0 checks it
   in Mail, Slack, Chrome, Safari, Notes and an Electron app, and falls back to
   `TextInjector` where it fails.
+  **Insertion spike (Task 0.6, in progress)** — `KeystrokeTyper` from the
+  Developer-ID-signed build (inherits PUSH's Accessibility grant), test string
+  `hello wörld 👋 naïve café 🎬 across chunks` (accents, emoji, >20 UTF-16 units):
+
+  | App | Result |
+  |---|---|
+  | Notes | correct (exact, read back over AX) |
+  | Mail, Chrome (Gmail + textarea), Safari | not yet run |
+  | Slack, VS Code | not installed; stand-ins Discord / Claude.app (Electron) and Antigravity IDE (VS Code fork) not yet run |
 - Hidden while dictation is recording and while a teleprompter take runs.
 
 ### Compatibility: as universal as possible

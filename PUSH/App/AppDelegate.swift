@@ -15,7 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var positionedPlacement: AppState.PillPosition?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if runLlamaSmokeIfRequested() { return }
+        if runLlamaSmokeIfRequested() || runTypeSpikeIfRequested() { return }
 
         // Say out loud what `LSUIElement` says in the shipped app's Info.plist:
         // a menu bar app with no Dock icon that can still be brought to the
@@ -94,6 +94,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print(line)
         // PushLogger writes its file asynchronously; give it a moment before quitting.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { exit(ok ? 0 : 1) }
+        return true
+    }
+
+    /// Type, Phase 0 (temporary): with `PUSH_TYPE_SPIKE` set, types a fixed test
+    /// string into whatever field has focus via `KeystrokeTyper`, then quits.
+    /// Run from the signed build, which carries PUSH's Accessibility grant.
+    static let typeSpikeText = "hello wörld 👋 naïve café 🎬 across chunks"
+
+    private func runTypeSpikeIfRequested() -> Bool {
+        guard ProcessInfo.processInfo.environment["PUSH_TYPE_SPIKE"] != nil else { return false }
+        let target = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?"
+        KeystrokeTyper.type(Self.typeSpikeText)
+        let line = "type spike: posted to \(target), trusted=\(AXIsProcessTrusted())"
+        PushLogger.log(line)
+        print(line)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { exit(0) }
         return true
     }
 
