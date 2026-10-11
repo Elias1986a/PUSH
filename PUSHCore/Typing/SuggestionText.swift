@@ -240,4 +240,12 @@ public enum SuggestionText {
         let rest = String(suggestion.dropFirst(typed.count))
         return rest.isEmpty ? nil : rest
     }
+
+    /// "Space after the last word": accepting the end of a suggestion also
+    /// types a space, so the next word can follow. Not when the suggestion
+    /// already ends in one, nor mid-line, where text already follows the caret.
+    public static func needsTrailingSpace(finishing suggestion: String, nextInField: Character?) -> Bool {
+        guard let last = suggestion.last, !last.isWhitespace else { return false }
+        return nextInField == nil || nextInField?.isNewline == true
+    }
 }

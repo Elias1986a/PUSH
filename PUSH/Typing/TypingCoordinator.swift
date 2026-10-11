@@ -27,9 +27,10 @@ enum TypingExclusions {
         "com.push.voicetotext",
     ]
 
-    static func isExcluded(bundleID: String?) -> Bool {
+    /// The built-in list, then the apps the user turned Type off in.
+    static func isExcluded(bundleID: String?, userExcluded: [String] = []) -> Bool {
         guard let id = bundleID?.lowercased() else { return false }
-        return prefixes.contains { id.hasPrefix($0) }
+        return prefixes.contains { id.hasPrefix($0) } || userExcluded.contains { $0.lowercased() == id }
     }
 }
 
@@ -48,9 +49,13 @@ final class TypingCoordinator {
     private struct Shown {
         var text: String
         var placement: GhostTextPanel.Placement
+        /// The field's character after the caret, for "space after the last word".
+        var nextInField: Character?
     }
 
     private var active = false
+    /// The character after the caret when the last suggestion was asked for.
+    private var nextInField: Character?
     private var buffer = KeystrokeBuffer()
     private var keystrokes = 0          // bumps on every user key; stale work compares against it
     private var debounceTask: Task<Void, Never>?
@@ -128,12 +133,15 @@ final class TypingCoordinator {
     private func accept(whole: Bool) {
         guard let current = shown else { return }
         let chunk = whole ? current.text : SuggestionText.nextChunk(of: current.text)
-        KeystrokeTyper.type(chunk)
         if let rest = SuggestionText.remainder(of: current.text, afterTyping: chunk) {
+            KeystrokeTyper.type(chunk)
             shown?.text = rest
             advanceCaret(by: chunk)
             refreshPlacement(after: .milliseconds(300))
         } else {
+            let spaced = AppState.shared.typingSpaceAfterLastWord
+                && SuggestionText.needsTrailingSpace(finishing: chunk, nextInField: current.nextInField)
+            KeystrokeTyper.type(spaced ? chunk + " " : chunk)
             hide()
             scheduleSuggestion()
         }
@@ -160,6 +168,8 @@ final class TypingCoordinator {
         let state = AppState.shared
         return active && state.typeEnabled && state.typingModelReady
             && !state.isListening && !state.isProcessing && !Teleprompter.isRunning
+            && (state.typingPausedUntil.map { $0 <= Date() } ?? true)
+            && !(state.typingPauseOnBattery && PowerSource.shouldConserve)
     }
 
     /// Why no suggestion was made — rule names only, never text (Cotabby
@@ -175,7 +185,7 @@ final class TypingCoordinator {
         guard stamp == keystrokes, mayRun else { return }
         guard !focus.isSecure else { return skip("secure field") }
         guard focus.isTextInput else { return skip("not a text field (\(focus.role ?? "?"))") }
-        guard !TypingExclusions.isExcluded(bundleID: focus.bundleID),
+        guard !TypingExclusions.isExcluded(bundleID: focus.bundleID, userExcluded: AppState.shared.typingExcludedApps),
               focus.pid != ProcessInfo.processInfo.processIdentifier else { return skip("excluded app") }
         // Sign-in and verification fields, and Mail's header rows (Tab moves
         // to the next field there).
@@ -226,6 +236,7 @@ final class TypingCoordinator {
         let length = AppState.shared.typingLength
         let maxWords = length.words.upperBound
 
+        nextInField = surface == .terminal ? nil : focus.after?.first
         startGeneration(prompt: prompt, forced: heal.forced, before: before, length: length, maxWords: maxWords,
                         placement: placement, surface: surface, stamp: stamp, wordBoundary: false)
     }
@@ -350,11 +361,12 @@ final class TypingCoordinator {
         }
         // What fits on screen is the suggestion: accepting never types words
         // the user could not see.
+        GhostTextPanel.shared.textColor = AppState.shared.typingColor.color
         guard let visible = GhostTextPanel.shared.show(text, at: placement) else {
             if appearing { hide() }
             return
         }
-        shown = Shown(text: visible, placement: placement)
+        shown = Shown(text: visible, placement: placement, nextInField: nextInField)
         TypingKeyTap.shared.setSuggestionVisible(true)
         // An app can still be drawing the last keys (or rewriting them, like
         // TextEdit's text replacement) when the caret was read: measure again.

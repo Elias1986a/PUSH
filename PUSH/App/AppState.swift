@@ -205,6 +205,26 @@ final class AppState {
         didSet { UserDefaults.standard.set(typingInCodeEditors, forKey: TypingPreferences.codeEditorsKey) }
     }
 
+    var typingColor: SuggestionColor = TypingPreferences.color() {
+        didSet { UserDefaults.standard.set(typingColor.saved, forKey: TypingPreferences.colorKey) }
+    }
+
+    var typingSpaceAfterLastWord: Bool = TypingPreferences.spaceAfterLastWord() {
+        didSet { UserDefaults.standard.set(typingSpaceAfterLastWord, forKey: TypingPreferences.spaceAfterKey) }
+    }
+
+    var typingPauseOnBattery: Bool = TypingPreferences.pauseOnBattery() {
+        didSet { UserDefaults.standard.set(typingPauseOnBattery, forKey: TypingPreferences.pauseOnBatteryKey) }
+    }
+
+    var typingExcludedApps: [String] = TypingPreferences.excludedApps() {
+        didSet { UserDefaults.standard.set(typingExcludedApps, forKey: TypingPreferences.excludedAppsKey) }
+    }
+
+    var typingPausedUntil: Date? = TypingPreferences.pausedUntil() {
+        didSet { UserDefaults.standard.set(typingPausedUntil, forKey: TypingPreferences.pausedUntilKey) }
+    }
+
     /// The typing model is loaded and warm.
     var typingModelReady = false
 

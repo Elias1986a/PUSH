@@ -237,4 +237,12 @@ final class TypingCaretWordsTests: XCTestCase {
         XCTAssertEqual(SuggestionText.caretWords("Thanks, Sarah.").finished, "Sarah")
         XCTAssertNil(SuggestionText.caretWords("").finished)
     }
+
+    func testTrailingSpaceOnlyAtTheEndOfALine() {
+        XCTAssertTrue(SuggestionText.needsTrailingSpace(finishing: " weekend?", nextInField: nil))
+        XCTAssertTrue(SuggestionText.needsTrailingSpace(finishing: "ate", nextInField: "\n"))
+        XCTAssertFalse(SuggestionText.needsTrailingSpace(finishing: "the ", nextInField: nil))
+        XCTAssertFalse(SuggestionText.needsTrailingSpace(finishing: " team", nextInField: " "))
+        XCTAssertFalse(SuggestionText.needsTrailingSpace(finishing: " team", nextInField: "x"))
+    }
 }

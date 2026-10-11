@@ -7,6 +7,11 @@ enum TypingPreferences {
     static let modelKey = "typing.model"
     static let lengthKey = "typing.length"
     static let codeEditorsKey = "typing.codeEditors"
+    static let colorKey = "typing.color"
+    static let spaceAfterKey = "typing.spaceAfterLastWord"
+    static let pauseOnBatteryKey = "typing.pauseOnBattery"
+    static let excludedAppsKey = "typing.excludedApps"
+    static let pausedUntilKey = "typing.pausedUntil"
 
     static func model(in d: UserDefaults = .standard) -> TypingModel {
         d.string(forKey: modelKey).flatMap(TypingModel.init(rawValue:)) ?? .defaultModel
@@ -22,5 +27,31 @@ enum TypingPreferences {
     /// Tab, and a blue suggestion would take Tab away from them.
     static func codeEditors(in d: UserDefaults = .standard) -> Bool {
         d.bool(forKey: codeEditorsKey)
+    }
+
+    static func color(in d: UserDefaults = .standard) -> SuggestionColor {
+        SuggestionColor(saved: d.string(forKey: colorKey))
+    }
+
+    /// On by default (Cotypist and Cotabby both offer it; the user asked for
+    /// it): finishing a suggestion types the space before the next word.
+    static func spaceAfterLastWord(in d: UserDefaults = .standard) -> Bool {
+        d.object(forKey: spaceAfterKey) as? Bool ?? true
+    }
+
+    /// Off by default: a laptop on battery still has plenty for a 1–3 GB model.
+    static func pauseOnBattery(in d: UserDefaults = .standard) -> Bool {
+        d.bool(forKey: pauseOnBatteryKey)
+    }
+
+    /// Apps the user turned Type off in, by bundle id (the built-in list —
+    /// password managers and the like — is `TypingExclusions`).
+    static func excludedApps(in d: UserDefaults = .standard) -> [String] {
+        d.stringArray(forKey: excludedAppsKey) ?? []
+    }
+
+    /// "Pause for 1 hour / until tomorrow"; a date already past means not paused.
+    static func pausedUntil(in d: UserDefaults = .standard) -> Date? {
+        (d.object(forKey: pausedUntilKey) as? Date).flatMap { $0 > Date() ? $0 : nil }
     }
 }
