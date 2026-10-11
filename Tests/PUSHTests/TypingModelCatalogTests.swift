@@ -2,8 +2,8 @@ import XCTest
 @testable import PUSHCore
 
 final class TypingModelCatalogTests: XCTestCase {
-    func testThreeTiersInOrderWithRecommendedAsDefault() {
-        XCTAssertEqual(TypingModel.allCases, [.lite, .recommended, .best])
+    func testFourTiersInOrderWithRecommendedAsDefault() {
+        XCTAssertEqual(TypingModel.allCases, [.lite, .recommended, .best, .pro])
         XCTAssertEqual(TypingModel.defaultModel, .recommended)
     }
 
@@ -33,6 +33,9 @@ final class TypingModelCatalogTests: XCTestCase {
         XCTAssertEqual(TypingModel.lite.maxLength, .short)
         XCTAssertEqual(TypingModel.recommended.maxLength, .medium)
         XCTAssertEqual(TypingModel.best.maxLength, .long)
+        XCTAssertEqual(TypingModel.pro.maxLength, .long)
+        XCTAssertEqual(TypingModel.pro.minimumMemory, 16 << 30)
+        XCTAssertEqual(TypingModel.best.minimumMemory, 0)
     }
 
     func testLengthPresetsAndClamping() {
@@ -47,6 +50,6 @@ final class TypingModelCatalogTests: XCTestCase {
     func testIDsAreStableStrings() {
         // Persisted as the user's choice; renaming one would orphan a download.
         XCTAssertEqual(TypingModel.allCases.map(\.rawValue),
-                       ["qwen3.5-0.8b-base", "qwen3.5-2b-base", "gemma4-e2b-base"])
+                       ["qwen3.5-0.8b-base", "qwen3.5-2b-base", "gemma4-e2b-base", "gemma4-e4b-base"])
     }
 }

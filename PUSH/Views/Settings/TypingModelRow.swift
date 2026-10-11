@@ -78,6 +78,8 @@ struct TypingModelRow: View {
                 Button("Delete") { Task { await store.delete(model) } }
                     .foregroundStyle(.red)
             }
+        } else if ProcessInfo.processInfo.physicalMemory < model.minimumMemory {
+            Text("Needs 16 GB").font(.caption).foregroundStyle(.secondary)
         } else {
             Button("Download") {
                 appState.selectedTypingModel = model
@@ -95,6 +97,7 @@ extension TypingModel {
         case .lite: return "Lite"
         case .recommended: return "Recommended"
         case .best: return "Best"
+        case .pro: return "Pro"
         }
     }
 
@@ -102,7 +105,8 @@ extension TypingModel {
         switch self {
         case .lite: return "Smallest and quickest. Short suggestions, for older or 8 GB Macs."
         case .recommended: return "Good suggestions at a modest size."
-        case .best: return "The strongest suggestions and the longest. Needs the most memory."
+        case .best: return "Strong suggestions, and the longest."
+        case .pro: return "The most capable, and the biggest download. For Macs with 16 GB of memory or more."
         }
     }
 }
