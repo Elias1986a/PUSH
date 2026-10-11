@@ -216,12 +216,68 @@ do not delay the first words.
   `TextInjector` where it fails.
 - Hidden while dictation is recording and while a teleprompter take runs.
 
+### Compatibility: as universal as possible
+
+Goal: Type works in every app where you type, and when it cannot read an app
+properly it degrades rather than going silent. Four tiers, each with its own
+technique:
+
+| Tier | Examples | How we read text + caret |
+|---|---|---|
+| 1. Native AppKit/SwiftUI | Messages, Mail, Notes, Pages, TextEdit | Accessibility value + selected range + caret rect. Works out of the box. |
+| 2. Browsers | Safari, Chrome, Arc, Dia, Brave, Firefox | Accessibility on the web area. Chromium browsers need `AXEnhancedUserInterface` set on the app element before they expose a full tree. |
+| 3. Electron / Chromium apps | Slack, Discord, Notion, VS Code, Cursor, WhatsApp | Set `AXManualAccessibility = true` on the app element (Electron's documented switch), then as tier 2. |
+| 4. Terminals | Terminal, iTerm2, Warp, Ghostty | Special mode, below. |
+
+**Fallbacks for when Accessibility is incomplete** (any tier):
+
+- **Own keystroke buffer.** PUSH's tap already sees every key. Keep a
+  per-focus buffer of what was typed since focus last changed (reset on click,
+  focus change, arrow keys; never stored or logged). When an app exposes no
+  readable value, this buffer is the "text before the caret". Cotypist does the
+  same (`InputBuffer`).
+- **No caret rect → mirror card.** When the caret position cannot be read, show
+  the suggestion in a small card under the focused field (or the window), not
+  inline. Cotypist calls this "Text Mirroring". Better a slightly detached
+  suggestion than none.
+- **Caret from pixels** (later, only if the matrix shows it is needed): locate
+  the blinking caret in a screenshot of the field. Needs Screen Recording, so
+  opt-in only.
+
+**Terminals.** Hard for three reasons: the whole scrollback is one text area,
+the "field" is just the current prompt line, and `Tab` already means shell
+completion. Plan:
+
+- Read the terminal's text area, take the line at the cursor, strip the prompt
+  (`$ `, `% `, `❯ `, `>`); that line is the "before" text. Cotypist does this
+  per terminal (`TerminalAttributeCustomizer`, `ITerm2…`, `Ghostty…`).
+- **Agent prompts first** — Claude Code, Codex and similar draw a boxed input
+  line. Detect it (box-drawing borders around the cursor line) and treat it like
+  a chat field: prose suggestions, chat-style context. This is where suggestions
+  actually help in a terminal (writing prompts), and it is how Cotypist handles
+  terminals ("No TUI agent prompt detected; hiding completions").
+- Plain shell prompts: off by default (commands, not prose; a wrong suggestion
+  is dangerous). A switch in Settings → Type turns them on later.
+- In terminals the next-word key defaults to `→` (as in fish/zsh autosuggest)
+  so `Tab` keeps doing shell completion; the whole-suggestion key is unchanged.
+- Ghostty exposes little through Accessibility today; it falls back to the
+  keystroke buffer + mirror card.
+
+**Compatibility matrix.** A checked-in table (`docs/TYPE_COMPATIBILITY.md`)
+of ~30 apps × (reads text / caret rect / inline / accept works / notes),
+filled in during Phase 4 and re-run before each release. An app only counts as
+supported when it is in the table as passing.
+
+**Default exclusions stay small:** password/secure fields (always), password
+managers, Keychain Access. Everything else is on unless the user excludes it.
+
 ### Privacy
 
 - Never log typed text or suggestions (same rule as transcripts).
 - Phase A stores nothing.
-- Default excluded apps: terminals, password managers, Keychain Access, System
-  Settings, PUSH itself. Per-app exclusion list in Settings.
+- Default excluded apps: password managers, Keychain Access, System Settings,
+  PUSH itself; secure fields everywhere. Terminals are *not* excluded (see
+  Compatibility). Per-app exclusion list in Settings.
 
 ### Settings and menu bar
 

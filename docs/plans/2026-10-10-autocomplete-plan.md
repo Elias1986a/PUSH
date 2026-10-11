@@ -564,11 +564,16 @@ CLI in `compare/` so eval and app share one prompt.
 ## Phase 4 — Live autocomplete (expand at phase start)
 
 - **4.1 `FocusReader`**: focused element, value, selected range, `before`/`after` windows, placeholder, window title, URL host (web area / window `kAXURLAttribute`), caret rect via `kAXBoundsForRangeParameterizedAttribute`; secure-field check. All AX on the main actor with tight timeouts (`AXUIElementSetMessagingTimeout`).
+- **4.1b Accessibility enablers**: set `AXManualAccessibility` (Electron) / `AXEnhancedUserInterface` (Chromium) on the focused app's element once per launch of that app; verify with Slack, Discord, VS Code, Chrome.
+- **4.1c `KeystrokeBuffer`**: per-focus typed-text buffer from the key tap (reset on focus change, click, arrows, ⌘-shortcuts); pure, TDD; used when the field value is unreadable. Never persisted or logged.
+- **4.1d Terminal reader**: cursor-line extraction + prompt stripping for Terminal and iTerm2; agent-prompt (boxed input) detection; tests on captured terminal text fixtures. Plain-shell suggestions off by default; `→` as next-word key in terminals.
 - **4.2 `TypingKeyTap`**: own `CGEvent` tap (keyDown only). Consumes `Tab`/`Esc` only while a suggestion is visible; re-enables itself on `tapDisabledByTimeout`; callback does no work beyond enqueueing.
+- **4.3a Mirror card**: when no caret rect, show the suggestion in a small card under the field/window.
 - **4.3 `GhostTextPanel`**: non-activating, click-through `NSPanel`, `.screenSaver`-safe level, `sharingType` default; draws gray text at the caret rect with font size from caret height.
 - **4.4 `TypingCoordinator`**: debounce 150 ms, request identity (focus + text hash + caret), cancel on keystroke, `SuggestionText.remainder` to keep a suggestion alive while the user types into it, hide during dictation and teleprompter, per-app exclusions, never logs text.
 - **4.5 Accept**: `Tab` types `nextChunk` via `KeystrokeTyper` (fallback `TextInjector` for apps that failed in Task 0.6); the key that types `` ` `` in the current layout (`UCKeyTranslate` over key codes; fallback `⌥Tab`) accepts the whole suggestion. Pure `AcceptKeyResolver` with tests for US, UK-ISO and German layouts' key maps.
 - **4.6 Length**: `LengthPreset` (1–3, 4–7, 8–12, 12–20) + per-model maximum in the catalog; trim at a clause break inside the range. Pure, TDD.
+- **4.7 Compatibility matrix**: create `docs/TYPE_COMPATIBILITY.md` (~30 apps: native, browsers, Electron, terminals incl. Claude Code in Terminal/iTerm2) and fill it in; every failing app gets a note and, where possible, a fix task.
 - **Verify** in Mail, Slack, Chrome (Gmail), Safari, Notes, Messages; 375-px-wide isn't relevant here, but test on the built-in display and an external one (caret rect coordinates differ per screen).
 
 ## Phase 5 — Settings, menu bar, onboarding (expand at phase start)
