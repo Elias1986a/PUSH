@@ -52,7 +52,7 @@ final class PermissionsModel: ObservableObject {
     /// Opens the Privacy & Security pane. Same URL the launch-time denial alert
     /// in `AppDelegate` uses.
     func openSystemSettings() {
-        open(pane: "Privacy")
+        Self.open(pane: "Privacy")
     }
 
     /// Deep-links straight to the Microphone list, rather than the top of
@@ -61,17 +61,18 @@ final class PermissionsModel: ObservableObject {
     /// is the switch — which is several scrolls down a long list if you land at
     /// the top of the pane.
     func openMicrophoneSettings() {
-        open(pane: "Privacy_Microphone")
+        Self.open(pane: "Privacy_Microphone")
     }
 
     /// Deep-links to the Accessibility list. macOS never shows an Accessibility
     /// prompt that grants the permission outright — the dialog only offers to
     /// open this list — so this is the destination either way.
     func openAccessibilitySettings() {
-        open(pane: "Privacy_Accessibility")
+        Self.open(pane: "Privacy_Accessibility")
     }
 
-    private func open(pane: String) {
+    /// Shared with `PermissionGuide`, which opens the same lists.
+    static func open(pane: String) {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") else {
             PushLogger.log("PermissionsModel: could not build System Settings URL for \(pane)")
             return

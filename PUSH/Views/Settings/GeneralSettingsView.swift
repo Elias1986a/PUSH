@@ -102,7 +102,7 @@ struct GeneralSettingsView: View {
                     title: "Accessibility",
                     reason: "Needed for the push-to-talk key and for pasting text.",
                     status: permissions.accessibility,
-                    openSettings: permissions.openSystemSettings
+                    openSettings: { PermissionGuide.shared.show(.accessibility) }
                 )
             }
         }
