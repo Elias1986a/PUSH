@@ -197,6 +197,15 @@ codesign --force --options runtime --entitlements PUSH/PUSH.entitlements \
 echo "   Verifying signature..."
 codesign --verify --verbose "$APP_DIR"
 
+# SIGN_ONLY=1: stop at a signed, hardened-runtime app — no ZIP, notarization,
+# DMG, GitHub release or appcast. For checking a dependency loads under the
+# shipped signing (e.g. llama.framework) without publishing anything.
+if [ "${SIGN_ONLY:-0}" = "1" ]; then
+    echo ""
+    echo "✅ Signed (not notarized): $APP_DIR"
+    exit 0
+fi
+
 # Step 4: Create ZIP for notarization
 echo "📦 Step 4/6: Creating ZIP archive..."
 rm -f "$ZIP_NAME"

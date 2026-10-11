@@ -15,6 +15,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var positionedPlacement: AppState.PillPosition?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if runLlamaSmokeIfRequested() { return }
+
         // Say out loud what `LSUIElement` says in the shipped app's Info.plist:
         // a menu bar app with no Dock icon that can still be brought to the
         // front when it has something to show.
@@ -78,6 +80,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Show the welcome wizard once the app has finished coming up.
     ///
+    /// Type, Phase 0 (temporary): proves llama.cpp loads inside the signed,
+    /// hardened-runtime bundle. With `PUSH_LLAMA_SMOKE_MODEL` set to a GGUF path
+    /// the app generates once, logs only ok/failed and timing (never the text),
+    /// and quits before any window, hotkey or model of its own starts.
+    private func runLlamaSmokeIfRequested() -> Bool {
+        guard let path = ProcessInfo.processInfo.environment["PUSH_LLAMA_SMOKE_MODEL"] else { return false }
+        let start = Date()
+        let ok = (try? LlamaSmoke.generate(modelPath: path, prompt: "The capital of France is", maxTokens: 8))?
+            .contains("Paris") ?? false
+        let line = "llama smoke \(ok ? "ok" : "failed") in \(String(format: "%.2f", Date().timeIntervalSince(start)))s"
+        PushLogger.log(line)
+        print(line)
+        // PushLogger writes its file asynchronously; give it a moment before quitting.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { exit(ok ? 0 : 1) }
+        return true
+    }
+
     /// Deferred a beat rather than shown inline: `applicationDidFinishLaunching`
     /// is still on the launch path, and activating a window from inside it
     /// races the menu bar extra's own setup.
