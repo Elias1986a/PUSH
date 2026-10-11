@@ -21,8 +21,15 @@ swift build -c release
 
 echo "📦 Bundling..."
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 ditto --norsrc --noextattr .build/release/compare "$APP/Contents/MacOS/compare"
+
+# Dynamic frameworks PUSHCore links (llama.cpp). SPM finds them via @loader_path
+# next to the bare binary; in the bundle they live in Frameworks/.
+for framework in .build/release/*.framework; do
+    [ -e "$framework" ] && ditto --norsrc --noextattr "$framework" "$APP/Contents/Frameworks/$(basename "$framework")"
+done
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/compare" 2>/dev/null || true
 ditto --norsrc --noextattr Info.plist "$APP/Contents/Info.plist"
 
 # Resource bundles the engines' SDKs ship (CoreML assets and the like).
@@ -33,10 +40,16 @@ done
 echo "✍️  Signing..."
 xattr -cr "$APP" 2>/dev/null || true
 if security find-identity -v -p codesigning | grep -q "$IDENTITY"; then
+    for framework in "$APP"/Contents/Frameworks/*.framework; do
+        [ -d "$framework" ] && codesign --force --options runtime --sign "$IDENTITY" "$framework"
+    done
     codesign --force --options runtime --entitlements compare.entitlements \
         --sign "$IDENTITY" "$APP"
 else
     echo "   Developer ID not found — signing ad-hoc (the mic grant will not survive rebuilds)"
+    for framework in "$APP"/Contents/Frameworks/*.framework; do
+        [ -d "$framework" ] && codesign --force --sign - "$framework"
+    done
     codesign --force --entitlements compare.entitlements --sign - "$APP"
 fi
 codesign --verify --verbose "$APP" 2>&1 | tail -2

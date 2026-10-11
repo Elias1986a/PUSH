@@ -9,6 +9,12 @@ let sparkleArtifactPath = URL(fileURLWithPath: #filePath)
     .appendingPathComponent(".build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64")
     .path
 
+// Same for llama.cpp's framework (Type's text engine).
+let llamaArtifactPath = URL(fileURLWithPath: #filePath)
+    .deletingLastPathComponent()
+    .appendingPathComponent(".build/artifacts/push/llama/llama.xcframework/macos-arm64_x86_64")
+    .path
+
 let package = Package(
     name: "PUSH",
     platforms: [
@@ -41,7 +47,8 @@ let package = Package(
         .target(
             name: "PUSHCore",
             dependencies: [
-                .product(name: "FluidAudio", package: "FluidAudio")
+                .product(name: "FluidAudio", package: "FluidAudio"),
+                "llama"
             ],
             path: "PUSHCore",
             swiftSettings: [
@@ -50,6 +57,13 @@ let package = Package(
             linkerSettings: [
                 .linkedLibrary("c++")
             ]
+        ),
+        // llama.cpp, Type's text engine: the official prebuilt framework (Metal
+        // library embedded), pinned to a release tag and checksum.
+        .binaryTarget(
+            name: "llama",
+            url: "https://github.com/ggml-org/llama.cpp/releases/download/b11147/llama-b11147-xcframework.zip",
+            checksum: "d04512c7973241323faff78154340064d16be1330bba7dd97dbdffcd12890e06"
         ),
         .executableTarget(
             name: "PUSH",
@@ -94,7 +108,8 @@ let package = Package(
                 .swiftLanguageMode(.v5)
             ],
             linkerSettings: [
-                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", sparkleArtifactPath])
+                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", sparkleArtifactPath,
+                              "-Xlinker", "-rpath", "-Xlinker", llamaArtifactPath])
             ]
         )
     ]
