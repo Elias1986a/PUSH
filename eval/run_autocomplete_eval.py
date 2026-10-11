@@ -89,7 +89,7 @@ def heal(before):
     removed and a grammar forces the output to begin with it again (" appreci…"),
     which also covers a caret after a complete word ("take your").
     """
-    m = re.search(r"(\s?)([^\W_][\w'’]*)$", before)
+    m = re.search(r"([ \t]?)([^\W_][\w'’]*)$", before)  # same as TokenHealing.swift
     if not m:
         return before, ""
     return before[:m.start()], m.group(1) + m.group(2)

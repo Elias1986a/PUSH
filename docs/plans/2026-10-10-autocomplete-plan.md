@@ -548,6 +548,16 @@ func testRemainderAfterTyping() {
 
 Run → PASS → commit.
 
+### Task 2.6: Token healing (added after Phase 0)
+
+**Files:** Create `PUSHCore/Typing/TokenHealing.swift`; test `TypingTokenHealingTests.swift`.
+
+The Phase 0 eval showed mid-word prompts fail without it (1–2/15 → 13–14/15).
+`split(before)` backs off the partial word (space or tab, never a newline),
+`grammar(forcing:)` builds the GBNF for llama.cpp's grammar sampler ("forced
+start, then anything"), `strip(_:forced:)` removes the forced start from the
+output. Same behaviour as `heal()` in `eval/run_autocomplete_eval.py`.
+
 **Phase 2 checkpoint:** `swift test` green; the eval runner (Task 0.2) can
 optionally switch to building prompts through `TypingPrompt` via a tiny
 CLI in `compare/` so eval and app share one prompt.
