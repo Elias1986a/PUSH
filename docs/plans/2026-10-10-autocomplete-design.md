@@ -181,6 +181,8 @@ Settings pane, which offers the download there.
 - Length comes from the user's length setting (below); stop at a newline.
   Mid-word: token healing (see Model catalog) — the partial word is forced as
   the start of the output by the grammar sampler.
+- **Colour: blue for now** (user, 2026-10-10) so a suggestion can't be mistaken
+  for typed text while testing; gray (Cotypist-style) is the later default — ask first.
 - Ghost text in a non-activating, click-through `NSPanel` at the caret rect
   (`kAXBoundsForRangeParameterizedAttribute`). Never takes focus. When the caret
   rect cannot be read, no suggestion is shown (no guessing in v1).
