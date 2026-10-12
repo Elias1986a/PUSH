@@ -48,15 +48,45 @@ final class MenuBarController: NSObject {
     }
 
     @objc private func updateIcon() {
-        let ready = AppState.shared.isModelReady
-        statusItem?.button?.image = Self.icon(ready: ready)
+        let state = AppState.shared
+        // Ready means the features that are on: with dictation off the speech
+        // model never loads, and a Type-only PUSH showed an hourglass forever.
+        let ready = state.dictationEnabled ? state.isModelReady : (!state.typeEnabled || state.typingModelReady)
+        statusItem?.button?.image = Self.icon(ready: ready, typing: state.typeEnabled)
     }
 
-    private static func icon(ready: Bool) -> NSImage? {
-        let name = ready ? "music.mic" : "hourglass"
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: "PUSH")
-        // Template so macOS tints it for the menu bar's appearance, light or
-        // dark, rather than us picking a colour that is wrong half the time.
+    /// The microphone; with Type on, a text cursor beside it (the user's
+    /// design, 2026-10-11) — PUSH both hears and types.
+    static func icon(ready: Bool, typing: Bool) -> NSImage? {
+        guard ready else { return template(NSImage(systemSymbolName: "hourglass", accessibilityDescription: "PUSH")) }
+        guard let mic = NSImage(systemSymbolName: "music.mic", accessibilityDescription: "PUSH") else { return nil }
+        guard typing else { return template(mic) }
+        // An I-beam drawn by hand: the SF cursor symbols all carry an "A".
+        let gap: CGFloat = 1.5, beam: CGFloat = 5
+        let size = NSSize(width: mic.size.width + gap + beam, height: max(mic.size.height, 16))
+        let image = NSImage(size: size, flipped: false) { rect in
+            mic.draw(in: CGRect(x: 0, y: (rect.height - mic.size.height) / 2,
+                                width: mic.size.width, height: mic.size.height))
+            let x = mic.size.width + gap + beam / 2
+            let top = rect.midY + 6, bottom = rect.midY - 6
+            let path = NSBezierPath()
+            path.lineWidth = 1.3
+            path.lineCapStyle = .round
+            path.move(to: CGPoint(x: x, y: bottom)); path.line(to: CGPoint(x: x, y: top))
+            for y in [top, bottom] {
+                path.move(to: CGPoint(x: x - beam / 2, y: y)); path.line(to: CGPoint(x: x + beam / 2, y: y))
+            }
+            NSColor.black.setStroke()
+            path.stroke()
+            return true
+        }
+        image.accessibilityDescription = "PUSH"
+        return template(image)
+    }
+
+    /// Template so macOS tints it for the menu bar's appearance, light or
+    /// dark, rather than us picking a colour that is wrong half the time.
+    private static func template(_ image: NSImage?) -> NSImage? {
         image?.isTemplate = true
         return image
     }

@@ -172,7 +172,10 @@ final class AppState {
     var dictationEnabled: Bool = FeatureSwitches.dictationEnabled() {
         didSet {
             UserDefaults.standard.set(dictationEnabled, forKey: FeatureSwitches.dictationKey)
-            if dictationEnabled != oldValue { DictationSwitch.apply(dictationEnabled) }
+            if dictationEnabled != oldValue {
+                DictationSwitch.apply(dictationEnabled)
+                notifyStateChange()
+            }
         }
     }
 
@@ -182,6 +185,7 @@ final class AppState {
             if typeEnabled != oldValue {
                 TypingEngineLoader.apply()
                 TypingCoordinator.shared.setActive(typeEnabled)
+                notifyStateChange()   // the menu bar's cursor comes and goes with Type
             }
         }
     }
@@ -268,6 +272,7 @@ final class AppState {
         didSet {
             guard typingModelReady != oldValue else { return }
             if typingModelReady { TypingCoordinator.shared.refreshIndicator() } else { TypingCoordinator.shared.hideAll() }
+            notifyStateChange()
         }
     }
 
