@@ -8,7 +8,9 @@ public struct TerminalLine: Sendable, Equatable {
     public enum Kind: Sendable, Equatable { case agentPrompt, shell }
 
     public var kind: Kind
-    /// What the user has typed on the line, prompt removed.
+    /// What the user has typed on the line, prompt removed. Empty at an
+    /// agent prompt not yet typed into: still a place Type works (its icon
+    /// shows there, as Cotypist's does on any field it serves).
     public var text: String
     /// An agent prompt's conversation: the text above its rule, the last
     /// `contextLimit` characters, borders and blank lines removed.
@@ -40,8 +42,7 @@ public struct TerminalLine: Sendable, Equatable {
             let pieces = [String(first.dropFirst())] + lines[(start + 1)...].map { String(unboxed($0)) }
             let text = pieces.map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }.joined(separator: " ")
-            guard !text.isEmpty else { return nil }
-            let tail = current.last == " " ? " " : ""
+            let tail = current.last == " " && !text.isEmpty ? " " : ""
             return TerminalLine(kind: .agentPrompt, text: text + tail,
                                 context: conversation(Array(lines[..<(start - 1)])))
         }

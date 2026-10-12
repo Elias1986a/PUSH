@@ -32,8 +32,10 @@ final class TypingTerminalLineTests: XCTestCase {
                        "git commit -m \"fix the")
     }
 
-    func testEmptyInputIsNil() {
-        XCTAssertNil(TerminalLine.parse(textBeforeCaret: "\(rule)\n> "))
+    func testAnEmptyAgentPromptIsStillOne() {
+        XCTAssertEqual(TerminalLine.parse(textBeforeCaret: "\(rule)\n> ")?.kind, .agentPrompt)
+        XCTAssertEqual(TerminalLine.parse(textBeforeCaret: "\(rule)\n❯ ")?.text, "")
+        XCTAssertNil(TerminalLine.parse(textBeforeCaret: "user@mac ~ % "))
         XCTAssertNil(TerminalLine.parse(textBeforeCaret: ""))
     }
 

@@ -92,7 +92,7 @@ enum FocusReader {
             snapshot.after = String(text.substring(from: end).prefix(afterWindow))
             // Chrome's rich-text boxes have a value but no range bounds; their
             // text markers still know where the caret is.
-            snapshot.caretRect = caretRect(element, at: caret, length: text.length)
+            snapshot.caretRect = caretRect(element, at: caret, in: text)
                 ?? textMarkerRead(element)?.caret
             if caret > 0 { snapshot.font = font(element, at: caret - 1) }
         } else if let marked = textMarkerRead(element) {
@@ -177,11 +177,23 @@ enum FocusReader {
     /// The caret's position, from `kAXBoundsForRangeParameterizedAttribute`.
     /// The character before the caret is measured and its right edge used:
     /// an empty range is the unreliable case (TextEdit puts it a line too
-    /// high). The empty range is the fallback, for a caret at the very start.
-    private static func caretRect(_ element: AXUIElement, at caret: Int, length: Int) -> CGRect? {
-        if caret > 0, let rect = bounds(element, CFRange(location: caret - 1, length: 1)), rect.height > 0,
-           rect.width < 200 {   // a newline before the caret measures as a whole line
+    /// high). After a line break that edge belongs to the line above — in
+    /// Terminal every row ends in one, so a caret just wrapped to a new row
+    /// was placed at the right edge of the old one — so the character at the
+    /// caret is measured instead and its left edge used. The empty range is
+    /// the last resort, for a caret at the very end.
+    private static func caretRect(_ element: AXUIElement, at caret: Int, in text: NSString) -> CGRect? {
+        func isBreak(_ index: Int) -> Bool {
+            index >= 0 && index < text.length
+                && CharacterSet.newlines.contains(UnicodeScalar(text.character(at: index)) ?? " ")
+        }
+        if caret > 0, !isBreak(caret - 1), let rect = bounds(element, CFRange(location: caret - 1, length: 1)),
+           rect.height > 0, rect.width < 200 {   // some apps measure a character as a whole line
             return flipped(CGRect(x: rect.maxX, y: rect.minY, width: 0, height: rect.height))
+        }
+        if caret < text.length, !isBreak(caret), let rect = bounds(element, CFRange(location: caret, length: 1)),
+           rect.height > 0, rect.width < 200 {
+            return flipped(CGRect(x: rect.minX, y: rect.minY, width: 0, height: rect.height))
         }
         if let rect = bounds(element, CFRange(location: caret, length: 0)), rect.height > 0 {
             return flipped(rect)

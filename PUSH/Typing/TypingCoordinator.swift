@@ -102,6 +102,9 @@ final class TypingCoordinator {
     var allowsOwnWindows = false
     private var indicatorTask: Task<Void, Never>?
     private var activationObserver: NSObjectProtocol?
+    /// Focus moving inside the frontmost app (Tab to another field, a window
+    /// closing): the icon follows it, and a suggestion for the old field goes.
+    private lazy var focusObserver = FocusObserver { [weak self] in self?.refreshIndicator(after: .milliseconds(50)) }
     /// The character after the caret when the last suggestion was asked for.
     private var nextInField: Character?
     /// The app the user last typed in, for the menu's "Turn Off in <App>".
@@ -132,15 +135,23 @@ final class TypingCoordinator {
             tap.start()
             ClipboardContext.shared.start()
             activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
-                forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.refreshIndicator(after: .milliseconds(300)) }
+                forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    // The suggestion belonged to the app left behind.
+                    self.hide()
+                    self.focusObserver.observe(note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
+                    self.refreshIndicator(after: .milliseconds(300))
+                }
             }
+            focusObserver.observe(NSWorkspace.shared.frontmostApplication)
             refreshIndicator(after: .milliseconds(300))
         } else {
             TypingKeyTap.shared.stop()
             ClipboardContext.shared.stop()
             if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
             activationObserver = nil
+            focusObserver.stop()
             cancelWork()
             hideAll()
         }
@@ -378,6 +389,7 @@ final class TypingCoordinator {
             guard mayRun, AppState.shared.typingShowIndicator else { return TypeIndicatorPanel.shared.hide() }
             let focus = await readFocus()
             guard !Task.isCancelled else { return }
+            if shown != nil, focus?.elementID != suggestedElement { hide() }
             updateIndicator(for: focus)
         }
     }
