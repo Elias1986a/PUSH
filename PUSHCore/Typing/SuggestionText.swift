@@ -212,6 +212,33 @@ public enum SuggestionText {
     }
 
     private static let legitimateDoubles: Set<String> = ["had", "that"]
+    nonisolated(unsafe) private static let digits = try! Regex(#"\d+"#)
+
+    /// The suggestion up to a number the user never wrote or saw — a model
+    /// guessing figures ("churn went down 3%", "by 10 am tomorrow") puts
+    /// facts in their mouth, so it stops before the number and leaves it to
+    /// them. A number is fine when it is in `before` or `known` (the screen,
+    /// the clipboard), when it is this `year`, or when it numbers a list just
+    /// started ("Blockers: 1)"). Nil when nothing is left.
+    public static func cutAtNewNumber(_ suggestion: String, before: String, known: String, year: Int) -> String? {
+        func runs(_ text: String) -> [Range<String.Index>] {
+            text.ranges(of: digits)
+        }
+        let seen = Set(runs(before + "\n" + known).map { (before + "\n" + known)[$0] }.map(String.init) + [String(year)])
+        for run in runs(suggestion) where !seen.contains(String(suggestion[run])) {
+            let lead = suggestion[..<run.lowerBound]
+            let listStart = lead.allSatisfy(\.isWhitespace) && suggestion[run] == "1"
+                && suggestion[run.upperBound...].first.map { ").".contains($0) } == true
+                && before.trimmingCharacters(in: .whitespaces).last.map { $0 == ":" || $0.isNewline } != false
+            if listStart { continue }
+            // Back to the start of the word holding the number ("$10", "(3").
+            let wordStart = lead.lastIndex(where: \.isWhitespace).map { suggestion.index(after: $0) } ?? suggestion.startIndex
+            let kept = String(suggestion[..<wordStart])
+            let trimmed = String(kept.reversed().drop(while: \.isWhitespace).reversed())
+            return trimmed.contains { $0.isLetter } ? trimmed : nil
+        }
+        return suggestion
+    }
 
     /// The last finished word before the caret, and the word being typed at
     /// it (nil when the caret follows a space or punctuation) — for the typo

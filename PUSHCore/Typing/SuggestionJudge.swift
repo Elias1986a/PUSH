@@ -18,15 +18,19 @@ public struct SuggestionJudge {
     let before: String
     let length: LengthPreset
     let isRealWord: (String) -> Bool
+    /// Text the user can see besides `before` (screen, clipboard): numbers in
+    /// it are theirs, not the model's guesses.
+    let known: String
     /// Set once the glued-word question is settled (or never arises).
     private var judged: Bool
 
-    public init(forced: String, before: String, length: LengthPreset, wordBoundary: Bool,
+    public init(forced: String, before: String, length: LengthPreset, wordBoundary: Bool, known: String = "",
                 isRealWord: @escaping (String) -> Bool) {
         self.forced = forced
         self.before = before
         self.length = length
         self.isRealWord = isRealWord
+        self.known = known
         self.judged = wordBoundary || forced.isEmpty
     }
 
@@ -54,6 +58,10 @@ public struct SuggestionJudge {
         }
         guard let polished = SuggestionText.polish(length.trim(clean), before: before) else {
             return .reject("capital glued onto the word")
+        }
+        let year = Calendar.current.component(.year, from: Date())
+        guard let polished = SuggestionText.cutAtNewNumber(polished, before: before, known: known, year: year) else {
+            return .reject("a number the user never wrote")
         }
         if !SuggestionText.matchesScript(polished, before: before) { return .reject("other writing system") }
         if SuggestionText.isUnwanted(polished, before: before) { return .reject("unwanted content") }
