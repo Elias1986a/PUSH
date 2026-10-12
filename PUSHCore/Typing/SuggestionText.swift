@@ -118,6 +118,14 @@ public enum SuggestionText {
         let beforeTail = NSRange(location: 0, length: (lowerBefore as NSString).length)
         if selfDescription.firstMatch(in: lowerBefore, range: beforeTail) != nil,
            text.contains(where: \.isLetter) { return true }
+        // The reply to the user's own question ("How are you?" + " I am
+        // fine"): base models write both sides of a chat; the answer is the
+        // other person's to give.
+        let lastTail = NSRange(location: 0, length: (tail as NSString).length)
+        if ownQuestion.firstMatch(in: tail, range: lastTail) != nil,
+           selfAnswer.firstMatch(in: trimmedStart(text), range: NSRange(location: 0, length: (trimmedStart(text) as NSString).length)) != nil {
+            return true
+        }
         // Closing punctuation right after a typed space ("Best " + ", regards"
         // would give "Best ,").
         if before.last == " " || before.last == "\t", let first = suggestion.first, ",.;:!?…".contains(first) {
@@ -141,6 +149,18 @@ public enum SuggestionText {
 
     private static let persona = try! NSRegularExpression(pattern:
         #"\bmy name is\s+[a-z]|\b(i'?m|i am|im)\s+(a\s+)?(\d{1,2}([\s-]*(years?[\s-]*old|yo|y/o))?\b|(boy|girl|guy|woman|man|male|female|teen|teenager)\b)"#)
+
+    private static func trimmedStart(_ text: String) -> String {
+        String(text.drop { $0 == " " || $0 == "\n" })
+    }
+
+    /// The text ends with the user asking how the other person is.
+    private static let ownQuestion = try! NSRegularExpression(pattern:
+        #"\b(how are you|how're you|how are things|how(?:'s| is) it going|how have you been|how(?:'s| is) your (?:day|week|weekend))( doing)?( today)?\?\s*$"#)
+
+    /// A suggestion that answers it for them.
+    private static let selfAnswer = try! NSRegularExpression(pattern:
+        #"^(i'?m|i am|im|i'?ve been|i have been|fine|good|great|well|not bad|doing|it'?s (?:going|been))\b"#)
 
     /// The text ends where a fact about the writer would come next.
     private static let selfDescription = try! NSRegularExpression(pattern: [
@@ -218,14 +238,18 @@ public enum SuggestionText {
     /// guessing figures ("churn went down 3%", "by 10 am tomorrow") puts
     /// facts in their mouth, so it stops before the number and leaves it to
     /// them. A number is fine when it is in `before` or `known` (the screen,
-    /// the clipboard), when it is this `year`, or when it numbers a list just
-    /// started ("Blockers: 1)"). Nil when nothing is left.
+    /// the clipboard), when it is this `year`, when it is the very next word
+    /// ("I woke up at" + " 7 am": the user expects a number there, and takes
+    /// or types over it — cutting it left nothing at all), or when it numbers
+    /// a list just started ("Blockers: 1)"). Nil when nothing is left.
     public static func cutAtNewNumber(_ suggestion: String, before: String, known: String, year: Int) -> String? {
         func runs(_ text: String) -> [Range<String.Index>] {
             text.ranges(of: digits)
         }
         let seen = Set(runs(before + "\n" + known).map { (before + "\n" + known)[$0] }.map(String.init) + [String(year)])
+        let firstWordEnd = suggestion.drop { $0.isWhitespace }.firstIndex(where: \.isWhitespace) ?? suggestion.endIndex
         for run in runs(suggestion) where !seen.contains(String(suggestion[run])) {
+            if run.upperBound <= firstWordEnd { continue }
             let lead = suggestion[..<run.lowerBound]
             let listStart = lead.allSatisfy(\.isWhitespace) && suggestion[run] == "1"
                 && suggestion[run.upperBound...].first.map { ").".contains($0) } == true

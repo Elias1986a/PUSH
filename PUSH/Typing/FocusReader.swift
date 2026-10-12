@@ -30,10 +30,11 @@ struct FocusSnapshot: Sendable, Equatable {
     var elementID: Int
     /// The font of the text at the caret, when the app reports it.
     var font: FieldFont? = nil
-    /// When a line break comes straight before the caret: where the last
-    /// visible character before it is (AppKit coordinates). Claude Code parks
-    /// Terminal's real cursor at the start of the row under its prompt, so the
-    /// end of the typed text is where its caret really is.
+    /// In a terminal, when blank cells come before the cursor: where the last
+    /// visible character before it is (AppKit coordinates). Claude Code draws
+    /// its own block cursor and leaves Terminal's real one a cell or more past
+    /// it — after a space, at the start of the row under its prompt — so the
+    /// end of the typed text is what says where its caret is.
     var textEndRect: CGRect? = nil
 }
 
@@ -99,7 +100,9 @@ enum FocusReader {
             // text markers still know where the caret is.
             snapshot.caretRect = caretRect(element, at: caret, in: text)
                 ?? textMarkerRead(element)?.caret
-            snapshot.textEndRect = textEndRect(element, before: caret, in: text)
+            if SurfaceClass.classify(bundleID: bundleID) == .terminal {
+                snapshot.textEndRect = textEndRect(element, before: caret, in: text)
+            }
             if caret > 0 { snapshot.font = font(element, at: caret - 1) }
         } else if let marked = textMarkerRead(element) {
             // Web views (Mail's body, many browser editors) have no plain value.
@@ -195,7 +198,8 @@ enum FocusReader {
 
     /// See `FocusSnapshot.textEndRect`. Looks back at most one row's worth.
     private static func textEndRect(_ element: AXUIElement, before caret: Int, in text: NSString) -> CGRect? {
-        guard isBreak(caret - 1, in: text) else { return nil }
+        guard caret > 0, CharacterSet.whitespacesAndNewlines.contains(UnicodeScalar(text.character(at: caret - 1)) ?? "x")
+        else { return nil }
         var index = caret - 1
         let limit = max(0, caret - 400)
         while index >= limit, CharacterSet.whitespacesAndNewlines.contains(UnicodeScalar(text.character(at: index)) ?? " ") {

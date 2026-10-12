@@ -44,7 +44,7 @@ final class TypingSuggestionJudgeTests: XCTestCase {
     func testAnInventedFigureIsLeftToTheUser() {
         XCTAssertEqual(cut("urn went down 3%.", before: "Watch time went up 4% and ch"), "urn went down")
         XCTAssertEqual(cut(" by 10 am tomorrow.", before: "We need the final artwork"), " by")
-        XCTAssertEqual(cut(" $10 off.", before: "You get"), nil)
+        XCTAssertEqual(cut(" a $10 discount.", before: "You get"), " a")
         XCTAssertEqual(cut(" in 10 minutes.", before: "I'll be there"), " in")
     }
 
@@ -58,11 +58,27 @@ final class TypingSuggestionJudgeTests: XCTestCase {
     func testAListJustStartedMayBeNumbered() {
         XCTAssertEqual(cut("1) the new design", before: "Blockers: "), "1) the new design")
         XCTAssertEqual(cut(" 1. Milk", before: "Shopping:\n"), " 1. Milk")
-        XCTAssertEqual(cut(" 1) twice", before: "I said"), nil)
+        XCTAssertEqual(cut(" it 1) twice", before: "I said"), " it")
     }
 
     func testTheJudgeCutsBeforeANewNumber() {
         var j = judge(before: "The launch is planned for ")
         XCTAssertEqual(j.judge(" next week, on the 14th.", final: true), .show("next week, on the"))
+    }
+
+    func testANumberAsTheNextWordStays() {
+        // "I woke up at" + " 7" was cut to nothing: a flash of "7", then no suggestion.
+        XCTAssertEqual(cut(" 7:30 am and went for a run.", before: "I woke up at"), " 7:30 am and went for a run.")
+        XCTAssertEqual(cut(" 7 am, then at 9 I left.", before: "I woke up at"), " 7 am, then at")
+    }
+
+    // MARK: - Answering the user's own question
+
+    func testNoAnswerToTheUsersOwnQuestion() {
+        XCTAssertTrue(SuggestionText.isUnwanted(" I am fine, thank you.", before: "hello, how are you?"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" I'm good.", before: "Hey Sam! How's it going?"))
+        XCTAssertTrue(SuggestionText.isUnwanted(" Good, thanks!", before: "How have you been? "))
+        XCTAssertFalse(SuggestionText.isUnwanted(" Today I am going to tell you", before: "hello, how are you?"))
+        XCTAssertFalse(SuggestionText.isUnwanted(" I'm fine.", before: "Don't worry about me,"))
     }
 }

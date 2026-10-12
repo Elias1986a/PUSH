@@ -239,7 +239,7 @@ final class TypingCoordinator {
             return
         }
         hide()
-        let moved = caret.offsetBy(dx: GhostTextPanel.width(of: typed, caretHeight: caret.height, field: GhostTextPanel.shared.fieldFont), dy: 0)
+        let moved = caret.offsetBy(dx: advance(of: typed, caretHeight: caret.height), dy: 0)
         let placement = GhostTextPanel.Placement.inline(caret: moved, field: field)
         let next = request.continued(by: String(after.before.dropFirst(request.before.count)))
         if let ready = prefetched, ready.before == next.before {
@@ -442,7 +442,8 @@ final class TypingCoordinator {
         guard let placement = placement(for: focus, terminal: surface == .terminal) else {
             return skip("no caret or field position")
         }
-        GhostTextPanel.shared.fieldFont = focus.font
+        terminalCell = surface == .terminal ? focus.textEndRect?.width : nil
+        GhostTextPanel.shared.fieldFont = focus.font ?? terminalCell.map(Self.monospaced)
 
         // A name or term from the user's Dictionary, finished without the model.
         if let partial = SuggestionText.caretWords(before).partial,
@@ -644,20 +645,41 @@ final class TypingCoordinator {
             GhostTextPanel.shared.hide()
             return
         }
-        let moved = caret.offsetBy(dx: GhostTextPanel.width(of: typed, caretHeight: caret.height, field: GhostTextPanel.shared.fieldFont), dy: 0)
+        let moved = caret.offsetBy(dx: advance(of: typed, caretHeight: caret.height), dy: 0)
         let placement = GhostTextPanel.Placement.inline(caret: moved, field: field)
         shown?.placement = placement
         if let visible = GhostTextPanel.shared.show(current.text, at: placement) { shown?.text = visible }
     }
 
-    /// Where the user sees the caret. Claude Code draws its own block cursor
-    /// (a cell after the text) and, after a space, parks Terminal's real
-    /// cursor at the start of the row under its prompt: the caret is then
-    /// after the end of the typed text, past the typed space and the block.
+    /// Where the user sees the caret. At an agent prompt (Claude Code) the
+    /// terminal's real cursor is no guide: the agent draws its own block
+    /// cursor a cell after the text and leaves the real one further on, or
+    /// on the next row. The caret is after the end of the typed text, past a
+    /// typed space and the block.
     private func caret(for focus: FocusSnapshot, terminal: Bool) -> CGRect? {
-        guard terminal, let end = focus.textEndRect else { return focus.caretRect }
+        guard terminal, let end = focus.textEndRect,
+              TerminalLine.parse(textBeforeCaret: focus.before ?? "")?.kind == .agentPrompt else { return focus.caretRect }
         let cells: CGFloat = buffer.text.last == " " ? 2 : 1
         return CGRect(x: end.maxX + cells * end.width, y: end.minY, width: 0, height: end.height)
+    }
+
+    /// One character cell, at a terminal agent prompt; nil elsewhere. Typed
+    /// and accepted text moves the suggestion by whole cells, not by the
+    /// widths of a proportional font (which jumped until the next read).
+    private var terminalCell: CGFloat?
+
+    /// How far `typed` moves the caret.
+    private func advance(of typed: String, caretHeight: CGFloat) -> CGFloat {
+        if let terminalCell { return CGFloat(typed.count) * terminalCell }
+        return GhostTextPanel.width(of: typed, caretHeight: caretHeight, field: GhostTextPanel.shared.fieldFont)
+    }
+
+    /// A monospaced font whose characters are `cell` wide: terminals report
+    /// no font, and the suggestion should look like the text beside it.
+    private static func monospaced(cell: CGFloat) -> FieldFont {
+        let name = "Menlo-Regular"
+        let unit = NSFont(name: name, size: 10).map { ("M" as NSString).size(withAttributes: [.font: $0]).width / 10 } ?? 0.6
+        return FieldFont(name: name, size: cell / unit)
     }
 
     /// Where to draw for `focus`. In a terminal the text after the cursor is
