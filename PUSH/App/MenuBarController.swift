@@ -21,6 +21,12 @@ final class MenuBarController: NSObject {
 
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
+    /// When the popover last closed. A transient popover closes on the
+    /// mouse-down of any click outside it, and the status item counts as
+    /// outside, so the icon's own action (sent on mouse-up) found it already
+    /// shut and opened it again: a click on the icon never closed the menu
+    /// (user report, 2026-10-12).
+    private var closedAt = Date.distantPast
 
     private override init() { super.init() }
 
@@ -42,6 +48,7 @@ final class MenuBarController: NSObject {
         let popover = NSPopover()
         popover.behavior = .transient          // closes when you click away
         popover.animates = false               // a menu does not animate open
+        popover.delegate = self
         popover.contentViewController = NSHostingController(
             rootView: MenuBarView().environment(AppState.shared))
         self.popover = popover
@@ -97,6 +104,8 @@ final class MenuBarController: NSObject {
             popover.performClose(nil)
             return
         }
+        // This click's mouse-down just closed it.
+        guard Date().timeIntervalSince(closedAt) > 0.3 else { return }
         // An accessory app has to ask for the front, or the popover opens
         // without key focus and its controls do not respond to the keyboard.
         NSApp.activate(ignoringOtherApps: true)
@@ -115,5 +124,11 @@ final class MenuBarController: NSObject {
     /// is not left hanging over the window it just summoned.
     func dismiss() {
         popover?.performClose(nil)
+    }
+}
+
+extension MenuBarController: NSPopoverDelegate {
+    func popoverDidClose(_ notification: Notification) {
+        closedAt = Date()
     }
 }
