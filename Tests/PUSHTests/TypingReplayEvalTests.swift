@@ -12,8 +12,10 @@ import PUSHCore
 ///     PUSH_TYPE_EVAL=1 PUSH_TYPE_MODELS_DIR=~/Library/Application\ Support/PUSH/TypingModels \
 ///       swift test --filter TypingReplayEvalTests
 ///
-/// Optional: PUSH_TYPE_EVAL_MODELS=gemma4-e2b-base,qwen3.5-2b-base. Writes
-/// eval/results/replay-latest.md.
+/// Optional: PUSH_TYPE_EVAL_MODELS=gemma4-e2b-base,qwen3.5-2b-base. Or
+/// PUSH_TYPE_EVAL_FILES=/path/a.gguf,/path/b.gguf to compare other builds
+/// of the Gemma E2B model (other quantizations), run with its settings.
+/// Writes eval/results/replay-latest.md.
 @MainActor
 final class TypingReplayEvalTests: XCTestCase {
     struct Scenario: Decodable {
@@ -144,8 +146,16 @@ final class TypingReplayEvalTests: XCTestCase {
         report += "| Model | Variant | Checkpoints | Shown | Hit | New numbers | Median ms |\n|---|---|---|---|---|---|---|\n"
         var samples = ""
 
-        for model in TypingModel.allCases where wanted?.contains(model.rawValue) ?? true {
-            let path = ((dir as NSString).expandingTildeInPath as NSString).appendingPathComponent(model.file)
+        var runs = TypingModel.allCases.filter { wanted?.contains($0.rawValue) ?? true }.map { model in
+            (label: model.displayName, model: model,
+             path: ((dir as NSString).expandingTildeInPath as NSString).appendingPathComponent(model.file))
+        }
+        if let files = env["PUSH_TYPE_EVAL_FILES"] {
+            runs = files.split(separator: ",").map { path in
+                (label: (String(path) as NSString).lastPathComponent, model: TypingModel.best, path: String(path))
+            }
+        }
+        for (label, model, path) in runs {
             guard FileManager.default.fileExists(atPath: path) else { continue }
             let engine = LlamaEngine()
             try await engine.load(path: path)
@@ -169,10 +179,10 @@ final class TypingReplayEvalTests: XCTestCase {
                 let hits = group.filter(\.hit).count
                 let junk = group.filter(\.junk).count
                 let median = group.map(\.ms).sorted()[group.count / 2]
-                report += "| \(model.displayName) | \(variant.rawValue) | \(group.count) | \(shown) | \(hits) | \(junk) | \(Int(median)) |\n"
+                report += "| \(label) | \(variant.rawValue) | \(group.count) | \(shown) | \(hits) | \(junk) | \(Int(median)) |\n"
             }
             let reasons = Dictionary(grouping: results.compactMap(\.reason), by: { $0 }).mapValues(\.count)
-            samples += "\n## \(model.displayName)\n\nNo suggestion: \(reasons.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "))\n\n"
+            samples += "\n## \(label)\n\nNo suggestion: \(reasons.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "))\n\n"
             samples += "| Scenario | Variant | Caret | Suggested | Target | Hit |\n|---|---|---|---|---|---|\n"
             for r in results {
                 let caret = String(r.checkpoint.before.suffix(32)).replacingOccurrences(of: "\n", with: "⏎")
