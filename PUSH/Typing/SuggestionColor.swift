@@ -1,14 +1,16 @@
 import AppKit
 
-/// The color suggestions are drawn in. Blue by default (the user's call,
-/// 2026-10-10): it cannot pass for text already typed. Gray is the classic
-/// ghost-text look. Saved as a preset name or, for a custom color, "#RRGGBB".
+/// The color suggestions are drawn in. Gray by default, the classic ghost-text
+/// look (the user's call, 2026-10-11, after seeing Cotypist's gray beside
+/// PUSH's green; blue was the default while Type was being built, so a
+/// suggestion could not pass for typed text). Saved as a preset name or, for a
+/// custom color, "#RRGGBB".
 enum SuggestionColor: Equatable, Hashable {
     case preset(Preset)
     case custom(hex: String)
 
     enum Preset: String, CaseIterable, Identifiable {
-        case blue, gray, purple, green, orange, pink, teal
+        case gray, blue, purple, green, orange, pink, teal
 
         var id: String { rawValue }
         var name: String { rawValue.capitalized }
@@ -27,7 +29,7 @@ enum SuggestionColor: Equatable, Hashable {
         }
     }
 
-    static let `default` = SuggestionColor.preset(.blue)
+    static let `default` = SuggestionColor.preset(.gray)
 
     init(saved: String?) {
         if let saved, let preset = Preset(rawValue: saved) {
@@ -50,7 +52,7 @@ enum SuggestionColor: Equatable, Hashable {
         switch self {
         case .preset(let preset): return preset.color
         case .custom(let hex):
-            guard let (r, g, b) = Self.components(ofHex: hex) else { return Preset.blue.color }
+            guard let (r, g, b) = Self.components(ofHex: hex) else { return Self.default.color }
             return NSColor(srgbRed: r, green: g, blue: b, alpha: 1)
         }
     }

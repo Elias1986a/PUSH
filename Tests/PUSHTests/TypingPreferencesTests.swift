@@ -55,7 +55,7 @@ final class TypingPreferencesTests: XCTestCase {
 
     func testNewSettingsDefaults() {
         let d = freshDefaults()
-        XCTAssertEqual(TypingPreferences.color(in: d), .preset(.blue))
+        XCTAssertEqual(TypingPreferences.color(in: d), .preset(.gray))
         XCTAssertTrue(TypingPreferences.spaceAfterLastWord(in: d))
         XCTAssertFalse(TypingPreferences.pauseOnBattery(in: d))
         XCTAssertEqual(TypingPreferences.excludedApps(in: d), [])

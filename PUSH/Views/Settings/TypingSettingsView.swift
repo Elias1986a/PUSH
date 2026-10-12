@@ -6,7 +6,7 @@ import PUSHCore
 /// behave and look, and where they never appear.
 struct TypingSettingsView: View {
     @Environment(AppState.self) private var appState
-    @State private var customColor = Color.blue
+    @State private var customColor = Color.gray
     @State private var inlinePredictionsOn = TypingSettingsView.macInlinePredictionsOn()
     @State private var screenRecordingAllowed = ScreenOCR.isAllowed
 
@@ -39,6 +39,9 @@ struct TypingSettingsView: View {
                 LabeledContent("Accept") {
                     Text("\(Text("Tab").bold()) next word · \(Text(Self.wholeKeyName).bold()) the whole suggestion")
                         .foregroundStyle(.secondary)
+                }
+                LabeledContent("In Terminal and other terminals") {
+                    Text("\(Text("→").bold()) next word · Tab stays the terminal’s").foregroundStyle(.secondary)
                 }
                 LabeledContent("Moving between form fields") {
                     Text("\(Text("⌥Tab").bold()) sends a plain Tab").foregroundStyle(.secondary)

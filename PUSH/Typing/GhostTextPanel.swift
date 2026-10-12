@@ -3,7 +3,7 @@ import AppKit
 /// Shows a suggestion: inline at the caret when nothing follows it on the line,
 /// otherwise (or with no caret position) as a small card under the field —
 /// Cotypist's "mirroring". Never takes focus, never takes a click.
-/// Blue unless the user picks another color (Settings → Typing).
+/// Gray unless the user picks another color (Settings → Typing).
 @MainActor
 final class GhostTextPanel {
     static let shared = GhostTextPanel()
@@ -14,7 +14,7 @@ final class GhostTextPanel {
         case card(below: CGRect)
     }
 
-    /// The user's choice (`SuggestionColor`); blue until told otherwise.
+    /// The user’s choice (`SuggestionColor`); gray until told otherwise.
     var textColor: NSColor = SuggestionColor.default.color {
         didSet { if textColor != oldValue { label.textColor = textColor } }
     }
