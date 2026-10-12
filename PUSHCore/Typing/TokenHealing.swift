@@ -30,14 +30,15 @@ public enum TokenHealing {
     /// or punctuation. Used when the model glued letters onto a complete word
     /// ("Hello" + "u").
     public static func grammar(forcing forced: String, wordBoundary: Bool = false) -> String? {
-        guard !forced.isEmpty else { return nil }
+        guard !forced.isEmpty || wordBoundary else { return nil }
         let literal = forced.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
         // A space or punctuation — not "any non-letter", which let a model
         // switch to Chinese characters right after an English word.
         // (No "-": llama.cpp's grammar parser rejects an escaped hyphen.)
         let boundary = wordBoundary ? #" [ ,.!?;:'"’)]"# : ""
-        return #"root ::= ""# + literal + #"""# + boundary + #" ([^\n] | "\n")*"#
+        let start = forced.isEmpty ? "" : #"""# + literal + #"""#
+        return "root ::= " + start + boundary + #" ([^\n] | "\n")*"#
     }
 
     /// The word formed when a continuation glues letters straight onto the

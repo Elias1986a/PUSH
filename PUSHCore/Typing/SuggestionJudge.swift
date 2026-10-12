@@ -37,9 +37,14 @@ public struct SuggestionJudge {
         if !judged {
             if let word = TokenHealing.gluedWord(forced: forced, continuation: text) {
                 let wordEnded = text.contains { !($0.isLetter || $0 == "'" || $0 == "’") }
-                guard wordEnded || final else { return .wait }     // wait for the whole word
-                judged = true
-                if !isRealWord(word) { return .retryWithBoundary }
+                if wordEnded || final {
+                    judged = true
+                    if !isRealWord(word) { return .retryWithBoundary }
+                } else if !isRealWord(word) {
+                    return .wait     // "appreci" + "at": wait for the whole word
+                }
+                // Already a word ("congr" + "atulations"): show it now, a model
+                // step sooner, and judge again once the word ends.
             } else {
                 judged = true
             }

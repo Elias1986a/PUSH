@@ -40,9 +40,10 @@ final class LlamaEngineTests: XCTestCase {
     }
 
     private func collect(_ engine: LlamaEngine, _ prompt: String, _ maxTokens: Int = 12,
-                         grammar: String? = nil) async throws -> String {
+                         forcing: String = "", wordBoundary: Bool = false) async throws -> String {
         var out = ""
-        for try await piece in await engine.complete(prompt: prompt, maxTokens: maxTokens, grammar: grammar) { out += piece }
+        for try await piece in await engine.complete(prompt: prompt, maxTokens: maxTokens,
+                                                     forcing: forcing, wordBoundary: wordBoundary) { out += piece }
         return out
     }
 
@@ -50,7 +51,7 @@ final class LlamaEngineTests: XCTestCase {
         for (model, path) in try models() {
             let engine = LlamaEngine()
             try await engine.load(path: path)
-            let out = try await collect(engine, "The capital of France is", 8)
+            let out = try await collect(engine, "Capitals: Italy, Rome. Spain, Madrid. France,", 8)
             XCTAssertTrue(out.contains("Paris"), "\(model): \(out.debugDescription)")
             await engine.unload()
         }
@@ -103,22 +104,25 @@ final class LlamaEngineTests: XCTestCase {
             let engine = LlamaEngine()
             try await engine.load(path: path)
             let heal = TokenHealing.split("Thanks for jumping on that so fast, really appreci")
-            let out = try await collect(engine, heal.prompt, 8, grammar: TokenHealing.grammar(forcing: heal.forced))
+            let out = try await collect(engine, heal.prompt, 8, forcing: heal.forced)
             XCTAssertTrue(out.hasPrefix(" appreci"), "\(model): \(out.debugDescription)")
             await engine.unload()
         }
     }
 
     /// Every grammar the app builds must parse in llama.cpp itself — an
-    /// escaped hyphen once made the word-break retry fail silently.
+    /// escaped hyphen once made the word-break retry fail silently. These
+    /// starts are unlikely after "Note:", so the grammar fallback runs.
     func testTheAppsGrammarsParse() async throws {
         let (model, path) = try models()[0]
         let engine = LlamaEngine()
         try await engine.load(path: path)
         for (forced, boundary) in [(" appreci", false), ("Hello", true), (#"say "hi\"#, true)] {
-            let grammar = TokenHealing.grammar(forcing: forced, wordBoundary: boundary)
-            let out = try await collect(engine, "Note:\n\n", 16, grammar: grammar)
+            let out = try await collect(engine, "Note:\n\n", 16, forcing: forced, wordBoundary: boundary)
             XCTAssertTrue(out.hasPrefix(forced), "\(model) \(forced): \(out.debugDescription)")
+            if boundary, let next = out.dropFirst(forced.count).first {
+                XCTAssertTrue(" ,.!?;:'\")’".contains(next), "\(model) \(forced): \(out.debugDescription)")
+            }
         }
         await engine.unload()
     }
@@ -135,7 +139,7 @@ final class LlamaEngineTests: XCTestCase {
             for start in starts {
                 let heal = TokenHealing.split(start)
                 let out = try await collect(engine, "Format: text; App: Notes.\n\n" + heal.prompt, 8,
-                                            grammar: TokenHealing.grammar(forcing: heal.forced, wordBoundary: true))
+                                            forcing: heal.forced, wordBoundary: true)
                 let lp = await engine.lastStats.tokenLogprobs
                 let forcedTokens = heal.forced.isEmpty ? 0 : 1
                 let gen = Array(lp.dropFirst(forcedTokens))
@@ -160,7 +164,7 @@ final class LlamaEngineTests: XCTestCase {
             }
             let pieces = try await consumer.value
             XCTAssertEqual(pieces, 2, "\(model)")
-            let out = try await collect(engine, "The capital of France is", 8)
+            let out = try await collect(engine, "Capitals: Italy, Rome. Spain, Madrid. France,", 8)
             XCTAssertTrue(out.contains("Paris"), "\(model) after cancel: \(out.debugDescription)")
             await engine.unload()
         }

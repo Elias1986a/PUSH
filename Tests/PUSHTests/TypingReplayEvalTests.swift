@@ -99,11 +99,11 @@ final class TypingReplayEvalTests: XCTestCase {
         while true {
             var judge = SuggestionJudge(forced: heal.forced, before: c.before, length: length,
                                         wordBoundary: wordBoundary, isRealWord: Self.isRealWord)
-            let grammar = TokenHealing.grammar(forcing: heal.forced, wordBoundary: wordBoundary)
             var raw = ""
             var shown: String?
             var outcome: (String?, String?)?
-            for try await piece in await engine.complete(prompt: prompt, maxTokens: length.maxTokens, grammar: grammar) {
+            for try await piece in await engine.complete(prompt: prompt, maxTokens: length.maxTokens,
+                                                              forcing: heal.forced, wordBoundary: wordBoundary) {
                 raw += piece
                 switch judge.judge(raw, final: false) {
                 case .wait: continue

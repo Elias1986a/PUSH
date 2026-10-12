@@ -43,8 +43,9 @@ final class TypingCoordinator {
 
     /// Short: generation is cancelled within a token when a newer key lands,
     /// so the pause only collapses bursts. Cotabby uses 20 ms; Cotypist
-    /// "updates to the word you wanted within a letter or two".
-    static let debounce: Duration = .milliseconds(50)
+    /// "updates to the word you wanted within a letter or two". At 50 ms a
+    /// suggestion landed after the next key at ten keys a second.
+    static let debounce: Duration = .milliseconds(10)
 
     private struct Shown {
         var text: String
@@ -468,7 +469,6 @@ final class TypingCoordinator {
             var raw = ""
             var judge = SuggestionJudge(forced: forced, before: request.before, length: request.length,
                                         wordBoundary: wordBoundary, isRealWord: Self.isRealWord)
-            let grammar = TokenHealing.grammar(forcing: forced, wordBoundary: wordBoundary)
             /// False when this attempt is over (rejected, or retried).
             @MainActor func consider(final: Bool) -> Bool {
                 switch judge.judge(raw, final: final) {
@@ -490,7 +490,7 @@ final class TypingCoordinator {
             }
             do {
                 for try await piece in await LlamaEngine.shared.complete(
-                    prompt: prompt, maxTokens: request.length.maxTokens, grammar: grammar) {
+                    prompt: prompt, maxTokens: request.length.maxTokens, forcing: forced, wordBoundary: wordBoundary) {
                     guard stamp == keystrokes, !Task.isCancelled else { return }
                     raw += piece
                     if !consider(final: false) { return }
@@ -530,7 +530,7 @@ final class TypingCoordinator {
             do {
                 for try await piece in await LlamaEngine.shared.complete(
                     prompt: prompt, maxTokens: next.length.maxTokens,
-                    grammar: TokenHealing.grammar(forcing: forced)) {
+                    forcing: forced) {
                     guard !Task.isCancelled else { return }
                     raw += piece
                 }

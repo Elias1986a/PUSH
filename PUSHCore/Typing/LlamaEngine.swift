@@ -120,29 +120,32 @@ public actor LlamaEngine {
 
     /// Streams the continuation of `prompt` in UTF-8-safe pieces. Stops at a
     /// newline (not included), an end-of-generation token or `maxTokens`.
-    /// `grammar` (GBNF) constrains the output — token healing uses it to force
-    /// the start. Cancelling the consuming task stops generation within a token.
-    public func complete(prompt: String, maxTokens: Int, grammar: String? = nil,
+    /// The output starts with `forcing` (token healing's partial word), then
+    /// a space or punctuation when `wordBoundary`. Cancelling the consuming
+    /// task stops generation within a token.
+    public func complete(prompt: String, maxTokens: Int, forcing: String = "", wordBoundary: Bool = false,
                          sampling: Sampling = .standard) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
-                await self.run(prompt: prompt, maxTokens: maxTokens, grammar: grammar, sampling: sampling, into: continuation)
+                await self.run(prompt: prompt, maxTokens: maxTokens,
+                               forced: ForcedStart(forcing, wordBoundary: wordBoundary),
+                               sampling: sampling, into: continuation)
             }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
 
-    private func run(prompt: String, maxTokens: Int, grammar: String?, sampling: Sampling,
+    private func run(prompt: String, maxTokens: Int, forced: ForcedStart, sampling: Sampling,
                      into continuation: AsyncThrowingStream<String, Error>.Continuation) {
         do {
-            try generate(prompt: prompt, maxTokens: maxTokens, grammar: grammar, sampling: sampling) { continuation.yield($0) }
+            try generate(prompt: prompt, maxTokens: maxTokens, forced: forced, sampling: sampling) { continuation.yield($0) }
             continuation.finish()
         } catch {
             continuation.finish(throwing: error)
         }
     }
 
-    private func generate(prompt: String, maxTokens: Int, grammar: String?, sampling: Sampling,
+    private func generate(prompt: String, maxTokens: Int, forced: ForcedStart, sampling: Sampling,
                           emit: (String) -> Void) throws {
         guard let context, let vocab else { throw Failure.notLoaded }
         let tokens = try tokenize(prompt)
@@ -152,24 +155,19 @@ public actor LlamaEngine {
 
         guard let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params()) else { throw Failure.context }
         defer { llama_sampler_free(sampler) }
-        if let grammar {
-            guard let constraint = llama_sampler_init_grammar(vocab, grammar, "root") else { throw Failure.grammar }
-            llama_sampler_chain_add(sampler, constraint)
-        }
-        let vocabSize = llama_vocab_n_tokens(vocab)
-        if let penalties = llama_sampler_init_penalties(vocabSize, sampling.penaltyLastN, sampling.repetitionPenalty, 0, 0) {
-            // The penalty sees the user's recent text, not only the model's
-            // own output; the grammar must not see the prompt, so only this
-            // sampler is fed.
+        if let penalties = llama_sampler_init_penalties(llama_vocab_n_tokens(vocab), sampling.penaltyLastN,
+                                                        sampling.repetitionPenalty, 0, 0) {
+            // The penalty sees the user's recent text, not only the model's own output.
             for token in tokens.suffix(Int(sampling.penaltyLastN)) { llama_sampler_accept(penalties, token) }
             llama_sampler_chain_add(sampler, penalties)
         }
         llama_sampler_chain_add(sampler, llama_sampler_init_greedy())
 
+        var forced = forced
         var pending = Data()
         for step in 0..<maxTokens {
             if Task.isCancelled { return }
-            let next = llama_sampler_sample(sampler, context, -1)
+            let next = try choose(sampler, forced: &forced)
             if recordsLogprobs { lastStats.tokenLogprobs.append(logprob(of: next)) }
             if step == 0 {
                 lastStats.firstTokenMilliseconds = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1e6
@@ -189,6 +187,34 @@ public actor LlamaEngine {
         }
         let (text, _) = Self.splitValidUTF8(pending)
         if !text.isEmpty { emit(text) }
+    }
+
+    /// The next token from `sampler` (greedy behind the repetition penalty).
+    /// While a forced start is pending, the model's own choice is tried on a
+    /// copy of the sampler — a rejected token must not enter the penalty's
+    /// history — and kept when it fits; only otherwise is a grammar for the
+    /// rest of the forced text applied.
+    private func choose(_ sampler: UnsafeMutablePointer<llama_sampler>, forced: inout ForcedStart) throws -> llama_token {
+        guard let context, let vocab else { throw Failure.notLoaded }
+        if forced.isDone { return llama_sampler_sample(sampler, context, -1) }
+        guard let trial = llama_sampler_clone(sampler) else { throw Failure.context }
+        var next = llama_sampler_sample(trial, context, -1)
+        llama_sampler_free(trial)
+        if !forced.fits(Array(piece(next))) {
+            if let grammar = forced.grammar {
+                guard let constrained = llama_sampler_chain_init(llama_sampler_chain_default_params()) else { throw Failure.context }
+                defer { llama_sampler_free(constrained) }
+                guard let constraint = llama_sampler_init_grammar(vocab, grammar, "root") else { throw Failure.grammar }
+                llama_sampler_chain_add(constrained, constraint)
+                if let rest = llama_sampler_clone(sampler) { llama_sampler_chain_add(constrained, rest) }
+                next = llama_sampler_sample(constrained, context, -1)
+            } else {
+                forced = ForcedStart("")      // a token split a character: stop enforcing
+            }
+        }
+        llama_sampler_accept(sampler, next)
+        forced.advance(by: Array(piece(next)))
+        return next
     }
 
     /// Brings the context to `tokens` minus nothing — fresh logits for the
