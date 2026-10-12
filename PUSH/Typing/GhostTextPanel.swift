@@ -90,7 +90,7 @@ final class GhostTextPanel {
             let middle = origin.y + caret.height / 2
             panel.setFrame(CGRect(x: origin.x, y: middle - height / 2, width: label.frame.width + 2, height: height),
                            display: true)
-            panel.orderFrontRegardless()
+            present()
             return shown.accepted
         case .card(let field):
             label.font = .systemFont(ofSize: 13)
@@ -103,7 +103,7 @@ final class GhostTextPanel {
             let size = CGSize(width: label.frame.width, height: label.frame.height + 6)
             panel.setFrame(CGRect(x: field.minX, y: field.minY - size.height - 4, width: size.width, height: size.height),
                            display: true)
-            panel.orderFrontRegardless()
+            present()
             return text
         }
     }
@@ -135,5 +135,19 @@ final class GhostTextPanel {
 
     func hide() {
         panel.orderOut(nil)
+    }
+
+    /// A suggestion appearing fades in (Cotabby's 0.1 s), so it arrives
+    /// rather than pops; one already on screen updates in place.
+    static let fadeIn: TimeInterval = 0.1
+
+    private func present() {
+        guard !panel.isVisible else { return panel.orderFrontRegardless() }
+        panel.alphaValue = 0
+        panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = Self.fadeIn
+            panel.animator().alphaValue = 1
+        }
     }
 }

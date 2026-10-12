@@ -24,20 +24,27 @@ final class TypeIndicatorPanel {
         panel.isOpaque = false
         panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        // A solid dark chip with a hairline edge reads on any background — a
+        // light wallpaper, a dark terminal. Filled with the suggestion color,
+        // gray (semi-transparent by design) washed out into a pale square.
         chip.wantsLayer = true
         chip.layer?.cornerRadius = 4.5
+        chip.layer?.backgroundColor = NSColor(white: 0.16, alpha: 0.94).cgColor
+        chip.layer?.borderColor = NSColor(white: 1, alpha: 0.18).cgColor
+        chip.layer?.borderWidth = 0.5
         chip.frame = CGRect(x: 0, y: 0, width: Self.side, height: Self.side)
         glyph.image = NSImage(systemSymbolName: "text.cursor", accessibilityDescription: "Suggestions on")?
             .withSymbolConfiguration(.init(pointSize: 9, weight: .bold))
-        glyph.contentTintColor = .white
         glyph.frame = chip.bounds
         chip.addSubview(glyph)
         panel.contentView = chip
     }
 
-    func show(field: CGRect, caret: CGRect?, color: NSColor) {
+    /// `color`: the suggestion color, which tints the symbol (gray as a soft
+    /// light gray, so it shows on the dark chip).
+    func show(field: CGRect, caret: CGRect?, color: SuggestionColor) {
         let screen = (NSScreen.screens.first { $0.frame.intersects(field) } ?? NSScreen.main)?.visibleFrame ?? field
-        chip.layer?.backgroundColor = color.withAlphaComponent(0.9).cgColor
+        glyph.contentTintColor = color == .preset(.gray) ? NSColor(white: 0.82, alpha: 1) : color.color
         panel.setFrame(Self.frame(field: field, caret: caret, screen: screen), display: true)
         panel.orderFrontRegardless()
     }

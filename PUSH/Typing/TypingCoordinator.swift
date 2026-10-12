@@ -387,7 +387,7 @@ final class TypingCoordinator {
             return
         }
         TypeIndicatorPanel.shared.show(field: field, caret: caret(for: focus, terminal: surface == .terminal),
-                                       color: AppState.shared.typingColor.color)
+                                       color: AppState.shared.typingColor)
         // A field just focused: start reading what is around it now.
         if surface != .terminal, screenCache?.element != focus.elementID { refreshScreen(for: focus) }
     }
