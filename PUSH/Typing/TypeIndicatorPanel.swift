@@ -6,8 +6,8 @@ import AppKit
 @MainActor
 final class TypeIndicatorPanel {
     static let shared = TypeIndicatorPanel()
-    static let side: CGFloat = 16
-    private static let gap: CGFloat = 5
+    nonisolated static let side: CGFloat = 16
+    nonisolated private static let gap: CGFloat = 5
 
     private let panel: NSPanel
     private let chip = NSView()
@@ -40,25 +40,32 @@ final class TypeIndicatorPanel {
         panel.contentView = chip
     }
 
-    /// `color`: the suggestion color, which tints the symbol (gray as a soft
-    /// light gray, so it shows on the dark chip).
-    func show(field: CGRect, caret: CGRect?, color: SuggestionColor) {
-        let screen = (NSScreen.screens.first { $0.frame.intersects(field) } ?? NSScreen.main)?.visibleFrame ?? field
+    /// Shows the chip at `frame` (from `place`). `color`: the suggestion
+    /// color, which tints the symbol (gray as a soft light gray, so it shows
+    /// on the dark chip).
+    func show(at frame: CGRect, color: SuggestionColor) {
         glyph.contentTintColor = color == .preset(.gray) ? NSColor(white: 0.82, alpha: 1) : color.color
-        panel.setFrame(Self.frame(field: field, caret: caret, screen: screen), display: true)
+        panel.setFrame(frame, display: true)
         panel.orderFrontRegardless()
     }
 
-    func hide() {
-        panel.orderOut(nil)
+    /// Where the chip goes: the first spot, in order, with nothing to click
+    /// under it — left of the field on the caret's line, right of it, above
+    /// its top-left corner, below it. Chat boxes keep an attach "+" just left
+    /// of the text (user screenshot, 2026-10-11), and the chip sat on it.
+    /// Nil when every spot is taken: better no chip than a covered button.
+    /// Only the app being typed in counts (`pid`): a window of another app
+    /// behind it — Safari's links beside a Terminal window — is not what the
+    /// chip could get in the way of. Accessibility hit tests: call **off the
+    /// main thread**.
+    nonisolated static func place(field: CGRect, caret: CGRect?, screen: CGRect, pid: pid_t) -> CGRect? {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.05)
+        return candidates(field: field, caret: caret, screen: screen).first { isClear($0, in: app) }
     }
 
-    /// Left of the field, on the caret's line (a document is one tall field,
-    /// so its middle can be far from where the user types); right of it when
-    /// the field touches the screen's left edge. AppKit coordinates.
-    static func frame(field: CGRect, caret: CGRect?, screen: CGRect) -> CGRect {
-        var x = field.minX - side - gap
-        if x < screen.minX + 2 { x = field.maxX + gap }
+    /// The spots `place` tries, on screen, in order. AppKit coordinates.
+    nonisolated static func candidates(field: CGRect, caret: CGRect?, screen: CGRect) -> [CGRect] {
         let y: CGFloat
         if let caret, caret.height > 0 {
             y = caret.midY - side / 2
@@ -67,6 +74,38 @@ final class TypeIndicatorPanel {
         } else {
             y = field.maxY - side - 8   // no caret: the first line
         }
-        return CGRect(x: x, y: y, width: side, height: side)
+        return [
+            CGRect(x: field.minX - side - gap, y: y, width: side, height: side),
+            CGRect(x: field.maxX + gap, y: y, width: side, height: side),
+            CGRect(x: field.minX, y: field.maxY + gap, width: side, height: side),
+            CGRect(x: field.minX, y: field.minY - side - gap, width: side, height: side),
+        ].filter { screen.insetBy(dx: 2, dy: 2).contains($0) }
     }
+
+    /// Nothing in `app` a person would click under `rect`.
+    nonisolated private static func isClear(_ rect: CGRect, in app: AXUIElement) -> Bool {
+        let height = CGDisplayBounds(CGMainDisplayID()).height   // AppKit → Accessibility (top-left) coordinates
+        for point in [CGPoint(x: rect.midX, y: rect.midY), CGPoint(x: rect.minX + 2, y: rect.midY),
+                      CGPoint(x: rect.maxX - 2, y: rect.midY)] {
+            var hit: AXUIElement?
+            guard AXUIElementCopyElementAtPosition(app, Float(point.x), Float(height - point.y), &hit) == .success,
+                  let hit else { continue }
+            var role: CFTypeRef?
+            AXUIElementCopyAttributeValue(hit, kAXRoleAttribute as CFString, &role)
+            if let role = role as? String, interactiveRoles.contains(role) { return false }
+        }
+        return true
+    }
+
+    private nonisolated static let interactiveRoles: Set<String> = [
+        "AXButton", "AXLink", "AXPopUpButton", "AXMenuButton", "AXCheckBox", "AXRadioButton",
+        "AXTextField", "AXTextArea", "AXComboBox", "AXSearchField", "AXSlider", "AXIncrementor",
+        "AXDisclosureTriangle", "AXSegmentedControl",
+    ]
+
+    func hide() {
+        panel.orderOut(nil)
+    }
+
+
 }

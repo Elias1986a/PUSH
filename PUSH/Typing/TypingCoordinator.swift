@@ -394,10 +394,35 @@ final class TypingCoordinator {
             TypeIndicatorPanel.shared.hide()
             return
         }
-        TypeIndicatorPanel.shared.show(field: field, caret: caret(for: focus, terminal: surface == .terminal),
-                                       color: AppState.shared.typingColor)
+        placeIndicator(field: field, caret: caret(for: focus, terminal: surface == .terminal), pid: focus.pid)
         // A field just focused: start reading what is around it now.
         if surface != .terminal, screenCache?.element != focus.elementID { refreshScreen(for: focus) }
+    }
+
+    /// The chip's spot, worked out off the main thread (Accessibility hit
+    /// tests) and kept while the field and the caret's line stay put.
+    private var indicatorSpot: (key: [CGFloat], frame: CGRect?)?
+    private var placeTask: Task<Void, Never>?
+
+    private func placeIndicator(field: CGRect, caret: CGRect?, pid: pid_t) {
+        let line = caret.map { ($0.midY).rounded() } ?? -1
+        let key = [field.minX, field.minY, field.width, field.height, line, CGFloat(pid)].map { $0.rounded() }
+        if let spot = indicatorSpot, spot.key == key {
+            if let frame = spot.frame { TypeIndicatorPanel.shared.show(at: frame, color: AppState.shared.typingColor) }
+            else { TypeIndicatorPanel.shared.hide() }
+            return
+        }
+        let screen = (NSScreen.screens.first { $0.frame.intersects(field) } ?? NSScreen.main)?.visibleFrame ?? field
+        placeTask?.cancel()
+        placeTask = Task {
+            let frame = await Task.detached(priority: .userInitiated) {
+                TypeIndicatorPanel.place(field: field, caret: caret, screen: screen, pid: pid)
+            }.value
+            guard !Task.isCancelled, mayRun, AppState.shared.typingShowIndicator else { return }
+            indicatorSpot = (key, frame)
+            if let frame { TypeIndicatorPanel.shared.show(at: frame, color: AppState.shared.typingColor) }
+            else { TypeIndicatorPanel.shared.hide() }
+        }
     }
 
     /// Focus may have moved without a key (a click, another app in front):
