@@ -39,18 +39,24 @@ struct MenuBarView: View {
         @Bindable var appState = appState
 
         VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider()
-            // Dictation's own rows mean nothing with it off — and the model
-            // picker would load a speech model nobody is using.
+            // Each feature switches on and off here as well as in Settings
+            // (user, 2026-10-12). Its rows, and dictation's status line, mean
+            // nothing with it off — and the voice picker would load a speech
+            // model nobody is using.
             if appState.dictationEnabled {
-                hotkeyRow
-                Divider()
-                controls
+                header
                 Divider()
             }
-            if appState.typeEnabled {
-                typingControls
+            featureSwitch("Dictation", isOn: $appState.dictationEnabled)
+            if appState.dictationEnabled {
+                hotkeyRow
+                controls
+            }
+            Divider()
+            // Type stays "coming soon" in release builds.
+            if OnboardingView.typeAvailable {
+                featureSwitch("Type", isOn: $appState.typeEnabled)
+                if appState.typeEnabled { typingControls }
                 Divider()
             }
             commands
@@ -88,6 +94,21 @@ struct MenuBarView: View {
         .padding(.vertical, 11)
     }
 
+    /// A feature's on/off switch, heading its section.
+    private func featureSwitch(_ title: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+            Spacer(minLength: 0)
+            Toggle(title, isOn: isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+    }
+
     private var hotkeyRow: some View {
         HStack(spacing: 5) {
             Text("Hold")
@@ -114,7 +135,8 @@ struct MenuBarView: View {
         // wake word bindings below.
         @Bindable var appState = appState
         return VStack(alignment: .leading, spacing: 9) {
-            labelled("Model") {
+            // "Voice" beside Type's "Typing": both pickers choose a model.
+            labelled("Voice") {
                 Picker("", selection: modelBinding) {
                     ForEach(offeredModels) { model in
                         Text(model.shortName).tag(model)
