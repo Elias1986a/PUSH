@@ -69,3 +69,31 @@ The same day also brought:
 - the font match;
 - today's date in the prompt;
 - the stop before numbers nobody wrote.
+
+## Round 2 (evening): PUSH vs Cotypist only
+
+Both had the user's same bio. PUSH ran Gemma E2B, gray, in the field's font; Cotypist ran its updated
+Q4_C model. Ten fresh sentences were used for quality and ten for speed, so neither app had seen them.
+
+**Look.** In TextEdit the two are now the same: same font and size, same gray.
+
+**Quality** (suggestion 2.5 s after the last key, Cotypist / PUSH):
+- **The same:** "tomorrow." / "tomorrow."; "great weekend!" ×2; "in a meeting." ×2; "the same content." /
+  "the same movies and shows that I've".
+- **Cotypist better:** "please start | without me." / "with the next section."; "let me know | if there are…" /
+  "if you have any questions?".
+- **PUSH better:** "discuss the | design and then I'll" / "release notes for the upcoming release." (it uses
+  the earlier text).
+- **After Tab:** PUSH accepts "tomorrow." and shows the next sentence at once. Cotypist leaves the period behind as
+  a suggestion and offers nothing further.
+
+**Speed** (visible 80 ms after a key, typing at 10 keys a second, same sentences):
+
+| | Visible while typing |
+|---|---|
+| Cotypist | 70% |
+| PUSH, 0.1 s fade-in | 63% |
+| PUSH, no fade | 68% |
+
+The fade costs about 5 points on this probe. A partly faded suggestion falls under the probe's brightness
+threshold, though a person may already see it.
