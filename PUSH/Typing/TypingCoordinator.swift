@@ -374,7 +374,8 @@ final class TypingCoordinator {
             TypeIndicatorPanel.shared.hide()
             return
         }
-        TypeIndicatorPanel.shared.show(field: field, caret: focus.caretRect, color: AppState.shared.typingColor.color)
+        TypeIndicatorPanel.shared.show(field: field, caret: caret(for: focus, terminal: surface == .terminal),
+                                       color: AppState.shared.typingColor.color)
         // A field just focused: start reading what is around it now.
         if surface != .terminal, screenCache?.element != focus.elementID { refreshScreen(for: focus) }
     }
@@ -649,20 +650,21 @@ final class TypingCoordinator {
         if let visible = GhostTextPanel.shared.show(current.text, at: placement) { shown?.text = visible }
     }
 
+    /// Where the user sees the caret. Claude Code draws its own block cursor
+    /// (a cell after the text) and, after a space, parks Terminal's real
+    /// cursor at the start of the row under its prompt: the caret is then
+    /// after the end of the typed text, past the typed space and the block.
+    private func caret(for focus: FocusSnapshot, terminal: Bool) -> CGRect? {
+        guard terminal, let end = focus.textEndRect else { return focus.caretRect }
+        let cells: CGFloat = buffer.text.last == " " ? 2 : 1
+        return CGRect(x: end.maxX + cells * end.width, y: end.minY, width: 0, height: end.height)
+    }
+
     /// Where to draw for `focus`. In a terminal the text after the cursor is
-    /// the rest of the screen, not the rest of the line; and when Claude Code
-    /// has parked the real cursor at the start of the next row, the caret is
-    /// after the end of the typed text (one cell further for a typed space).
+    /// the rest of the screen, not the rest of the line.
     private func placement(for focus: FocusSnapshot, terminal: Bool) -> GhostTextPanel.Placement? {
-        guard terminal else {
-            return TypingPlacement.decide(caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame)
-        }
-        var caret = focus.caretRect
-        if let end = focus.textEndRect {
-            let space = buffer.text.last == " " ? end.width : 0
-            caret = CGRect(x: end.maxX + space, y: end.minY, width: 0, height: end.height)
-        }
-        return TypingPlacement.decide(caretRect: caret, after: nil, fieldFrame: focus.fieldFrame)
+        TypingPlacement.decide(caretRect: caret(for: focus, terminal: terminal),
+                               after: terminal ? nil : focus.after, fieldFrame: focus.fieldFrame)
     }
 
     /// The caret moved (typed into or accepted part of the suggestion): read
