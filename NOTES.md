@@ -98,6 +98,17 @@ terminal suggestion goes when the prompt gains text without keys (file
 drop). "How are you?" self-answers rejected; a number as the very next word
 allowed. Settings names the terminal keys (→ next word, Tab stays the
 terminal's).
+Open question (user thinking, 2026-10-11 night): every dictation ends in a
+period (`TextProcessing.ensureEndingPunctuation` forces one), so after a
+dictation Type always offers a NEW sentence, even when the user stopped
+mid-sentence. Proposed: with Type on, skip the forced period (keep the
+speech model's own), and log only "ended with punctuation yes/no" to
+measure. User's counterpoint: people rarely release mid-sentence except by
+accident, so the period is usually right. Not decided — don't build without
+asking. Also done tonight: paste (cmd-V, incl. PUSH dictation) re-reads the
+field 300 ms later so a suggestion follows a dictation; new app icon (mic on
+a keyboard) on the branch — website waits for the Type release; menu bar =
+music.mic + hand-drawn I-beam while Type is on.
 Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
 filters for invented personas/self-descriptions, explicit words, web debris,
 other scripts; titles only for chat/email/browser; spell-checked glued words;
