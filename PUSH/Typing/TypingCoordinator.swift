@@ -225,7 +225,7 @@ final class TypingCoordinator {
             return
         }
         hide()
-        let moved = caret.offsetBy(dx: GhostTextPanel.width(of: typed, caretHeight: caret.height), dy: 0)
+        let moved = caret.offsetBy(dx: GhostTextPanel.width(of: typed, caretHeight: caret.height, field: GhostTextPanel.shared.fieldFont), dy: 0)
         let placement = GhostTextPanel.Placement.inline(caret: moved, field: field)
         let next = request.continued(by: String(after.before.dropFirst(request.before.count)))
         if let ready = prefetched, ready.before == next.before {
@@ -424,6 +424,7 @@ final class TypingCoordinator {
             caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame) else {
             return skip("no caret or field position")
         }
+        GhostTextPanel.shared.fieldFont = focus.font
 
         // A name or term from the user's Dictionary, finished without the model.
         if let partial = SuggestionText.caretWords(before).partial,
@@ -625,7 +626,7 @@ final class TypingCoordinator {
             GhostTextPanel.shared.hide()
             return
         }
-        let moved = caret.offsetBy(dx: GhostTextPanel.width(of: typed, caretHeight: caret.height), dy: 0)
+        let moved = caret.offsetBy(dx: GhostTextPanel.width(of: typed, caretHeight: caret.height, field: GhostTextPanel.shared.fieldFont), dy: 0)
         let placement = GhostTextPanel.Placement.inline(caret: moved, field: field)
         shown?.placement = placement
         if let visible = GhostTextPanel.shared.show(current.text, at: placement) { shown?.text = visible }

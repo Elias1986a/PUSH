@@ -19,6 +19,9 @@ final class GhostTextPanel {
         didSet { if textColor != oldValue { label.textColor = textColor } }
     }
 
+    /// The field's font at the caret, when the app reports one.
+    var fieldFont: FieldFont?
+
     private let panel: NSPanel
     private let label = NSTextField(labelWithString: "")
 
@@ -41,13 +44,18 @@ final class GhostTextPanel {
 
     var isVisible: Bool { panel.isVisible }
 
-    /// Type size for a caret of this height.
-    static func font(forCaret height: CGFloat) -> NSFont {
-        .systemFont(ofSize: max(10, min(height * 0.78, 40)))
+    /// The field's own font when it reports one, otherwise the system font
+    /// sized to the caret. A reported size far from what the caret suggests
+    /// is a zoomed view (a browser at 150%), where the caret is the truth.
+    static func font(forCaret height: CGFloat, field: FieldFont? = nil) -> NSFont {
+        let fromCaret = max(10, min(height * 0.78, 40))
+        guard let field else { return .systemFont(ofSize: fromCaret) }
+        let size = (fromCaret * 0.7...fromCaret * 1.5).contains(field.size) ? field.size : fromCaret
+        return NSFont(name: field.name, size: size) ?? .systemFont(ofSize: size)
     }
 
-    static func width(of text: String, caretHeight: CGFloat) -> CGFloat {
-        (text as NSString).size(withAttributes: [.font: font(forCaret: caretHeight)]).width
+    static func width(of text: String, caretHeight: CGFloat, field: FieldFont? = nil) -> CGFloat {
+        (text as NSString).size(withAttributes: [.font: font(forCaret: caretHeight, field: field)]).width
     }
 
     /// Shows `text` and returns what accepting it types: as many whole words
@@ -58,7 +66,7 @@ final class GhostTextPanel {
     func show(_ text: String, at placement: Placement) -> String? {
         switch placement {
         case .inline(let caret, let field):
-            let font = Self.font(forCaret: caret.height)
+            let font = Self.font(forCaret: caret.height, field: fieldFont)
             let screenRight = (NSScreen.screens.first { $0.frame.intersects(caret) } ?? NSScreen.main)?
                 .visibleFrame.maxX ?? .greatestFiniteMagnitude
             let right = min(field?.maxX ?? screenRight, screenRight) - 4

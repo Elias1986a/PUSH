@@ -28,6 +28,15 @@ struct FocusSnapshot: Sendable, Equatable {
     var domIdentifier: String?
     /// Identifies the focused element, to tell a stale result from a fresh one.
     var elementID: Int
+    /// The font of the text at the caret, when the app reports it.
+    var font: FieldFont? = nil
+}
+
+/// A font as an app reports it: the suggestion is drawn in it, so it reads as
+/// the next words of the same text (Cotypist matches the field's font too).
+struct FieldFont: Sendable, Equatable {
+    var name: String
+    var size: CGFloat
 }
 
 /// Reads the focused text field. Runs **off the main thread**: an
@@ -85,6 +94,7 @@ enum FocusReader {
             // text markers still know where the caret is.
             snapshot.caretRect = caretRect(element, at: caret, length: text.length)
                 ?? textMarkerRead(element)?.caret
+            if caret > 0 { snapshot.font = font(element, at: caret - 1) }
         } else if let marked = textMarkerRead(element) {
             // Web views (Mail's body, many browser editors) have no plain value.
             snapshot.before = marked.before
@@ -114,7 +124,8 @@ enum FocusReader {
             after: String(text.substring(from: end).prefix(afterWindow)),
             caretRect: caretRect.height > 0 ? CGRect(x: caretRect.minX, y: caretRect.minY, width: 0, height: caretRect.height) : nil,
             fieldFrame: fieldFrame, isSecure: false, isTextInput: true, role: "AXTextArea",
-            labels: [], domIdentifier: nil, elementID: ObjectIdentifier(view).hashValue)
+            labels: [], domIdentifier: nil, elementID: ObjectIdentifier(view).hashValue,
+            font: (view.font ?? view.typingAttributes[.font] as? NSFont).map { FieldFont(name: $0.fontName, size: $0.pointSize) })
     }
 
     /// WebKit's text-marker attributes: the text from the start of the editable
@@ -176,6 +187,20 @@ enum FocusReader {
             return flipped(rect)
         }
         return nil
+    }
+
+    /// The `AXFont` of the character at `location`.
+    private static func font(_ element: AXUIElement, at location: Int) -> FieldFont? {
+        var range = CFRange(location: location, length: 1)
+        guard let axRange = AXValueCreate(.cfRange, &range),
+              let text: NSAttributedString = parameterized(
+                element, kAXAttributedStringForRangeParameterizedAttribute as String, axRange),
+              text.length > 0,
+              let font = text.attribute(NSAttributedString.Key("AXFont"), at: 0,
+                                        effectiveRange: nil) as? [String: Any],
+              let name = font["AXFontName"] as? String,
+              let size = (font["AXFontSize"] as? NSNumber)?.doubleValue, size > 0 else { return nil }
+        return FieldFont(name: name, size: CGFloat(size))
     }
 
     private static func bounds(_ element: AXUIElement, _ range: CFRange) -> CGRect? {
