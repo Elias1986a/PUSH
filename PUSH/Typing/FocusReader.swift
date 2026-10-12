@@ -113,6 +113,7 @@ enum FocusReader {
             // Web views (Mail's body, many browser editors) have no plain value.
             snapshot.before = marked.before
             snapshot.caretRect = marked.caret
+            snapshot.font = marked.font
         }
         return snapshot
     }
@@ -143,24 +144,57 @@ enum FocusReader {
     }
 
     /// WebKit's text-marker attributes: the text from the start of the editable
-    /// area to the caret, and the caret's bounds.
-    private static func textMarkerRead(_ element: AXUIElement) -> (before: String?, caret: CGRect?)? {
+    /// area to the caret, the caret's position and the font before it.
+    ///
+    /// Mail's compose body answers no `AXStartTextMarkerForTextMarkerRange`,
+    /// so the caret's marker comes from `AXTextMarkerRangeCopyStartMarker`
+    /// there. Without it nothing before the caret was read: the font was
+    /// guessed from the caret's height (smaller than Mail's Helvetica 12) and
+    /// the text was only what PUSH saw typed (bug pass, 2026-10-12).
+    private static func textMarkerRead(_ element: AXUIElement) -> (before: String?, caret: CGRect?, font: FieldFont?)? {
         guard let selection: CFTypeRef = attribute(element, "AXSelectedTextMarkerRange") else { return nil }
-        let caret: CGRect? = parameterized(element, "AXBoundsForTextMarkerRange", selection).flatMap { (value: AXValue) in
+        // WebKit's caret box starts at the insertion point and is 2 pt wide;
+        // its left edge is where typed text ends. (The character before is no
+        // guide: Mail measures Helvetica's "I" 6 pt wide, so a suggestion
+        // after it started a space too far right — "I 'm".)
+        let caret: CGRect? = markerBounds(element, selection).map {
+            CGRect(x: $0.minX, y: $0.minY, width: 0, height: $0.height)
+        }
+        var before: String?
+        var font: FieldFont?
+        if let caretMarker = startMarker(element, of: selection) {
+            if let start: CFTypeRef = attribute(element, "AXStartTextMarker"),
+               let range: CFTypeRef = parameterized(element, "AXTextMarkerRangeForUnorderedTextMarkers",
+                                                    [start, caretMarker] as CFArray),
+               let text: String = parameterized(element, "AXStringForTextMarkerRange", range) {
+                let ns = text as NSString
+                let start = PromptWindow.start(length: ns.length, maximum: beforeWindow)
+                before = ns.substring(from: start)
+            }
+            // The field's font is the character before the caret's.
+            if let previous: CFTypeRef = parameterized(element, "AXPreviousTextMarkerForTextMarker", caretMarker),
+               let range: CFTypeRef = parameterized(element, "AXTextMarkerRangeForUnorderedTextMarkers",
+                                                    [previous, caretMarker] as CFArray),
+               let text: NSAttributedString = parameterized(element, "AXAttributedStringForTextMarkerRange", range) {
+                font = fieldFont(in: text)
+            }
+        }
+        return before == nil && caret == nil ? nil : (before, caret, font)
+    }
+
+    /// The marker a range starts at: WebKit's attribute, or the system's own
+    /// call for apps that do not answer it.
+    private static func startMarker(_ element: AXUIElement, of range: CFTypeRef) -> CFTypeRef? {
+        if let marker: CFTypeRef = parameterized(element, "AXStartTextMarkerForTextMarkerRange", range) { return marker }
+        guard CFGetTypeID(range) == AXTextMarkerRangeGetTypeID() else { return nil }
+        return AXTextMarkerRangeCopyStartMarker(unsafeBitCast(range, to: AXTextMarkerRange.self))
+    }
+
+    private static func markerBounds(_ element: AXUIElement, _ range: CFTypeRef) -> CGRect? {
+        parameterized(element, "AXBoundsForTextMarkerRange", range).flatMap { (value: AXValue) in
             var rect = CGRect.zero
             return AXValueGetValue(value, .cgRect, &rect) && rect.height > 0 ? flipped(rect) : nil
         }
-        var before: String?
-        if let start: CFTypeRef = attribute(element, "AXStartTextMarker"),
-           let caretMarker: CFTypeRef = parameterized(element, "AXStartTextMarkerForTextMarkerRange", selection),
-           let range: CFTypeRef = parameterized(element, "AXTextMarkerRangeForUnorderedTextMarkers",
-                                                [start, caretMarker] as CFArray),
-           let text: String = parameterized(element, "AXStringForTextMarkerRange", range) {
-            let ns = text as NSString
-            let start = PromptWindow.start(length: ns.length, maximum: beforeWindow)
-            before = ns.substring(from: start)
-        }
-        return before == nil && caret == nil ? nil : (before, caret)
     }
 
     private static func parameterized<T>(_ element: AXUIElement, _ name: String, _ parameter: CFTypeRef) -> T? {
@@ -236,7 +270,13 @@ enum FocusReader {
         guard let axRange = AXValueCreate(.cfRange, &range),
               let text: NSAttributedString = parameterized(
                 element, kAXAttributedStringForRangeParameterizedAttribute as String, axRange),
-              text.length > 0,
+              text.length > 0 else { return nil }
+        return fieldFont(in: text)
+    }
+
+    /// The font an Accessibility attributed string reports for its first character.
+    private static func fieldFont(in text: NSAttributedString) -> FieldFont? {
+        guard text.length > 0,
               let font = text.attribute(NSAttributedString.Key("AXFont"), at: 0,
                                         effectiveRange: nil) as? [String: Any],
               let name = font["AXFontName"] as? String,
