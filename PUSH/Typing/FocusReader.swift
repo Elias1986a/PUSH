@@ -101,9 +101,13 @@ enum FocusReader {
             let start = PromptWindow.start(length: caret, maximum: beforeWindow)
             snapshot.before = text.substring(with: NSRange(location: start, length: caret - start))
             snapshot.after = String(text.substring(from: end).prefix(afterWindow))
-            // Chrome's rich-text boxes have a value but no range bounds; their
-            // text markers still know where the caret is.
-            snapshot.caretRect = caretRect(element, at: caret, in: text)
+            // WebKit's caret box first: its character bounds run 2 pt past
+            // the glyph (Safari's text areas put a suggestion a space too far
+            // right). Chrome answers it with an empty box, so its character
+            // bounds are used — and its rich-text boxes have a value but no
+            // range bounds, where only the text markers know the caret.
+            snapshot.caretRect = markerCaret(element)
+                ?? caretRect(element, at: caret, in: text)
                 ?? textMarkerRead(element)?.caret
             if SurfaceClass.classify(bundleID: bundleID) == .terminal {
                 snapshot.textEndRect = textEndRect(element, before: caret, in: text)
@@ -153,13 +157,7 @@ enum FocusReader {
     /// the text was only what PUSH saw typed (bug pass, 2026-10-12).
     private static func textMarkerRead(_ element: AXUIElement) -> (before: String?, caret: CGRect?, font: FieldFont?)? {
         guard let selection: CFTypeRef = attribute(element, "AXSelectedTextMarkerRange") else { return nil }
-        // WebKit's caret box starts at the insertion point and is 2 pt wide;
-        // its left edge is where typed text ends. (The character before is no
-        // guide: Mail measures Helvetica's "I" 6 pt wide, so a suggestion
-        // after it started a space too far right — "I 'm".)
-        let caret: CGRect? = markerBounds(element, selection).map {
-            CGRect(x: $0.minX, y: $0.minY, width: 0, height: $0.height)
-        }
+        let caret = caretBox(element, selection)
         var before: String?
         var font: FieldFont?
         if let caretMarker = startMarker(element, of: selection) {
@@ -180,6 +178,19 @@ enum FocusReader {
             }
         }
         return before == nil && caret == nil ? nil : (before, caret, font)
+    }
+
+    /// WebKit's caret box starts at the insertion point and is 2 pt wide; its
+    /// left edge is where typed text ends. (The character before is no guide:
+    /// Mail measures Helvetica's "I" 6 pt wide, so a suggestion after it
+    /// started a space too far right — "I 'm".)
+    private static func caretBox(_ element: AXUIElement, _ selection: CFTypeRef) -> CGRect? {
+        markerBounds(element, selection).map { CGRect(x: $0.minX, y: $0.minY, width: 0, height: $0.height) }
+    }
+
+    private static func markerCaret(_ element: AXUIElement) -> CGRect? {
+        guard let selection: CFTypeRef = attribute(element, "AXSelectedTextMarkerRange") else { return nil }
+        return caretBox(element, selection)
     }
 
     /// The marker a range starts at: WebKit's attribute, or the system's own
