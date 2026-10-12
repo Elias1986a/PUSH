@@ -137,17 +137,10 @@ final class GhostTextPanel {
         panel.orderOut(nil)
     }
 
-    /// A suggestion appearing fades in (Cotabby's 0.1 s), so it arrives
-    /// rather than pops; one already on screen updates in place.
-    static let fadeIn: TimeInterval = 0.1
-
+    /// No fade-in: it cost 5 points of suggestions visible while typing
+    /// (68% → 63%) against Cotypist's 70%, and the user chose speed.
     private func present() {
-        guard !panel.isVisible else { return panel.orderFrontRegardless() }
-        panel.alphaValue = 0
+        panel.alphaValue = 1
         panel.orderFrontRegardless()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Self.fadeIn
-            panel.animator().alphaValue = 1
-        }
     }
 }

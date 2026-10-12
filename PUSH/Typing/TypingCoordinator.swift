@@ -191,6 +191,10 @@ final class TypingCoordinator {
             if let element = suggestedElement { paused = (element, Date().addingTimeInterval(Self.escPause)) }
         case .own(let text):
             buffer.apply(.text(text))
+        case .caret(let move):
+            guard lastSurface == .terminal else { return }
+            // ↑ in an empty prompt recalls a past message, caret at its end.
+            promptCaret.apply(move == .vertical && promptText.isEmpty ? .toEnd : move)
         case .acceptWord:
             accept(whole: false)
         case .acceptAll:
@@ -203,10 +207,14 @@ final class TypingCoordinator {
             // until the user types again (the screen still showed the sent
             // text for a moment, and a suggestion for it stayed behind).
             if key == .text("\n"), lastSurface == .terminal {
+                promptCaret.reset()
                 cancelWork()
                 hide()
                 return
             }
+            // Typing into the middle of an agent prompt: a suggestion there
+            // would be drawn over the text after the caret.
+            if lastSurface == .terminal, !promptCaret.atEnd { hide() }
             generationTask?.cancel()
             prefetchTask?.cancel()   // a ready suggestion stays usable if the keys match it
             // Typing into the suggestion keeps the rest of it on screen.
@@ -427,6 +435,7 @@ final class TypingCoordinator {
         if focus.elementID != bufferElement {
             if bufferElement != nil { buffer.apply(.reset) }
             bufferElement = focus.elementID
+            promptCaret.reset()
         }
         var before = focus.before ?? buffer.text
         var surfaceLine = SurfaceLine.render(surface: surface, appName: focus.appName, windowTitle: focus.windowTitle,
@@ -437,6 +446,12 @@ final class TypingCoordinator {
             guard let line = TerminalLine.parse(textBeforeCaret: before), line.kind == .agentPrompt else {
                 TypeIndicatorPanel.shared.hide()
                 return skip("terminal, not an agent prompt")
+            }
+            promptText = line.text
+            if line.text.isEmpty { promptCaret.reset() }
+            guard promptCaret.atEnd else {
+                hide()
+                return skip("caret moved back into the prompt")
             }
             before = line.text
             // The row's trailing space is not in the parsed text when Claude
@@ -705,6 +720,11 @@ final class TypingCoordinator {
     private var terminalCell: CGFloat?
     /// The surface of the last field suggested in.
     private var lastSurface: SurfaceClass?
+    /// At a terminal agent prompt: where the caret is, from the keys (the
+    /// agent's drawn cursor is invisible to Accessibility), and what the
+    /// prompt held at the last read.
+    private var promptCaret = PromptCaret()
+    private var promptText = ""
     /// While a terminal suggestion is up: the prompt is read again now and
     /// then, since the agent redraws on its own (a sent message clears it).
     private var watchTask: Task<Void, Never>?

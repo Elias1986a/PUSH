@@ -12,6 +12,9 @@ final class TypingKeyTap: @unchecked Sendable {
 
     enum Event: Sendable {
         case key(KeystrokeBuffer.Key)
+        /// A key that moves the caret (arrows, Home/End, ⌃A/⌃E…), sent just
+        /// before its `.key`: terminal agent prompts track the caret from it.
+        case caret(PromptCaret.Move)
         /// Text PUSH typed itself (an accepted suggestion).
         case own(String)
         case acceptWord, acceptAll, dismiss, click
@@ -134,7 +137,11 @@ final class TypingKeyTap: @unchecked Sendable {
         if flags.contains(.maskCommand), flags.contains(.maskShift), [20, 21, 23].contains(keyCode) {
             return pass
         }
-                emit(.key(KeystrokeBuffer.Key.classify(
+        if let move = PromptCaret.move(keyCode: keyCode, command: flags.contains(.maskCommand), option: option,
+                                       control: flags.contains(.maskControl)) {
+            emit(.caret(move))
+        }
+        emit(.key(KeystrokeBuffer.Key.classify(
             keyCode: keyCode, command: flags.contains(.maskCommand), control: flags.contains(.maskControl),
             characters: characters)))
         return pass
