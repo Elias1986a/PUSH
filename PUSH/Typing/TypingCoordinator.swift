@@ -317,6 +317,9 @@ final class TypingCoordinator {
         }
         let surface = SurfaceClass.classify(bundleID: focus.bundleID)
         guard surface != .code || AppState.shared.typingInCodeEditors else { return no("code editor") }
+        // A browser's own fields — the address bar above all, which completes
+        // addresses itself — are not the page: only fields inside it.
+        guard surface != .browser || focus.insideWebPage else { return no("browser address bar") }
         return surface
     }
 

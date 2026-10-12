@@ -28,6 +28,9 @@ struct FocusSnapshot: Sendable, Equatable {
     var domIdentifier: String?
     /// Identifies the focused element, to tell a stale result from a fresh one.
     var elementID: Int
+    /// The field is part of a web page (in or under an `AXWebArea`), not the
+    /// app's own controls — in a browser, not the address bar.
+    var insideWebPage = false
     /// The font of the text at the caret, when the app reports it.
     var font: FieldFont? = nil
     /// In a terminal: where the last visible character before the cursor is
@@ -87,7 +90,9 @@ enum FocusReader {
         // A password field: nothing more is read from it, ever.
         guard !isSecure else { return snapshot }
 
-        snapshot.url = webURL(from: element)
+        let page = webArea(from: element)
+        snapshot.url = page.url
+        snapshot.insideWebPage = page.found
         if let value: String = attribute(element, kAXValueAttribute),
            let range = selectedRange(element) {
             let text = value as NSString
@@ -267,18 +272,18 @@ enum FocusReader {
         return CGRect(x: rect.minX, y: height - rect.maxY, width: rect.width, height: rect.height)
     }
 
-    /// The page's address, from the nearest web area above the field.
-    private static func webURL(from element: AXUIElement) -> String? {
+    /// The nearest web area at or above the field, and the page's address.
+    private static func webArea(from element: AXUIElement) -> (found: Bool, url: String?) {
         var current: AXUIElement? = element
         for _ in 0..<30 {
-            guard let node = current else { return nil }
+            guard let node = current else { break }
             if (attribute(node, kAXRoleAttribute) as String?) == "AXWebArea" {
-                if let url: URL = attribute(node, kAXURLAttribute) { return url.absoluteString }
-                if let url: String = attribute(node, kAXURLAttribute) { return url }
+                if let url: URL = attribute(node, kAXURLAttribute) { return (true, url.absoluteString) }
+                return (true, attribute(node, kAXURLAttribute))
             }
             current = attribute(node, kAXParentAttribute)
         }
-        return nil
+        return (false, nil)
     }
 
 }
