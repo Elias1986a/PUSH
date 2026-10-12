@@ -667,21 +667,28 @@ final class TypingCoordinator {
         if appearing { refreshPlacement(after: .milliseconds(200)) }
     }
 
-    /// Takes the suggestion down once the agent prompt no longer holds the
-    /// text it was made for (sent, cleared, redrawn). Two misses in a row, so
-    /// a read taken mid-redraw does not count.
+    /// Takes the suggestion down once the agent prompt no longer holds
+    /// exactly the text it was made for plus what was typed into it since —
+    /// sent, cleared, or added to without keys (a file dropped in, a paste,
+    /// dictation), which left it floating after the new text. Two misses in a
+    /// row, so a read taken mid-redraw does not count.
     private func watchTerminal() {
         watchTask?.cancel()
         watchTask = Task {
             var misses = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(400))
-                guard !Task.isCancelled, let request = shown?.request else { return }
+                guard !Task.isCancelled, let current = shown, let request = current.request else { return }
                 let focus = await readFocus()
                 guard !Task.isCancelled, shown != nil else { return }
                 let line = (focus?.before).flatMap { TerminalLine.parse(textBeforeCaret: $0) }
-                let expected = request.before.trimmingCharacters(in: .whitespaces)
-                let holds = line?.kind == .agentPrompt && line?.text.hasPrefix(expected) == true
+                // Typed into the suggestion so far: what is no longer shown of it.
+                let consumed = String(current.full.prefix(max(0, current.full.count - current.text.count)))
+                func squeezed(_ text: String) -> String {
+                    text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+                }
+                let holds = line?.kind == .agentPrompt
+                    && squeezed(line?.text ?? "") == squeezed(request.before + consumed)
                 misses = holds ? 0 : misses + 1
                 if misses >= 2 { return hide() }
             }
