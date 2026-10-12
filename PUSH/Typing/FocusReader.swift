@@ -285,13 +285,15 @@ enum FocusReader {
         return fieldFont(in: text)
     }
 
-    /// The font an Accessibility attributed string reports for its first character.
+    /// The font an Accessibility attributed string reports for its first
+    /// character. Chrome's rich-text boxes give only a size; the name is then
+    /// empty and the system font is drawn at that size.
     private static func fieldFont(in text: NSAttributedString) -> FieldFont? {
         guard text.length > 0,
               let font = text.attribute(NSAttributedString.Key("AXFont"), at: 0,
                                         effectiveRange: nil) as? [String: Any],
-              let name = font["AXFontName"] as? String,
               let size = (font["AXFontSize"] as? NSNumber)?.doubleValue, size > 0 else { return nil }
+        let name = font["AXFontName"] as? String ?? font["AXFontFamily"] as? String ?? ""
         return FieldFont(name: name, size: CGFloat(size))
     }
 
