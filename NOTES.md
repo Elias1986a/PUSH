@@ -109,6 +109,19 @@ asking. Also done tonight: paste (cmd-V, incl. PUSH dictation) re-reads the
 field 300 ms later so a suggestion follows a dictation; new app icon (mic on
 a keyboard) on the branch — website waits for the Type release; menu bar =
 music.mic + hand-drawn I-beam while Type is on.
+2026-10-12: pause clears itself at its end (menu said "Paused until…" all
+night); clicking the menu bar icon closes the menu; Dictation switch in
+Settings and both switches in the menu ("Model" → "Voice"); menu bar icon
+shows only the features that are on. Bug pass (scripted, user away):
+Notes, Mail, Safari, Chrome pass. Fixed: gray was secondaryLabelColor —
+invisible on white pages in dark mode, now systemGray; Mail's body had no
+AXStartTextMarkerForTextMarkerRange (now AXTextMarkerRangeCopyStartMarker:
+real text before the caret, Helvetica 12 font); WebKit caret box placed
+first (character bounds overshoot 2 pt — "I 'm"); Chrome rich text reports
+size-only AXFont. Not scripted: Messages (Catalyst ignores synthetic keys;
+one run opened System Settings), WhatsApp, Discord — real chats, need the
+user. Field icon in Notes sits over the list's right edge (Cotypist's does
+too) — left as is.
 Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
 filters for invented personas/self-descriptions, explicit words, web debris,
 other scripts; titles only for chat/email/browser; spell-checked glued words;
