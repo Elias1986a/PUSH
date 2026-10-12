@@ -19,7 +19,11 @@ enum SuggestionColor: Equatable, Hashable {
         var color: NSColor {
             switch self {
             case .blue: return .systemBlue
-            case .gray: return .secondaryLabelColor
+            // Opaque mid-gray, not `secondaryLabelColor`: that is translucent
+            // white in dark mode, and a white web page under a dark system
+            // hid the suggestion completely (bug pass, 2026-10-12). The field
+            // behind the caret can be either; this reads on both.
+            case .gray: return .systemGray
             case .purple: return .systemPurple
             case .green: return .systemGreen
             case .orange: return .systemOrange
