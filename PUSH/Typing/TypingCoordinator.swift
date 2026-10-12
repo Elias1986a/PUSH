@@ -400,6 +400,7 @@ final class TypingCoordinator {
         var before = focus.before ?? buffer.text
         var surfaceLine = SurfaceLine.render(surface: surface, appName: focus.appName, windowTitle: focus.windowTitle,
                                              url: focus.url, placeholder: focus.placeholder)
+        var conversation: String?
         if surface == .terminal {
             // Only an agent's prompt (prose); a plain shell is commands.
             guard let line = TerminalLine.parse(textBeforeCaret: before), line.kind == .agentPrompt else {
@@ -407,6 +408,7 @@ final class TypingCoordinator {
                 return skip("terminal, not an agent prompt")
             }
             before = line.text
+            conversation = line.context
             surfaceLine = SurfaceLine.render(surface: .chat, appName: focus.appName, windowTitle: focus.windowTitle,
                                              url: nil, placeholder: nil)
         }
@@ -442,7 +444,8 @@ final class TypingCoordinator {
                 before: before, bundleID: focus.bundleID, windowTitle: focus.windowTitle),
             clipboard: surface != .terminal && AppState.shared.typingUsesClipboard
                 ? ClipboardContext.shared.text(for: before) : nil,
-            screen: surface != .terminal ? screenText(for: focus) : nil,
+            screen: surface != .terminal ? screenText(for: focus)
+                : AppState.shared.typingUsesScreen ? conversation : nil,
             surface: surface, length: AppState.shared.typingLength)
         nextInField = surface == .terminal ? nil : focus.after?.first
         if let ready = prefetched, ready.before == before {

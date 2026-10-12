@@ -10,20 +10,40 @@ public struct TerminalLine: Sendable, Equatable {
     public var kind: Kind
     /// What the user has typed on the line, prompt removed.
     public var text: String
+    /// An agent prompt's conversation: the text above its rule, the last
+    /// `contextLimit` characters, borders and blank lines removed.
+    public var context: String?
+
+    public static let contextLimit = 1_000
+    /// How far up a wrapped prompt is looked for.
+    static let maxPromptLines = 40
+
+    public init(kind: Kind, text: String, context: String? = nil) {
+        self.kind = kind
+        self.text = text
+        self.context = context
+    }
 
     public static func parse(textBeforeCaret screen: String) -> TerminalLine? {
-        var lines = screen.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        guard let current = lines.popLast() else { return nil }
-        let above = lines.last ?? ""
+        let lines = screen.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        guard let current = lines.last else { return nil }
 
-        // Drop a box's left border and the space after it.
-        var line = Substring(current)
-        if line.first == "│" || line.first == "┃" { line = line.dropFirst() }
-        let trimmed = line.drop { $0 == " " }
-
-        if isRule(above), let marker = trimmed.first, marker == ">" || marker == "❯" {
-            let text = String(trimmed.dropFirst().drop { $0 == " " })
-            return text.isEmpty ? nil : TerminalLine(kind: .agentPrompt, text: text)
+        // An agent prompt: a `>` or `❯` line straight under a rule. Text that
+        // wraps (or a Shift-Return) continues on the lines below it, so the
+        // caret may be several lines down.
+        for start in stride(from: lines.count - 1, through: max(1, lines.count - maxPromptLines), by: -1)
+        where isRule(lines[start - 1]) {
+            let first = unboxed(lines[start])
+            // Continuation lines are indented under the prompt; a shell line is not.
+            guard let marker = first.first, marker == ">" || marker == "❯",
+                  lines[(start + 1)...].allSatisfy({ $0.isEmpty || " │┃".contains($0.first!) }) else { break }
+            let pieces = [String(first.dropFirst())] + lines[(start + 1)...].map { String(unboxed($0)) }
+            let text = pieces.map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }.joined(separator: " ")
+            guard !text.isEmpty else { return nil }
+            let tail = current.last == " " ? " " : ""
+            return TerminalLine(kind: .agentPrompt, text: text + tail,
+                                context: conversation(Array(lines[..<(start - 1)])))
         }
         // A shell prompt: everything up to the last "$ ", "% ", "❯ " or "> ".
         let markers = ["$ ", "% ", "❯ ", "> "]
@@ -31,6 +51,30 @@ public struct TerminalLine: Sendable, Equatable {
         guard let end = ends.max() else { return nil }
         let text = String(current[end...])
         return text.isEmpty ? nil : TerminalLine(kind: .shell, text: text)
+    }
+
+    /// A line without a box's left border and the spaces after it.
+    private static func unboxed(_ line: String) -> Substring {
+        var line = Substring(line)
+        if line.first == "│" || line.first == "┃" { line = line.dropFirst() }
+        return line.drop { $0 == " " }
+    }
+
+    /// The agent's side of the conversation, as the model should read it.
+    private static func conversation(_ lines: [String]) -> String? {
+        var kept: [String] = []
+        var count = 0
+        for line in lines.reversed() {
+            let text = line.filter { !"─━═╭╮╰╯┌┐└┘│┃".contains($0) }
+                .trimmingCharacters(in: .whitespaces)
+                .drop { "⏺●⎿".contains($0) }.trimmingCharacters(in: .whitespaces)
+            guard !text.isEmpty else { continue }
+            kept.append(text)
+            count += text.count + 1
+            if count >= contextLimit { break }
+        }
+        let joined = kept.reversed().joined(separator: "\n")
+        return joined.isEmpty ? nil : String(joined.suffix(contextLimit))
     }
 
     /// A horizontal rule of box-drawing characters (at least ten).
