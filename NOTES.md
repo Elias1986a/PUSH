@@ -85,6 +85,19 @@ follows focus via AXObserver. Quantizations compared (Q4_K_M/Q4_0/IQ4_XS/
 Q4_K_S): all ~19 ms/token on M4 — Cotypist's file is encrypted, not
 comparable. Never script typing into Terminal while the user's Claude Code
 runs there (keys landed in their prompt once).
+Evening 2026-10-11 (user testing, round 2 vs Cotypist): gray is the default
+color; no fade-in (cost 5 points of visible-while-typing: 63% vs 68%,
+Cotypist 70%); field icon is a dark chip and takes the first spot (left of
+field, right, above, below) with no button/link/field under it in the app
+being typed in (ChatGPT/Gemini "+" is AXPopUpButton) — user is fine with it
+moving above. History examples only from the same app AND window title
+(records now store it; older records unused). No suggestions in browser
+address bars (field must be inside an AXWebArea). Claude Code: caret
+tracked from keys (PromptCaret) — quiet when moved back mid-prompt; a
+terminal suggestion goes when the prompt gains text without keys (file
+drop). "How are you?" self-answers rejected; a number as the very next word
+allowed. Settings names the terminal keys (→ next word, Tab stays the
+terminal's).
 Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
 filters for invented personas/self-descriptions, explicit words, web debris,
 other scripts; titles only for chat/email/browser; spell-checked glued words;
