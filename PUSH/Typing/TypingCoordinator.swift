@@ -654,12 +654,12 @@ final class TypingCoordinator {
     /// Where the user sees the caret. At an agent prompt (Claude Code) the
     /// terminal's real cursor is no guide: the agent draws its own block
     /// cursor a cell after the text and leaves the real one further on, or
-    /// on the next row. The caret is after the end of the typed text, past a
-    /// typed space and the block.
+    /// on the next row. The caret is after the end of the typed text, past
+    /// the spaces typed after it and the block.
     private func caret(for focus: FocusSnapshot, terminal: Bool) -> CGRect? {
         guard terminal, let end = focus.textEndRect,
               TerminalLine.parse(textBeforeCaret: focus.before ?? "")?.kind == .agentPrompt else { return focus.caretRect }
-        let cells: CGFloat = buffer.text.last == " " ? 2 : 1
+        let cells = CGFloat(buffer.text.reversed().prefix { $0 == " " }.count + 1)
         return CGRect(x: end.maxX + cells * end.width, y: end.minY, width: 0, height: end.height)
     }
 

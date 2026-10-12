@@ -30,11 +30,11 @@ struct FocusSnapshot: Sendable, Equatable {
     var elementID: Int
     /// The font of the text at the caret, when the app reports it.
     var font: FieldFont? = nil
-    /// In a terminal, when blank cells come before the cursor: where the last
-    /// visible character before it is (AppKit coordinates). Claude Code draws
-    /// its own block cursor and leaves Terminal's real one a cell or more past
-    /// it — after a space, at the start of the row under its prompt — so the
-    /// end of the typed text is what says where its caret is.
+    /// In a terminal: where the last visible character before the cursor is
+    /// (AppKit coordinates). Claude Code draws its own block cursor and leaves
+    /// Terminal's real one on it, a cell or more past it, or at the start of
+    /// the row under its prompt — so the end of the typed text is what says
+    /// where its caret is.
     var textEndRect: CGRect? = nil
 }
 
@@ -198,8 +198,7 @@ enum FocusReader {
 
     /// See `FocusSnapshot.textEndRect`. Looks back at most one row's worth.
     private static func textEndRect(_ element: AXUIElement, before caret: Int, in text: NSString) -> CGRect? {
-        guard caret > 0, CharacterSet.whitespacesAndNewlines.contains(UnicodeScalar(text.character(at: caret - 1)) ?? "x")
-        else { return nil }
+        guard caret > 0 else { return nil }
         var index = caret - 1
         let limit = max(0, caret - 400)
         while index >= limit, CharacterSet.whitespacesAndNewlines.contains(UnicodeScalar(text.character(at: index)) ?? " ") {
