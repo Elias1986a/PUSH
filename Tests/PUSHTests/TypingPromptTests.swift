@@ -13,6 +13,12 @@ final class TypingPromptTests: XCTestCase {
         XCTAssertEqual(prompt, surface + "\n\nHey, can you")
     }
 
+    func testDateFollowsTheSurfaceLine() {
+        let date = DateComponents(calendar: Calendar(identifier: .gregorian), year: 2026, month: 10, day: 11, hour: 12).date!
+        let ctx = TypingContext(before: "The launch is planned for", surfaceLine: "Format: email.", date: date)
+        XCTAssertEqual(TypingPrompt.render(ctx), "Format: email.\nDate: Sunday, October 11, 2026.\n\nThe launch is planned for")
+    }
+
     func testCaretTextIsTheLastBytesWhateverElseIsThere() {
         let context = TypingContext(before: "Thanks,\n", after: "P.S. see you Friday", surfaceLine: surface,
                                     style: "Short, friendly sentences.", language: "English",

@@ -89,12 +89,13 @@ final class TypingReplayEvalTests: XCTestCase {
     }
 
     /// One suggestion, as `TypingCoordinator.suggest` would make it (no
-    /// field, no history, no Dictionary — the scenario's own surface line).
+    /// field, no history, no Dictionary — the scenario's own surface line
+    /// and today's date).
     func suggest(_ c: Checkpoint, surface: String, engine: LlamaEngine, length: LengthPreset) async throws
         -> (shown: String?, reason: String?) {
         guard SuggestionText.shouldSuggest(before: c.before, after: nil) else { return (nil, "gate") }
         let heal = TokenHealing.split(c.before)
-        let prompt = TypingPrompt.render(TypingContext(before: heal.prompt, surfaceLine: surface))
+        let prompt = TypingPrompt.render(TypingContext(before: heal.prompt, surfaceLine: surface, date: Date()))
         var wordBoundary = false
         while true {
             var judge = SuggestionJudge(forced: heal.forced, before: c.before, length: length,

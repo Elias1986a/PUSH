@@ -11,10 +11,12 @@ public struct TypingContext: Sendable, Equatable {
     public var clipboard: String?
     public var screen: String?
     public var examples: [String]
+    /// Today, so "planned for" and "by" land on real dates, not 2022.
+    public var date: Date?
 
     public init(before: String, after: String? = nil, surfaceLine: String? = nil, style: String? = nil,
                 language: String? = nil, userName: String? = nil, clipboard: String? = nil,
-                screen: String? = nil, examples: [String] = []) {
+                screen: String? = nil, examples: [String] = [], date: Date? = nil) {
         self.before = before
         self.after = after
         self.surfaceLine = surfaceLine
@@ -24,6 +26,7 @@ public struct TypingContext: Sendable, Equatable {
         self.clipboard = clipboard
         self.screen = screen
         self.examples = examples
+        self.date = date
     }
 }
 
@@ -57,6 +60,7 @@ public enum TypingPrompt {
             s.append(.init(name: name, text: text, priority: priority, keep: .start, allOrNothing: allOrNothing))
         }
         add("surface", c.surfaceLine, 70)
+        add("date", c.date.map { "Date: \(dateFormatter.string(from: $0))." }, 65)
         // Only at a sign-off: anywhere else small models kept inserting the name.
         add("name", endsAtSignOff(c.before) ? c.userName.map { "From: \($0)." } : nil, 60)
         add("style", c.style.map { "Style: \($0)" }, 55)
@@ -68,6 +72,14 @@ public enum TypingPrompt {
         add("after", c.after.map { "Later in the same passage:\n“\($0.prefix(afterCap))”" }, 80, allOrNothing: true)
         return s
     }
+
+    /// "Sunday, October 11, 2026": English, like the rest of the preface.
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "EEEE, MMMM d, yyyy"
+        return f
+    }()
 
     private static let signOff = try! NSRegularExpression(
         pattern: #"(?:^|\s)(?:thanks|thank you|best|cheers|regards),[ \t]*\n?$"#,

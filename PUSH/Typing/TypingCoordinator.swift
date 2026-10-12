@@ -76,7 +76,8 @@ final class TypingCoordinator {
         var prompt: (text: String, forced: String) {
             let heal = TokenHealing.split(before)
             let context = TypingContext(before: heal.prompt, after: after, surfaceLine: surfaceLine, style: style,
-                                        userName: userName, clipboard: clipboard, screen: screen, examples: examples)
+                                        userName: userName, clipboard: clipboard, screen: screen, examples: examples,
+                                        date: Date())
             return (TypingPrompt.render(context), heal.forced)
         }
 
