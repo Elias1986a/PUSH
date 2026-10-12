@@ -21,6 +21,10 @@ final class GhostTextPanel {
 
     /// The field's font at the caret, when the app reports one.
     var fieldFont: FieldFont?
+    /// A suggestion that does not fit may continue on the next line, as the
+    /// text itself would wrap. Not in a terminal: under a Claude Code prompt
+    /// is its divider, and the suggestion was drawn over it.
+    var wrapsToNextLine = true
 
     private let panel: NSPanel
     private let label = NSTextField(labelWithString: "")
@@ -72,7 +76,7 @@ final class GhostTextPanel {
             let right = min(field?.maxX ?? screenRight, screenRight) - 4
             var origin = CGPoint(x: caret.maxX, y: caret.minY)
             var shown = Self.fitting(text, width: right - origin.x, font: font).map { (drawn: $0, accepted: $0) }
-            if shown == nil, let field {
+            if shown == nil, wrapsToNextLine, let field {
                 // Wrap: the next line down, at the field's left edge.
                 origin = CGPoint(x: field.minX + 4, y: caret.minY - caret.height * 1.25)
                 shown = Self.wrapped(text, width: right - origin.x, font: font)

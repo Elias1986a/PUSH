@@ -191,6 +191,8 @@ final class TypingCoordinator {
             if let element = suggestedElement { paused = (element, Date().addingTimeInterval(Self.escPause)) }
         case .own(let text):
             buffer.apply(.text(text))
+        case .paste:
+            scheduleSuggestion(after: Self.pasteSettle)
         case .caret(let move):
             guard lastSurface == .terminal else { return }
             // ↑ in an empty prompt recalls a past message, caret at its end.
@@ -246,6 +248,14 @@ final class TypingCoordinator {
         let after = fieldAfterAccepting(current)
         let typed = chunk + (after?.typedSpace == true ? " " : "")
         KeystrokeTyper.type(typed)
+        // A terminal agent re-flows its prompt as text arrives (a row fills,
+        // the text moves down), so where the caret lands is read, not
+        // predicted; a ready-made next suggestion is still used once it is.
+        if current.request?.surface == .terminal {
+            hide()
+            scheduleSuggestion(after: Self.terminalSettle)
+            return
+        }
         // The next suggestion, at once: ready-made when the prefetch matches,
         // otherwise made now from what the field will hold — no waiting for
         // the app to report the text just typed.
@@ -276,11 +286,18 @@ final class TypingCoordinator {
         prefetchTask?.cancel()
     }
 
-    private func scheduleSuggestion() {
+    /// How long a paste takes to land in the field (Claude Code, Electron
+    /// apps): read before that, the field still held the old text and no
+    /// suggestion came until the next key — after every dictation.
+    static let pasteSettle: Duration = .milliseconds(300)
+    /// How long a terminal agent takes to draw text PUSH typed into it.
+    static let terminalSettle: Duration = .milliseconds(120)
+
+    private func scheduleSuggestion(after delay: Duration = TypingCoordinator.debounce) {
         debounceTask?.cancel()
         let stamp = keystrokes
         debounceTask = Task {
-            try? await Task.sleep(for: Self.debounce)
+            try? await Task.sleep(for: delay)
             guard !Task.isCancelled, stamp == keystrokes else { return }
             await suggest(stamp: stamp)
         }
@@ -498,6 +515,7 @@ final class TypingCoordinator {
         }
         terminalCell = surface == .terminal ? focus.textEndRect?.width : nil
         GhostTextPanel.shared.fieldFont = focus.font ?? terminalCell.map(Self.monospaced)
+        GhostTextPanel.shared.wrapsToNextLine = surface != .terminal
 
         // A name or term from the user's Dictionary, finished without the model.
         if let partial = SuggestionText.caretWords(before).partial,
@@ -629,6 +647,13 @@ final class TypingCoordinator {
             guard let snapshot = focus, let before = snapshot.before, !typed.isEmpty,
                   snapshot.elementID == bufferElement else { return focus }
             if before.hasSuffix(typed) { return focus }
+            // A terminal agent's row ends in its drawn cursor and padding, not
+            // the keys: compare its prompt text, or every key waited 120 ms.
+            if SurfaceClass.classify(bundleID: snapshot.bundleID) == .terminal,
+               let line = TerminalLine.parse(textBeforeCaret: before),
+               line.text.trimmingCharacters(in: .whitespaces).hasSuffix(typed.trimmingCharacters(in: .whitespaces)) {
+                return focus
+            }
         }
         return focus   // still differs (autocorrect rewrote it, say): go with the field
     }

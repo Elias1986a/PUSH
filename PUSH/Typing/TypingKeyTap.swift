@@ -12,6 +12,9 @@ final class TypingKeyTap: @unchecked Sendable {
 
     enum Event: Sendable {
         case key(KeystrokeBuffer.Key)
+        /// ⌘V — PUSH's own dictation pastes too. Sent after its `.key`: the
+        /// text lands a moment later, so the field is read again then.
+        case paste
         /// A key that moves the caret (arrows, Home/End, ⌃A/⌃E…), sent just
         /// before its `.key`: terminal agent prompts track the caret from it.
         case caret(PromptCaret.Move)
@@ -144,6 +147,7 @@ final class TypingKeyTap: @unchecked Sendable {
         emit(.key(KeystrokeBuffer.Key.classify(
             keyCode: keyCode, command: flags.contains(.maskCommand), control: flags.contains(.maskControl),
             characters: characters)))
+        if keyCode == 9, flags.contains(.maskCommand), !flags.contains(.maskControl) { emit(.paste) }
         return pass
     }
 
