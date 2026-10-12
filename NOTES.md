@@ -52,6 +52,24 @@ builds). "thanks"→"Thank you" seen in tests is the user's macOS Text
 Replacement, not PUSH. Next: side-by-side vs Cotypist/Cotabby (one app at a
 time), bug pass, Phase 7. Debug hooks: PUSH_SETTINGS_PANE, PUSH_ONBOARDING_STEP,
 PUSH_OPEN_MENU (with PUSH_OPEN_SETTINGS) for screenshots.
+Side-by-side (2026-10-11, eval/results/comparison-2026-10-11.md): user felt
+Cotypist was faster — true. Fine probe (latency.swift in the scratchpad: types
+at 10 keys/s, polls ScreenCaptureKit right of the AX caret): ghost visible
+80 ms after a key Cotypist 58%, PUSH 10%. Measured key→show 96 ms = 50 ms
+debounce + 40 ms first token + a second model step. Fixes: llama.cpp's
+grammar sampler scans Gemma's 262k vocab every step (35 vs 18 ms/token) —
+ForcedStart now enforces the healed word itself and uses a grammar only on a
+step where the model's choice doesn't fit (eval output identical); judge
+shows a glued word once it is a real word; debounce 10 ms. Now 61%, key→show
+57 ms. Also: Date line in the prompt (invented numbers 9→3 on Gemma, iOS
+10.3.2 → "iOS version"); suggestions stop before numbers the user never
+wrote or saw; ghost text in the field's AXFont (TextEdit Helvetica 12, was
+system 10.9); Claude Code prompts that wrap were parsed as a shell (no
+suggestions) and now use the conversation above the rule as context.
+Cotypist's model update today was a 2.98 GB "gemma-4-E2B-Q4_C" (ours: i1
+Q4_K_M 3.47 GB) — a smaller quant may be part of its speed; not tried yet.
+Cotypist keeps a completionCache.dat — a rerun of the same text may be
+served from it, so test it with fresh sentences.
 Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
 filters for invented personas/self-descriptions, explicit words, web debris,
 other scripts; titles only for chat/email/browser; spell-checked glued words;

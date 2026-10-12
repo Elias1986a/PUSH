@@ -47,3 +47,25 @@ text, so it seldom reached a sentence end here.
    larger still, adds a gap and a “Tab” badge.
 3. **Quality with the same model.** PUSH E2B and Cotypist E2B are close. PUSH E4B is no better than
    E2B on these ten sentences and is the worst on dates.
+
+## Follow-up the same day: speed, measured properly
+
+The user still felt Cotypist was faster, so a finer probe was used. It typed at 10 keys a second and
+polled the screen right of the caret. While typing, "visible" means a suggestion was on screen 80 ms after a key.
+
+| | Visible while typing | Key to suggestion (median) |
+|---|---|---|
+| Cotypist (its new Q4_C model) | 58% | — |
+| PUSH before | 10% | 96 ms |
+| PUSH after | **61%** | **57 ms** |
+
+Where the 96 ms went:
+- a 50 ms pause before suggesting, now 10 ms;
+- llama.cpp's grammar sampler scanning all 262k tokens on every step (35 ms a token against 18). The engine
+  now enforces the healed word itself (`ForcedStart`);
+- a judge that waited a step for a word to end even when it already was one.
+
+The same day also brought:
+- the font match;
+- today's date in the prompt;
+- the stop before numbers nobody wrote.
