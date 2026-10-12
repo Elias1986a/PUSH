@@ -22,6 +22,19 @@ struct DictationSettingsView: View {
         @Bindable var appState = appState
 
         Form {
+            // The welcome flow promises each feature can be switched later in
+            // Settings; Type had its switch, dictation did not (user, 2026-10-12).
+            Section {
+                Toggle(isOn: $appState.dictationEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Dictation")
+                        Text("Hold a key, speak, and your words are typed into any app. Everything runs on this Mac.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             Section("Microphone") {
                 ForEach(Array(appState.inputDevicePriority.enumerated()), id: \.element.id) { index, device in
                     microphoneRow(device, at: index)
