@@ -425,6 +425,9 @@ final class TypingCoordinator {
                 return skip("terminal, not an agent prompt")
             }
             before = line.text
+            // The row's trailing space is not in the parsed text when Claude
+            // Code has moved the cursor off it; the key just typed says so.
+            if buffer.text.last == " ", !before.isEmpty, before.last != " " { before += " " }
             conversation = line.context
             surfaceLine = SurfaceLine.render(surface: .chat, appName: focus.appName, windowTitle: focus.windowTitle,
                                              url: nil, placeholder: nil)
@@ -435,8 +438,7 @@ final class TypingCoordinator {
         guard SuggestionText.shouldSuggest(before: before, after: surface == .terminal ? nil : focus.after) else {
             return skip("too little text, or caret inside a word")
         }
-        guard let placement = TypingPlacement.decide(
-            caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame) else {
+        guard let placement = placement(for: focus, terminal: surface == .terminal) else {
             return skip("no caret or field position")
         }
         GhostTextPanel.shared.fieldFont = focus.font
@@ -647,6 +649,22 @@ final class TypingCoordinator {
         if let visible = GhostTextPanel.shared.show(current.text, at: placement) { shown?.text = visible }
     }
 
+    /// Where to draw for `focus`. In a terminal the text after the cursor is
+    /// the rest of the screen, not the rest of the line; and when Claude Code
+    /// has parked the real cursor at the start of the next row, the caret is
+    /// after the end of the typed text (one cell further for a typed space).
+    private func placement(for focus: FocusSnapshot, terminal: Bool) -> GhostTextPanel.Placement? {
+        guard terminal else {
+            return TypingPlacement.decide(caretRect: focus.caretRect, after: focus.after, fieldFrame: focus.fieldFrame)
+        }
+        var caret = focus.caretRect
+        if let end = focus.textEndRect {
+            let space = buffer.text.last == " " ? end.width : 0
+            caret = CGRect(x: end.maxX + space, y: end.minY, width: 0, height: end.height)
+        }
+        return TypingPlacement.decide(caretRect: caret, after: nil, fieldFrame: focus.fieldFrame)
+    }
+
     /// The caret moved (typed into or accepted part of the suggestion): read
     /// it again and redraw what is left.
     private func refreshPlacement(after delay: Duration = .zero) {
@@ -656,7 +674,7 @@ final class TypingCoordinator {
             let focus = await readFocus()
             guard stamp == keystrokes, let current = shown else { return }
             var placement = focus.flatMap {
-                TypingPlacement.decide(caretRect: $0.caretRect, after: $0.after, fieldFrame: $0.fieldFrame)
+                self.placement(for: $0, terminal: current.request?.surface == .terminal)
             } ?? current.placement
             // An app still drawing reports the caret where it was: on the same
             // line, never move back left of where the typed text must reach.

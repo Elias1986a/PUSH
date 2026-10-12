@@ -30,6 +30,11 @@ struct FocusSnapshot: Sendable, Equatable {
     var elementID: Int
     /// The font of the text at the caret, when the app reports it.
     var font: FieldFont? = nil
+    /// When a line break comes straight before the caret: where the last
+    /// visible character before it is (AppKit coordinates). Claude Code parks
+    /// Terminal's real cursor at the start of the row under its prompt, so the
+    /// end of the typed text is where its caret really is.
+    var textEndRect: CGRect? = nil
 }
 
 /// A font as an app reports it: the suggestion is drawn in it, so it reads as
@@ -94,6 +99,7 @@ enum FocusReader {
             // text markers still know where the caret is.
             snapshot.caretRect = caretRect(element, at: caret, in: text)
                 ?? textMarkerRead(element)?.caret
+            snapshot.textEndRect = textEndRect(element, before: caret, in: text)
             if caret > 0 { snapshot.font = font(element, at: caret - 1) }
         } else if let marked = textMarkerRead(element) {
             // Web views (Mail's body, many browser editors) have no plain value.
@@ -182,11 +188,26 @@ enum FocusReader {
     /// was placed at the right edge of the old one — so the character at the
     /// caret is measured instead and its left edge used. The empty range is
     /// the last resort, for a caret at the very end.
-    private static func caretRect(_ element: AXUIElement, at caret: Int, in text: NSString) -> CGRect? {
-        func isBreak(_ index: Int) -> Bool {
-            index >= 0 && index < text.length
-                && CharacterSet.newlines.contains(UnicodeScalar(text.character(at: index)) ?? " ")
+    private static func isBreak(_ index: Int, in text: NSString) -> Bool {
+        index >= 0 && index < text.length
+            && CharacterSet.newlines.contains(UnicodeScalar(text.character(at: index)) ?? " ")
+    }
+
+    /// See `FocusSnapshot.textEndRect`. Looks back at most one row's worth.
+    private static func textEndRect(_ element: AXUIElement, before caret: Int, in text: NSString) -> CGRect? {
+        guard isBreak(caret - 1, in: text) else { return nil }
+        var index = caret - 1
+        let limit = max(0, caret - 400)
+        while index >= limit, CharacterSet.whitespacesAndNewlines.contains(UnicodeScalar(text.character(at: index)) ?? " ") {
+            index -= 1
         }
+        guard index >= limit, let rect = bounds(element, CFRange(location: index, length: 1)),
+              rect.height > 0, rect.width < 200 else { return nil }
+        return flipped(rect)
+    }
+
+    private static func caretRect(_ element: AXUIElement, at caret: Int, in text: NSString) -> CGRect? {
+        func isBreak(_ index: Int) -> Bool { Self.isBreak(index, in: text) }
         if caret > 0, !isBreak(caret - 1), let rect = bounds(element, CFRange(location: caret - 1, length: 1)),
            rect.height > 0, rect.width < 200 {   // some apps measure a character as a whole line
             return flipped(CGRect(x: rect.maxX, y: rect.minY, width: 0, height: rect.height))
