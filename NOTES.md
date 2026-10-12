@@ -70,6 +70,21 @@ Cotypist's model update today was a 2.98 GB "gemma-4-E2B-Q4_C" (ours: i1
 Q4_K_M 3.47 GB) — a smaller quant may be part of its speed; not tried yet.
 Cotypist keeps a completionCache.dat — a rerun of the same text may be
 served from it, so test it with fresh sentences.
+Claude Code in Terminal (2026-10-11, from the user's phone photos): Claude
+Code draws its own block cursor and leaves Terminal's real cursor on it, a
+few cells past it, or at the start of the row under the prompt (after a
+space). So at an agent prompt the caret = end of typed text + typed spaces
+(keystroke buffer) + one cell for the block (`TypingCoordinator.caret(for:)`,
+`FocusSnapshot.textEndRect`); text after the cursor is never "rest of line"
+there. Terminal reports no AXFont: suggestions use Menlo sized to the cell
+and move by whole cells. Return at an agent prompt = send: no suggestion until
+the next key; a terminal suggestion is re-checked every 400 ms and dropped
+when the prompt no longer holds its text. Wrapped prompts parse (continuation
+rows indented); the conversation above the rule is screen context. Field icon
+follows focus via AXObserver. Quantizations compared (Q4_K_M/Q4_0/IQ4_XS/
+Q4_K_S): all ~19 ms/token on M4 — Cotypist's file is encrypted, not
+comparable. Never script typing into Terminal while the user's Claude Code
+runs there (keys landed in their prompt once).
 Hands-on fixes (2026-10-10, user testing): wait for 3 words (user's call);
 filters for invented personas/self-descriptions, explicit words, web debris,
 other scripts; titles only for chat/email/browser; spell-checked glued words;
