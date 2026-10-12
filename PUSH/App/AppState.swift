@@ -249,6 +249,25 @@ final class AppState {
         didSet {
             UserDefaults.standard.set(typingPausedUntil, forKey: TypingPreferences.pausedUntilKey)
             if typingPausedUntil != nil { TypingCoordinator.shared.hideAll() } else { TypingCoordinator.shared.refreshIndicator() }
+            schedulePauseEnd()
+        }
+    }
+
+    /// Clears the pause when it runs out. Without it the expired date stayed
+    /// set: suggestions came back (Type compares the date on every key) but
+    /// the menu still said "Paused until 11:36 PM" the next morning, and the
+    /// field icon stayed hidden until a key (user report, 2026-10-12).
+    @ObservationIgnored private var pauseEndTask: Task<Void, Never>?
+
+    private func schedulePauseEnd() {
+        pauseEndTask?.cancel()
+        guard let until = typingPausedUntil else { return }
+        pauseEndTask = Task { [weak self] in
+            // Task.sleep runs on the continuous clock, which keeps counting
+            // while the Mac sleeps, so a lid closed overnight still ends it.
+            try? await Task.sleep(for: .seconds(max(0, until.timeIntervalSinceNow)))
+            guard !Task.isCancelled, let self, self.typingPausedUntil == until else { return }
+            self.typingPausedUntil = nil
         }
     }
 
@@ -667,6 +686,9 @@ final class AppState {
         if let savedWakeWord = UserDefaults.standard.string(forKey: UserDefaultsKeys.wakeWord), !savedWakeWord.isEmpty {
             self.wakeWord = savedWakeWord
         }
+
+        // A pause set before a relaunch still ends on time.
+        schedulePauseEnd()
     }
 
     private func notifyStateChange() {
