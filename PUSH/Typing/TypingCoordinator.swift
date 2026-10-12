@@ -170,6 +170,7 @@ final class TypingCoordinator {
 
     /// Takes the suggestion down (a key that does not continue it, Esc).
     func hide() {
+        watchTask?.cancel()
         shown = nil
         GhostTextPanel.shared.hide()
         TypingKeyTap.shared.setSuggestionVisible(false)
@@ -198,6 +199,14 @@ final class TypingCoordinator {
             guard key != .ignore else { return }
             buffer.apply(key)
             keystrokes &+= 1
+            // Return at an agent prompt sends the message: nothing to suggest
+            // until the user types again (the screen still showed the sent
+            // text for a moment, and a suggestion for it stayed behind).
+            if key == .text("\n"), lastSurface == .terminal {
+                cancelWork()
+                hide()
+                return
+            }
             generationTask?.cancel()
             prefetchTask?.cancel()   // a ready suggestion stays usable if the keys match it
             // Typing into the suggestion keeps the rest of it on screen.
@@ -407,6 +416,7 @@ final class TypingCoordinator {
             return
         }
         updateIndicator(for: focus)
+        lastSurface = surface
         if let paused, paused.element == focus.elementID, Date() < paused.until { return skip("esc pause") }
         suggestedElement = focus.elementID
 
@@ -632,9 +642,31 @@ final class TypingCoordinator {
         }
         shown = Shown(text: visible, placement: placement, nextInField: nextInField, request: request, full: visible)
         TypingKeyTap.shared.setSuggestionVisible(true)
+        if appearing, surface == .terminal { watchTerminal() }
         // An app can still be drawing the last keys (or rewriting them, like
         // TextEdit's text replacement) when the caret was read: measure again.
         if appearing { refreshPlacement(after: .milliseconds(200)) }
+    }
+
+    /// Takes the suggestion down once the agent prompt no longer holds the
+    /// text it was made for (sent, cleared, redrawn). Two misses in a row, so
+    /// a read taken mid-redraw does not count.
+    private func watchTerminal() {
+        watchTask?.cancel()
+        watchTask = Task {
+            var misses = 0
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled, let request = shown?.request else { return }
+                let focus = await readFocus()
+                guard !Task.isCancelled, shown != nil else { return }
+                let line = (focus?.before).flatMap { TerminalLine.parse(textBeforeCaret: $0) }
+                let expected = request.before.trimmingCharacters(in: .whitespaces)
+                let holds = line?.kind == .agentPrompt && line?.text.hasPrefix(expected) == true
+                misses = holds ? 0 : misses + 1
+                if misses >= 2 { return hide() }
+            }
+        }
     }
 
     /// Where the caret must be after `typed` went in, drawn at once — the app
@@ -667,6 +699,11 @@ final class TypingCoordinator {
     /// and accepted text moves the suggestion by whole cells, not by the
     /// widths of a proportional font (which jumped until the next read).
     private var terminalCell: CGFloat?
+    /// The surface of the last field suggested in.
+    private var lastSurface: SurfaceClass?
+    /// While a terminal suggestion is up: the prompt is read again now and
+    /// then, since the agent redraws on its own (a sent message clears it).
+    private var watchTask: Task<Void, Never>?
 
     /// How far `typed` moves the caret.
     private func advance(of typed: String, caretHeight: CGFloat) -> CGFloat {
