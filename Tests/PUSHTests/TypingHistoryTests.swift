@@ -31,40 +31,53 @@ final class TypingHistoryTests: XCTestCase {
     // MARK: Index
 
     private let records = [
-        TypingHistoryRecord(text: "Thanks for the brief. The logo concepts for Northwind are almost done; I’ll send the mood board and typography options on Friday.", bundleID: "com.apple.mail"),
-        TypingHistoryRecord(text: "Groceries: oat milk, bananas, sourdough bread, coffee beans and dish soap for the weekend.", bundleID: "com.apple.Notes"),
-        TypingHistoryRecord(text: "The printer needs the final artwork files by Thursday morning, CMYK with bleed, otherwise the posters slip a week.", bundleID: "com.apple.mail"),
+        TypingHistoryRecord(text: "Thanks for the brief. The logo concepts for Northwind are almost done; I’ll send the mood board and typography options on Friday.", bundleID: "com.apple.mail", windowTitle: "Re: Northwind logo"),
+        TypingHistoryRecord(text: "Groceries: oat milk, bananas, sourdough bread, coffee beans and dish soap for the weekend.", bundleID: "com.apple.Notes", windowTitle: "Notes"),
+        TypingHistoryRecord(text: "The printer needs the final artwork files by Thursday morning, CMYK with bleed, otherwise the posters slip a week.", bundleID: "com.apple.mail", windowTitle: "Re: Northwind logo"),
     ]
 
     func testFindsThePassageOnTheSameTopic() {
         let index = TypingHistoryIndex(records: records)
         let examples = index.examples(query: "Hi Dana, quick update on the Northwind logo concepts and typography",
-                                      bundleID: "com.apple.mail", currentText: "")
+                                      bundleID: "com.apple.mail", windowTitle: "Re: Northwind logo", currentText: "")
         XCTAssertEqual(examples.first?.contains("Northwind"), true)
         XCTAssertFalse(examples.contains { $0.contains("Groceries") })
     }
 
     func testNothingWhenNothingIsRelated() {
         let index = TypingHistoryIndex(records: records)
-        XCTAssertEqual(index.examples(query: "the quarterly tax return deadline", bundleID: nil, currentText: ""), [])
-        XCTAssertEqual(index.examples(query: "", bundleID: nil, currentText: ""), [])
+        XCTAssertEqual(index.examples(query: "the quarterly tax return deadline", bundleID: "com.apple.mail",
+                                      windowTitle: "Re: Northwind logo", currentText: ""), [])
+        XCTAssertEqual(index.examples(query: "", bundleID: "com.apple.mail", windowTitle: "Re: Northwind logo", currentText: ""), [])
     }
 
     func testNeverTheUsersOwnDraft() {
         let index = TypingHistoryIndex(records: records)
         let draft = records[2].text + " Can you confirm"
-        let examples = index.examples(query: "printer final artwork files Thursday posters", bundleID: nil, currentText: draft)
+        let examples = index.examples(query: "printer final artwork files Thursday posters", bundleID: "com.apple.mail",
+                                      windowTitle: "Re: Northwind logo", currentText: draft)
         XCTAssertFalse(examples.contains { $0.contains("printer") })
     }
 
     func testStaysWithinTheBudget() {
         let long = (1...40).map { "Sentence \($0) about the Northwind logo concepts." }.joined(separator: " ")
         // Plenty of other writing, so the topic's words are telling.
-        let other = (1...40).map { TypingHistoryRecord(text: "Note \($0): pick up laundry, water plants, book dentist visit.", bundleID: "b") }
-        let index = TypingHistoryIndex(records: other + [TypingHistoryRecord(text: long, bundleID: "a")])
-        let examples = index.examples(query: "Northwind logo concepts", bundleID: "a", currentText: "", maxCharacters: 400)
+        let other = (1...40).map { TypingHistoryRecord(text: "Note \($0): pick up laundry, water plants, book dentist visit.", bundleID: "b", windowTitle: "w") }
+        let index = TypingHistoryIndex(records: other + [TypingHistoryRecord(text: long, bundleID: "a", windowTitle: "w")])
+        let examples = index.examples(query: "Northwind logo concepts", bundleID: "a", windowTitle: "w", currentText: "", maxCharacters: 400)
         XCTAssertLessThanOrEqual(examples.map(\.count).reduce(0, +), 400)
         XCTAssertFalse(examples.isEmpty)
+    }
+
+    func testOnlyTheSameAppAndWindow() {
+        let index = TypingHistoryIndex(records: records)
+        let query = "Hi Dana, quick update on the Northwind logo concepts and typography"
+        // Another thread, another app, no window, or records kept before titles were.
+        XCTAssertEqual(index.examples(query: query, bundleID: "com.apple.mail", windowTitle: "Re: Lunch", currentText: ""), [])
+        XCTAssertEqual(index.examples(query: query, bundleID: "com.tinyspeck.slackmacgap", windowTitle: "Re: Northwind logo", currentText: ""), [])
+        XCTAssertEqual(index.examples(query: query, bundleID: "com.apple.mail", windowTitle: nil, currentText: ""), [])
+        let old = TypingHistoryIndex(records: [TypingHistoryRecord(text: records[0].text, bundleID: "com.apple.mail")])
+        XCTAssertEqual(old.examples(query: query, bundleID: "com.apple.mail", windowTitle: "Re: Northwind logo", currentText: ""), [])
     }
 
     // MARK: Query

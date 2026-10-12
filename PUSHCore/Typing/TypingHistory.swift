@@ -8,10 +8,16 @@ public struct TypingHistoryRecord: Codable, Sendable, Equatable {
     public var text: String
     public var bundleID: String
     public var date: Date
+    /// The window it was written in. Examples come only from the same app and
+    /// window (the user's call, 2026-10-11): writing from another window —
+    /// another thread, another document — must not surface here. Nil in
+    /// records kept before, which therefore no longer serve as examples.
+    public var windowTitle: String?
 
-    public init(text: String, bundleID: String, date: Date = Date()) {
+    public init(text: String, bundleID: String, windowTitle: String? = nil, date: Date = Date()) {
         self.text = text
         self.bundleID = bundleID
+        self.windowTitle = windowTitle
         self.date = date
     }
 }
@@ -53,14 +59,16 @@ public struct TypingHistoryIndex: Sendable {
     struct Passage: Sendable {
         let text: String
         let bundleID: String
+        let windowTitle: String?
         let words: Set<String>
     }
 
     /// Passages are cut to about this size at sentence ends.
     static let passageCharacters = 320
     /// Below this shared weight, a match is coincidence and only adds noise.
-    static let minimumScore = 6.0
-    static let sameAppBoost = 1.3
+    /// (6 with a 1.3x same-app boost when other apps counted; every passage
+    /// is from the same app and window now, so the boost is folded in.)
+    static let minimumScore = 4.6
 
     let passages: [Passage]
     private let postings: [String: [Int]]
@@ -73,7 +81,9 @@ public struct TypingHistoryIndex: Sendable {
         for record in records {
             for text in Self.passages(of: record.text) {
                 let words = Self.words(text)
-                if words.count >= 4 { passages.append(Passage(text: text, bundleID: record.bundleID, words: words)) }
+                if words.count >= 4 {
+                    passages.append(Passage(text: text, bundleID: record.bundleID, windowTitle: record.windowTitle, words: words))
+                }
             }
         }
         var postings: [String: [Int]] = [:]
@@ -89,8 +99,10 @@ public struct TypingHistoryIndex: Sendable {
     /// Up to `limit` passages that share the most telling words with `query`,
     /// within `maxCharacters` all told. Never a passage already in
     /// `currentText` — showing the model the user's own draft makes it echo.
-    public func examples(query: String, bundleID: String?, currentText: String,
+    /// Only passages written in the same app and window count.
+    public func examples(query: String, bundleID: String?, windowTitle: String?, currentText: String,
                          limit: Int = 2, maxCharacters: Int = 760) -> [String] {
+        guard let bundleID, let windowTitle, !windowTitle.isEmpty else { return [] }
         let queryWords = Self.words(query)
         guard !queryWords.isEmpty else { return [] }
         var scores: [Int: Double] = [:]
@@ -99,9 +111,9 @@ public struct TypingHistoryIndex: Sendable {
             for i in hits { scores[i, default: 0] += weight }
         }
         var ranked: [(index: Int, score: Double)] = []
-        for (i, score) in scores {
-            let boosted = passages[i].bundleID == bundleID ? score * Self.sameAppBoost : score
-            if boosted >= Self.minimumScore { ranked.append((i, boosted)) }
+        for (i, score) in scores
+        where passages[i].bundleID == bundleID && passages[i].windowTitle == windowTitle && score >= Self.minimumScore {
+            ranked.append((i, score))
         }
         // Best first; on a tie, the newer passage.
         ranked.sort { a, b in a.score != b.score ? a.score > b.score : a.index > b.index }

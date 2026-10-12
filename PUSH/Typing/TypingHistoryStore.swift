@@ -44,7 +44,7 @@ final class TypingHistoryStore {
 
     private var loaded = false
     private var index: TypingHistoryIndex?
-    private var active: (element: Int, bundleID: String, text: String)?
+    private var active: (element: Int, bundleID: String, windowTitle: String?, text: String)?
     private var saveTask: Task<Void, Never>?
     /// Bumped by Delete All, so a load or save already running is dropped.
     private var generation = 0
@@ -58,7 +58,7 @@ final class TypingHistoryStore {
     /// Called for each suggestion request, after every check that decides
     /// Type may run here — so nothing is kept where Type stays quiet (secure,
     /// sign-in and terminal fields, excluded apps).
-    func observe(element: Int, bundleID: String?, before: String) {
+    func observe(element: Int, bundleID: String?, windowTitle: String?, before: String) {
         guard isOn, loaded, !unreadable, let bundleID, !excludedApps.contains(bundleID) else { return }
         if let current = active, current.element == element,
            TypingHistoryContinuity.isSameWriting(old: current.text, new: before) {
@@ -66,7 +66,7 @@ final class TypingHistoryStore {
             return
         }
         finishActive()
-        active = (element, bundleID, before)
+        active = (element, bundleID, windowTitle, before)
     }
 
     /// The field being written joins the history.
@@ -78,7 +78,7 @@ final class TypingHistoryStore {
         // An earlier, shorter copy of the same writing (the user came back to
         // the note) is replaced rather than kept twice.
         records.removeAll { $0.bundleID == current.bundleID && text.contains($0.text.prefix(200)) }
-        records.append(TypingHistoryRecord(text: text, bundleID: current.bundleID))
+        records.append(TypingHistoryRecord(text: text, bundleID: current.bundleID, windowTitle: current.windowTitle))
         if records.count > Self.maximumRecords { records.removeFirst(records.count - Self.maximumRecords) }
         rebuildIndex()
         scheduleSave()
@@ -86,11 +86,12 @@ final class TypingHistoryStore {
 
     // MARK: - Examples
 
-    /// Up to two past passages on the topic of what is being written.
+    /// Up to two past passages on the topic of what is being written, from
+    /// the same app and window.
     func examples(before: String, bundleID: String?, windowTitle: String?) -> [String] {
         guard isOn, let index else { return [] }
         let query = [TypingHistoryQuery.stableText(before), windowTitle ?? ""].joined(separator: " ")
-        return index.examples(query: query, bundleID: bundleID, currentText: before)
+        return index.examples(query: query, bundleID: bundleID, windowTitle: windowTitle, currentText: before)
     }
 
     // MARK: - Storage

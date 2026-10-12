@@ -447,7 +447,8 @@ final class TypingCoordinator {
                                              url: nil, placeholder: nil)
         }
         if surface != .terminal {
-            TypingHistoryStore.shared.observe(element: focus.elementID, bundleID: focus.bundleID, before: before)
+            TypingHistoryStore.shared.observe(element: focus.elementID, bundleID: focus.bundleID,
+                                              windowTitle: focus.windowTitle, before: before)
         }
         guard SuggestionText.shouldSuggest(before: before, after: surface == .terminal ? nil : focus.after) else {
             return skip("too little text, or caret inside a word")
