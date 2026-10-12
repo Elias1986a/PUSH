@@ -59,22 +59,30 @@ final class MenuBarController: NSObject {
         // Ready means the features that are on: with dictation off the speech
         // model never loads, and a Type-only PUSH showed an hourglass forever.
         let ready = state.dictationEnabled ? state.isModelReady : (!state.typeEnabled || state.typingModelReady)
-        statusItem?.button?.image = Self.icon(ready: ready, typing: state.typeEnabled)
+        statusItem?.button?.image = Self.icon(ready: ready, dictation: state.dictationEnabled, typing: state.typeEnabled)
     }
 
-    /// The microphone; with Type on, a text cursor beside it (the user's
-    /// design, 2026-10-11) — PUSH both hears and types.
-    static func icon(ready: Bool, typing: Bool) -> NSImage? {
+    /// One symbol per feature that is on: the microphone for dictation, a
+    /// text cursor for Type, both side by side when both are (the user's
+    /// design, 2026-10-11; one or the other alone, 2026-10-12). With neither
+    /// on, the microphone, so PUSH is still findable.
+    static func icon(ready: Bool, dictation: Bool, typing: Bool) -> NSImage? {
         guard ready else { return template(NSImage(systemSymbolName: "hourglass", accessibilityDescription: "PUSH")) }
         guard let mic = NSImage(systemSymbolName: "music.mic", accessibilityDescription: "PUSH") else { return nil }
         guard typing else { return template(mic) }
         // An I-beam drawn by hand: the SF cursor symbols all carry an "A".
         let gap: CGFloat = 1.5, beam: CGFloat = 5
-        let size = NSSize(width: mic.size.width + gap + beam, height: max(mic.size.height, 16))
+        let micWidth = dictation ? mic.size.width + gap : 0
+        // Alone, the beam gets a little room either side so the click target
+        // and spacing match the other menu bar icons.
+        let pad: CGFloat = dictation ? 0 : 3
+        let size = NSSize(width: micWidth + beam + pad * 2, height: max(mic.size.height, 16))
         let image = NSImage(size: size, flipped: false) { rect in
-            mic.draw(in: CGRect(x: 0, y: (rect.height - mic.size.height) / 2,
-                                width: mic.size.width, height: mic.size.height))
-            let x = mic.size.width + gap + beam / 2
+            if dictation {
+                mic.draw(in: CGRect(x: 0, y: (rect.height - mic.size.height) / 2,
+                                    width: mic.size.width, height: mic.size.height))
+            }
+            let x = micWidth + pad + beam / 2
             let top = rect.midY + 6, bottom = rect.midY - 6
             let path = NSBezierPath()
             path.lineWidth = 1.3
