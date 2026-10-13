@@ -230,3 +230,53 @@ a:hover { color: var(--on-air); }
 
 /* Thank-you page (thanks/) */
 .thanks-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 14px; font: 400 clamp(16px, 1.6vw, 19px)/1.5 var(--font-body); color: var(--ink); }
+
+/* Two in one (PUSHTYPE, 9.1): voice and Type side by side */
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.duo .card { padding: 36px; gap: 18px; }
+.duo .card h3 { font-size: 30px; }
+.duo .tag { font: 600 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--on-air); margin: 0; }
+.duo .stat { font: 700 15px/1.3 var(--font-mono); color: var(--ink); margin: 0; }
+.and-more { margin: 0; font: 500 17px/1.5 var(--font-body); color: var(--ink-muted); text-align: center; }
+
+/* A text field with a gray suggestion after the caret */
+.field-demo { background: var(--studio); border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1.5px var(--chrome-deep); padding: 16px 18px; font: 400 19px/1.5 var(--font-body); color: var(--ink); min-height: 92px; }
+.field-demo .ghost { color: #8e8e93; }
+.field-demo .caret { height: 22px; vertical-align: -5px; margin: 0 1px 0 0; background: var(--ink); }
+.key-hint { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; color: var(--ink-muted); }
+.key-hint .keycap { padding: 6px 10px; font-size: 13px; }
+
+/* Demo video slot: replace .video-slot with a <video> when the demo exists */
+.video-slot { aspect-ratio: 16 / 9; width: 100%; border-radius: var(--radius-md); border: 2px dashed var(--chrome-deep); background: var(--studio-raised); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 24px; color: var(--ink-muted); }
+.video-slot .play { width: 64px; height: 64px; border-radius: 50%; background: var(--on-air); display: flex; align-items: center; justify-content: center; }
+.video-slot .play::after { content: ""; border-left: 20px solid var(--on-on-air); border-top: 12px solid transparent; border-bottom: 12px solid transparent; margin-left: 5px; }
+.video-slot p { margin: 0; font: 600 18px/1.3 var(--font-body); color: var(--ink); }
+
+/* Learns you: two sources flow into one memory */
+.learn-flow { display: grid; grid-template-columns: 1fr auto 1.15fr auto 1fr; gap: 18px; align-items: center; }
+.learn-flow .card { padding: 24px; gap: 8px; height: 100%; justify-content: center; }
+.learn-flow .card h3 { font-size: 20px; }
+.learn-flow .card.center { box-shadow: inset 0 0 0 2px var(--on-air); }
+.learn-flow .arrow { font: 700 28px/1 var(--font-mono); color: var(--on-air); }
+.learn-flow .sources { display: flex; flex-direction: column; gap: 18px; height: 100%; }
+.learn-flow .sources .card { height: auto; flex: 1; }
+
+@media (max-width: 960px) {
+  .learn-flow { grid-template-columns: minmax(0, 1fr); }
+  .learn-flow .arrow { transform: rotate(90deg); justify-self: center; }
+}
+@media (max-width: 620px) {
+  .duo { grid-template-columns: minmax(0, 1fr); }
+  .duo .card { padding: 26px 22px; }
+  .duo .card h3 { font-size: 26px; }
+}
+/* A full-width band in the raised color, without the speed section's two columns */
+.raised { background: var(--studio-raised); border-block: 1px solid var(--chrome); }
+.raised .card { background: var(--studio); }
+/* PUSHTYPE is a longer wordmark than PUSH: keep the nav inside a phone */
+@media (max-width: 960px) { .brand { margin-right: auto; } }
+@media (max-width: 620px) {
+  .nav { gap: 12px; }
+  .brand .disp { font-size: 22px; }
+  .nav .pb-btn { padding: 10px 16px; }
+}

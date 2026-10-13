@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PUSH: offline dictation for the Mac</title>
-<meta name="description" content="Hold a key, speak, let go. PUSH turns your voice into text on your Mac in under a fifth of a second. No cloud, no account, no subscription. $22 once for 3 Macs.">
+<title>PUSHTYPE: dictation and autocomplete for the Mac</title>
+<meta name="description" content="Talk it or type it. PUSHTYPE is dictation and inline autocomplete in one Mac app, running entirely on your Mac and learning from both how you talk and how you type. No cloud, no account, no subscription. $22 once for 3 Macs.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="assets/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,13 +18,14 @@
 <body>
 
 <header class="wrap nav">
-<a class="brand" href="/"><span class="disp">PUSH</span><span class="dot"></span></a>
+<a class="brand" href="/"><span class="disp">PUSHTYPE</span><span class="dot"></span></a>
 <nav class="nav-links" aria-label="Main">
+<a href="#two-in-one">Two in one</a>
+<a href="#learns">Learns you</a>
+<a href="#type">Type</a>
 <a href="#speed">Speed</a>
 <a href="#privacy">Privacy</a>
-<a href="#teleprompter">Teleprompter</a>
 <a href="#features">Features</a>
-<a href="#california">California mode</a>
 <a href="#faq">FAQ</a>
 </nav>
 <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
@@ -38,15 +39,16 @@
 
 <section class="wrap hero" id="top">
 <div class="stack" style="gap: 28px;">
-<p class="eyebrow">Offline dictation for the Mac</p>
-<h1 class="disp">Push to talk. Nothing leaves your Mac.</h1>
-<p class="lede">Hold a key, speak, let go. Your words appear wherever you were typing, transcribed on your Mac a few hundredths of a second after you let go.</p>
+<p class="eyebrow">Dictation and autocomplete for the Mac</p>
+<h1 class="disp">Talk it or type it. Nothing leaves your Mac.</h1>
+<p class="lede">Hold a key and speak, or just start typing and PUSHTYPE finishes your sentence. Two tools in one app, both running on your Mac, both learning how you write.</p>
 <div class="row">
-<a class="pb-btn pb-btn-push" href="#pricing">Buy PUSH <span class="pb-price">$22</span></a>
-<a class="pb-btn pb-btn-quiet" href="#speed">See it race the cloud</a>
+<a class="pb-btn pb-btn-push" href="#pricing">Buy PUSHTYPE <span class="pb-price">$22</span></a>
+<a class="pb-btn pb-btn-quiet" href="#two-in-one">See what's inside</a>
 </div>
 <div class="chips">
 <span class="pb-chip pb-chip-mono">$22 once · 3 Macs</span>
+<span class="pb-chip pb-chip-mono">Voice + Type</span>
 <span class="pb-chip pb-chip-mono">macOS 15+</span>
 <span class="pb-chip pb-chip-mono">Apple silicon</span>
 </div>
@@ -54,9 +56,93 @@
 <div class="demo demo-video">
 <img class="demo-icon" src="assets/icon.png" alt="">
 <figure class="hero-video">
-<video src="assets/video/dictation.mp4" poster="assets/video/dictation.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="Dictating into Notes with PUSH: the pill listens, and the text appears when the key is released"></video>
+<video src="assets/video/dictation.mp4" poster="assets/video/dictation.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="Dictating into Notes with PUSHTYPE: the pill listens, and the text appears when the key is released"></video>
 <figcaption><span class="rec-dot"></span>Real time. Nothing sped up.</figcaption>
 </figure>
+</div>
+</section>
+
+<section class="wrap section" id="two-in-one">
+<div class="stack" style="gap: 48px;">
+<div class="stack head">
+<p class="eyebrow">Two in one</p>
+<h2 class="disp h2">One app for everything you write.</h2>
+<p class="body">Some sentences are faster said, some are faster typed. PUSHTYPE does both, in every app, with one dictionary, one memory of how you write, and one icon in the menu bar.</p>
+</div>
+<div class="duo">
+<div class="card">
+<p class="tag">Voice</p>
+<h3>Hold a key. Speak. Let go.</h3>
+<div class="row" style="gap: 10px;"><span class="keycap on">⌥ hold</span><span class="mono" style="font-size: 15px; color: var(--ink-muted);">“let's ship it on Tuesday”</span></div>
+<p class="body small">Your words land wherever you were typing, with the “um”s gone, the numbers written properly and your corrections applied. Transcribed on your Mac as you speak.</p>
+<p class="stat">Text 0.04 s after you let go · 20× faster than the cloud</p>
+</div>
+<div class="card">
+<p class="tag">Type</p>
+<h3>Start typing. It finishes the sentence.</h3>
+<div class="field-demo" aria-label="A text field: “Thanks for sending the contract over. I'll” typed, with “take a look tonight and get back to you.” suggested in gray">Thanks for sending the contract over. I'll<span class="caret"></span><span class="ghost"> take a look tonight and get back to you.</span></div>
+<div class="key-hint"><span class="keycap">Tab</span> takes the next word <span class="keycap">` ~</span> takes it all · or just keep typing</div>
+<p class="stat">On screen 0.057 s after a key</p>
+</div>
+</div>
+<p class="and-more">Plus a teleprompter that follows your voice, for when you're on camera. <a href="#teleprompter">See it →</a></p>
+</div>
+</section>
+
+<section class="wrap section tight" id="demo">
+<!-- DEMO VIDEO SLOT (16:9). When the demo is ready, replace the whole
+     .video-slot div with:
+     <figure class="hero-video" style="margin: 0;"><video src="assets/video/demo.mp4" poster="assets/video/demo.jpg" controls playsinline preload="metadata" aria-label="PUSHTYPE demo"></video></figure> -->
+<div class="video-slot" role="img" aria-label="Demo video coming soon">
+<span class="play" aria-hidden="true"></span>
+<p>The demo: voice and Type, side by side</p>
+<span class="mono" style="font-size: 13px;">Video coming soon</span>
+</div>
+</section>
+
+<section class="raised section" id="learns">
+<div class="wrap">
+<div class="stack" style="gap: 48px;">
+<div class="stack head">
+<p class="eyebrow">It learns you</p>
+<h2 class="disp h2">It learns from how you talk and how you type.</h2>
+<p class="body">An autocomplete only sees your keyboard. A dictation app only hears your voice. PUSHTYPE has both, so the suggestions it makes are built from everything you write: the emails you dictate and the replies you type. The longer you use it, the more it sounds like you.</p>
+</div>
+<div class="learn-flow">
+<div class="sources">
+<div class="card"><h3>What you say</h3><p class="body small">Your dictations, as finished text. Never the audio.</p></div>
+<div class="card"><h3>What you type</h3><p class="body small">Your own writing, in the apps where suggestions are on.</p></div>
+</div>
+<span class="arrow" aria-hidden="true">→</span>
+<div class="card center"><h3>Your writing, on your Mac</h3><p class="body small">Encrypted with a key in your Keychain. Never synced, never sent. Off until you switch it on, with a Delete All button and apps you can leave out.</p></div>
+<span class="arrow" aria-hidden="true">→</span>
+<div class="card"><h3>Suggestions that sound like you</h3><p class="body small">When you start writing, PUSHTYPE finds what you've written before on the same subject and suggests the way you'd say it.</p></div>
+</div>
+<div class="grid g3">
+<div class="card"><h3>One dictionary, both ways</h3><p class="body small">Teach it a name once. Dictation spells it right, and when you type “Kub” it finishes “Kubernetes”, never flagging it as a typo.</p></div>
+<div class="card"><h3>About you</h3><p class="body small">Add the name you sign off with and a line about how you write: short and friendly, formal, British spelling. Suggestions follow it.</p></div>
+<div class="card"><h3>Reads the room</h3><p class="body small">It sees the email you're replying to, the chat above, the page you're on, and what you just copied. Read at the moment of a suggestion, then forgotten.</p></div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="wrap section" id="type">
+<div class="stack" style="gap: 48px;">
+<div class="stack head">
+<p class="eyebrow">Type, the autocomplete</p>
+<h2 class="disp h2">Gray ahead of your cursor. Tab to take it.</h2>
+<p class="body">As you type, the rest of your sentence appears in gray, right at the cursor, in the field's own font. Take it a word at a time, take all of it, or ignore it and keep typing. It works wherever you write.</p>
+</div>
+<div class="field-demo" style="max-width: 760px;" aria-label="A reply being typed: “Sounds good, can we move our meeting to” with “Thursday at 2?” suggested in gray">Sounds good, can we move our meeting to<span class="caret"></span><span class="ghost"> Thursday at 2?</span></div>
+<div class="grid g3">
+<div class="card"><h3>In every app</h3><p class="body small">Mail, Messages, Notes, Safari and Chrome, and Claude Code in Terminal. It finishes your sentence right after a dictation, too.</p></div>
+<div class="card"><h3>Your keys, your color</h3><p class="body small">Choose the keys that accept a word or the whole suggestion, and a color that reads on your screen. Gray by default.</p></div>
+<div class="card"><h3>Knows when to stay quiet</h3><p class="body small">Never in password or sign-in fields, browser address bars or a plain shell prompt. Off in code editors unless you want it. Esc dismisses.</p></div>
+<div class="card"><h3>Pick a model for your Mac</h3><p class="body small">Three open models, 1.3 to 5.3 GB, downloaded once. Bigger writes longer, smarter suggestions; smaller is lighter on memory.</p></div>
+<div class="card"><h3>The next one is ready</h3><p class="body small">Finish a sentence with Tab and the next suggestion is already there, about a tenth of a second later.</p></div>
+<div class="card"><h3>Pause any time</h3><p class="body small">Pause suggestions for an hour or until tomorrow from the menu bar, switch them off in any app, or pause on battery.</p></div>
+</div>
 </div>
 </section>
 
@@ -65,15 +151,17 @@
 <div class="stack">
 <p class="eyebrow">Measured, not claimed</p>
 <h2 class="disp h2">Done before you look up.</h2>
-<p class="body">Cloud dictation sends your voice to a server and waits for it to come back. PUSH never leaves the building, so the text is there the moment you let go.</p>
+<p class="body">Cloud dictation sends your voice to a server and waits for it to come back. PUSHTYPE never leaves the building, so the text is there the moment you let go, and a suggestion is on screen before your next key.</p>
 </div>
 <div class="stack" style="gap: 28px;">
 <div class="row" style="align-items: baseline;"><span class="big">20×</span><span class="body">faster than Wispr Flow, release to text</span></div>
 <div class="pb-speed">
-<div class="pb-speed-label">PUSH<small>on your Mac</small></div><div class="pb-speed-track"><div class="pb-speed-fill is-push" style="width: 5%;"></div></div><div class="pb-speed-num">0.04 s</div>
+<div class="pb-speed-label">PUSHTYPE<small>on your Mac</small></div><div class="pb-speed-track"><div class="pb-speed-fill is-push" style="width: 5%;"></div></div><div class="pb-speed-num">0.04 s</div>
 <div class="pb-speed-label">Wispr Flow<small>cloud, incl. network</small></div><div class="pb-speed-track"><div class="pb-speed-fill" style="width: 97%;"></div></div><div class="pb-speed-num">0.87 s</div>
 </div>
-<p class="footnote mono">Median of 13 readings of the same 25-second passage · 30 Sep 2026 · Mac mini (M4). PUSH shown with Parakeet Ultra; Parakeet Streaming, the default on English Macs, measured 0.02 s. PUSH transcribes as you speak; times run from letting go of the key. Wispr Flow = 0.74 s server processing + 0.13 s network. <a href="benchmark/">How we measured →</a></p>
+<p class="footnote mono">Median of 13 readings of the same 25-second passage · 30 Sep 2026 · Mac mini (M4). PUSHTYPE shown with Parakeet Ultra; Parakeet Streaming, the default on English Macs, measured 0.02 s. PUSHTYPE transcribes as you speak; times run from letting go of the key. Wispr Flow = 0.74 s server processing + 0.13 s network. <a href="benchmark/">How we measured →</a></p>
+<div class="row" style="align-items: baseline;"><span class="big">0.057 s</span><span class="body">from a key to the suggestion on screen</span></div>
+<p class="footnote mono">Type, median, typing 10 keys a second · 11 Oct 2026 · Mac mini (M4), Best model (Gemma 4 E2B). A suggestion was already showing 80 ms after 68% of keys. <a href="benchmark/#type">How we measured →</a></p>
 </div>
 </div>
 </section>
@@ -82,14 +170,14 @@
 <div class="stack" style="gap: 48px;">
 <div class="stack head">
 <p class="eyebrow">Private by design</p>
-<h2 class="disp h2">Your voice never leaves your Mac.</h2>
-<p class="body">There's no server to trust, because there's no server. The speech model runs on your Mac's Neural Engine, and your audio is thrown away the moment it becomes text.</p>
+<h2 class="disp h2">Your voice and your keystrokes never leave your Mac.</h2>
+<p class="body">There's no server to trust, because there's no server. The speech model runs on your Mac's Neural Engine and the typing model on its GPU. Your audio is thrown away the moment it becomes text, and what you type is read only to make a suggestion.</p>
 </div>
 <div class="grid g4">
 <div class="card">
 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-deep)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M17.5 17.5H7a4.5 4.5 0 0 1-1.3-8.8"/><path d="M9.2 5.4A6 6 0 0 1 18 9a4 4 0 0 1 2.6 6.9"/></svg>
 <h3>No cloud</h3>
-<p class="body small">Speech recognition runs entirely on your Mac. Nothing you say is uploaded, stored or used for training.</p>
+<p class="body small">Speech recognition and suggestions run entirely on your Mac. Nothing you say or type is uploaded, or used to train anyone's model.</p>
 </div>
 <div class="card">
 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-deep)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M3 3l18 18"/></svg>
@@ -99,7 +187,7 @@
 <div class="card">
 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-deep)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
 <h3>Works offline</h3>
-<p class="body small">On a plane, in a basement, on hotel Wi-Fi that isn't really Wi-Fi. It only needs the internet once, to download a model.</p>
+<p class="body small">On a plane, in a basement, on hotel Wi-Fi that isn't really Wi-Fi. It only needs the internet to download a model, once.</p>
 </div>
 <div class="card">
 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-deep)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="13" height="9" rx="1.5"/><path d="M6 16h5"/><rect x="12" y="10" width="10" height="7" rx="1.5"/><path d="M15 20h4"/></svg>
@@ -125,7 +213,7 @@
 3. Bread</p></div>
 </div>
 <div class="grid g2">
-<div class="card"><h3>Works in every app you type in</h3><p class="body small">Mail, Slack, Notes, your code editor, a browser form. If there's a cursor, PUSH can fill it.</p></div>
+<div class="card"><h3>Works in every app you type in</h3><p class="body small">Mail, Slack, Notes, your code editor, a browser form. If there's a cursor, PUSHTYPE can fill it.</p></div>
 <div class="card"><h3>Knows your words</h3><p class="body small">Teach it the names and jargon it keeps mishearing. Your dictionary follows you to every Mac through your own iCloud.</p></div>
 </div>
 </div>
@@ -134,7 +222,7 @@
 <section class="dark section" id="teleprompter">
 <div class="wrap prompter-wrap">
 <div class="stack">
-<p class="eyebrow">For creators: a teleprompter</p>
+<p class="eyebrow">And for creators: a teleprompter</p>
 <h2 class="disp h2">On your screen. Not in your video.</h2>
 <p style="margin: 0; font: 600 20px/1.45 var(--font-body);">Record your screen and the prompter isn't in the shot. Your viewers see you and your demo, never the script.</p>
 <p class="body muted">Paste your script and it hangs just under the notch, right by the camera, so your eyes stay on the lens. It scrolls because it heard you say the words, at whatever pace you read, and holds still when you stop or go off-script.</p>
@@ -155,7 +243,7 @@
 <div class="stack" style="gap: 56px;">
 <div class="stack head">
 <p class="eyebrow">Everything it does</p>
-<h2 class="disp h2">Small app. Lots of thought.</h2>
+<h2 class="disp h2">Two tools. Lots of thought.</h2>
 </div>
 <div class="grid g4">
 <div class="card" style="gap: 18px;">
@@ -179,11 +267,13 @@
 <p class="body small">Hanging from the notch, or floating at the bottom of the screen. Three sizes.</p>
 </div>
 </div>
-<div class="grid g4 feature-lists">
+<div class="grid g3 feature-lists">
 <div><h3>While you talk</h3><ul class="bullets"><li>Lowers other apps' volume, then restores it</li><li>Choose which microphone to use</li><li>Optional sound when recording starts</li></ul></div>
 <div><h3>Cleaning up</h3><ul class="bullets"><li>Drops “um” and “uh”</li><li>Follows “I mean”, “no wait”, “scratch that”</li><li>Times, money and percentages, typed properly</li><li>Say “quote … end quote” and get real quotation marks</li><li>“New line”, “new paragraph”, bullets and numbered lists</li><li>Adds the question mark the model forgot</li><li>Two spaces after a full stop, if that's how you type</li><li>California mode, if you need it</li></ul></div>
 <div><h3>Your words</h3><ul class="bullets"><li>Personal dictionary for names and jargon</li><li>Fixes that apply always, or only in context</li><li>Syncs across your Macs through your own iCloud</li><li>English plus about 25 languages detected automatically, with Parakeet Ultra</li><li>Switch language from the menu bar</li></ul></div>
-<div><h3>Stays out of the way</h3><ul class="bullets"><li>Lives in the menu bar, no Dock icon</li><li>Opens at login if you like</li><li>Three on-device speech models to choose from</li><li>Updates itself quietly</li><li>A guided setup on first launch</li></ul></div>
+<div><h3>While you type</h3><ul class="bullets"><li>Gray suggestions in the field's own font</li><li>Tab for a word, ` ~ for all of it, or your own keys</li><li>Uses the email or chat you're replying to</li><li>Learns from your writing and your voice, if you let it</li><li>Your dictionary words finish themselves</li><li>Three open typing models</li><li>Pause, or switch off per app</li></ul></div>
+<div><h3>Learns you</h3><ul class="bullets"><li>From your dictations and your typing</li><li>Finished text only, never audio</li><li>Encrypted on your Mac, never synced</li><li>Off until you turn it on</li><li>Leave out any app</li><li>Delete All, any time</li></ul></div>
+<div><h3>Stays out of the way</h3><ul class="bullets"><li>Lives in the menu bar, no Dock icon</li><li>Switch Dictation or Type on and off from the menu</li><li>Opens at login if you like</li><li>Three speech models and three typing models</li><li>Updates itself quietly</li><li>A short guided setup on first launch</li></ul></div>
 </div>
 </div>
 </section>
@@ -201,7 +291,7 @@
 <p id="cali-on" hidden>“So I went to the store and bought milk. It was amazing. We should totally go back. Let's take the 405.”</p>
 <div class="row" style="justify-content: space-between; gap: 24px;">
 <button class="pb-cali" id="cali-toggle" type="button" role="switch" aria-checked="false"><span class="pb-cali-track"><span class="pb-cali-knob"></span></span><span id="cali-label">California mode: OFF</span></button>
-<span class="mono setting">Settings ▸ Text ▸ California mode</span>
+<span class="mono setting">Settings ▸ Dictation ▸ California mode</span>
 </div>
 </div>
 <div class="stack" style="gap: 14px;">
@@ -219,7 +309,7 @@
 
 <section class="wrap section tight">
 <div class="stack" style="gap: 24px;">
-<p class="eyebrow">Speaks your language</p>
+<p class="eyebrow">Dictation speaks your language</p>
 <p class="body head">English and about 25 European languages, detected as you speak with Parakeet Ultra. Chinese, Japanese, Arabic, Hindi, Russian, Greek and more with the multilingual model.</p>
 <div class="chips">
 <span class="pb-chip">Hello</span><span class="pb-chip">Hola</span><span class="pb-chip">Bonjour</span><span class="pb-chip">Hallo</span><span class="pb-chip">Ciao</span><span class="pb-chip">Olá</span><span class="pb-chip">Hej</span><span class="pb-chip">Cześć</span><span class="pb-chip">Ahoj</span><span class="pb-chip">Γεια σας</span><span class="pb-chip">Привет</span><span class="pb-chip">你好</span><span class="pb-chip">こんにちは</span><span class="pb-chip">مرحبا</span><span class="pb-chip">नमस्ते</span>
@@ -231,19 +321,20 @@
 <div class="wrap">
 <div class="stack">
 <p class="eyebrow">Pricing</p>
-<h2 class="disp h2">Pay once. Talk forever.</h2>
-<p style="margin: 0; font: 400 19px/1.55 var(--font-body); color: var(--band-muted);">No subscription, no word limits, no tiers. Every update we ship for PUSH on the Mac is included.</p>
+<h2 class="disp h2">Pay once. Talk and type forever.</h2>
+<p style="margin: 0; font: 400 19px/1.55 var(--font-body); color: var(--band-muted);">Voice and Type, one price. No subscription, no word limits, no tiers. Every update we ship for PUSHTYPE on the Mac is included.</p>
 <p class="mono" style="margin: 0; font-size: 14px; color: var(--band-muted);">For comparison: a year of Wispr Flow Pro is $144.</p>
 </div>
 <div class="price-card">
 <div class="row" style="align-items: baseline; gap: 12px;"><span class="price">$22</span><span class="body">once</span></div>
 <ul class="ticks">
+<li><span class="dot"></span>Dictation and Type, both included</li>
 <li><span class="dot"></span>Up to 3 Macs</li>
 <li><span class="dot"></span>Every future update included</li>
-<li><span class="dot"></span>All three speech models</li>
+<li><span class="dot"></span>All speech and typing models</li>
 <li><span class="dot"></span>14-day refund, no questions</li>
 </ul>
-<a class="pb-btn pb-btn-push" id="buy" href="#pricing" aria-describedby="buy-note">Buy PUSH <span class="pb-price">$22</span></a>
+<a class="pb-btn pb-btn-push" id="buy" href="#pricing" aria-describedby="buy-note">Buy PUSHTYPE <span class="pb-price">$22</span></a>
 <p id="buy-note" style="margin: 0; font-size: 14px; color: var(--ink-muted); text-align: center;">Checkout opens at launch. More Macs? $10 each. Taxes handled by Polar.</p>
 </div>
 </div>
@@ -253,10 +344,12 @@
 <div class="stack" style="gap: 40px;">
 <h2 class="disp h2">Questions</h2>
 <div class="grid g2 faq">
-<div><h3>Does it need the internet?</h3><p class="body small">Once, to download a speech model (about 600 MB). After that, dictation works with Wi-Fi off.</p></div>
-<div><h3>Which Macs?</h3><p class="body small">Any Apple silicon Mac (M1 or later) on macOS 15 or newer.</p></div>
-<div><h3>What does “every update” mean?</h3><p class="body small">Every version of PUSH for the Mac we release, free, for as long as we make it. No paid upgrades, no subscription.</p></div>
-<div><h3>Is it really private?</h3><p class="body small">Your audio and transcripts never leave your Mac. The <a href="legal/privacy.html">privacy policy</a> lists the few things that do connect: model downloads, update checks, licence checks with Polar and optional iCloud sync.</p></div>
+<div><h3>Does it need the internet?</h3><p class="body small">Only to download the models, once: about 600 MB for dictation, and 1.3 to 5.3 GB for Type depending on the model you pick. After that, both work with Wi-Fi off.</p></div>
+<div><h3>Which Macs?</h3><p class="body small">Any Apple silicon Mac (M1 or later) on macOS 15 or newer. The largest typing model wants 16 GB of memory; the others run on any of them.</p></div>
+<div><h3>What does “every update” mean?</h3><p class="body small">Every version of PUSHTYPE for the Mac we release, free, for as long as we make it. No paid upgrades, no subscription.</p></div>
+<div><h3>Is it really private?</h3><p class="body small">Your audio, your transcripts and what you type never leave your Mac. The <a href="legal/privacy.html">privacy policy</a> lists the few things that do connect: model downloads, update checks, licence checks with Polar and optional iCloud sync.</p></div>
+<div><h3>Does Type learn from what I write?</h3><p class="body small">Only if you switch on “Learn from my writing and voice”. Then it keeps what you type and dictate, encrypted on your Mac, so suggestions sound like you. It's never synced or sent, and Delete All erases it.</p></div>
+<div><h3>Can I use just one of them?</h3><p class="body small">Yes. Dictation and Type each have their own switch in the menu bar and in Settings. Use one, the other, or both.</p></div>
 <div><h3>What if it's not for me?</h3><p class="body small">Email us within 14 days for a full refund. No questions, no forms.</p></div>
 <div><h3>Buying for a team?</h3><p class="body small">One licence per person. Write to us for 10 or more and we'll sort out a volume price.</p></div>
 </div>
@@ -267,7 +360,7 @@
 
 <section class="about">
 <div class="wrap">
-<img src="assets/icon.png" alt="The PUSH icon: a desk microphone with a push button">
+<img src="assets/icon.png" alt="The PUSHTYPE icon: a desk microphone over a keyboard">
 <div class="stack" style="gap: 6px;">
 <p class="title">Built in Los Angeles by an Angeleno. 🌴</p>
 <p style="font-size: 17px; line-height: 1.5; opacity: .9;">California mode was made by someone who says “like” a lot, for everyone who does, with love.</p>
@@ -284,7 +377,7 @@
 <a href="legal/notices.html">Third-party notices</a>
 <a href="benchmark/">How we measured</a>
 </div>
-<p>Speech models: Parakeet by NVIDIA, Parakeet Ultra by Moondream, used under their open licences. Wispr Flow is a trademark of its owner; comparison measured by us, method published. © 2026 Elias Atalah.</p>
+<p>Speech models: Parakeet by NVIDIA, Parakeet Ultra by Moondream. Typing models: Qwen by Alibaba Cloud, Gemma by Google, run with llama.cpp. All used under their open licences. Wispr Flow is a trademark of its owner; comparison measured by us, method published. © 2026 Elias Atalah.</p>
 </div>
 </footer>
 
