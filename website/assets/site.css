@@ -274,5 +274,6 @@ a:hover { color: var(--on-air); }
   .brand .disp { font-size: 22px; }
   .nav .pb-btn { padding: 10px 16px; }
 }
-/* Type's own recording, in its section (like the dictation and teleprompter videos) */
-.type-video { margin: 0; max-width: 960px; }
+/* Type's section: text beside its video, laid out like the teleprompter's */
+.type-split .screen-video video { box-shadow: inset 0 0 0 1px var(--chrome), 0 24px 60px rgba(23,22,26,0.18); }
+.type-split .screen-video .pb-chip { background: var(--studio-raised); color: var(--ink); box-shadow: inset 0 0 0 1px var(--chrome); }
