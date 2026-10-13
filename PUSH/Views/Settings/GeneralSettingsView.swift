@@ -15,9 +15,9 @@ struct GeneralSettingsView: View {
     /// binding, and writes straight back through on change.
     @State private var checksAutomatically = UpdaterManager.shared.automaticallyChecksForUpdates
 
-    /// The website's pages. Move with the site when it gets its own domain.
-    static let acknowledgementsURL = URL(string: "https://pushtype.netlify.app/legal/notices.html")!
-    static let privacyURL = URL(string: "https://pushtype.netlify.app/legal/privacy.html")!
+    /// The website's pages.
+    static let acknowledgementsURL = URL(string: "https://pushtype.app/legal/notices.html")!
+    static let privacyURL = URL(string: "https://pushtype.app/legal/privacy.html")!
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
