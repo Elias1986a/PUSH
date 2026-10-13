@@ -34,8 +34,10 @@ struct OnboardingView: View {
     @FocusState private var typingSandboxFocused: Bool
 
     /// `PUSH_ONBOARDING_STEP=typingModel` opens the wizard on that step, for
-    /// screenshots and testing. Debug builds only.
+    /// screenshots and testing. Debug builds only. After macOS relaunched
+    /// PUSH mid-wizard, the page the user was on.
     private static var initialStep: OnboardingFlow.Step {
+        if let resumed = OnboardingWindowController.takeResumeStep() { return resumed }
         #if DEBUG
         if let raw = ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"],
            let step = OnboardingFlow.Step.allCases.first(where: { "\($0)" == raw }) {
@@ -86,6 +88,9 @@ struct OnboardingView: View {
         .frame(width: OnboardingWindowController.contentSize.width,
                height: OnboardingWindowController.contentSize.height)
         .onAppear {
+            // A resumed page that no longer applies (its feature switched
+            // off meanwhile) would leave Continue with nowhere to go.
+            if !steps.contains(step) { step = .welcome }
             permissions.startPolling()
             refreshModelsOnDisk()
             // A first run starts on the recommended model, whatever preference
@@ -558,7 +563,10 @@ struct OnboardingView: View {
                 detail: "Read only at the moment of a suggestion, on this Mac. Nothing is recorded, kept or sent, and password fields are never read.",
                 status: permissions.screenRecording,
                 actionTitle: "Allow Screen Recording…",
-                action: { permissions.requestScreenRecording() }
+                action: {
+                    OnboardingWindowController.rememberStep(.screenText)
+                    permissions.requestScreenRecording()
+                }
             )
 
             HStack {
