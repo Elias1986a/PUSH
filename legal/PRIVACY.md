@@ -66,6 +66,10 @@ pushtype.app is hosted by Netlify, which keeps standard server logs (IP
 address, pages requested) for security and operations. We don't use
 advertising cookies or cross-site tracking.
 
+If you use the form on our support page, Netlify stores what you send (your
+email address, the topic and your message) and emails it to us so we can
+reply. We use it only to answer you, and delete old messages regularly.
+
 ## Your rights
 
 You can ask what we hold about you, ask us to correct or delete it, or opt out

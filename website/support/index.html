@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Support · PUSHTYPE</title>
-<meta name="description" content="Refunds, questions and feature ideas for PUSHTYPE. Email support@pushtype.app.">
+<meta name="description" content="Refunds, questions and feature ideas for PUSHTYPE.">
 <link rel="icon" href="../assets/icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
 <link rel="stylesheet" href="../assets/tokens.css">
@@ -27,29 +27,66 @@
 <section class="bench-intro">
 <p class="eyebrow">Support</p>
 <h1 class="disp">Talk to a person.</h1>
-<p class="lede">Every email is read by the person who makes PUSHTYPE. Write to <a href="mailto:support@pushtype.app">support@pushtype.app</a>, or use a button below to start the email for you.</p>
+<p class="lede">Every message is read by the person who makes PUSHTYPE. Pick what it's about, and the reply comes to your email.</p>
 </section>
 <section class="grid g3 support-options">
 <div class="card stack" style="gap: 14px;">
 <h3>Refund</h3>
-<p class="body small">Within 14 days of buying, for any reason, no questions. Send it from the email you bought with, or just reply to your Polar receipt. The money goes back to your card and that licence key stops working.</p>
-<a class="pb-btn pb-btn-push" href="mailto:support@pushtype.app?subject=Refund&amp;body=Please%20refund%20my%20PUSHTYPE%20purchase.%0A%0AEmail%20I%20bought%20with%3A%20">Ask for a refund</a>
+<p class="body small">Within 14 days of buying, for any reason, no questions. Use the email you bought with, or just reply to your Polar receipt. The money goes back to your card and that licence key stops working.</p>
+<a class="pb-btn pb-btn-push" href="#write" data-topic="Refund">Ask for a refund</a>
 </div>
 <div class="card stack" style="gap: 14px;">
 <h3>A question</h3>
 <p class="body small">Something not working, a setting you can't find, a licence that won't activate. Tell us what you expected and what happened instead.</p>
-<a class="pb-btn pb-btn-quiet" href="mailto:support@pushtype.app?subject=Question&amp;body=PUSHTYPE%20version%20%28menu%20bar%20%E2%96%B8%20Settings%20%E2%96%B8%20General%29%3A%20%0AmacOS%20version%3A%20%0A">Ask a question</a>
+<a class="pb-btn pb-btn-quiet" href="#write" data-topic="Question">Ask a question</a>
 </div>
 <div class="card stack" style="gap: 14px;">
 <h3>A feature idea</h3>
 <p class="body small">What would make PUSHTYPE better for you? Ideas from people who use it every day decide what gets built next.</p>
-<a class="pb-btn pb-btn-quiet" href="mailto:support@pushtype.app?subject=Feature%20idea&amp;body=I%20wish%20PUSHTYPE%20could%20">Suggest a feature</a>
+<a class="pb-btn pb-btn-quiet" href="#write" data-topic="Feature idea">Suggest a feature</a>
 </div>
 </section>
-<section class="bench-section">
-<p class="note">PUSHTYPE keeps no record of what you dictate or type, so we can't see it either. Please don't paste anything private into an email unless you want us to read it.</p>
+<section class="bench-section" id="write">
+<form class="card support-form" name="support" method="POST" action="/support/sent/" data-netlify="true" netlify-honeypot="company">
+<input type="hidden" name="subject" id="support-subject" value="PUSHTYPE support">
+<p class="support-hp" aria-hidden="true"><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off"></label></p>
+<label class="field"><span>What's it about?</span>
+<select name="topic" id="support-topic" required>
+<option value="Question">A question</option>
+<option value="Refund">Refund</option>
+<option value="Feature idea">A feature idea</option>
+</select></label>
+<label class="field"><span>Your email</span>
+<input type="email" name="email" autocomplete="email" required placeholder="you@example.com"></label>
+<label class="field"><span>Message</span>
+<textarea name="message" rows="6" required id="support-message" placeholder="What happened, or what you'd like."></textarea></label>
+<p class="field-hint" id="support-hint">If something isn't working, say which PUSHTYPE version you have (Settings ▸ General) and your macOS version.</p>
+<button class="pb-btn pb-btn-push" type="submit">Send</button>
+</form>
+<p class="note">Prefer email? Write to <a href="mailto:support@pushtype.app">support@pushtype.app</a>. PUSHTYPE keeps no record of what you dictate or type, so we can't see it either. Please don't include anything private unless you want us to read it.</p>
 </section>
 </main>
+<script>
+(function () {
+  var topic = document.getElementById('support-topic');
+  var subject = document.getElementById('support-subject');
+  var hint = document.getElementById('support-hint');
+  var hints = {
+    'Refund': 'Use the email you bought with, so we can find your order. No reason needed.',
+    'Question': 'If something isn\'t working, say which PUSHTYPE version you have (Settings ▸ General) and your macOS version.',
+    'Feature idea': 'What would you use it for? A sentence about that helps more than anything.'
+  };
+  function sync() {
+    subject.value = 'PUSHTYPE ' + topic.value.toLowerCase();
+    hint.textContent = hints[topic.value];
+  }
+  topic.addEventListener('change', sync);
+  document.querySelectorAll('[data-topic]').forEach(function (a) {
+    a.addEventListener('click', function () { topic.value = a.getAttribute('data-topic'); sync(); setTimeout(function () { document.getElementById('support-message').focus({ preventScroll: true }); }, 400); });
+  });
+  sync();
+})();
+</script>
 <footer class="footer">
 <div class="wrap">
 <div class="row" style="gap: 28px;">
