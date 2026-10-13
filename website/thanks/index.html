@@ -28,19 +28,70 @@
 <section class="bench-intro">
 <p class="eyebrow">Thank you</p>
 <h1 class="disp">You're on the air.</h1>
-<p class="lede">Your PUSHTYPE licence key is in the email Polar just sent you. Here's how to start talking.</p>
+<p class="lede" id="thanks-lede">Polar has emailed you a receipt with your download and licence key. Here's how to start talking.</p>
 </section>
-<section class="bench-section">
+
+<section class="bench-section" id="quick" hidden>
 <div class="card bench-quote">
 <ol class="thanks-steps">
-<li><strong>Download PUSHTYPE</strong> if you haven't: <a href="https://github.com/Elias1986a/PUSH/releases/latest">get the latest version</a>, drag it to Applications and open it.</li>
-<li><strong>Copy your licence key</strong> from Polar's email.</li>
-<li>Click PUSHTYPE in the menu bar, open <strong>Settings ▸ Licence</strong>, paste the key and click <strong>Activate</strong>.</li>
+<li><strong>Download PUSHTYPE.</strong> <a class="pb-btn pb-btn-push thanks-btn" id="download-btn" href="#">Download</a><br><span class="thanks-small" id="download-meta"></span></li>
+<li><strong>Install it:</strong> open the downloaded file, drag PUSHTYPE to Applications, and open it.</li>
+<li><strong>Activate it.</strong> <a class="pb-btn pb-btn-push thanks-btn" id="activate-btn" href="#">Activate PUSHTYPE</a><br><span class="thanks-small">Your browser asks to open PUSHTYPE: allow it, and you're done. Your other Macs on the same Apple Account activate on their own.</span></li>
 </ol>
 </div>
-<p class="note">One key works on 3 Macs, and a fourth takes its own $12 key. Moving to a new Mac? Open Settings ▸ Licence on the old one and click Remove This Mac to free its place. Stuck, or changed your mind within 14 days? <a href="../support/">We can help</a>.</p>
+<p class="note">Activate not doing anything? Copy your key, <code id="key-text"></code> <button class="thanks-copy" id="copy-btn" type="button">Copy</button>, then open PUSHTYPE: it offers to use the key you copied.</p>
+</section>
+
+<section class="bench-section" id="manual">
+<div class="card bench-quote">
+<ol class="thanks-steps">
+<li><strong>Download PUSHTYPE</strong> from the link in Polar's email, drag it to Applications and open it.</li>
+<li><strong>Copy your licence key</strong> from the same email.</li>
+<li><strong>Open PUSHTYPE.</strong> It offers to use the key you copied. Or click PUSHTYPE in the menu bar, open Settings ▸ Licence, paste the key and click Activate.</li>
+</ol>
+</div>
+<p class="note" id="manual-note">Can't find the email? Check spam, or get your download and key from <a href="https://polar.sh/pushtype/portal" id="portal-link">Polar's customer portal</a> with the email you bought with.</p>
+</section>
+
+<section class="bench-section">
+<p class="note">One licence works on 3 of your Macs, and a fourth can be added for $12. Moving to a new Mac? Open Settings ▸ Licence on the old one and click Remove This Mac to free its place. Stuck, or changed your mind within 14 days? <a href="../support/">We can help</a>.</p>
 </section>
 </main>
+<script>
+(function () {
+  var id = new URLSearchParams(location.search).get('checkout_id');
+  if (!id) return;
+  var tries = 0;
+  function show(data) {
+    document.getElementById('manual').hidden = true;
+    document.getElementById('thanks-lede').textContent = 'Two clicks and you\'re talking. Polar has also emailed you a receipt with your download and licence key.';
+    document.getElementById('quick').hidden = false;
+    var dl = document.getElementById('download-btn');
+    if (data.download) {
+      dl.href = data.download.url;
+      document.getElementById('download-meta').textContent = data.download.name + ', ' + data.download.size;
+    } else {
+      dl.replaceWith(document.createTextNode('Use the link in Polar\'s email.'));
+    }
+    document.getElementById('activate-btn').href = 'pushtype://activate?key=' + encodeURIComponent(data.key);
+    document.getElementById('key-text').textContent = data.key;
+    document.getElementById('copy-btn').addEventListener('click', function (e) {
+      navigator.clipboard.writeText(data.key).then(function () { e.target.textContent = 'Copied'; });
+    });
+  }
+  function load() {
+    fetch('/api/purchase?checkout_id=' + encodeURIComponent(id))
+      .then(function (r) { return r.json().then(function (body) { return { status: r.status, body: body }; }); })
+      .then(function (res) {
+        if (res.status === 200 && res.body.key) return show(res.body);
+        // Polar can take a few seconds to finish the order after payment.
+        if (res.status === 409 && ++tries < 8) return setTimeout(load, 2000);
+      })
+      .catch(function () {});
+  }
+  load();
+})();
+</script>
 <footer class="footer">
 <div class="wrap">
 <div class="row" style="gap: 28px;">
