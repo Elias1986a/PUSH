@@ -1,6 +1,6 @@
 # NOTES
 
-## Next release (held on `next-release`, PR #33)
+## 9.1.1 released (2026-10-13) — Type in Webex
 
 - Type didn't work in Webex at all, with no icon and no suggestions (user,
   2026-10-13). Cause: with Webex (Qt) in front, the system-wide element's
@@ -9,7 +9,10 @@
   so the read now falls back to the frontmost app. Permissions were fine. User
   confirmed on a SIGN_ONLY test build. Webex's empty composer reports its caret
   one line above the field; that's harmless, because suggestions need 3 words.
-- Licence screen: extra Macs $12.
+- Licence screen: extra Macs $12. Legal folder now ships the llama.cpp notice
+  and PUSHTYPE terms.
+- Still to do: at a sign-off, suggest the saved "About you" name verbatim
+  (see 9.1.0 below). Polar's DMG needs re-uploading for 9.1.1.
 
 ## 9.1.0 (2026-10-12) — PUSHTYPE, QA fixes
 
