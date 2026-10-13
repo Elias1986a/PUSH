@@ -9,6 +9,8 @@ struct TypingSettingsView: View {
     @State private var customColor = Color.gray
     @State private var inlinePredictionsOn = TypingSettingsView.macInlinePredictionsOn()
     @State private var screenRecordingAllowed = ScreenOCR.isAllowed
+    /// Bumped when an accept key changes; the keys live in UserDefaults.
+    @State private var keysVersion = 0
 
     /// Where the typing models live, like Settings → Models has for voice.
     private var storageRow: some View {
@@ -58,16 +60,7 @@ struct TypingSettingsView: View {
                         Text("\(preset.rawValue.capitalized) · \(preset.label)").tag(preset)
                     }
                 }
-                LabeledContent("Accept") {
-                    Text("\(Text("Tab").bold()) next word · \(Text(Self.wholeKeyName).bold()) the whole suggestion")
-                        .foregroundStyle(.secondary)
-                }
-                LabeledContent("In Terminal and other terminals") {
-                    Text("\(Text("→").bold()) next word · Tab stays the terminal’s").foregroundStyle(.secondary)
-                }
-                LabeledContent("Moving between form fields") {
-                    Text("\(Text("⌥Tab").bold()) sends a plain Tab").foregroundStyle(.secondary)
-                }
+                acceptKeys
                 Toggle("Add a space after the last word", isOn: $appState.typingSpaceAfterLastWord)
                 Toggle(isOn: $appState.typingInCodeEditors) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -221,11 +214,46 @@ struct TypingSettingsView: View {
         .accessibilityLabel(help)
     }
 
-    /// The key that accepts the whole suggestion in this keyboard layout.
-    static var wholeKeyName: String {
+    /// The two accept keys, chosen by the user, and how Tab behaves where
+    /// it means something else (explained, not changeable).
+    @ViewBuilder
+    private var acceptKeys: some View {
+        let _ = keysVersion     // re-read after a change
         let layout = KeyboardLayoutMap.current()
-        let key = AcceptKeyResolver.wholeSuggestionKey(layout: layout)
-        return "\(layout[key.keyCode].flatMap { $0.isEmpty ? nil : $0 } ?? "`") (above Tab)"
+        let next = TypingPreferences.nextWordKey()
+        let whole = TypingPreferences.wholeKey(layout: layout)
+        LabeledContent("Next word") {
+            AcceptKeyRecorder(defaultsKey: TypingPreferences.nextWordKeyKey, fallback: AcceptKeyResolver.tab,
+                              other: whole, onChange: { keysVersion += 1 })
+        }
+        LabeledContent("Whole suggestion") {
+            AcceptKeyRecorder(defaultsKey: TypingPreferences.wholeKeyKey,
+                              fallback: AcceptKeyResolver.wholeSuggestionKey(layout: layout),
+                              other: next, onChange: { keysVersion += 1 })
+        }
+        LabeledContent("In Terminal and other terminals") {
+            Text(next == AcceptKeyResolver.tab
+                 ? "→ takes the next word. Tab stays the terminal’s, for completing commands."
+                 : "Your keys work there too.")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+        LabeledContent("Moving between form fields") {
+            Text("⌥Tab moves to the next field while a suggestion shows.")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+        if UserDefaults.standard.string(forKey: TypingPreferences.nextWordKeyKey) != nil
+            || UserDefaults.standard.string(forKey: TypingPreferences.wholeKeyKey) != nil {
+            HStack {
+                Spacer()
+                Button("Restore Default Keys") {
+                    UserDefaults.standard.removeObject(forKey: TypingPreferences.nextWordKeyKey)
+                    UserDefaults.standard.removeObject(forKey: TypingPreferences.wholeKeyKey)
+                    keysVersion += 1
+                }
+            }
+        }
     }
 
     /// macOS 14+ shows inline predictions unless the user turned them off.
