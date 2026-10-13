@@ -8,7 +8,8 @@ import Foundation
 public enum TokenHealing {
     /// `prompt` ends on a token boundary; `forced` (the partial word with its
     /// leading space, or the trailing spaces) is what the output must start
-    /// with. `forced` is empty after punctuation or a newline.
+    /// with. After a finished sentence it is the space that comes next (see
+    /// `addsSpace`); after other punctuation or a newline it is empty.
     public static func split(_ before: String) -> (prompt: String, forced: String) {
         // Trailing spaces too: " see" is one token, so a prompt ending in a
         // bare space made the model predict a line break instead of a word.
@@ -16,10 +17,22 @@ public enum TokenHealing {
         if !spaces.isEmpty, spaces.count < before.count {
             return (String(before.dropLast(spaces.count)), String(spaces))
         }
+        if addsSpace(before) { return (before, " ") }
         let range = NSRange(before.startIndex..., in: before)
         guard let match = partialWord.firstMatch(in: before, range: range),
               let r = Range(match.range, in: before) else { return (before, "") }
         return (String(before[..<r.lowerBound]), String(before[r]))
+    }
+
+    /// The caret sits right after a finished sentence — where most dictations
+    /// end, since few people press space after one. A model there often starts
+    /// a new line, which an inline suggestion cannot show (3 of 10 in the
+    /// replay eval came back empty; 0 of 10 with the space typed). So the
+    /// output is forced to begin with the space, and that space, not yet in
+    /// the field, is part of the suggestion.
+    public static func addsSpace(_ before: String) -> Bool {
+        guard let last = before.last else { return false }
+        return ".!?…".contains(last)
     }
 
     /// A GBNF grammar for llama.cpp's grammar sampler: the forced start, then

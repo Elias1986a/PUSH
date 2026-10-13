@@ -58,3 +58,13 @@
 {"id": "none-08", "surface": "", "before": "Let's circle back on this next", "after": "", "expected": "week"}
 {"id": "none-09", "surface": "", "before": "Thanks again for all your help with the launch. Couldn't have done it with", "after": "", "expected": "out you", "midword": true}
 {"id": "none-10", "surface": "", "before": "Have a great week", "after": "", "expected": "end", "midword": true}
+{"id": "stop-01", "surface": "Format: chat; App: Slack; Title: #design; Field: Message #design.", "before": "I just pushed the new onboarding screens to the shared folder.", "after": "", "expected": "Let me know what you think"}
+{"id": "stop-02", "surface": "Format: email; App: Mail; Title: Re: Contract renewal; Field: Message body.", "before": "Hi Sarah,\n\nThanks for sending over the updated contract. I had a chance to go through it this morning.", "after": "", "expected": "Everything looks good on our end"}
+{"id": "stop-03", "surface": "Format: chat; App: Messages; Title: Mom; Field: iMessage.", "before": "Running about ten minutes late, traffic is terrible.", "after": "", "expected": "Start without me"}
+{"id": "stop-04", "surface": "Format: email; App: Gmail; Title: Quick question; Field: Message body.", "before": "Hey Mark,\n\nAre you free for a quick call tomorrow afternoon?", "after": "", "expected": "I want to go over the budget"}
+{"id": "stop-05", "surface": "Format: chat; App: Slack; Title: Priya Shah; Field: Message Priya Shah.", "before": "Great job on the presentation today!", "after": "", "expected": "The client loved it"}
+{"id": "stop-06", "surface": "Format: document; App: Notes; Title: Trip planning.", "before": "We land in Lisbon on Friday morning and check into the hotel around noon.", "after": "", "expected": "After that we can walk to the old town"}
+{"id": "stop-07", "surface": "Format: email; App: Mail; Title: Re: Invoice 1042; Field: Message body.", "before": "Hi team,\n\nI noticed the invoice was sent to the wrong address.", "after": "", "expected": "Could you resend it to accounts"}
+{"id": "stop-08", "surface": "Format: chat; App: Discord; Title: #general; Field: Message #general.", "before": "The server will be down for maintenance tonight from ten to midnight.", "after": "", "expected": "Sorry for the inconvenience"}
+{"id": "stop-09", "surface": "", "before": "I really appreciate you taking the time to help me with this.", "after": "", "expected": "Let me know if there is anything I can do"}
+{"id": "stop-10", "surface": "Format: chat; App: WhatsApp; Title: Dan; Field: Type a message.", "before": "Did you get a chance to look at the house listing I sent?", "after": "", "expected": "I think it could be the one"}

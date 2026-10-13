@@ -35,6 +35,14 @@ final class TypingSuggestionJudgeTests: XCTestCase {
         XCTAssertEqual(j.judge(" the meeting", final: false), .show(" meeting"))
     }
 
+    func testAfterAFinishedSentenceTheSpaceIsPartOfTheSuggestion() {
+        var j = judge(before: "I went through it this morning.")
+        XCTAssertEqual(j.judge(" ", final: false), .wait)
+        XCTAssertEqual(j.judge(" everything looks good", final: true), .show(" Everything looks good"))
+        var typed = judge(before: "I went through it this morning. ")
+        XCTAssertEqual(typed.judge(" Everything looks good", final: true), .show("Everything looks good"))
+    }
+
     // MARK: - Numbers the user never wrote
 
     private func cut(_ suggestion: String, before: String, known: String = "") -> String? {

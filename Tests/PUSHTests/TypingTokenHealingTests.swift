@@ -30,6 +30,17 @@ final class TypingTokenHealingTests: XCTestCase {
         XCTAssertEqual(TokenHealing.split("").forced, "")
     }
 
+    func testAFinishedSentenceForcesTheSpaceThatComesNext() {
+        let h = TokenHealing.split("I went through it this morning.")
+        XCTAssertEqual(h.prompt, "I went through it this morning.")
+        XCTAssertEqual(h.forced, " ")
+        XCTAssertEqual(TokenHealing.split("Are you free?").forced, " ")
+        XCTAssertEqual(TokenHealing.split("Great job!").forced, " ")
+        XCTAssertEqual(TokenHealing.split("Great job! ").forced, " ")      // typed: already in the field
+        XCTAssertTrue(TokenHealing.addsSpace("this morning."))
+        XCTAssertFalse(TokenHealing.addsSpace("this morning. "))
+    }
+
     func testWholeTextIsOnePartialWord() {
         XCTAssertEqual(TokenHealing.split("proj").prompt, "")
         XCTAssertEqual(TokenHealing.split("proj").forced, "proj")

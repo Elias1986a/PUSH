@@ -37,7 +37,9 @@ public struct SuggestionJudge {
     /// `raw`: everything streamed so far, forced start included. `final`:
     /// the stream has ended.
     public mutating func judge(_ raw: String, final: Bool) -> Verdict {
-        guard let text = TokenHealing.strip(raw, forced: forced) else { return .wait }
+        guard var text = TokenHealing.strip(raw, forced: forced) else { return .wait }
+        // The space after a finished sentence is not in the field: it is shown.
+        if TokenHealing.addsSpace(before) { text = forced + text }
         if !judged {
             if let word = TokenHealing.gluedWord(forced: forced, continuation: text) {
                 let wordEnded = text.contains { !($0.isLetter || $0 == "'" || $0 == "’") }
