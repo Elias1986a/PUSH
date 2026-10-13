@@ -278,3 +278,12 @@ a:hover { color: var(--on-air); }
 /* Type's section: text beside its video, laid out like the teleprompter's */
 .type-split .screen-video video { box-shadow: inset 0 0 0 1px var(--chrome), 0 24px 60px rgba(23,22,26,0.18); }
 .type-split .screen-video .pb-chip { background: var(--studio-raised); color: var(--ink); box-shadow: inset 0 0 0 1px var(--chrome); }
+
+/* Hero, text only: the videos live in each feature's own section */
+.hero-solo { grid-template-columns: minmax(0, 1fr); padding-block: 72px 96px; }
+.hero-solo h1 { font-size: clamp(52px, 7.6vw, 108px); max-width: 13em; }
+.hero-solo .lede { max-width: 40em; }
+.hero-solo + .section { padding-top: 104px; }
+@media (max-width: 960px) { .hero-solo + .section { padding-top: 72px; } }
+/* Feature sections in a raised band: chips stand out from the band */
+.raised .type-split .screen-video .pb-chip { background: var(--studio); }
