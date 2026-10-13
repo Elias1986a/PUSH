@@ -1,5 +1,23 @@
 # NOTES
 
+## Licensing flow (2026-10-13, building on next-release; sandbox)
+
+Decided with the user: keys stay (no sharing), made nearly invisible.
+Thank-you page (/thanks/?checkout_id=…) calls the Netlify function
+/api/purchase (website/netlify/functions/purchase.mts; env
+POLAR_ACCESS_TOKEN with checkouts:read + customer_sessions:write,
+POLAR_SERVER=production at launch) for a Download button (signed DMG URL)
+and Activate (pushtype://activate?key=…). App: key in iCloud Keychain
+(SyncedLicenseKey; new Mac on the same Apple Account activates once by
+itself), copied-key detection, manual entry kept, 4th Mac gets "add this
+Mac $12 / buy another licence / free a place (portal)". Extra Mac stays.
+Licence pane and welcome page show only when LicenseModel.isOffered
+(defaults key licence.offered for testing; flip at launch with the live
+PolarConfig). Polar sandbox org 0673c8e8…, both products carry License
+Keys + File Downloads (PUSH-v9.1.1.dmg). Still to do at launch: live store
+on polar.sh, production PolarConfig + portal slug, close GitHub downloads
+(move the Sparkle feed), decide gating.
+
 ## 9.1.1 released (2026-10-13) — Type in Webex
 
 - Type didn't work in Webex at all, with no icon and no suggestions (user,
