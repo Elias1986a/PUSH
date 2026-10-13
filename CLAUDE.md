@@ -44,6 +44,8 @@ text field of any app. All speech recognition runs on-device.
   `selectedWhisperModel` is the persisted preference. Only `ModelLoader`
   activates/deactivates models — don't load engines directly.
 - Text injection is clipboard-paste only (AX APIs are unreliable across apps).
+  Exception: Type's accepted words are posted as Unicode key events
+  (`KeystrokeTyper`); Catalyst Messages ignores them.
 - Never log transcript text (privacy); PushLogger events are operational only.
 - Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.
   The feed keeps every past release's `<item>`; the build script prepends.
@@ -66,6 +68,17 @@ text field of any app. All speech recognition runs on-device.
   system's rounded popover chrome, and without it the `Settings` scene stops
   materialising entirely — `showSettingsWindow:` returns true while
   `NSApp.windows` holds no settings window. Don't reinstate either scene.
+
+## Type (inline autocomplete, 9.0)
+- `PUSH/Typing` (app side: TypingCoordinator, FocusReader, GhostTextPanel,
+  TypingKeyTap) and `PUSHCore/Typing` (pure: TokenHealing, SuggestionJudge,
+  SuggestionText, LlamaEngine on llama.cpp). Models: `docs/MODELS.md`.
+- Any change to what is suggested: run the replay eval
+  (`TypingReplayEvalTests`, header has the command) before and after; it goes
+  through the app's own pipeline. Add scenarios for the case you fix.
+- Never log typed text. Typing history is opt-in, encrypted, never synced.
+- Gray is the default suggestion color; no suggestions in address bars,
+  secure/sign-in fields or Mail's header rows.
 
 ## `swift run` is not the shipped app
 SwiftPM builds a bare executable with no `Info.plist`. Three consequences that

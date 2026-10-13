@@ -83,9 +83,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         openSettingsIfRequested()
         MenuBarController.shared.openIfRequested()
+        if !showingWizard, ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"] != nil { showOnboarding() }
         #endif
-        if !showingWizard, OnboardingView.previewHooks,
-           ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"] != nil { showOnboarding() }
     }
 
     /// Show the welcome wizard once the app has finished coming up.

@@ -34,12 +34,14 @@ struct OnboardingView: View {
     @FocusState private var typingSandboxFocused: Bool
 
     /// `PUSH_ONBOARDING_STEP=typingModel` opens the wizard on that step, for
-    /// screenshots and testing. Debug builds and the Type preview only.
+    /// screenshots and testing. Debug builds only.
     private static var initialStep: OnboardingFlow.Step {
-        if previewHooks, let raw = ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"],
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"],
            let step = OnboardingFlow.Step.allCases.first(where: { "\($0)" == raw }) {
             return step
         }
+        #endif
         return .welcome
     }
     /// What the user dictated into the sandbox on step 3. Its contents are
@@ -55,28 +57,12 @@ struct OnboardingView: View {
     @State private var downloadProgress: Double = 0
     @State private var downloadError: String?
 
-    /// Type is not ready for release (user, 2026-10-11): release builds show
-    /// it as coming soon with its switch off, unless the hidden preview switch
-    /// is on (`defaults write com.push.voicetotext feature.typePreview -bool true`).
-    static var typeAvailable: Bool {
-        #if DEBUG
-        return true
-        #else
-        return UserDefaults.standard.bool(forKey: "feature.typePreview")
-        #endif
-    }
-
-    /// Debug builds, or the Type preview: launch hooks that open a step.
-    static var previewHooks: Bool { typeAvailable }
-
-    private var typeChosen: Bool { Self.typeAvailable && appState.typeEnabled }
-
     /// The steps for the features chosen so far. Recomputed as the switches on
     /// the features step change; `step` is a value, not an index, so it stays
     /// put when the list around it grows or shrinks.
     private var steps: [OnboardingFlow.Step] {
-        OnboardingFlow.steps(dictation: appState.dictationEnabled, type: typeChosen,
-                             typingSeen: typingStepSeen && Self.typeAvailable)
+        OnboardingFlow.steps(dictation: appState.dictationEnabled, type: appState.typeEnabled,
+                             typingSeen: typingStepSeen)
             // The try-it sandbox is dictation's until Type gets its own (Phase 5).
             .filter { $0 != .tryIt || appState.dictationEnabled }
     }
@@ -211,16 +197,15 @@ struct OnboardingView: View {
 
             featureCard(
                 icon: "text.cursor",
-                title: Self.typeAvailable ? "Type" : "Type — coming soon",
+                title: "Type",
                 detail: "As you type in any app, PUSH suggests how the sentence goes on. Press Tab to take it a word at a time. Runs on this Mac like everything else."
             ) {
                 Toggle("Type", isOn: $appState.typeEnabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
-                    .disabled(!Self.typeAvailable)
             }
 
-            if !appState.dictationEnabled && !typeChosen {
+            if !appState.dictationEnabled && !appState.typeEnabled {
                 statusLine(icon: "info.circle", text: "Turn on at least one to continue.", tint: .secondary)
             }
 
@@ -872,9 +857,9 @@ struct OnboardingView: View {
 
     /// Skip is offered only when every feature that is on can already run.
     private var canSkip: Bool {
-        (appState.dictationEnabled || typeChosen)
+        (appState.dictationEnabled || appState.typeEnabled)
             && (!appState.dictationEnabled || !modelsOnDisk.isEmpty)
-            && (!typeChosen || typingModelOnDisk)
+            && (!appState.typeEnabled || typingModelOnDisk)
     }
 
     private var typingModelOnDisk: Bool {
@@ -883,11 +868,11 @@ struct OnboardingView: View {
 
     private var continueDisabled: Bool {
         switch step {
-        case .features: return !appState.dictationEnabled && !typeChosen
+        case .features: return !appState.dictationEnabled && !appState.typeEnabled
         case .speechModel: return !isReady(appState.selectedWhisperModel)
         // A download in progress carries on in the background.
         case .typingModel:
-            return typeChosen ? !typingModelOnDisk && TypingModelStore.shared.downloading == nil
+            return appState.typeEnabled ? !typingModelOnDisk && TypingModelStore.shared.downloading == nil
                 : !appState.dictationEnabled
         default: return false
         }

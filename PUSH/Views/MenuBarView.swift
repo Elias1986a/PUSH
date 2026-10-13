@@ -53,12 +53,9 @@ struct MenuBarView: View {
                 controls
             }
             Divider()
-            // Type stays "coming soon" in release builds.
-            if OnboardingView.typeAvailable {
-                featureSwitch("Type", isOn: $appState.typeEnabled)
-                if appState.typeEnabled { typingControls }
-                Divider()
-            }
+            featureSwitch("Type", isOn: $appState.typeEnabled)
+            if appState.typeEnabled { typingControls }
+            Divider()
             commands
         }
         .frame(width: 290)
