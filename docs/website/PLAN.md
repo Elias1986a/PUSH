@@ -37,7 +37,7 @@ What this tells us:
 3. **Price.** $35 for 3 Macs undercuts VoiceInk's 3-Mac tier by $14 and costs
    less than three months of Wispr Flow, for voice *and* typing. Free local apps exist, so we don't win on
    price alone. We win on price plus speed plus polish.
-   **Decided: $35 for up to 3 Macs, +$10 per extra Mac, 14-day
+   **Decided: $35 for up to 3 Macs, +$12 per extra Mac, 14-day
    no-questions refund.** A launch-week price of $15 is an option if you want
    urgency on Product Hunt.
 4. **No competitor has a personality.** Every site is cream, gradients and
@@ -96,7 +96,7 @@ blog at launch.
    multilingual model. A marquee of "hello" in 20 languages.
 9. **Pricing.** One card, no tiers:
    **$35, once.** · Up to 3 Macs · Every future update included · No
-   subscription, ever · 14-day refund, no questions · +$10 per extra Mac.
+   subscription, ever · 14-day refund, no questions · +$12 per extra Mac.
    Beside it, a small, factual "vs. a year of Wispr Flow Pro: $144" line.
 10. **FAQ.** Does it need internet? (Only to download a model once.) · What
     Macs? (Apple silicon, macOS 15+.) · How accurate? · Is it really private? ·
@@ -232,7 +232,7 @@ The fix is to make the design system *first*, from what PUSH already is:
 - [ ] **Merchant of record: Polar (decided).** 5% + 50¢ per sale, accepts
       individuals, and has built-in licence keys with **activation limits**.
       Product 1: "PUSHTYPE", $35, key with 3 activations. Product 2: "PUSH, extra
-      Mac", $10, key with 1 activation. The app accepts more than one key, so
+      Mac", $12, key with 1 activation. The app accepts more than one key, so
       extra Macs never need Polar to change an existing key. The app talks to
       Polar's licence-key activate/validate API. Paddle is the fallback.
 - [ ] Attorney review of EULA, Terms of Sale and Privacy, then fill the `[placeholders]`.

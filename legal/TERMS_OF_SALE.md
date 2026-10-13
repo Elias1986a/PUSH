@@ -14,7 +14,7 @@ apply to your purchase.
 | Item | Price (USD, before tax) | What you get |
 |---|---|---|
 | PUSHTYPE licence | **$35**, once | One person, up to 3 Macs, every future PUSHTYPE for macOS update |
-| Extra Mac | **$10** each, once | One more Mac on your existing licence |
+| Extra Mac | **$12** each, once | One more Mac on your existing licence |
 
 There is **no subscription**. You pay once and aren't charged again unless you
 buy something else. Prices may change for future buyers, never for a purchase
