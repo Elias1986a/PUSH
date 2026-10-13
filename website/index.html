@@ -20,12 +20,12 @@
 <header class="wrap nav">
 <a class="brand" href="/"><span class="disp">PUSHTYPE</span><span class="dot"></span></a>
 <nav class="nav-links" aria-label="Main">
-<a href="#two-in-one">Two in one</a>
-<a href="#learns">Learns you</a>
+<a href="#voice">Voice</a>
 <a href="#type">Type</a>
-<a href="#speed">Speed</a>
+<a href="#learns">Learns you</a>
 <a href="#privacy">Privacy</a>
-<a href="#features">Features</a>
+<a href="#speed">Speed</a>
+<a href="#teleprompter">Teleprompter</a>
 <a href="#faq">FAQ</a>
 </nav>
 <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
@@ -37,14 +37,14 @@
 
 <main>
 
-<section class="wrap hero" id="top">
+<section class="wrap hero hero-solo" id="top">
 <div class="stack" style="gap: 28px;">
 <p class="eyebrow">Dictation and autocomplete for the Mac</p>
 <h1 class="disp">Talk or type it. Nothing leaves your Mac.</h1>
 <p class="lede">Hold a key and speak, or just start typing and PUSHTYPE finishes your sentence. Two tools in one app, both running on your Mac, both learning how you write.</p>
 <div class="row">
 <a class="pb-btn pb-btn-push" href="#pricing">Buy PUSHTYPE <span class="pb-price">$35</span></a>
-<a class="pb-btn pb-btn-quiet" href="#two-in-one">See what's inside</a>
+<a class="pb-btn pb-btn-quiet" href="#voice">See what's inside</a>
 </div>
 <div class="chips">
 <span class="pb-chip pb-chip-mono">$35 once · 3 Macs</span>
@@ -53,64 +53,26 @@
 <span class="pb-chip pb-chip-mono">Apple silicon</span>
 </div>
 </div>
-<div class="demo demo-video">
-<figure class="hero-video">
+</section>
+
+<section class="raised section" id="voice">
+<div class="wrap prompter-wrap type-split">
+<div class="stack">
+<p class="eyebrow">Voice, the dictation</p>
+<h2 class="disp h2">Hold a key. Speak. Let go.</h2>
+<p style="margin: 0; font: 600 20px/1.45 var(--font-body);">Your words land wherever you were typing, transcribed on your Mac as you speak.</p>
+<p class="body">The “um”s are gone, numbers come out the way you'd write them, and when you change your mind mid-sentence, it follows.</p>
+<ul class="ticks" style="font-size: 16px;">
+<li><span class="dot"></span>Text 0.04 s after you let go, 20× faster than the cloud</li>
+<li><span class="dot"></span>Hold Option, Command or Control, or say a wake word</li>
+<li><span class="dot"></span>English and about 25 languages, detected as you speak</li>
+<li><span class="dot"></span>Your dictionary spells names and jargon right</li>
+<li><span class="dot"></span>Works in every app, even with Wi-Fi off</li>
+</ul>
+</div>
+<div class="screen-video">
 <video src="assets/video/dictation.mp4" poster="assets/video/dictation.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="Dictating into Notes with PUSHTYPE: the pill listens, and the text appears when the key is released"></video>
-<figcaption><span class="rec-dot"></span>Real time. Nothing sped up.</figcaption>
-</figure>
-</div>
-</section>
-
-<section class="wrap section" id="two-in-one">
-<div class="stack" style="gap: 48px;">
-<div class="stack head">
-<p class="eyebrow">Two in one</p>
-<h2 class="disp h2">One app for everything you write.</h2>
-<p class="body">Some sentences are faster said, some are faster typed. PUSHTYPE does both, in every app, with one dictionary, one memory of how you write, and one icon in the menu bar.</p>
-</div>
-<div class="duo">
-<div class="card">
-<p class="tag">Voice</p>
-<h3>Hold a key. Speak. Let go.</h3>
-<div class="row" style="gap: 10px;"><span class="keycap on">⌥ hold</span><span class="mono" style="font-size: 15px; color: var(--ink-muted);">“let's ship it on Tuesday”</span></div>
-<p class="body small">Your words land wherever you were typing, with the “um”s gone, the numbers written properly and your corrections applied. Transcribed on your Mac as you speak.</p>
-<p class="stat">Text 0.04 s after you let go · 20× faster than the cloud</p>
-</div>
-<div class="card">
-<p class="tag">Type</p>
-<h3>Start typing. It finishes the sentence.</h3>
-<div class="field-demo" aria-label="A text field: “Thanks for sending the contract over. I'll” typed, with “take a look tonight and get back to you.” suggested in gray">Thanks for sending the contract over. I'll<span class="caret"></span><span class="ghost"> take a look tonight and get back to you.</span></div>
-<div class="key-hint"><span class="keycap">Tab</span> takes the next word <span class="keycap">` ~</span> takes it all · or just keep typing</div>
-<p class="stat">On screen 0.057 s after a key</p>
-</div>
-</div>
-<p class="and-more">Plus a teleprompter that follows your voice, for when you're on camera. <a href="#teleprompter">See it →</a></p>
-</div>
-</section>
-
-<section class="raised section" id="learns">
-<div class="wrap">
-<div class="stack" style="gap: 48px;">
-<div class="stack head">
-<p class="eyebrow">It learns you</p>
-<h2 class="disp h2">It learns from how you talk and how you type.</h2>
-<p class="body">An autocomplete only sees your keyboard. A dictation app only hears your voice. PUSHTYPE has both, so the suggestions it makes are built from everything you write: the emails you dictate and the replies you type. The longer you use it, the more it sounds like you.</p>
-</div>
-<div class="learn-flow">
-<div class="sources">
-<div class="card"><h3>What you say</h3><p class="body small">Your dictations, as finished text. Never the audio.</p></div>
-<div class="card"><h3>What you type</h3><p class="body small">Your own writing, in the apps where suggestions are on.</p></div>
-</div>
-<span class="arrow" aria-hidden="true">→</span>
-<div class="card center"><h3>Your writing, on your Mac</h3><p class="body small">Encrypted with a key in your Keychain. Never synced, never sent. Off until you switch it on, with a Delete All button and apps you can leave out.</p></div>
-<span class="arrow" aria-hidden="true">→</span>
-<div class="card"><h3>Suggestions that sound like you</h3><p class="body small">When you start writing, PUSHTYPE finds what you've written before on the same subject and suggests the way you'd say it.</p></div>
-</div>
-<div class="grid g3">
-<div class="card"><h3>One dictionary, both ways</h3><p class="body small">Teach it a name once. Dictation spells it right, and when you type “Kub” it finishes “Kubernetes”, never flagging it as a typo.</p></div>
-<div class="card"><h3>About you</h3><p class="body small">Add the name you sign off with and a line about how you write: short and friendly, formal, British spelling. Suggestions follow it.</p></div>
-<div class="card"><h3>Reads the room</h3><p class="body small">It sees the email you're replying to, the chat above, the page you're on, and what you just copied. Read at the moment of a suggestion, then forgotten.</p></div>
-</div>
+<div class="chips"><span class="pb-chip pb-chip-mono">Hold ⌥ to talk</span><span class="pb-chip pb-chip-mono">● Real time. Nothing sped up.</span></div>
 </div>
 </div>
 </section>
@@ -137,27 +99,64 @@
 </div>
 </section>
 
-<section class="speed section" id="speed">
+<section class="raised section" id="two-in-one">
 <div class="wrap">
-<div class="stack">
-<p class="eyebrow">Measured, not claimed</p>
-<h2 class="disp h2">Done before you look up.</h2>
-<p class="body">Cloud dictation sends your voice to a server and waits for it to come back. PUSHTYPE never leaves the building, so the text is there the moment you let go, and a suggestion is on screen before your next key.</p>
+<div class="stack" style="gap: 48px;">
+<div class="stack head">
+<p class="eyebrow">Two in one</p>
+<h2 class="disp h2">One app for everything you write.</h2>
+<p class="body">Some sentences are faster said, some are faster typed. PUSHTYPE does both, in every app, with one dictionary, one memory of how you write, and one icon in the menu bar.</p>
 </div>
-<div class="stack" style="gap: 28px;">
-<div class="row" style="align-items: baseline;"><span class="big">20×</span><span class="body">faster than Wispr Flow, release to text</span></div>
-<div class="pb-speed">
-<div class="pb-speed-label">PUSHTYPE<small>on your Mac</small></div><div class="pb-speed-track"><div class="pb-speed-fill is-push" style="width: 5%;"></div></div><div class="pb-speed-num">0.04 s</div>
-<div class="pb-speed-label">Wispr Flow<small>cloud, incl. network</small></div><div class="pb-speed-track"><div class="pb-speed-fill" style="width: 97%;"></div></div><div class="pb-speed-num">0.87 s</div>
+<div class="duo">
+<div class="card">
+<p class="tag">Voice</p>
+<h3>When it's faster to say it.</h3>
+<div class="row" style="gap: 10px;"><span class="keycap on">⌥ hold</span><span class="mono" style="font-size: 15px; color: var(--ink-muted);">“let's ship it on Tuesday”</span></div>
+<p class="body small">Your words land wherever you were typing, with the “um”s gone, the numbers written properly and your corrections applied. Transcribed on your Mac as you speak.</p>
+<p class="stat">Text 0.04 s after you let go · 20× faster than the cloud</p>
 </div>
-<p class="footnote mono">Median of 13 readings of the same 25-second passage · 30 Sep 2026 · Mac mini (M4). PUSHTYPE shown with Parakeet Ultra; Parakeet Streaming, the default on English Macs, measured 0.02 s. PUSHTYPE transcribes as you speak; times run from letting go of the key. Wispr Flow = 0.74 s server processing + 0.13 s network. <a href="benchmark/">How we measured →</a></p>
-<div class="row" style="align-items: baseline;"><span class="big">0.057 s</span><span class="body">from a key to the suggestion on screen</span></div>
-<p class="footnote mono">Type, median, typing 10 keys a second · 11 Oct 2026 · Mac mini (M4), Best model (Gemma 4 E2B). A suggestion was already showing 80 ms after 68% of keys. <a href="benchmark/#type">How we measured →</a></p>
+<div class="card">
+<p class="tag">Type</p>
+<h3>When it's faster to type it.</h3>
+<div class="field-demo" aria-label="A text field: “Thanks for sending the contract over. I'll” typed, with “take a look tonight and get back to you.” suggested in gray">Thanks for sending the contract over. I'll<span class="caret"></span><span class="ghost"> take a look tonight and get back to you.</span></div>
+<div class="key-hint"><span class="keycap">Tab</span> takes the next word <span class="keycap">` ~</span> takes it all · or just keep typing</div>
+<p class="stat">On screen 0.057 s after a key</p>
+</div>
+</div>
+<p class="and-more">Plus a teleprompter that follows your voice, for when you're on camera. <a href="#teleprompter">See it →</a></p>
 </div>
 </div>
 </section>
 
-<section class="wrap section" id="privacy">
+<section class="section" id="learns">
+<div class="wrap">
+<div class="stack" style="gap: 48px;">
+<div class="stack head">
+<p class="eyebrow">It learns you</p>
+<h2 class="disp h2">It learns from how you talk and how you type.</h2>
+<p class="body">An autocomplete only sees your keyboard. A dictation app only hears your voice. PUSHTYPE has both, so the suggestions it makes are built from everything you write: the emails you dictate and the replies you type. The longer you use it, the more it sounds like you.</p>
+</div>
+<div class="learn-flow">
+<div class="sources">
+<div class="card"><h3>What you say</h3><p class="body small">Your dictations, as finished text. Never the audio.</p></div>
+<div class="card"><h3>What you type</h3><p class="body small">Your own writing, in the apps where suggestions are on.</p></div>
+</div>
+<span class="arrow" aria-hidden="true">→</span>
+<div class="card center"><h3>Your writing, on your Mac</h3><p class="body small">Encrypted with a key in your Keychain. Never synced, never sent. Off until you switch it on, with a Delete All button and apps you can leave out.</p></div>
+<span class="arrow" aria-hidden="true">→</span>
+<div class="card"><h3>Suggestions that sound like you</h3><p class="body small">When you start writing, PUSHTYPE finds what you've written before on the same subject and suggests the way you'd say it.</p></div>
+</div>
+<div class="grid g3">
+<div class="card"><h3>One dictionary, both ways</h3><p class="body small">Teach it a name once. Dictation spells it right, and when you type “Kub” it finishes “Kubernetes”, never flagging it as a typo.</p></div>
+<div class="card"><h3>About you</h3><p class="body small">Add the name you sign off with and a line about how you write: short and friendly, formal, British spelling. Suggestions follow it.</p></div>
+<div class="card"><h3>Reads the room</h3><p class="body small">It sees the email you're replying to, the chat above, the page you're on, and what you just copied. Read at the moment of a suggestion, then forgotten.</p></div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="raised section" id="privacy">
+<div class="wrap">
 <div class="stack" style="gap: 48px;">
 <div class="stack head">
 <p class="eyebrow">Private by design</p>
@@ -187,9 +186,10 @@
 </div>
 </div>
 </div>
+</div>
 </section>
 
-<section class="wrap section tight">
+<section class="wrap section" id="cleanup">
 <div class="stack" style="gap: 48px;">
 <div class="stack head">
 <p class="eyebrow">Cleans up as you go</p>
@@ -206,6 +206,26 @@
 <div class="grid g2">
 <div class="card"><h3>Works in every app you type in</h3><p class="body small">Mail, Slack, Notes, your code editor, a browser form. If there's a cursor, PUSHTYPE can fill it.</p></div>
 <div class="card"><h3>Knows your words</h3><p class="body small">Teach it the names and jargon it keeps mishearing. Your dictionary follows you to every Mac through your own iCloud.</p></div>
+</div>
+</div>
+</section>
+
+<section class="speed section" id="speed">
+<div class="wrap">
+<div class="stack">
+<p class="eyebrow">Measured, not claimed</p>
+<h2 class="disp h2">Done before you look up.</h2>
+<p class="body">Cloud dictation sends your voice to a server and waits for it to come back. PUSHTYPE never leaves the building, so the text is there the moment you let go, and a suggestion is on screen before your next key.</p>
+</div>
+<div class="stack" style="gap: 28px;">
+<div class="row" style="align-items: baseline;"><span class="big">20×</span><span class="body">faster than Wispr Flow, release to text</span></div>
+<div class="pb-speed">
+<div class="pb-speed-label">PUSHTYPE<small>on your Mac</small></div><div class="pb-speed-track"><div class="pb-speed-fill is-push" style="width: 5%;"></div></div><div class="pb-speed-num">0.04 s</div>
+<div class="pb-speed-label">Wispr Flow<small>cloud, incl. network</small></div><div class="pb-speed-track"><div class="pb-speed-fill" style="width: 97%;"></div></div><div class="pb-speed-num">0.87 s</div>
+</div>
+<p class="footnote mono">Median of 13 readings of the same 25-second passage · 30 Sep 2026 · Mac mini (M4). PUSHTYPE shown with Parakeet Ultra; Parakeet Streaming, the default on English Macs, measured 0.02 s. PUSHTYPE transcribes as you speak; times run from letting go of the key. Wispr Flow = 0.74 s server processing + 0.13 s network. <a href="benchmark/">How we measured →</a></p>
+<div class="row" style="align-items: baseline;"><span class="big">0.057 s</span><span class="body">from a key to the suggestion on screen</span></div>
+<p class="footnote mono">Type, median, typing 10 keys a second · 11 Oct 2026 · Mac mini (M4), Best model (Gemma 4 E2B). A suggestion was already showing 80 ms after 68% of keys. <a href="benchmark/#type">How we measured →</a></p>
 </div>
 </div>
 </section>
