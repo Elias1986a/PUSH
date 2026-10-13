@@ -108,4 +108,4 @@ for fraud.
 - **Entire agreement.** This agreement, the Terms of Sale and the Privacy Policy
   are the whole agreement between us about PUSHTYPE. If a court strikes out any part,
   the rest still applies.
-- **Contact.** [support@yourdomain] · Elias Atalah, [mailing address or PO box].
+- **Contact.** [support@pushtype.app](mailto:support@pushtype.app) · Elias Atalah, California.

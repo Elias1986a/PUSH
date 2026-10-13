@@ -292,3 +292,6 @@ a:hover { color: var(--on-air); }
 .speed .speed-stats .card { background: var(--studio); gap: 22px; }
 /* "How we measured →" on its own line, at the foot of each card, never split */
 .speed-stats .measured-link { margin-top: auto; white-space: nowrap; }
+
+/* Support page: buttons sit on the cards' bottom edge */
+.support-options .pb-btn { margin-top: auto; align-self: flex-start; }
