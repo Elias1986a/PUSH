@@ -85,7 +85,7 @@ final class OnboardingWindowController {
         )
 
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Welcome to PUSH"
+        window.title = "Welcome to PUSHTYPE"
         // No resize and no minimise: the content is a fixed-size flow, and an
         // accessory app has no Dock icon to restore a minimised window from.
         window.styleMask = [.titled, .closable, .fullSizeContentView]

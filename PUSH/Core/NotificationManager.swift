@@ -44,7 +44,7 @@ class NotificationManager {
     func showMicrophoneError() {
         showError(
             title: "Microphone Access Required",
-            message: "PUSH needs microphone access to record audio. Please grant access in System Settings."
+            message: "PUSHTYPE needs microphone access to record audio. Please grant access in System Settings."
         )
     }
 
@@ -60,7 +60,7 @@ class NotificationManager {
     func showModelError() {
         showError(
             title: "Model Error",
-            message: "PUSH could not load the speech recognition model. Open Settings to choose or re-download one."
+            message: "PUSHTYPE could not load the speech recognition model. Open Settings to choose or re-download one."
         )
     }
 }

@@ -74,8 +74,8 @@ final class MenuBarController: NSObject {
     /// design, 2026-10-11; one or the other alone, 2026-10-12). With neither
     /// on, the microphone, so PUSH is still findable.
     static func icon(ready: Bool, dictation: Bool, typing: Bool) -> NSImage? {
-        guard ready else { return template(NSImage(systemSymbolName: "hourglass", accessibilityDescription: "PUSH")) }
-        guard let mic = NSImage(systemSymbolName: "music.mic", accessibilityDescription: "PUSH") else { return nil }
+        guard ready else { return template(NSImage(systemSymbolName: "hourglass", accessibilityDescription: "PUSHTYPE")) }
+        guard let mic = NSImage(systemSymbolName: "music.mic", accessibilityDescription: "PUSHTYPE") else { return nil }
         guard typing else { return template(mic) }
         // An I-beam drawn by hand: the SF cursor symbols all carry an "A".
         let gap: CGFloat = 1.5, beam: CGFloat = 5
@@ -102,7 +102,7 @@ final class MenuBarController: NSObject {
             path.stroke()
             return true
         }
-        image.accessibilityDescription = "PUSH"
+        image.accessibilityDescription = "PUSHTYPE"
         return template(image)
     }
 

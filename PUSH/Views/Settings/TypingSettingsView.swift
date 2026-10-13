@@ -93,7 +93,7 @@ struct TypingSettingsView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Apps that hide their text")
-                            Text("A few apps draw text PUSH can’t read directly. With Screen Recording allowed, it reads those from the screen instead.")
+                            Text("A few apps draw text PUSHTYPE can’t read directly. With Screen Recording allowed, it reads those from the screen instead.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

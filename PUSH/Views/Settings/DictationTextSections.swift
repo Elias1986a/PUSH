@@ -40,7 +40,7 @@ struct DictationTextSections: View {
 
                     Divider()
 
-                    Text("PUSH inserts")
+                    Text("PUSHTYPE inserts")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text("Book the table for eight")

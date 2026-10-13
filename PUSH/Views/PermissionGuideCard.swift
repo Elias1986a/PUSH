@@ -28,11 +28,11 @@ struct PermissionGuideCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     nudgingArrow
-                    Text("Drag PUSH into the list above")
+                    Text("Drag PUSHTYPE into the list above")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white)
                 }
-                Text("That turns on \(permissionTitle). If PUSH is already listed, just switch it on.")
+                Text("That turns on \(permissionTitle). If PUSHTYPE is already listed, just switch it on.")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.6))
                     .fixedSize(horizontal: false, vertical: true)
@@ -59,7 +59,7 @@ struct PermissionGuideCard: View {
     private var chip: some View {
         HStack(spacing: 9) {
             AppIconImage(size: 30)
-            Text("PUSH")
+            Text("PUSHTYPE")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(.white)
             Image(systemName: "line.3.horizontal")

@@ -151,7 +151,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func showPermissionAlert(for permission: String) {
         let alert = NSAlert()
         alert.messageText = "\(permission) Access Required"
-        alert.informativeText = "PUSH needs \(permission.lowercased()) access to function. Please grant access in System Settings > Privacy & Security."
+        alert.informativeText = "PUSHTYPE needs \(permission.lowercased()) access to function. Please grant access in System Settings > Privacy & Security."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Open Settings")
         alert.addButton(withTitle: "Cancel")

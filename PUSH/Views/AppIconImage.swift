@@ -26,7 +26,7 @@ struct AppIconImage: View {
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: size, height: size)
-            .accessibilityLabel("PUSH")
+            .accessibilityLabel("PUSHTYPE")
     }
 
     /// Resolved once — this is a file read, and the wizard re-renders on every

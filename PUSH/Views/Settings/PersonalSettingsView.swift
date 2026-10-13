@@ -93,7 +93,7 @@ struct PersonalSettingsView: View {
 
         }
         .formStyle(.grouped)
-        .confirmationDialog("Delete everything PUSH has kept of your writing?", isPresented: $confirmingDelete) {
+        .confirmationDialog("Delete everything PUSHTYPE has kept of your writing?", isPresented: $confirmingDelete) {
             Button("Delete All", role: .destructive) { history.deleteAll() }
         } message: {
             Text("This removes the saved writing and its encryption key from this Mac. It can’t be undone.")

@@ -126,7 +126,7 @@ struct OnboardingView: View {
             AppIconImage(size: 84)
 
             VStack(spacing: 8) {
-                Text("Meet PUSH")
+                Text("Meet PUSHTYPE")
                     .font(.system(size: 26, weight: .semibold))
 
                 Text("Instant, on-device speech to text.")
@@ -185,7 +185,7 @@ struct OnboardingView: View {
         @Bindable var appState = appState
         return VStack(alignment: .leading, spacing: 16) {
             stepHeader(
-                title: "What should PUSH do?",
+                title: "What should PUSHTYPE do?",
                 subtitle: "Turn on what you want. Each one can be switched on or off later in Settings."
             )
 
@@ -202,7 +202,7 @@ struct OnboardingView: View {
             featureCard(
                 icon: "text.cursor",
                 title: "Type",
-                detail: "As you type in any app, PUSH suggests how the sentence goes on. Press Tab to take it a word at a time. Runs on this Mac like everything else."
+                detail: "As you type in any app, PUSHTYPE suggests how the sentence goes on. Press Tab to take it a word at a time. Runs on this Mac like everything else."
             ) {
                 Toggle("Type", isOn: $appState.typeEnabled)
                     .toggleStyle(.switch)
@@ -224,12 +224,12 @@ struct OnboardingView: View {
             if OnboardingFlow.needsMicrophone(dictation: appState.dictationEnabled) {
                 stepHeader(
                     title: "Two permissions",
-                    subtitle: "macOS asks for both. PUSH cannot dictate without them, and it asks for nothing else."
+                    subtitle: "macOS asks for both. PUSHTYPE cannot dictate without them, and it asks for nothing else."
                 )
             } else {
                 stepHeader(
                     title: "One permission",
-                    subtitle: "macOS asks for it. PUSH cannot see what you type without it, and it asks for nothing else."
+                    subtitle: "macOS asks for it. PUSHTYPE cannot see what you type without it, and it asks for nothing else."
                 )
             }
 
@@ -237,7 +237,7 @@ struct OnboardingView: View {
                 OnboardingPermissionRow(
                     icon: "mic.fill",
                     title: "Microphone",
-                    detail: "So PUSH can hear you. The audio is transcribed on this Mac and thrown away.",
+                    detail: "So PUSHTYPE can hear you. The audio is transcribed on this Mac and thrown away.",
                     status: permissions.microphone,
                     actionTitle: permissions.microphone == .notDetermined
                         ? "Allow Microphone…"
@@ -258,8 +258,8 @@ struct OnboardingView: View {
                 icon: "hand.tap.fill",
                 title: "Accessibility",
                 detail: appState.dictationEnabled
-                    ? "So PUSH can see the push-to-talk key and paste into the app you are using."
-                    : "So PUSH can read the text around your cursor and type the words you accept.",
+                    ? "So PUSHTYPE can see the push-to-talk key and paste into the app you are using."
+                    : "So PUSHTYPE can read the text around your cursor and type the words you accept.",
                 status: permissions.accessibility,
                 actionTitle: "Open System Settings…",
                 action: {
@@ -272,7 +272,7 @@ struct OnboardingView: View {
 
             if !permissions.accessibility.isGranted {
                 Label(
-                    "System Settings opens with PUSH on a card at the bottom — drag it into the list. This page ticks over on its own once you do — no need to restart PUSH.",
+                    "System Settings opens with PUSHTYPE on a card at the bottom — drag it into the list. This page ticks over on its own once you do — no need to restart PUSH.",
                     systemImage: "info.circle"
                 )
                 .font(.callout)
@@ -295,7 +295,7 @@ struct OnboardingView: View {
         return VStack(alignment: .leading, spacing: 14) {
             stepHeader(
                 title: "Choose a speech model",
-                subtitle: "Everything is transcribed on this Mac, so PUSH needs one model first — about 600 MB, downloaded once."
+                subtitle: "Everything is transcribed on this Mac, so PUSHTYPE needs one model first — about 600 MB, downloaded once."
             )
 
             VStack(spacing: 8) {
@@ -448,7 +448,7 @@ struct OnboardingView: View {
         return VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 title: "Suggestions as you type",
-                subtitle: "PUSH suggests how your sentence goes on, in any app, on this Mac. Tab takes the next word."
+                subtitle: "PUSHTYPE suggests how your sentence goes on, in any app, on this Mac. Tab takes the next word."
             )
 
             HStack {
@@ -510,7 +510,7 @@ struct OnboardingView: View {
                             typingSandboxFocused = true
                         }
                         .onDisappear { TypingCoordinator.shared.allowsOwnWindows = false }
-                    Text("Not for you? Switch it off above and continue — PUSH stays a dictation app.")
+                    Text("Not for you? Switch it off above and continue — PUSHTYPE stays a dictation app.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
@@ -547,10 +547,10 @@ struct OnboardingView: View {
         return VStack(alignment: .leading, spacing: 18) {
             stepHeader(
                 title: "Reading the screen",
-                subtitle: "Optional. Suggestions are better when PUSH can see what you’re replying to."
+                subtitle: "Optional. Suggestions are better when PUSHTYPE can see what you’re replying to."
             )
 
-            Text("PUSH reads the text around the field you’re typing in — the email you’re answering, the chat above, the page you’re on. Most apps share that text directly. A few only draw it on screen, and for those PUSH needs Screen Recording to read it.")
+            Text("PUSHTYPE reads the text around the field you’re typing in — the email you’re answering, the chat above, the page you’re on. Most apps share that text directly. A few only draw it on screen, and for those PUSHTYPE needs Screen Recording to read it.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -579,7 +579,7 @@ struct OnboardingView: View {
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
 
             Label(
-                "You can skip this: Type works without it, using what it can read directly. macOS may remind you now and then that PUSH can see your screen. Change either in Settings ▸ Typing.",
+                "You can skip this: Type works without it, using what it can read directly. macOS may remind you now and then that PUSHTYPE can see your screen. Change either in Settings ▸ Typing.",
                 systemImage: "info.circle"
             )
             .font(.callout)
@@ -665,7 +665,7 @@ struct OnboardingView: View {
         } else if !permissions.microphone.isGranted {
             statusLine(
                 icon: "exclamationmark.triangle.fill",
-                text: "PUSH cannot hear you without microphone access. Go back a step to turn it on.",
+                text: "PUSHTYPE cannot hear you without microphone access. Go back a step to turn it on.",
                 tint: .orange
             )
         } else if appState.isCapturing {
@@ -743,7 +743,7 @@ struct OnboardingView: View {
         return VStack(alignment: .leading, spacing: 16) {
             stepHeader(
                 title: "One last thing",
-                subtitle: "PUSH lives in the menu bar. It has no Dock icon and no window of its own."
+                subtitle: "PUSHTYPE lives in the menu bar. It has no Dock icon and no window of its own."
             )
 
             Toggle(isOn: Binding(
@@ -751,8 +751,8 @@ struct OnboardingView: View {
                 set: { launchAtLogin.set($0) }
             )) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Open PUSH at login").font(.system(size: 13, weight: .medium))
-                    Text("Recommended. Dictation is only useful if it is already running when you want it — otherwise the hotkey does nothing and you have to go and launch PUSH first.")
+                    Text("Open PUSHTYPE at login").font(.system(size: 13, weight: .medium))
+                    Text("Recommended. Dictation is only useful if it is already running when you want it — otherwise the hotkey does nothing and you have to go and launch PUSHTYPE first.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -768,7 +768,7 @@ struct OnboardingView: View {
 
                 bullet("Click the ", symbol: "music.mic", rest: " in the menu bar for settings, the teleprompter, and to quit.")
                 bullet("Change the push-to-talk key, the dictation language and the pill's position in Settings.")
-                bullet("Teach PUSH names and jargon it keeps mishearing under Settings → Dictionary.")
+                bullet("Teach PUSHTYPE names and jargon it keeps mishearing under Settings → Dictionary.")
             }
 
             if appState.dictationEnabled {
@@ -790,7 +790,7 @@ struct OnboardingView: View {
                     .onChange(of: appState.wakeWordEnabled) { _, on in
                         if on { WakeWordListener.shared.startListening() } else { WakeWordListener.shared.stopListening() }
                     }
-                    bullet("Teleprompter: paste a script and read it off the top of your screen; PUSH follows your voice. Start it from the menu bar.")
+                    bullet("Teleprompter: paste a script and read it off the top of your screen; PUSHTYPE follows your voice. Start it from the menu bar.")
                 }
             }
 
@@ -849,7 +849,7 @@ struct OnboardingView: View {
             Spacer()
 
             if step == .finish {
-                Button("Start Using PUSH", action: onFinish)
+                Button("Start Using PUSHTYPE", action: onFinish)
                     .keyboardShortcut(.defaultAction)
             } else {
                 Button("Continue") { advance(to: 1) }

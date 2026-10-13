@@ -59,8 +59,8 @@ struct DictationSettingsView: View {
                 }
 
                 Text(appState.inputDevicePriority.isEmpty
-                     ? "PUSH uses the system default, which changes when you connect AirPods or a headset. Add microphones to choose which one PUSH uses."
-                     : "PUSH uses the first microphone on the list that is connected, otherwise the system default. With the lid closed, the built-in microphone is skipped.")
+                     ? "PUSHTYPE uses the system default, which changes when you connect AirPods or a headset. Add microphones to choose which one PUSHTYPE uses."
+                     : "PUSHTYPE uses the first microphone on the list that is connected, otherwise the system default. With the lid closed, the built-in microphone is skipped.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

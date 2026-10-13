@@ -37,7 +37,7 @@ struct DictionarySettingsView: View {
                 // At the top, where it is read before the list grows long: the
                 // same words serve both features (DictionaryCompletion for Type).
                 Label {
-                    Text("Used for both voice and typing. Dictation writes what it hears with these spellings. When you type, PUSH finishes these words for you (“Kub” → “Kubernetes”) and never treats them as typos.")
+                    Text("Used for both voice and typing. Dictation writes what it hears with these spellings. When you type, PUSHTYPE finishes these words for you (“Kub” → “Kubernetes”) and never treats them as typos.")
                 } icon: {
                     Image(systemName: "mic.and.signal.meter")
                 }
@@ -127,7 +127,7 @@ struct DictionarySettingsView: View {
     }
 
     private var draftHint: String {
-        "Type what PUSH hears, then what it should insert. Choose “In context” for words that are also ordinary English, so they are replaced when you mean the name and left alone otherwise."
+        "Type what PUSHTYPE hears, then what it should insert. Choose “In context” for words that are also ordinary English, so they are replaced when you mean the name and left alone otherwise."
     }
 
     private var footnote: String {

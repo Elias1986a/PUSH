@@ -375,7 +375,7 @@ struct MenuBarView: View {
                     .padding(.horizontal, 8)
                     .padding(.bottom, 4)
             }
-            CommandRow(title: "Welcome to PUSH…", symbol: "sparkles") {
+            CommandRow(title: "Welcome to PUSHTYPE…", symbol: "sparkles") {
                 run { OnboardingWindowController.shared.show() }
             }
 
@@ -398,7 +398,7 @@ struct MenuBarView: View {
 
             Divider().padding(.vertical, 4)
 
-            CommandRow(title: "Quit PUSH", symbol: "power", shortcut: "⌘Q") {
+            CommandRow(title: "Quit PUSHTYPE", symbol: "power", shortcut: "⌘Q") {
                 NSApplication.shared.terminate(nil)
             }
         }
