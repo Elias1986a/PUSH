@@ -23,12 +23,12 @@ you've already made.
 ## Delivery
 
 Your licence key arrives by email as soon as payment clears. Download PUSHTYPE from
-[yourdomain]. To use PUSHTYPE, you need macOS [15] or later on an Apple silicon Mac,
+pushtype.app. To use PUSHTYPE, you need macOS 15 or later on an Apple silicon Mac,
 plus about 600 MB of free space for each speech model you download.
 
 ## Refunds
 
-If PUSHTYPE doesn't work for you, email [support@yourdomain] or reply to your
+If PUSHTYPE doesn't work for you, email [support@pushtype.app](mailto:support@pushtype.app) or reply to your
 receipt **within 14 days of buying**, and you'll get a full refund with no
 questions asked. Once we've refunded you, your licence key stops working.
 
@@ -42,4 +42,4 @@ email us and we'll free up the seat.
 
 ## Contact
 
-[support@yourdomain]
+[support@pushtype.app](mailto:support@pushtype.app)
