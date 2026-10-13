@@ -10,7 +10,12 @@ nothing migrates. QA fixes from PR #24: accept keys chosen in Settings
 by default, Lite model dropped, Screen Recording onboarding page that survives
 Quit & Reopen (`OnboardingWindowController.rememberStep`), onboarding 10 → 8
 pages, Text pane folded into Dictation, popover arrow re-anchors on icon width
-changes (not seen on screen yet). Next: website.
+changes (user confirmed it works). Website rebuilt for PUSHTYPE in PR #25
+(Netlify preview deploy-preview-25--pushtype.netlify.app): two in one, demo
+video slot `#demo`, learns from voice + typing, Type speed from our own probe
+only (no other autocomplete named — user respects its maker). Same PR adds
+llama.cpp's MIT notice (missing since 9.0 — ships in the app with the next
+release) and Type to the privacy policy. EULA/terms still say PUSH.
 
 ## 9.0.0 released (2026-10-12) — Type for everyone
 
