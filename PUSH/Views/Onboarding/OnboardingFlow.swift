@@ -2,7 +2,7 @@
 /// pinned by tests rather than by reading a view.
 enum OnboardingFlow {
     enum Step: Equatable, CaseIterable {
-        case welcome, features, permissions, speechModel, typingModel, tryIt, pill, more, finish
+        case welcome, features, permissions, speechModel, typingModel, screenText, tryIt, pill, more, finish
     }
 
     /// `typingSeen`: the Type page was reached. It stays in the list even if
@@ -14,6 +14,9 @@ enum OnboardingFlow {
         var s: [Step] = [.welcome, .features, .permissions]
         if dictation { s.append(.speechModel) }
         if typing { s.append(.typingModel) }
+        // Screen Recording is optional and only Type uses it, so it gets its
+        // own page, where there is room to say why (user, 2026-10-12).
+        if type { s.append(.screenText) }
         s.append(.tryIt)
         if dictation { s.append(.pill) }
         s += [.more, .finish]

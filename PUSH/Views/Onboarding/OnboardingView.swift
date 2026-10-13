@@ -108,6 +108,7 @@ struct OnboardingView: View {
         case .permissions: permissionsStep
         case .speechModel: modelStep
         case .typingModel: typingModelStep
+        case .screenText: screenTextStep
         case .tryIt: tryItStep
         case .pill: pillStep
         case .more: moreStep
@@ -535,6 +536,53 @@ struct OnboardingView: View {
     }
 
     // MARK: - Step 4 · try it here
+
+    /// Optional, Type only: Screen Recording, on a page of its own so there
+    /// is room to say what it is for and what it is not (user, 2026-10-12).
+    private var screenTextStep: some View {
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 18) {
+            stepHeader(
+                title: "Reading the screen",
+                subtitle: "Optional. Suggestions are better when PUSH can see what you’re replying to."
+            )
+
+            Text("PUSH reads the text around the field you’re typing in — the email you’re answering, the chat above, the page you’re on. Most apps share that text directly. A few only draw it on screen, and for those PUSH needs Screen Recording to read it.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            OnboardingPermissionRow(
+                icon: "rectangle.dashed.badge.record",
+                title: "Screen Recording",
+                detail: "Read only at the moment of a suggestion, on this Mac. Nothing is recorded, kept or sent, and password fields are never read.",
+                status: permissions.screenRecording,
+                actionTitle: "Allow Screen Recording…",
+                action: { permissions.requestScreenRecording() }
+            )
+
+            HStack {
+                Text("Use the text around the field").fontWeight(.medium)
+                Spacer()
+                Toggle("Use the text around the field", isOn: $appState.typingUsesScreen)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
+
+            Label(
+                "You can skip this: Type works without it, using what it can read directly. macOS may remind you now and then that PUSH can see your screen. Change either in Settings ▸ Typing.",
+                systemImage: "info.circle"
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+    }
 
     private var tryItStep: some View {
         VStack(alignment: .leading, spacing: 18) {
