@@ -60,6 +60,13 @@ final class MenuBarController: NSObject {
         // model never loads, and a Type-only PUSH showed an hourglass forever.
         let ready = state.dictationEnabled ? state.isModelReady : (!state.typeEnabled || state.typingModelReady)
         statusItem?.button?.image = Self.icon(ready: ready, dictation: state.dictationEnabled, typing: state.typeEnabled)
+        // The icons differ in width (hourglass, microphone, both), so the
+        // button resizes; an open menu kept pointing at the old middle. Read
+        // its bounds once the status bar has laid it out again.
+        DispatchQueue.main.async { [weak self] in
+            guard let popover = self?.popover, popover.isShown, let button = self?.statusItem?.button else { return }
+            popover.positioningRect = button.bounds
+        }
     }
 
     /// One symbol per feature that is on: the microphone for dictation, a
