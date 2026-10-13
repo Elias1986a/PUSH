@@ -42,6 +42,7 @@ analytics, no ads and no account.
 |---|---|---|---|
 | You press **Download** for a speech or typing model | Hugging Face (huggingface.co) | A standard download request: your IP address and the files requested | To fetch the open model you picked. [Hugging Face privacy policy](https://huggingface.co/privacy) |
 | Once a day, if automatic updates are on | Our update feed on GitHub (raw.githubusercontent.com) | A standard web request: your IP address, PUSHTYPE version and macOS version | To check for updates (Sparkle). |
+| When you activate a licence | Your own iCloud Keychain (end-to-end encrypted by Apple) | Your licence key | So your other Macs signed in to the same Apple Account activate without asking. We can't read it. |
 | If "Sync settings and dictionary across my Macs" is on (Settings ▸ General) | Apple iCloud, through your own iCloud account | Your PUSHTYPE settings and personal dictionary entries | To keep your Macs in step. We can't read this data; it's stored under your Apple Account. Switch it off at any time. |
 | When you enter a licence key, when you remove a Mac from your licence, and at most once a day to confirm the licence is still valid | Polar (polar.sh), our merchant of record | Your licence key, an activation ID, and your Mac's model (for example "Mac mini (M4)") so you can tell your Macs apart. Like any web request, it also carries your IP address | To check the key is genuine and to count Macs (3 per licence). [Polar's privacy policy](https://polar.sh/legal/privacy) |
 
@@ -65,6 +66,11 @@ unsubscribe.
 pushtype.app is hosted by Netlify, which keeps standard server logs (IP
 address, pages requested) for security and operations. We don't use
 advertising cookies or cross-site tracking.
+
+After you buy, the thank-you page asks Polar, through our website, for that
+purchase's download link and licence key, so you can download and activate in
+two clicks. It uses only the order number Polar adds to the page's address,
+and nothing is stored.
 
 If you use the form on our support page, Netlify stores what you send (your
 email address, the topic and your message) and emails it to us so we can
