@@ -1,0 +1,20 @@
+<!-- Share card source (1200x630). Render from website/: copy here, then
+     Chrome --headless=new --window-size=1200,630 --screenshot=assets/share.png _share.html -->
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Instrument+Sans:wght@400..700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+html,body{margin:0;width:1200px;height:630px;overflow:hidden;background:#141416;color:#efede8;font-family:'Instrument Sans',sans-serif}
+.card{position:relative;width:1200px;height:630px;box-sizing:border-box;padding:72px 80px;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(120% 140% at 100% 0%,#26252b 0%,#141416 60%)}
+.top{display:flex;align-items:center;gap:22px}
+.top img{width:112px;height:112px;border-radius:26px}
+.brand{font-family:'Archivo';font-stretch:112%;font-weight:800;font-size:64px;letter-spacing:-.02em;display:flex;align-items:center;gap:12px}
+.brand i{width:16px;height:16px;border-radius:50%;background:#ff5a45;display:inline-block}
+h1{margin:0;font-family:"Archivo";font-stretch:112%;font-weight:800;font-size:62px;line-height:1.04;letter-spacing:-.02em;white-space:nowrap}
+.chips{display:flex;gap:14px}
+.chips span{font:600 22px 'JetBrains Mono';padding:10px 18px;border-radius:999px;box-shadow:inset 0 0 0 2px #3a3d44;color:#c9ccd1}
+.ghost{color:#8e8e93}
+</style></head><body><div class="card">
+<div class="top"><img src="assets/icon.png" alt=""><div class="brand">PUSHTYPE<i></i></div></div>
+<h1>Push to talk. Type ahead.<br><span class="ghost">Nothing leaves your Mac.</span></h1>
+<div class="chips"><span>Offline voice</span><span>Autocomplete</span><span>Learns how you write</span></div>
+</div></body></html>
