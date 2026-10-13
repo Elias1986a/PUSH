@@ -123,14 +123,21 @@ final class TypingCoordinator {
     private var paused: (element: Int, until: Date)?
     static let escPause: TimeInterval = 3
 
+    /// The accept keys for this surface: the user's choices, read as each
+    /// suggestion appears so a change in Settings applies at once.
+    private static func applyKeys(surface: SurfaceClass) {
+        TypingKeyTap.shared.setKeys(
+            nextWord: AcceptKeyResolver.nextWordKey(surface: surface, chosen: TypingPreferences.nextWordKey()),
+            whole: TypingPreferences.wholeKey(layout: KeyboardLayoutMap.current()))
+    }
+
     /// On while Type is switched on. Starts and stops the key tap.
     func setActive(_ on: Bool) {
         guard on != active else { return }
         active = on
         if on {
             let tap = TypingKeyTap.shared
-            tap.setKeys(nextWord: AcceptKeyResolver.nextWordKey(surface: .other),
-                        whole: AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()))
+            Self.applyKeys(surface: .other)
             tap.onEvent = { [weak self] event in self?.handle(event) }
             tap.start()
             ClipboardContext.shared.start()
@@ -698,10 +705,7 @@ final class TypingCoordinator {
         guard mayRun, !text.isEmpty else { return }
         let appearing = shown == nil
         // → in terminals, where Tab is the shell's completion.
-        if appearing {
-            TypingKeyTap.shared.setKeys(nextWord: AcceptKeyResolver.nextWordKey(surface: surface),
-                                        whole: AcceptKeyResolver.wholeSuggestionKey(layout: KeyboardLayoutMap.current()))
-        }
+        if appearing { Self.applyKeys(surface: surface) }
         // What fits on screen is the suggestion: accepting never types words
         // the user could not see.
         GhostTextPanel.shared.textColor = AppState.shared.typingColor.color

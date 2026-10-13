@@ -17,6 +17,8 @@ enum TypingPreferences {
     static let screenKey = "typing.context.screen"
     static let nameKey = "typing.profile.name"
     static let aboutKey = "typing.profile.about"
+    static let nextWordKeyKey = "typing.keys.nextWord"
+    static let wholeKeyKey = "typing.keys.whole"
     /// The About note's limit (Cotabby keeps its style line to 300).
     static let aboutLimit = 300
 
@@ -28,6 +30,17 @@ enum TypingPreferences {
     static func length(in d: UserDefaults = .standard) -> LengthPreset {
         let saved = d.string(forKey: lengthKey).flatMap(LengthPreset.init(rawValue:)) ?? .defaultPreset
         return saved.clamped(to: model(in: d))
+    }
+
+    /// Tab unless the user chose another key in Settings → Typing.
+    static func nextWordKey(in d: UserDefaults = .standard) -> AcceptKeyResolver.Key {
+        d.string(forKey: nextWordKeyKey).flatMap(AcceptKeyResolver.Key.init(stored:)) ?? AcceptKeyResolver.tab
+    }
+
+    /// The key that types a backtick (the ` ~ key) unless the user chose another.
+    static func wholeKey(in d: UserDefaults = .standard, layout: [Int64: String]) -> AcceptKeyResolver.Key {
+        d.string(forKey: wholeKeyKey).flatMap(AcceptKeyResolver.Key.init(stored:))
+            ?? AcceptKeyResolver.wholeSuggestionKey(layout: layout)
     }
 
     /// Off by default: editors have their own completions (and AI ones) on

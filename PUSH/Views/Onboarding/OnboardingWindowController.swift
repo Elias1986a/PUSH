@@ -30,7 +30,39 @@ final class OnboardingWindowController {
     /// deliberately declined a permission is not met by the same wizard at
     /// every launch for the rest of the app's life.
     static var isPending: Bool {
-        !UserDefaults.standard.bool(forKey: seenKey)
+        !UserDefaults.standard.bool(forKey: seenKey) || resumeStep != nil
+    }
+
+    // MARK: Resuming after a relaunch
+
+    private static let resumeStepKey = "onboarding.resumeStep"
+    private static let resumeAtKey = "onboarding.resumeAt"
+
+    /// Granting Screen Recording makes macOS offer to quit and reopen PUSH,
+    /// which dropped the user back on the first page, or out of the wizard
+    /// altogether (user, 2026-10-12). The page is remembered just before
+    /// asking, and the next launch opens there.
+    static func rememberStep(_ step: OnboardingFlow.Step) {
+        UserDefaults.standard.set("\(step)", forKey: resumeStepKey)
+        UserDefaults.standard.set(Date(), forKey: resumeAtKey)
+    }
+
+    /// The remembered page, if it was remembered in the last ten minutes:
+    /// later than that, the relaunch was not System Settings' doing.
+    static var resumeStep: OnboardingFlow.Step? {
+        let d = UserDefaults.standard
+        guard let at = d.object(forKey: resumeAtKey) as? Date, Date().timeIntervalSince(at) < 600,
+              let raw = d.string(forKey: resumeStepKey) else { return nil }
+        return OnboardingFlow.Step.allCases.first { "\($0)" == raw }
+    }
+
+    /// Read once, by the wizard as it opens.
+    static func takeResumeStep() -> OnboardingFlow.Step? {
+        defer {
+            UserDefaults.standard.removeObject(forKey: resumeStepKey)
+            UserDefaults.standard.removeObject(forKey: resumeAtKey)
+        }
+        return resumeStep
     }
 
     /// Records that the wizard has been seen, so it does not reappear. Set when
@@ -53,7 +85,7 @@ final class OnboardingWindowController {
         )
 
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Welcome to PUSH"
+        window.title = "Welcome to PUSHTYPE"
         // No resize and no minimise: the content is a fixed-size flow, and an
         // accessory app has no Dock icon to restore a minimised window from.
         window.styleMask = [.titled, .closable, .fullSizeContentView]
@@ -118,6 +150,7 @@ final class OnboardingWindowController {
 
     private func finish() {
         Self.markSeen()
+        _ = Self.takeResumeStep()      // done: no page to come back to
         // `windowWillClose` does the rest of the teardown.
         window?.close()
     }

@@ -94,7 +94,6 @@ extension TypingModel {
     /// The name the user chooses by; the model's own name is the badge.
     var tier: String {
         switch self {
-        case .lite: return "Lite"
         case .recommended: return "Recommended"
         case .best: return "Best"
         case .pro: return "Pro"
@@ -103,7 +102,6 @@ extension TypingModel {
 
     var blurb: String {
         switch self {
-        case .lite: return "Smallest and quickest. Short suggestions, for older or 8 GB Macs."
         case .recommended: return "Good suggestions at a modest size."
         case .best: return "Strong suggestions, and the longest."
         case .pro: return "The most capable, and the biggest download. For Macs with 16 GB of memory or more."

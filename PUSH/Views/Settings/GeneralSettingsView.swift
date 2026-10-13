@@ -37,7 +37,7 @@ struct GeneralSettingsView: View {
                     AppIconImage(size: 56)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("PUSH")
+                        Text("PUSHTYPE")
                             .font(.system(size: 15, weight: .semibold))
                         Text("Version \(appVersion)")
                             .font(.caption)
@@ -71,7 +71,7 @@ struct GeneralSettingsView: View {
                 // SMAppService.status synchronously from the view body, which
                 // blocks the main thread ~61ms per render pass. See
                 // LaunchAtLoginModel.
-                Toggle("Open PUSH at login", isOn: Binding(
+                Toggle("Open PUSHTYPE at login", isOn: Binding(
                     get: { launchAtLogin.isEnabled },
                     set: { launchAtLogin.set($0) }
                 ))
@@ -94,7 +94,7 @@ struct GeneralSettingsView: View {
             Section("Permissions") {
                 PermissionRow(
                     title: "Microphone",
-                    reason: "PUSH cannot hear you without it.",
+                    reason: "PUSHTYPE cannot hear you without it.",
                     status: permissions.microphone,
                     openSettings: permissions.openSystemSettings
                 )

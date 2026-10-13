@@ -450,7 +450,7 @@ final class AppState {
     /// showed it resolving "15.2 seconds, I mean 1.52 seconds" correctly on
     /// all three Parakeet engines, and a correction left in the paste is
     /// almost never wanted — Wispr does it unconditionally. The switch in
-    /// Settings ▸ Text stays as the way out when it guesses wrong.
+    /// Settings ▸ Dictation stays as the way out when it guesses wrong.
     var resolveSelfCorrections: Bool = true {
         didSet {
             UserDefaults.standard.set(resolveSelfCorrections, forKey: UserDefaultsKeys.resolveSelfCorrections)

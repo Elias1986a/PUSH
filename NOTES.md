@@ -1,5 +1,17 @@
 # NOTES
 
+## 9.1.0 (2026-10-12) — PUSHTYPE, QA fixes
+
+The visible name is PUSHTYPE (user, 2026-10-12): every UI string, Sparkle
+window, CFBundleName/CFBundleDisplayName. The bundle id, executable, `PUSH.app`
+file name, prefs domain, Application Support/PUSH and the repo stay PUSH, so
+nothing migrates. QA fixes from PR #24: accept keys chosen in Settings
+(refusals for Return/Space/Esc/Delete/letters), menu color swatches, Type on
+by default, Lite model dropped, Screen Recording onboarding page that survives
+Quit & Reopen (`OnboardingWindowController.rememberStep`), onboarding 10 → 8
+pages, Text pane folded into Dictation, popover arrow re-anchors on icon width
+changes (not seen on screen yet). Next: website.
+
 ## 9.0.0 released (2026-10-12) — Type for everyone
 
 feature/autocomplete fast-forwarded into main. The coming-soon gate

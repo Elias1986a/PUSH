@@ -221,6 +221,13 @@ struct MenuBarView: View {
                 .labelsHidden()
                 .disabled(offered.count < 2)
             }
+            // Type is on by default, but nothing runs until a model is here.
+            if !TypingModelStore.shared.onDisk.contains(appState.selectedTypingModel) {
+                Text("Download a model in Settings ▸ Typing to get suggestions.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             labelled("Length") {
                 Picker("", selection: $appState.typingLength) {
                     ForEach(LengthPreset.offered(for: appState.selectedTypingModel), id: \.self) {
@@ -228,6 +235,27 @@ struct MenuBarView: View {
                     }
                 }
                 .labelsHidden()
+            }
+            // Here as well as in Settings: whether gray reads depends on the
+            // field behind it (see-through boxes over a wallpaper hid it),
+            // so the fix should be a click away (user, 2026-10-12).
+            labelled("Color") {
+                HStack(spacing: 6) {
+                    ForEach(SuggestionColor.Preset.allCases) { preset in
+                        let selected = appState.typingColor == .preset(preset)
+                        Button { appState.typingColor = .preset(preset) } label: {
+                            Circle()
+                                .fill(Color(nsColor: preset.color))
+                                .frame(width: 13, height: 13)
+                                .overlay(Circle().strokeBorder(Color.primary.opacity(selected ? 0.8 : 0), lineWidth: 1.5)
+                                    .padding(-2.5))
+                        }
+                        .buttonStyle(.plain)
+                        .help(preset.name)
+                        .accessibilityLabel(preset.name)
+                    }
+                    Spacer(minLength: 0)
+                }
             }
             TypingPauseControl()
         }
@@ -347,7 +375,7 @@ struct MenuBarView: View {
                     .padding(.horizontal, 8)
                     .padding(.bottom, 4)
             }
-            CommandRow(title: "Welcome to PUSH…", symbol: "sparkles") {
+            CommandRow(title: "Welcome to PUSHTYPE…", symbol: "sparkles") {
                 run { OnboardingWindowController.shared.show() }
             }
 
@@ -370,7 +398,7 @@ struct MenuBarView: View {
 
             Divider().padding(.vertical, 4)
 
-            CommandRow(title: "Quit PUSH", symbol: "power", shortcut: "⌘Q") {
+            CommandRow(title: "Quit PUSHTYPE", symbol: "power", shortcut: "⌘Q") {
                 NSApplication.shared.terminate(nil)
             }
         }

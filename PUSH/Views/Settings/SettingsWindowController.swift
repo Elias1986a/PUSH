@@ -32,7 +32,7 @@ final class SettingsWindowController {
             rootView: SettingsView().environment(AppState.shared))
 
         let window = NSWindow(contentViewController: hosting)
-        window.title = "PUSH Settings"
+        window.title = "PUSHTYPE Settings"
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.setContentSize(NSSize(width: 820, height: 620))
         // Remembers position and size across launches, which is what the

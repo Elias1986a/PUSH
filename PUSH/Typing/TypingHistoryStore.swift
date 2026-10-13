@@ -3,9 +3,11 @@ import CryptoKit
 import Observation
 import PUSHCore
 
-/// "Learn from my writing" (Settings → Personal; off by default). Keeps what
-/// the user wrote in each field where Type is active, scrubbed of secrets,
-/// sealed with a key that lives in this Mac's Keychain, never synced, and
+/// "Learn from my writing and voice" (Settings → Personal; off by default).
+/// Keeps what the user wrote in each field where Type is active — dictations
+/// included, since a paste asks for a suggestion and that reads the field —
+/// scrubbed of secrets, sealed with a key that lives in this Mac's Keychain,
+/// never synced, and
 /// offers the passages closest to what they are writing now as examples in
 /// the prompt. Delete All removes the file and the key.
 ///

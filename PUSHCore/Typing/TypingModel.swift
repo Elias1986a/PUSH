@@ -4,7 +4,6 @@ import Foundation
 /// models"). Base checkpoints, GGUF, all Apache-2.0, each pinned to a
 /// Hugging Face revision and checked by SHA-256 after download.
 public enum TypingModel: String, CaseIterable, Sendable, Identifiable {
-    case lite = "qwen3.5-0.8b-base"
     case recommended = "qwen3.5-2b-base"
     case best = "gemma4-e2b-base"
     /// Cotabby's "pro" tier: Gemma 4 E4B, 5.3 GB. Added 2026-10-11 for the
@@ -17,7 +16,6 @@ public enum TypingModel: String, CaseIterable, Sendable, Identifiable {
 
     public var displayName: String {
         switch self {
-        case .lite: return "Qwen3.5 0.8B"
         case .recommended: return "Qwen3.5 2B"
         case .best: return "Gemma 4 E2B"
         case .pro: return "Gemma 4 E4B"
@@ -26,7 +24,6 @@ public enum TypingModel: String, CaseIterable, Sendable, Identifiable {
 
     public var repo: String {
         switch self {
-        case .lite: return "mradermacher/Qwen3.5-0.8B-Base-i1-GGUF"
         case .recommended: return "mradermacher/Qwen3.5-2B-Base-i1-GGUF"
         case .best: return "mradermacher/gemma-4-E2B-i1-GGUF"
         case .pro: return "mradermacher/gemma-4-E4B-i1-GGUF"
@@ -35,7 +32,6 @@ public enum TypingModel: String, CaseIterable, Sendable, Identifiable {
 
     public var file: String {
         switch self {
-        case .lite: return "Qwen3.5-0.8B-Base.i1-Q6_K.gguf"
         case .recommended: return "Qwen3.5-2B-Base.i1-Q4_K_M.gguf"
         case .best: return "gemma-4-E2B.i1-Q4_K_M.gguf"
         case .pro: return "gemma-4-E4B.i1-Q4_K_M.gguf"
@@ -46,7 +42,6 @@ public enum TypingModel: String, CaseIterable, Sendable, Identifiable {
     /// bytes cannot change under the checksum.
     public var revision: String {
         switch self {
-        case .lite: return "0adcee13f1a32c38fdbdb93e21d57e76b5640836"
         case .recommended: return "209c5e51cc8ceee9b70facbcf36c57d7968ba543"
         case .best: return "a9bf638e53783fc93778f357cc5c672eab5393b1"
         case .pro: return "8d1efb45cd65f46a70ac918584e2f0244117465f"
@@ -55,7 +50,6 @@ public enum TypingModel: String, CaseIterable, Sendable, Identifiable {
 
     public var bytes: Int64 {
         switch self {
-        case .lite: return 629_744_512
         case .recommended: return 1_274_397_056
         case .best: return 3_427_862_240
         case .pro: return 5_335_274_240
@@ -64,7 +58,6 @@ public enum TypingModel: String, CaseIterable, Sendable, Identifiable {
 
     public var sha256: String {
         switch self {
-        case .lite: return "febd85051361ccb34d0925744c819f9ae0724117e8f946a2852dd0edfa90a5a1"
         case .recommended: return "e3daa3f6e5ed8de264fc6e4128713ae1eb0c2649ad69b83f97bfc6a6ddca3da8"
         case .best: return "3cc0e9c2b4bbffea7f3f6cfe1ffd1591f4dafe02c43f78952f1142a24172df65"
         case .pro: return "687f4cce47eac6ccfc595fd9517215fb964e5e5be17d4774b25b8add401d6d3c"
@@ -76,7 +69,6 @@ public enum TypingModel: String, CaseIterable, Sendable, Identifiable {
     /// The longest length preset this model handles well (Phase 0 eval).
     public var maxLength: LengthPreset {
         switch self {
-        case .lite: return .short
         case .recommended: return .medium
         case .best, .pro: return .long
         }

@@ -138,7 +138,7 @@ final class ModelFileDownloaderLiveTests: XCTestCase {
         guard ProcessInfo.processInfo.environment["PUSH_TYPE_REAL_DOWNLOAD"] == "1" else {
             throw XCTSkip("PUSH_TYPE_REAL_DOWNLOAD not set")
         }
-        let model = TypingModel.lite
+        let model = TypingModel.recommended
         let spec = ModelFileDownloader.Spec(url: model.downloadURL, bytes: model.bytes, sha256: model.sha256)
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("live-\(UUID())")
         defer { try? FileManager.default.removeItem(at: dir) }

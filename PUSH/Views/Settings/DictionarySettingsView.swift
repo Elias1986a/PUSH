@@ -5,7 +5,6 @@ import PUSHCore
 // MARK: - Dictionary
 
 struct DictionarySettingsView: View {
-    @Environment(AppState.self) private var appState
     @ObservedObject private var store = CorrectionsStore.shared
 
     /// A row being typed, held here rather than in the store: `addCorrection`
@@ -35,6 +34,16 @@ struct DictionarySettingsView: View {
     var body: some View {
         Form {
             Section("Your dictionary") {
+                // At the top, where it is read before the list grows long: the
+                // same words serve both features (DictionaryCompletion for Type).
+                Label {
+                    Text("Used for both voice and typing. Dictation writes what it hears with these spellings. When you type, PUSHTYPE finishes these words for you (“Kub” → “Kubernetes”) and never treats them as typos.")
+                } icon: {
+                    Image(systemName: "mic.and.signal.meter")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
                 // Above the list, not below it: the list grows without bound,
                 // and a + that walks off the bottom of a long dictionary is a
                 // + you have to go looking for.
@@ -78,13 +87,6 @@ struct DictionarySettingsView: View {
                 Text(footnote)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                // The right-hand words serve Type too (DictionaryCompletion).
-                if appState.typeEnabled {
-                    Label("When you type, PUSH finishes these words for you (“Kub” → “Kubernetes”) and never treats them as typos.",
-                          systemImage: "keyboard")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
         }
         .formStyle(.grouped)
@@ -125,7 +127,7 @@ struct DictionarySettingsView: View {
     }
 
     private var draftHint: String {
-        "Type what PUSH hears, then what it should insert. Choose “In context” for words that are also ordinary English, so they are replaced when you mean the name and left alone otherwise."
+        "Type what PUSHTYPE hears, then what it should insert. Choose “In context” for words that are also ordinary English, so they are replaced when you mean the name and left alone otherwise."
     }
 
     private var footnote: String {

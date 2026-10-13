@@ -12,7 +12,9 @@ enum FeatureSwitches {
         d.object(forKey: dictationKey) as? Bool ?? true
     }
 
+    /// Absent means on too: both features are on until the user turns one
+    /// off (user, 2026-10-12). Nothing runs until a typing model is on disk.
     static func typeEnabled(in d: UserDefaults = .standard) -> Bool {
-        d.bool(forKey: typeKey)
+        d.object(forKey: typeKey) as? Bool ?? true
     }
 }

@@ -34,8 +34,10 @@ struct OnboardingView: View {
     @FocusState private var typingSandboxFocused: Bool
 
     /// `PUSH_ONBOARDING_STEP=typingModel` opens the wizard on that step, for
-    /// screenshots and testing. Debug builds only.
+    /// screenshots and testing. Debug builds only. After macOS relaunched
+    /// PUSH mid-wizard, the page the user was on.
     private static var initialStep: OnboardingFlow.Step {
+        if let resumed = OnboardingWindowController.takeResumeStep() { return resumed }
         #if DEBUG
         if let raw = ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"],
            let step = OnboardingFlow.Step.allCases.first(where: { "\($0)" == raw }) {
@@ -86,6 +88,9 @@ struct OnboardingView: View {
         .frame(width: OnboardingWindowController.contentSize.width,
                height: OnboardingWindowController.contentSize.height)
         .onAppear {
+            // A resumed page that no longer applies (its feature switched
+            // off meanwhile) would leave Continue with nowhere to go.
+            if !steps.contains(step) { step = .welcome }
             permissions.startPolling()
             refreshModelsOnDisk()
             // A first run starts on the recommended model, whatever preference
@@ -108,9 +113,8 @@ struct OnboardingView: View {
         case .permissions: permissionsStep
         case .speechModel: modelStep
         case .typingModel: typingModelStep
+        case .screenText: screenTextStep
         case .tryIt: tryItStep
-        case .pill: pillStep
-        case .more: moreStep
         case .finish: finishStep
         }
     }
@@ -122,7 +126,7 @@ struct OnboardingView: View {
             AppIconImage(size: 84)
 
             VStack(spacing: 8) {
-                Text("Meet PUSH")
+                Text("Meet PUSHTYPE")
                     .font(.system(size: 26, weight: .semibold))
 
                 Text("Instant, on-device speech to text.")
@@ -181,7 +185,7 @@ struct OnboardingView: View {
         @Bindable var appState = appState
         return VStack(alignment: .leading, spacing: 16) {
             stepHeader(
-                title: "What should PUSH do?",
+                title: "What should PUSHTYPE do?",
                 subtitle: "Turn on what you want. Each one can be switched on or off later in Settings."
             )
 
@@ -198,7 +202,7 @@ struct OnboardingView: View {
             featureCard(
                 icon: "text.cursor",
                 title: "Type",
-                detail: "As you type in any app, PUSH suggests how the sentence goes on. Press Tab to take it a word at a time. Runs on this Mac like everything else."
+                detail: "As you type in any app, PUSHTYPE suggests how the sentence goes on. Press Tab to take it a word at a time. Runs on this Mac like everything else."
             ) {
                 Toggle("Type", isOn: $appState.typeEnabled)
                     .toggleStyle(.switch)
@@ -220,12 +224,12 @@ struct OnboardingView: View {
             if OnboardingFlow.needsMicrophone(dictation: appState.dictationEnabled) {
                 stepHeader(
                     title: "Two permissions",
-                    subtitle: "macOS asks for both. PUSH cannot dictate without them, and it asks for nothing else."
+                    subtitle: "macOS asks for both. PUSHTYPE cannot dictate without them, and it asks for nothing else."
                 )
             } else {
                 stepHeader(
                     title: "One permission",
-                    subtitle: "macOS asks for it. PUSH cannot see what you type without it, and it asks for nothing else."
+                    subtitle: "macOS asks for it. PUSHTYPE cannot see what you type without it, and it asks for nothing else."
                 )
             }
 
@@ -233,7 +237,7 @@ struct OnboardingView: View {
                 OnboardingPermissionRow(
                     icon: "mic.fill",
                     title: "Microphone",
-                    detail: "So PUSH can hear you. The audio is transcribed on this Mac and thrown away.",
+                    detail: "So PUSHTYPE can hear you. The audio is transcribed on this Mac and thrown away.",
                     status: permissions.microphone,
                     actionTitle: permissions.microphone == .notDetermined
                         ? "Allow Microphone…"
@@ -254,8 +258,8 @@ struct OnboardingView: View {
                 icon: "hand.tap.fill",
                 title: "Accessibility",
                 detail: appState.dictationEnabled
-                    ? "So PUSH can see the push-to-talk key and paste into the app you are using."
-                    : "So PUSH can read the text around your cursor and type the words you accept.",
+                    ? "So PUSHTYPE can see the push-to-talk key and paste into the app you are using."
+                    : "So PUSHTYPE can read the text around your cursor and type the words you accept.",
                 status: permissions.accessibility,
                 actionTitle: "Open System Settings…",
                 action: {
@@ -268,7 +272,7 @@ struct OnboardingView: View {
 
             if !permissions.accessibility.isGranted {
                 Label(
-                    "System Settings opens with PUSH on a card at the bottom — drag it into the list. This page ticks over on its own once you do — no need to restart PUSH.",
+                    "System Settings opens with PUSHTYPE on a card at the bottom — drag it into the list. This page ticks over on its own once you do — no need to restart PUSH.",
                     systemImage: "info.circle"
                 )
                 .font(.callout)
@@ -291,7 +295,7 @@ struct OnboardingView: View {
         return VStack(alignment: .leading, spacing: 14) {
             stepHeader(
                 title: "Choose a speech model",
-                subtitle: "Everything is transcribed on this Mac, so PUSH needs one model first — about 600 MB, downloaded once."
+                subtitle: "Everything is transcribed on this Mac, so PUSHTYPE needs one model first — about 600 MB, downloaded once."
             )
 
             VStack(spacing: 8) {
@@ -444,7 +448,7 @@ struct OnboardingView: View {
         return VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 title: "Suggestions as you type",
-                subtitle: "PUSH suggests how your sentence goes on, in any app, on this Mac. Tab takes the next word."
+                subtitle: "PUSHTYPE suggests how your sentence goes on, in any app, on this Mac. Tab takes the next word."
             )
 
             HStack {
@@ -506,7 +510,7 @@ struct OnboardingView: View {
                             typingSandboxFocused = true
                         }
                         .onDisappear { TypingCoordinator.shared.allowsOwnWindows = false }
-                    Text("Not for you? Switch it off above and continue — PUSH stays a dictation app.")
+                    Text("Not for you? Switch it off above and continue — PUSHTYPE stays a dictation app.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
@@ -536,8 +540,59 @@ struct OnboardingView: View {
 
     // MARK: - Step 4 · try it here
 
+    /// Optional, Type only: Screen Recording, on a page of its own so there
+    /// is room to say what it is for and what it is not (user, 2026-10-12).
+    private var screenTextStep: some View {
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 18) {
+            stepHeader(
+                title: "Reading the screen",
+                subtitle: "Optional. Suggestions are better when PUSHTYPE can see what you’re replying to."
+            )
+
+            Text("PUSHTYPE reads the text around the field you’re typing in — the email you’re answering, the chat above, the page you’re on. Most apps share that text directly. A few only draw it on screen, and for those PUSHTYPE needs Screen Recording to read it.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            OnboardingPermissionRow(
+                icon: "rectangle.dashed.badge.record",
+                title: "Screen Recording",
+                detail: "Read only at the moment of a suggestion, on this Mac. Nothing is recorded, kept or sent, and password fields are never read.",
+                status: permissions.screenRecording,
+                actionTitle: "Allow Screen Recording…",
+                action: {
+                    OnboardingWindowController.rememberStep(.screenText)
+                    permissions.requestScreenRecording()
+                }
+            )
+
+            HStack {
+                Text("Use the text around the field").fontWeight(.medium)
+                Spacer()
+                Toggle("Use the text around the field", isOn: $appState.typingUsesScreen)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
+
+            Label(
+                "You can skip this: Type works without it, using what it can read directly. macOS may remind you now and then that PUSHTYPE can see your screen. Change either in Settings ▸ Typing.",
+                systemImage: "info.circle"
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+    }
+
     private var tryItStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 18) {
             stepHeader(
                 title: "Try it right here",
                 subtitle: "Click the box below, then hold \(appState.selectedHotkey.displayName), say “hello world”, and let go."
@@ -567,6 +622,21 @@ struct OnboardingView: View {
 
             sandboxStatus
 
+            // Once a page of its own; here it follows seeing the pill.
+            HStack {
+                Text("The pill").fontWeight(.medium)
+                Spacer()
+                Picker("The pill", selection: $appState.pillPosition) {
+                    ForEach(AppState.PillPosition.allCases) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
+
             Spacer(minLength: 0)
         }
     }
@@ -595,7 +665,7 @@ struct OnboardingView: View {
         } else if !permissions.microphone.isGranted {
             statusLine(
                 icon: "exclamationmark.triangle.fill",
-                text: "PUSH cannot hear you without microphone access. Go back a step to turn it on.",
+                text: "PUSHTYPE cannot hear you without microphone access. Go back a step to turn it on.",
                 tint: .orange
             )
         } else if appState.isCapturing {
@@ -628,90 +698,7 @@ struct OnboardingView: View {
         .font(.callout)
     }
 
-    // MARK: - Step 5 · where the pill lives
-
-    /// Asked with the same picture Settings uses, so the two read as one
-    /// setting rather than two. The choice is genuinely a matter of taste and
-    /// of hardware — a notch to hang from, or not — which makes it worth a
-    /// step rather than a line of prose nobody reads.
-    private var pillStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            stepHeader(
-                title: "Where the pill lives",
-                subtitle: "While you dictate, a small pill shows that PUSH is listening — and a live waveform of your voice."
-            )
-
-            HStack(spacing: 18) {
-                ForEach(AppState.PillPosition.allCases) { position in
-                    PillPositionThumbnail(
-                        position: position,
-                        isSelected: appState.pillPosition == position
-                    )
-                    .onTapGesture { appState.pillPosition = position }
-                }
-                Spacer(minLength: 0)
-            }
-
-            Text("At the bottom it floats as a capsule, out of the way. At the top it hangs off the screen edge under the notch, where you are already reading. You can change this any time in Settings.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
-        }
-    }
-
-    // MARK: - Step 6 · the rest of the app
-
-    private var moreStep: some View {
-        // This step is not `body`, so it needs its own `@Bindable` shadow for
-        // the wake word toggle's binding.
-        @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 16) {
-            stepHeader(
-                title: "Two more things it does",
-                subtitle: "Neither is on by default. Both are in Settings whenever you want them."
-            )
-
-            // Wake word ships off and must stay off by default: it holds the
-            // microphone open continuously, which is a materially different
-            // privacy posture from push-to-talk and deserves saying out loud.
-            featureCard(
-                icon: "waveform.badge.mic",
-                title: "Wake word",
-                detail: "Say a word instead of holding a key, and PUSH starts recording — stopping on its own after a second of silence."
-            ) {
-                Toggle("Start recording when I say “\(appState.wakeWord)”", isOn: $appState.wakeWordEnabled)
-                    .onChange(of: appState.wakeWordEnabled) { _, on in
-                        if on {
-                            WakeWordListener.shared.startListening()
-                        } else {
-                            WakeWordListener.shared.stopListening()
-                        }
-                    }
-                Text("Off by default on purpose: listening for a wake word holds the microphone open the whole time, where push-to-talk only opens it while you hold the key.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            featureCard(
-                icon: "text.alignleft",
-                title: "Teleprompter",
-                detail: "Paste a script and read it off the top of your screen. PUSH listens as you read and moves the text to keep up with you — it holds still if you pause or go off-script, and never scrolls on its own."
-            ) {
-                Label(
-                    "It is excluded from screen capture, so it never appears in your recording or on a shared screen. You are reading; nobody else can tell.",
-                    systemImage: "eye.slash.fill"
-                )
-                .font(.callout)
-                .foregroundStyle(Color.accentColor)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 0)
-        }
-    }
+    // MARK: - Pieces
 
     /// One feature: icon, name, what it is, and whatever control or aside it
     /// needs underneath.
@@ -749,13 +736,14 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Step 7 · keep it around
+    // MARK: - Last page · keep it around
 
     private var finishStep: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 16) {
             stepHeader(
                 title: "One last thing",
-                subtitle: "PUSH lives in the menu bar. It has no Dock icon and no window of its own."
+                subtitle: "PUSHTYPE lives in the menu bar. It has no Dock icon and no window of its own."
             )
 
             Toggle(isOn: Binding(
@@ -763,8 +751,8 @@ struct OnboardingView: View {
                 set: { launchAtLogin.set($0) }
             )) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Open PUSH at login").font(.system(size: 13, weight: .medium))
-                    Text("Recommended. Dictation is only useful if it is already running when you want it — otherwise the hotkey does nothing and you have to go and launch PUSH first.")
+                    Text("Open PUSHTYPE at login").font(.system(size: 13, weight: .medium))
+                    Text("Recommended. Dictation is only useful if it is already running when you want it — otherwise the hotkey does nothing and you have to go and launch PUSHTYPE first.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -780,8 +768,30 @@ struct OnboardingView: View {
 
                 bullet("Click the ", symbol: "music.mic", rest: " in the menu bar for settings, the teleprompter, and to quit.")
                 bullet("Change the push-to-talk key, the dictation language and the pill's position in Settings.")
-                bullet("Teach PUSH names and jargon it keeps mishearing under Settings → Dictionary.")
-                bullet("Start a prompter take from the menu bar; its script and type size live in Settings → Teleprompter.")
+                bullet("Teach PUSHTYPE names and jargon it keeps mishearing under Settings → Dictionary.")
+            }
+
+            if appState.dictationEnabled {
+                Divider()
+
+                // Once a page of their own ("Two more things"); both are off by
+                // default, so a line each is enough here.
+                VStack(alignment: .leading, spacing: 10) {
+                    Toggle(isOn: $appState.wakeWordEnabled) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Start recording when I say “\(appState.wakeWord)”").font(.system(size: 13, weight: .medium))
+                            Text("Off by default: it keeps the microphone open the whole time, where push-to-talk opens it only while you hold the key.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .toggleStyle(.switch)
+                    .onChange(of: appState.wakeWordEnabled) { _, on in
+                        if on { WakeWordListener.shared.startListening() } else { WakeWordListener.shared.stopListening() }
+                    }
+                    bullet("Teleprompter: paste a script and read it off the top of your screen; PUSHTYPE follows your voice. Start it from the menu bar.")
+                }
             }
 
             Spacer(minLength: 0)
@@ -839,7 +849,7 @@ struct OnboardingView: View {
             Spacer()
 
             if step == .finish {
-                Button("Start Using PUSH", action: onFinish)
+                Button("Start Using PUSHTYPE", action: onFinish)
                     .keyboardShortcut(.defaultAction)
             } else {
                 Button("Continue") { advance(to: 1) }

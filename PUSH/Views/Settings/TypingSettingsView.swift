@@ -9,6 +9,29 @@ struct TypingSettingsView: View {
     @State private var customColor = Color.gray
     @State private var inlinePredictionsOn = TypingSettingsView.macInlinePredictionsOn()
     @State private var screenRecordingAllowed = ScreenOCR.isAllowed
+    /// Bumped when an accept key changes; the keys live in UserDefaults.
+    @State private var keysVersion = 0
+
+    /// Where the typing models live, like Settings → Models has for voice.
+    private var storageRow: some View {
+        let onDisk = TypingModelStore.shared.onDisk
+        let bytes = onDisk.reduce(Int64(0)) { $0 + $1.bytes }
+        return HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Downloaded models")
+                Text(onDisk.isEmpty
+                     ? "Nothing downloaded yet"
+                     : "\(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)) in Application Support")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Show in Finder") {
+                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: TypingModelStore.directory.path)
+            }
+            .disabled(onDisk.isEmpty)
+        }
+    }
 
     var body: some View {
         @Bindable var appState = appState
@@ -28,6 +51,7 @@ struct TypingSettingsView: View {
 
             Section("Model") {
                 ForEach(TypingModel.allCases) { TypingModelRow(model: $0) }
+                storageRow
             }
 
             Section("Suggestions") {
@@ -36,16 +60,7 @@ struct TypingSettingsView: View {
                         Text("\(preset.rawValue.capitalized) · \(preset.label)").tag(preset)
                     }
                 }
-                LabeledContent("Accept") {
-                    Text("\(Text("Tab").bold()) next word · \(Text(Self.wholeKeyName).bold()) the whole suggestion")
-                        .foregroundStyle(.secondary)
-                }
-                LabeledContent("In Terminal and other terminals") {
-                    Text("\(Text("→").bold()) next word · Tab stays the terminal’s").foregroundStyle(.secondary)
-                }
-                LabeledContent("Moving between form fields") {
-                    Text("\(Text("⌥Tab").bold()) sends a plain Tab").foregroundStyle(.secondary)
-                }
+                acceptKeys
                 Toggle("Add a space after the last word", isOn: $appState.typingSpaceAfterLastWord)
                 Toggle(isOn: $appState.typingInCodeEditors) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -78,7 +93,7 @@ struct TypingSettingsView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Apps that hide their text")
-                            Text("A few apps draw text PUSH can’t read directly. With Screen Recording allowed, it reads those from the screen instead.")
+                            Text("A few apps draw text PUSHTYPE can’t read directly. With Screen Recording allowed, it reads those from the screen instead.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -199,11 +214,46 @@ struct TypingSettingsView: View {
         .accessibilityLabel(help)
     }
 
-    /// The key that accepts the whole suggestion in this keyboard layout.
-    static var wholeKeyName: String {
+    /// The two accept keys, chosen by the user, and how Tab behaves where
+    /// it means something else (explained, not changeable).
+    @ViewBuilder
+    private var acceptKeys: some View {
+        let _ = keysVersion     // re-read after a change
         let layout = KeyboardLayoutMap.current()
-        let key = AcceptKeyResolver.wholeSuggestionKey(layout: layout)
-        return "\(layout[key.keyCode].flatMap { $0.isEmpty ? nil : $0 } ?? "`") (above Tab)"
+        let next = TypingPreferences.nextWordKey()
+        let whole = TypingPreferences.wholeKey(layout: layout)
+        LabeledContent("Next word") {
+            AcceptKeyRecorder(defaultsKey: TypingPreferences.nextWordKeyKey, fallback: AcceptKeyResolver.tab,
+                              other: whole, onChange: { keysVersion += 1 })
+        }
+        LabeledContent("Whole suggestion") {
+            AcceptKeyRecorder(defaultsKey: TypingPreferences.wholeKeyKey,
+                              fallback: AcceptKeyResolver.wholeSuggestionKey(layout: layout),
+                              other: next, onChange: { keysVersion += 1 })
+        }
+        LabeledContent("In Terminal and other terminals") {
+            Text(next == AcceptKeyResolver.tab
+                 ? "→ takes the next word. Tab stays the terminal’s, for completing commands."
+                 : "Your keys work there too.")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+        LabeledContent("Moving between form fields") {
+            Text("⌥Tab moves to the next field while a suggestion shows.")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+        if UserDefaults.standard.string(forKey: TypingPreferences.nextWordKeyKey) != nil
+            || UserDefaults.standard.string(forKey: TypingPreferences.wholeKeyKey) != nil {
+            HStack {
+                Spacer()
+                Button("Restore Default Keys") {
+                    UserDefaults.standard.removeObject(forKey: TypingPreferences.nextWordKeyKey)
+                    UserDefaults.standard.removeObject(forKey: TypingPreferences.wholeKeyKey)
+                    keysVersion += 1
+                }
+            }
+        }
     }
 
     /// macOS 14+ shows inline predictions unless the user turned them off.

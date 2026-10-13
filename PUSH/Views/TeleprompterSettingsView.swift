@@ -63,7 +63,7 @@ struct TeleprompterSettingsView: View {
 
             Section("Scrolling") {
                 Toggle("Follow my voice", isOn: $settings.followVoice)
-                Text("PUSH listens as you read and moves the script to keep up, at whatever pace you happen to be reading. It holds still if you go off-script or stop, and never moves on its own.")
+                Text("PUSHTYPE listens as you read and moves the script to keep up, at whatever pace you happen to be reading. It holds still if you go off-script or stop, and never moves on its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

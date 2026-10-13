@@ -39,6 +39,8 @@ final class PermissionsModel: ObservableObject {
 
     @Published private(set) var microphone: Status = .notDetermined
     @Published private(set) var accessibility: Status = .notDetermined
+    /// Optional: only Type's reading of apps that hide their text uses it.
+    @Published private(set) var screenRecording: Status = .notDetermined
 
     init() {
         refresh()
@@ -47,6 +49,7 @@ final class PermissionsModel: ObservableObject {
     func refresh() {
         microphone = Self.microphoneStatus()
         accessibility = AXIsProcessTrusted() ? .granted : .denied
+        screenRecording = ScreenOCR.isAllowed ? .granted : .denied
     }
 
     /// Opens the Privacy & Security pane. Same URL the launch-time denial alert
@@ -81,6 +84,14 @@ final class PermissionsModel: ObservableObject {
     }
 
     // MARK: - Requesting
+
+    /// macOS asks once; after that only the switch in System Settings can
+    /// change it, so later presses go there.
+    func requestScreenRecording() {
+        if !CGRequestScreenCaptureAccess() { Self.open(pane: "Privacy_ScreenCapture") }
+        PushLogger.log("PermissionsModel: asked for screen recording")
+        refresh()
+    }
 
     /// Ask for the microphone, in context.
     ///

@@ -46,8 +46,8 @@ struct PersonalSettingsView: View {
             Section {
                 Toggle(isOn: $history.isOn) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Learn from my writing")
-                        Text("Keeps what you type where suggestions are on, so they sound like you. Encrypted on this Mac, never synced or sent anywhere. Passwords, sign-in fields and terminals are never kept.")
+                        Text("Learn from my writing and voice")
+                        Text("Keeps what you type and what you dictate where suggestions are on, so they sound like you. Only the finished text is kept, never audio. Encrypted on this Mac, never synced or sent anywhere. Passwords, sign-in fields and terminals are never kept.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -88,12 +88,12 @@ struct PersonalSettingsView: View {
                     }
                 }
             } header: {
-                Text("Your writing")
+                Text("Your writing and voice")
             }
 
         }
         .formStyle(.grouped)
-        .confirmationDialog("Delete everything PUSH has kept of your writing?", isPresented: $confirmingDelete) {
+        .confirmationDialog("Delete everything PUSHTYPE has kept of your writing?", isPresented: $confirmingDelete) {
             Button("Delete All", role: .destructive) { history.deleteAll() }
         } message: {
             Text("This removes the saved writing and its encryption key from this Mac. It can’t be undone.")

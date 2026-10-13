@@ -44,7 +44,7 @@ struct LicenseSettingsView: View {
                             .disabled(keyText.trimmingCharacters(in: .whitespaces).isEmpty || license.isWorking)
                         if license.isWorking { ProgressView().controlSize(.small) }
                         Spacer()
-                        Link("Buy PUSH", destination: buyURL)
+                        Link("Buy PUSHTYPE", destination: buyURL)
                         Link("Add a Mac ($10)", destination: addMacURL)
                     }
                 } header: {
