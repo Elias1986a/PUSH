@@ -21,10 +21,10 @@ public struct PolarConfig: Sendable, Equatable {
 
     public static let sandbox = PolarConfig(
         baseURL: URL(string: "https://sandbox-api.polar.sh")!,
-        organizationID: "21f8034d-1eee-41d6-ab5a-2b0155b63ac9",
-        productIDs: ["58216768-28a6-4085-9dd6-7f376cbc9a46", "ccab8f5e-2cf2-4805-a78c-e951cfbbe21a"],
-        checkoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_7n1SDHPmt2qyrWcz7AW4Y0GDXv3OqSvYn4Umm1GoH0g/redirect")!,
-        addMacCheckoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_XkVCacARGDt7LJSerw0sCknoNYMY96wrE4VVE4Js4Er/redirect")!)
+        organizationID: "0673c8e8-a8e6-4c1b-9cc1-5ff5d0c33037",
+        productIDs: ["68857672-cc5b-45d4-8b10-abf40f523a11", "9deeaf9c-0f19-4e76-aad4-48826f58e2c2"],
+        checkoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_4WHp8Y9ugKlJNeBVvYraMzq5KC9XTb0RIa5a32KWAZk/redirect")!,
+        addMacCheckoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_HEce7BcHyVzWkIfAxiIQ9yYd7nztXdKsjwede2iyJDB/redirect")!)
 
     /// What the app uses. Sandbox until the store opens.
     public static let current = sandbox
