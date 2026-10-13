@@ -143,11 +143,14 @@ checkpoints, all Apache-2.0. Chosen 2026-10-10 from
 
 | Tier | Model | File | Size | Hit | Per keystroke p90 | Cold 1,500 chars p90 | Max length |
 |---|---|---|---|---|---|---|---|
-| Lite | Qwen3.5 0.8B Base | `mradermacher/Qwen3.5-0.8B-Base-i1-GGUF` `…i1-Q6_K.gguf` | 0.63 GB | 34/60 | 43 ms | 180 ms | 4–7 |
 | **Recommended** | Qwen3.5 2B Base | `mradermacher/Qwen3.5-2B-Base-i1-GGUF` `…i1-Q4_K_M.gguf` | 1.27 GB | 36/60 | 74 ms | 408 ms | 8–12 |
 | Best | Gemma 4 E2B Base | `mradermacher/gemma-4-E2B-i1-GGUF` `…i1-Q4_K_M.gguf` | 3.43 GB | 40/60 | 93 ms | 527 ms | 12–20 |
 
-Why: Qwen 0.8B is the fastest and is coherent for a clause, then drifts. Qwen 2B
+Removed after 9.0.0 (user, 2026-10-12): **Lite**, Qwen3.5 0.8B Base (0.63 GB,
+34/60, 43 ms) — no Mac that wants Type is that short of memory, and it drifted
+after a clause. Pro (Gemma 4 E4B, 5.3 GB, 16 GB Macs) was added 2026-10-11.
+
+Why: Qwen 2B
 and Gemma stop at the sentence end on their own and rarely loop (2/60 at 20
 words); Gemma has the best first-word hit and the steadiest long continuations.
 

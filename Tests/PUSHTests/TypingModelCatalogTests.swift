@@ -3,7 +3,7 @@ import XCTest
 
 final class TypingModelCatalogTests: XCTestCase {
     func testFourTiersInOrderWithRecommendedAsDefault() {
-        XCTAssertEqual(TypingModel.allCases, [.lite, .recommended, .best, .pro])
+        XCTAssertEqual(TypingModel.allCases, [.recommended, .best, .pro])
         XCTAssertEqual(TypingModel.defaultModel, .recommended)
     }
 
@@ -30,7 +30,6 @@ final class TypingModelCatalogTests: XCTestCase {
     }
 
     func testMaxLengthPresetsFromThePhase0Eval() {
-        XCTAssertEqual(TypingModel.lite.maxLength, .short)
         XCTAssertEqual(TypingModel.recommended.maxLength, .medium)
         XCTAssertEqual(TypingModel.best.maxLength, .long)
         XCTAssertEqual(TypingModel.pro.maxLength, .long)
@@ -41,8 +40,8 @@ final class TypingModelCatalogTests: XCTestCase {
     func testLengthPresetsAndClamping() {
         XCTAssertEqual(LengthPreset.allCases.map(\.words), [1...3, 4...7, 8...12, 12...20])
         XCTAssertEqual(LengthPreset.defaultPreset, .short)
-        XCTAssertEqual(LengthPreset.long.clamped(to: .lite), .short)
-        XCTAssertEqual(LengthPreset.tiny.clamped(to: .lite), .tiny)
+        XCTAssertEqual(LengthPreset.long.clamped(to: .recommended), .medium)
+        XCTAssertEqual(LengthPreset.tiny.clamped(to: .recommended), .tiny)
         XCTAssertEqual(LengthPreset.long.clamped(to: .best), .long)
         XCTAssertEqual(LengthPreset.offered(for: .recommended), [.tiny, .short, .medium])
     }
@@ -50,6 +49,6 @@ final class TypingModelCatalogTests: XCTestCase {
     func testIDsAreStableStrings() {
         // Persisted as the user's choice; renaming one would orphan a download.
         XCTAssertEqual(TypingModel.allCases.map(\.rawValue),
-                       ["qwen3.5-0.8b-base", "qwen3.5-2b-base", "gemma4-e2b-base", "gemma4-e4b-base"])
+                       ["qwen3.5-2b-base", "gemma4-e2b-base", "gemma4-e4b-base"])
     }
 }

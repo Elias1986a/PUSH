@@ -29,9 +29,9 @@ final class TypingPreferencesTests: XCTestCase {
 
     func testStoredLengthIsClampedToTheModel() {
         let d = freshDefaults()
-        d.set("qwen3.5-0.8b-base", forKey: TypingPreferences.modelKey)
+        d.set("qwen3.5-2b-base", forKey: TypingPreferences.modelKey)
         d.set("long", forKey: TypingPreferences.lengthKey)
-        XCTAssertEqual(TypingPreferences.length(in: d), .short)
+        XCTAssertEqual(TypingPreferences.length(in: d), .medium)
     }
 
     func testCodeEditorsAreOffByDefault() {
