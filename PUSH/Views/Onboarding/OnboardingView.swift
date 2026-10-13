@@ -115,8 +115,6 @@ struct OnboardingView: View {
         case .typingModel: typingModelStep
         case .screenText: screenTextStep
         case .tryIt: tryItStep
-        case .pill: pillStep
-        case .more: moreStep
         case .finish: finishStep
         }
     }
@@ -593,7 +591,8 @@ struct OnboardingView: View {
     }
 
     private var tryItStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 18) {
             stepHeader(
                 title: "Try it right here",
                 subtitle: "Click the box below, then hold \(appState.selectedHotkey.displayName), say “hello world”, and let go."
@@ -622,6 +621,21 @@ struct OnboardingView: View {
                 .onAppear { sandboxFocused = true }
 
             sandboxStatus
+
+            // Once a page of its own; here it follows seeing the pill.
+            HStack {
+                Text("The pill").fontWeight(.medium)
+                Spacer()
+                Picker("The pill", selection: $appState.pillPosition) {
+                    ForEach(AppState.PillPosition.allCases) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
 
             Spacer(minLength: 0)
         }
@@ -684,90 +698,7 @@ struct OnboardingView: View {
         .font(.callout)
     }
 
-    // MARK: - Step 5 · where the pill lives
-
-    /// Asked with the same picture Settings uses, so the two read as one
-    /// setting rather than two. The choice is genuinely a matter of taste and
-    /// of hardware — a notch to hang from, or not — which makes it worth a
-    /// step rather than a line of prose nobody reads.
-    private var pillStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            stepHeader(
-                title: "Where the pill lives",
-                subtitle: "While you dictate, a small pill shows that PUSH is listening — and a live waveform of your voice."
-            )
-
-            HStack(spacing: 18) {
-                ForEach(AppState.PillPosition.allCases) { position in
-                    PillPositionThumbnail(
-                        position: position,
-                        isSelected: appState.pillPosition == position
-                    )
-                    .onTapGesture { appState.pillPosition = position }
-                }
-                Spacer(minLength: 0)
-            }
-
-            Text("At the bottom it floats as a capsule, out of the way. At the top it hangs off the screen edge under the notch, where you are already reading. You can change this any time in Settings.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
-        }
-    }
-
-    // MARK: - Step 6 · the rest of the app
-
-    private var moreStep: some View {
-        // This step is not `body`, so it needs its own `@Bindable` shadow for
-        // the wake word toggle's binding.
-        @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 16) {
-            stepHeader(
-                title: "Two more things it does",
-                subtitle: "Neither is on by default. Both are in Settings whenever you want them."
-            )
-
-            // Wake word ships off and must stay off by default: it holds the
-            // microphone open continuously, which is a materially different
-            // privacy posture from push-to-talk and deserves saying out loud.
-            featureCard(
-                icon: "waveform.badge.mic",
-                title: "Wake word",
-                detail: "Say a word instead of holding a key, and PUSH starts recording — stopping on its own after a second of silence."
-            ) {
-                Toggle("Start recording when I say “\(appState.wakeWord)”", isOn: $appState.wakeWordEnabled)
-                    .onChange(of: appState.wakeWordEnabled) { _, on in
-                        if on {
-                            WakeWordListener.shared.startListening()
-                        } else {
-                            WakeWordListener.shared.stopListening()
-                        }
-                    }
-                Text("Off by default on purpose: listening for a wake word holds the microphone open the whole time, where push-to-talk only opens it while you hold the key.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            featureCard(
-                icon: "text.alignleft",
-                title: "Teleprompter",
-                detail: "Paste a script and read it off the top of your screen. PUSH listens as you read and moves the text to keep up with you — it holds still if you pause or go off-script, and never scrolls on its own."
-            ) {
-                Label(
-                    "It is excluded from screen capture, so it never appears in your recording or on a shared screen. You are reading; nobody else can tell.",
-                    systemImage: "eye.slash.fill"
-                )
-                .font(.callout)
-                .foregroundStyle(Color.accentColor)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 0)
-        }
-    }
+    // MARK: - Pieces
 
     /// One feature: icon, name, what it is, and whatever control or aside it
     /// needs underneath.
@@ -805,10 +736,11 @@ struct OnboardingView: View {
         )
     }
 
-    // MARK: - Step 7 · keep it around
+    // MARK: - Last page · keep it around
 
     private var finishStep: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        @Bindable var appState = appState
+        return VStack(alignment: .leading, spacing: 16) {
             stepHeader(
                 title: "One last thing",
                 subtitle: "PUSH lives in the menu bar. It has no Dock icon and no window of its own."
@@ -837,7 +769,29 @@ struct OnboardingView: View {
                 bullet("Click the ", symbol: "music.mic", rest: " in the menu bar for settings, the teleprompter, and to quit.")
                 bullet("Change the push-to-talk key, the dictation language and the pill's position in Settings.")
                 bullet("Teach PUSH names and jargon it keeps mishearing under Settings → Dictionary.")
-                bullet("Start a prompter take from the menu bar; its script and type size live in Settings → Teleprompter.")
+            }
+
+            if appState.dictationEnabled {
+                Divider()
+
+                // Once a page of their own ("Two more things"); both are off by
+                // default, so a line each is enough here.
+                VStack(alignment: .leading, spacing: 10) {
+                    Toggle(isOn: $appState.wakeWordEnabled) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Start recording when I say “\(appState.wakeWord)”").font(.system(size: 13, weight: .medium))
+                            Text("Off by default: it keeps the microphone open the whole time, where push-to-talk opens it only while you hold the key.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .toggleStyle(.switch)
+                    .onChange(of: appState.wakeWordEnabled) { _, on in
+                        if on { WakeWordListener.shared.startListening() } else { WakeWordListener.shared.stopListening() }
+                    }
+                    bullet("Teleprompter: paste a script and read it off the top of your screen; PUSH follows your voice. Start it from the menu bar.")
+                }
             }
 
             Spacer(minLength: 0)

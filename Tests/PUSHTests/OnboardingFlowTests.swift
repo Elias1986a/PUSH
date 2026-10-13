@@ -4,17 +4,17 @@ import XCTest
 final class OnboardingFlowTests: XCTestCase {
     func testDictationOnlyMatchesTodaysWizardPlusFeatures() {
         XCTAssertEqual(OnboardingFlow.steps(dictation: true, type: false),
-                       [.welcome, .features, .permissions, .speechModel, .tryIt, .pill, .more, .finish])
+                       [.welcome, .features, .permissions, .speechModel, .tryIt, .finish])
     }
 
     func testTypeOnlySkipsSpeechAndPill() {
         XCTAssertEqual(OnboardingFlow.steps(dictation: false, type: true),
-                       [.welcome, .features, .permissions, .typingModel, .screenText, .tryIt, .more, .finish])
+                       [.welcome, .features, .permissions, .typingModel, .screenText, .tryIt, .finish])
     }
 
     func testBoth() {
         XCTAssertEqual(OnboardingFlow.steps(dictation: true, type: true),
-                       [.welcome, .features, .permissions, .speechModel, .typingModel, .screenText, .tryIt, .pill, .more, .finish])
+                       [.welcome, .features, .permissions, .speechModel, .typingModel, .screenText, .tryIt, .finish])
     }
 
     func testNeitherStopsAtFeatures() {
@@ -24,7 +24,7 @@ final class OnboardingFlowTests: XCTestCase {
     /// The Type page stays, but the screen page goes: nothing would use it.
     func testTypePageStaysWhenTypeIsSwitchedOffThere() {
         XCTAssertEqual(OnboardingFlow.steps(dictation: true, type: false, typingSeen: true),
-                       [.welcome, .features, .permissions, .speechModel, .typingModel, .tryIt, .pill, .more, .finish])
+                       [.welcome, .features, .permissions, .speechModel, .typingModel, .tryIt, .finish])
     }
 
     func testMicrophoneRowOnlyWithDictation() {
