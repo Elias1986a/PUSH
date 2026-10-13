@@ -212,20 +212,29 @@
 
 <section class="speed section" id="speed">
 <div class="wrap">
-<div class="stack">
+<div class="stack" style="gap: 48px;">
+<div class="stack head">
 <p class="eyebrow">Measured, not claimed</p>
 <h2 class="disp h2">Done before you look up.</h2>
 <p class="body">Cloud dictation sends your voice to a server and waits for it to come back. PUSHTYPE never leaves the building, so the text is there the moment you let go, and a suggestion is on screen before your next key.</p>
 </div>
-<div class="stack" style="gap: 28px;">
+<div class="grid g2 speed-stats">
+<div class="card">
+<p class="eyebrow" style="color: var(--ink-muted);">Voice</p>
 <div class="row" style="align-items: baseline;"><span class="big">20×</span><span class="body">faster than Wispr Flow, release to text</span></div>
 <div class="pb-speed">
 <div class="pb-speed-label">PUSHTYPE<small>on your Mac</small></div><div class="pb-speed-track"><div class="pb-speed-fill is-push" style="width: 5%;"></div></div><div class="pb-speed-num">0.04 s</div>
 <div class="pb-speed-label">Wispr Flow<small>cloud, incl. network</small></div><div class="pb-speed-track"><div class="pb-speed-fill" style="width: 97%;"></div></div><div class="pb-speed-num">0.87 s</div>
 </div>
 <p class="footnote mono">Median of 13 readings of the same 25-second passage · 30 Sep 2026 · Mac mini (M4). PUSHTYPE shown with Parakeet Ultra; Parakeet Streaming, the default on English Macs, measured 0.02 s. PUSHTYPE transcribes as you speak; times run from letting go of the key. Wispr Flow = 0.74 s server processing + 0.13 s network. <a href="benchmark/">How we measured →</a></p>
+</div>
+<div class="card">
+<p class="eyebrow" style="color: var(--ink-muted);">Type</p>
 <div class="row" style="align-items: baseline;"><span class="big">0.057 s</span><span class="body">from a key to the suggestion on screen</span></div>
-<p class="footnote mono">Type, median, typing 10 keys a second · 11 Oct 2026 · Mac mini (M4), Best model (Gemma 4 E2B). A suggestion was already showing 80 ms after 68% of keys. <a href="benchmark/#type">How we measured →</a></p>
+<div class="row" style="align-items: baseline;"><span class="big" style="font-size: 40px;">68%</span><span class="body">of keys already show a suggestion 80 ms later, while you type</span></div>
+<p class="footnote mono">Median, typing 10 keys a second · 11 Oct 2026 · Mac mini (M4), Best model (Gemma 4 E2B). The clock stops when the suggestion is visible on screen, not when the model finishes. <a href="benchmark/#type">How we measured →</a></p>
+</div>
+</div>
 </div>
 </div>
 </section>
