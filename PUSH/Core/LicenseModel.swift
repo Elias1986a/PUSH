@@ -19,7 +19,9 @@ final class LicenseModel {
     /// Whether Settings shows the Licence pane. Off until PUSH is sold: the
     /// checkout links are still Polar's sandbox, and the user's own copies
     /// have no key. Turn on at launch, with the production `PolarConfig`.
-    static let isOffered = false
+    /// Until then `defaults write com.push.voicetotext licence.offered -bool
+    /// true` shows it on one Mac, for a test purchase against the sandbox.
+    static var isOffered: Bool { UserDefaults.standard.bool(forKey: "licence.offered") }
 
     struct Stored: Codable, Equatable {
         var key: String
