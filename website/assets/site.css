@@ -290,3 +290,5 @@ a:hover { color: var(--on-air); }
 /* Measured, not claimed: heading on top like every other section, the two measurements side by side */
 .speed .wrap { display: block; }
 .speed .speed-stats .card { background: var(--studio); gap: 22px; }
+/* "How we measured →" on its own line, at the foot of each card, never split */
+.speed-stats .measured-link { margin-top: auto; white-space: nowrap; }
