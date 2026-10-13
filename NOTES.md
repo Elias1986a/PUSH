@@ -1,5 +1,16 @@
 # NOTES
 
+## Next release (held on `next-release`, PR #33)
+
+- Type didn't work in Webex at all, with no icon and no suggestions (user,
+  2026-10-13). Cause: with Webex (Qt) in front, the system-wide element's
+  `AXFocusedApplication` fails with -25204 (cannotComplete), so `FocusReader.read`
+  returned nil ("no focused element"). Webex answers for its own focused field,
+  so the read now falls back to the frontmost app. Permissions were fine. User
+  confirmed on a SIGN_ONLY test build. Webex's empty composer reports its caret
+  one line above the field; that's harmless, because suggestions need 3 words.
+- Licence screen: extra Macs $12.
+
 ## 9.1.0 (2026-10-12) — PUSHTYPE, QA fixes
 
 The visible name is PUSHTYPE (user, 2026-10-12): every UI string, Sparkle

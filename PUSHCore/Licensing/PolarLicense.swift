@@ -11,11 +11,11 @@ import IOKit
 public struct PolarConfig: Sendable, Equatable {
     public let baseURL: URL
     public let organizationID: String
-    /// The $22 product: one key, 3 Macs. The $10 add-on adds one more.
+    /// The $35 product: one key, 3 Macs. The $12 add-on adds one more.
     public let productIDs: [String]
-    /// Polar's checkout for the $22 product, for the app's "Buy PUSH".
+    /// Polar's checkout for the $35 product, for the app's "Buy PUSHTYPE".
     public let checkoutURL: URL
-    /// The $10 add-on: its own key, good for one more Mac, which that Mac
+    /// The $12 add-on: its own key, good for one more Mac, which that Mac
     /// activates with instead of the main key.
     public let addMacCheckoutURL: URL
 

@@ -119,7 +119,7 @@ final class LicenseModel {
         case .notFound:
             return "That key wasn't found. Copy it again from the email Polar sent you, all of it."
         case .refused(let detail) where detail.lowercased().contains("limit"):
-            return "This key is already in use on all its Macs. Remove PUSHTYPE from one of them (Settings ▸ Licence ▸ Remove this Mac), or add a Mac for $10."
+            return "This key is already in use on all its Macs. Remove PUSHTYPE from one of them (Settings ▸ Licence ▸ Remove this Mac), or add a Mac for $12."
         case .refused(let detail):
             return "Polar didn't accept this key: \(detail)."
         case .unreachable, .unexpected:
