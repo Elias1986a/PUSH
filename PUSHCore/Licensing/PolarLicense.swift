@@ -18,13 +18,17 @@ public struct PolarConfig: Sendable, Equatable {
     /// The $12 add-on: its own key, good for one more Mac, which that Mac
     /// activates with instead of the main key.
     public let addMacCheckoutURL: URL
+    /// Polar's customer portal: the buyer signs in with their email and a
+    /// code, and sees their key, their download and which Macs use the key.
+    public let portalURL: URL
 
     public static let sandbox = PolarConfig(
         baseURL: URL(string: "https://sandbox-api.polar.sh")!,
         organizationID: "0673c8e8-a8e6-4c1b-9cc1-5ff5d0c33037",
         productIDs: ["68857672-cc5b-45d4-8b10-abf40f523a11", "9deeaf9c-0f19-4e76-aad4-48826f58e2c2"],
         checkoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_4WHp8Y9ugKlJNeBVvYraMzq5KC9XTb0RIa5a32KWAZk/redirect")!,
-        addMacCheckoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_HEce7BcHyVzWkIfAxiIQ9yYd7nztXdKsjwede2iyJDB/redirect")!)
+        addMacCheckoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_HEce7BcHyVzWkIfAxiIQ9yYd7nztXdKsjwede2iyJDB/redirect")!,
+        portalURL: URL(string: "https://sandbox.polar.sh/pushtype/portal")!)
 
     /// What the app uses. Sandbox until the store opens.
     public static let current = sandbox
@@ -154,7 +158,7 @@ public struct PolarLicenseClient: Sendable {
 
     /// Last four characters, the rest hidden — for when Polar sends no
     /// display form.
-    static func masked(_ key: String) -> String {
+    public static func masked(_ key: String) -> String {
         let k = key.trimmingCharacters(in: .whitespacesAndNewlines)
         return "****-" + k.suffix(4)
     }

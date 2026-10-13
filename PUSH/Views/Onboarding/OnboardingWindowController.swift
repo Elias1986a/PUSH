@@ -72,6 +72,8 @@ final class OnboardingWindowController {
         UserDefaults.standard.set(true, forKey: seenKey)
     }
 
+    var isShowing: Bool { window != nil }
+
     /// Open the wizard, or bring it forward if it is already up.
     func show() {
         if let window {

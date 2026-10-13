@@ -1,15 +1,11 @@
 import SwiftUI
+import AppKit
 import PUSHCore
 
 // MARK: - Licence
 
 struct LicenseSettingsView: View {
     @State private var license = LicenseModel.shared
-    @State private var keyText = ""
-
-    /// Polar's checkout for PUSH (sandbox until the store opens).
-    private let buyURL = PolarConfig.current.checkoutURL
-    private let addMacURL = PolarConfig.current.addMacCheckoutURL
 
     var body: some View {
         Form {
@@ -27,41 +23,122 @@ struct LicenseSettingsView: View {
                     }
                     LabeledContent("This Mac") { Text(MacModelLabel.current()) }
                 } footer: {
-                    Text("Moving to a new Mac? Remove this one first to free its place.")
+                    Text("Your other Macs signed in to the same Apple Account activate on their own. Moving to a new Mac? Remove this one first to free its place.")
                 }
                 Section {
-                    Button("Remove This Mac") { Task { await license.removeThisMac() } }
-                        .disabled(license.isWorking)
+                    HStack {
+                        Button("Remove This Mac") { Task { await license.removeThisMac() } }
+                            .disabled(license.isWorking)
+                        Spacer()
+                        Link("See all your Macs", destination: PolarConfig.current.portalURL)
+                    }
                 }
             } else {
                 Section {
-                    TextField("Licence key", text: $keyText, prompt: Text("Paste the key from your receipt"))
-                        .font(.body.monospaced())
-                        .onSubmit { Task { await license.activate(key: keyText) } }
-                    HStack {
-                        Button("Activate") { Task { await license.activate(key: keyText) } }
-                            .keyboardShortcut(.defaultAction)
-                            .disabled(keyText.trimmingCharacters(in: .whitespaces).isEmpty || license.isWorking)
-                        if license.isWorking { ProgressView().controlSize(.small) }
-                        Spacer()
-                        Link("Buy PUSHTYPE", destination: buyURL)
-                        Link("Add a Mac ($12)", destination: addMacURL)
-                    }
+                    LicenseActivationControls()
                 } header: {
                     Text("Licence")
                 } footer: {
-                    Text("One key works on 3 Macs; a fourth needs its own $12 key. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSH. Never your audio or anything you dictate.")
+                    Text(LicenseActivationControls.footnote)
                 }
             }
 
-            if let message = license.message {
-                Section {
-                    Label(message, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            if license.stored != nil, let message = license.message {
+                Section { LicenseMessage(text: message) }
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Everything for a Mac without a licence, shared by Settings and the welcome
+/// window: the one-click ways first (a key from iCloud, a key just copied),
+/// typing the key as the backup, and the way out when the key is on all its
+/// Macs.
+struct LicenseActivationControls: View {
+    @State private var license = LicenseModel.shared
+    @State private var keyText = ""
+    @State private var iCloudKey: String?
+    @State private var copiedKey: String?
+
+    static let footnote = "One licence works on 3 of your Macs; a fourth can be added for $12. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSHTYPE. Never your audio or anything you type."
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let key = iCloudKey {
+                Button {
+                    Task { await license.activate(key: key) }
+                } label: {
+                    Label("Use the licence from your other Mac", systemImage: "icloud")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(license.isWorking)
+            } else if let key = copiedKey {
+                Button {
+                    Task { await license.activate(key: key) }
+                } label: {
+                    Label("Activate with the key you copied (\(PolarLicenseClient.masked(key)))", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(license.isWorking)
+            }
+
+            HStack {
+                TextField("Licence key", text: $keyText, prompt: Text("Or paste the key from Polar's email"))
+                    .font(.body.monospaced())
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { Task { await license.activate(key: keyText) } }
+                Button("Activate") { Task { await license.activate(key: keyText) } }
+                    .disabled(keyText.trimmingCharacters(in: .whitespaces).isEmpty || license.isWorking)
+                if license.isWorking { ProgressView().controlSize(.small) }
+            }
+
+            if let message = license.message {
+                LicenseMessage(text: message)
+            }
+            if license.refusedForLimit {
+                LicenseLimitChoices()
+            }
+
+            HStack {
+                Link("Buy PUSHTYPE", destination: PolarConfig.current.checkoutURL)
+                Spacer()
+                Link("Lost your key?", destination: PolarConfig.current.portalURL)
+            }
+            .font(.callout)
+        }
+        .onAppear(perform: refresh)
+        // Copying the key from the email happens in another app: look again
+        // when PUSHTYPE comes back to the front.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refresh() }
+    }
+
+    private func refresh() {
+        iCloudKey = license.iCloudKey
+        copiedKey = license.clipboardKey
+    }
+}
+
+/// A fourth Mac: the licence is on 3 already. Three ways forward, cheapest
+/// first; the portal shows which Macs hold the places, to remove one.
+private struct LicenseLimitChoices: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Link("Add this Mac for $12", destination: PolarConfig.current.addMacCheckoutURL)
+            Link("Buy another licence ($35)", destination: PolarConfig.current.checkoutURL)
+            Link("Free a place: remove a Mac you no longer use", destination: PolarConfig.current.portalURL)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.08)))
+    }
+}
+
+private struct LicenseMessage: View {
+    let text: String
+    var body: some View {
+        Label(text, systemImage: "exclamationmark.triangle")
+            .foregroundStyle(.orange)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

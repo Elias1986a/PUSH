@@ -46,5 +46,13 @@
 
     <key>com.apple.developer.ubiquity-kvstore-identifier</key>
     <string>B8R5B24PMP.com.push.voicetotext</string>
+
+    <!-- The licence key in the user's iCloud Keychain (LicenseModel's
+         SyncedLicenseKey). Synchronizable items live in the data-protection
+         keychain, which needs an access group; the profile allows B8R5B24PMP.* -->
+    <key>keychain-access-groups</key>
+    <array>
+        <string>B8R5B24PMP.com.push.voicetotext</string>
+    </array>
 </dict>
 </plist>

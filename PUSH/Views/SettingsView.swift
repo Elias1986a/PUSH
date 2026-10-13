@@ -9,13 +9,23 @@ import PUSHCore
 /// unrelated sections behind "General" — hotkey, sound, other apps' audio,
 /// formatting, iCloud, pill, live preview, wake word — which is more than a tab
 /// label can honestly describe and more than fits without scrolling.
+@MainActor
+@Observable
+final class SettingsNavigation {
+    static let shared = SettingsNavigation()
+    var pane: SettingsView.Pane = SettingsView.initialPane
+}
+
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
-    @State private var pane: Pane = Self.initialPane
+    /// Shared, so the app can open Settings on a given pane (the Licence pane
+    /// after a fourth Mac is refused, or after the activation link).
+    @State private var navigation = SettingsNavigation.shared
+    private var pane: Pane { navigation.pane }
 
     /// `PUSH_SETTINGS_PANE=typing` (with `PUSH_OPEN_SETTINGS=1`) opens on that
     /// pane, for screenshots. DEBUG-only, like the launch hook.
-    private static var initialPane: Pane {
+    static var initialPane: Pane {
         #if DEBUG
         if let raw = ProcessInfo.processInfo.environment["PUSH_SETTINGS_PANE"], let pane = Pane(rawValue: raw) {
             return pane
@@ -75,7 +85,7 @@ struct SettingsView: View {
     }
 
     private var sidebar: some View {
-        List(Pane.allCases.filter { $0 != .licence || LicenseModel.isOffered }, selection: $pane) { item in
+        List(Pane.allCases.filter { $0 != .licence || LicenseModel.isOffered }, selection: $navigation.pane) { item in
             Label(item.title, systemImage: item.symbol)
                 .tag(item)
         }

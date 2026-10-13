@@ -22,6 +22,12 @@ final class SettingsWindowController {
 
     private init() {}
 
+    /// Opens Settings on `pane`, or brings it forward there if already open.
+    func show(pane: SettingsView.Pane) {
+        SettingsNavigation.shared.pane = pane
+        show()
+    }
+
     func show() {
         if let window {
             activate(window)

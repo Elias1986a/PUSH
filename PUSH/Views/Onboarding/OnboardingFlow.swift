@@ -2,16 +2,19 @@
 /// pinned by tests rather than by reading a view.
 enum OnboardingFlow {
     enum Step: Equatable, CaseIterable {
-        case welcome, features, permissions, speechModel, typingModel, screenText, tryIt, finish
+        case welcome, licence, features, permissions, speechModel, typingModel, screenText, tryIt, finish
     }
 
     /// `typingSeen`: the Type page was reached. It stays in the list even if
     /// Type is switched off there — that page is where you try it and decide.
-    static func steps(dictation: Bool, type: Bool, typingSeen: Bool = false) -> [Step] {
+    /// `licence`: the store is open, so the licence page comes right after the
+    /// welcome (already done when the thank-you page's Activate was clicked).
+    static func steps(dictation: Bool, type: Bool, typingSeen: Bool = false, licence: Bool = false) -> [Step] {
         let typing = type || typingSeen
+        let start: [Step] = licence ? [.welcome, .licence] : [.welcome]
         // Nothing chosen: the wizard cannot continue past the choice.
-        guard dictation || typing else { return [.welcome, .features] }
-        var s: [Step] = [.welcome, .features, .permissions]
+        guard dictation || typing else { return start + [.features] }
+        var s: [Step] = start + [.features, .permissions]
         if dictation { s.append(.speechModel) }
         if typing { s.append(.typingModel) }
         // Screen Recording is optional and only Type uses it, so it gets its

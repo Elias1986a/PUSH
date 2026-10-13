@@ -31,4 +31,10 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertTrue(OnboardingFlow.needsMicrophone(dictation: true))
         XCTAssertFalse(OnboardingFlow.needsMicrophone(dictation: false))
     }
+
+    func testTheLicencePageFollowsTheWelcomeOnceTheStoreIsOpen() {
+        XCTAssertEqual(OnboardingFlow.steps(dictation: true, type: false, licence: true).prefix(3),
+                       [.welcome, .licence, .features])
+        XCTAssertFalse(OnboardingFlow.steps(dictation: true, type: true).contains(.licence))
+    }
 }

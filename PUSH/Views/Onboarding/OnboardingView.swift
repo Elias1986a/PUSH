@@ -64,7 +64,7 @@ struct OnboardingView: View {
     /// put when the list around it grows or shrinks.
     private var steps: [OnboardingFlow.Step] {
         OnboardingFlow.steps(dictation: appState.dictationEnabled, type: appState.typeEnabled,
-                             typingSeen: typingStepSeen)
+                             typingSeen: typingStepSeen, licence: LicenseModel.isOffered)
             // The try-it sandbox is dictation's until Type gets its own (Phase 5).
             .filter { $0 != .tryIt || appState.dictationEnabled }
     }
@@ -109,6 +109,7 @@ struct OnboardingView: View {
     private var content: some View {
         switch step {
         case .welcome: welcomeStep
+        case .licence: licenceStep
         case .features: featuresStep
         case .permissions: permissionsStep
         case .speechModel: modelStep
@@ -542,6 +543,30 @@ struct OnboardingView: View {
 
     /// Optional, Type only: Screen Recording, on a page of its own so there
     /// is room to say what it is for and what it is not (user, 2026-10-12).
+    private var licenceStep: some View {
+        let license = LicenseModel.shared
+        return VStack(alignment: .leading, spacing: 18) {
+            stepHeader(
+                title: license.isLicensed ? "You're activated" : "Activate PUSHTYPE",
+                subtitle: license.isLicensed
+                    ? "This Mac is licensed. Your other Macs on the same Apple Account will activate on their own."
+                    : "Click Activate on the page you saw after buying, and this Mac is done. Or use one of these."
+            )
+            if license.isLicensed {
+                Label("Activated on this Mac", systemImage: "checkmark.seal.fill")
+                    .font(.title3)
+                    .foregroundStyle(.green)
+            } else {
+                LicenseActivationControls()
+                Text(LicenseActivationControls.footnote)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
     private var screenTextStep: some View {
         @Bindable var appState = appState
         return VStack(alignment: .leading, spacing: 18) {
