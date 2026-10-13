@@ -62,7 +62,12 @@ enum FocusReader {
     nonisolated static func read() -> FocusSnapshot? {
         let system = AXUIElementCreateSystemWide()
         AXUIElementSetMessagingTimeout(system, timeout)
-        guard let app: AXUIElement = attribute(system, kAXFocusedApplicationAttribute) else { return nil }
+        // Webex (Qt) in front makes the system-wide element fail with
+        // cannotComplete, while Webex itself answers for its focused field:
+        // ask the frontmost app directly then.
+        guard let app: AXUIElement = attribute(system, kAXFocusedApplicationAttribute)
+                ?? NSWorkspace.shared.frontmostApplication.map({ AXUIElementCreateApplication($0.processIdentifier) })
+        else { return nil }
         AXUIElementSetMessagingTimeout(app, timeout)
         var pid: pid_t = 0
         AXUIElementGetPid(app, &pid)
