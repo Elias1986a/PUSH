@@ -16,6 +16,11 @@ video slot `#demo`, learns from voice + typing, Type speed from our own probe
 only (no other autocomplete named — user respects its maker). Same PR adds
 llama.cpp's MIT notice (missing since 9.0 — ships in the app with the next
 release) and Type to the privacy policy. EULA/terms still say PUSH.
+Next-release bug (found recording the demo, 2026-10-12): after "Best,⏎" Type
+asks the model for the name even though "About you" has one; after "Hi Sarah,"
+it sometimes signs "Sarah", or "PushType" for PUSHTYPE. At a sign-off, suggest
+the saved name verbatim, without the model. Demo video: ~/Desktop/PUSHTYPE-type-demo.mov
+(Notes, 2560×1440, 44 s).
 
 ## 9.0.0 released (2026-10-12) — Type for everyone
 
