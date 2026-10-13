@@ -221,6 +221,13 @@ struct MenuBarView: View {
                 .labelsHidden()
                 .disabled(offered.count < 2)
             }
+            // Type is on by default, but nothing runs until a model is here.
+            if !TypingModelStore.shared.onDisk.contains(appState.selectedTypingModel) {
+                Text("Download a model in Settings ▸ Typing to get suggestions.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             labelled("Length") {
                 Picker("", selection: $appState.typingLength) {
                     ForEach(LengthPreset.offered(for: appState.selectedTypingModel), id: \.self) {

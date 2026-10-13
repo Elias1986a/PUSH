@@ -14,16 +14,16 @@ final class FeatureSwitchTests: XCTestCase {
         XCTAssertTrue(FeatureSwitches.dictationEnabled(in: freshDefaults()))
     }
 
-    func testTypeDefaultsOff() {
-        XCTAssertFalse(FeatureSwitches.typeEnabled(in: freshDefaults()))
+    func testTypeDefaultsOnWhenKeyAbsent() {
+        XCTAssertTrue(FeatureSwitches.typeEnabled(in: freshDefaults()))
     }
 
     func testStoredValuesWin() {
         let d = freshDefaults()
         d.set(false, forKey: FeatureSwitches.dictationKey)
-        d.set(true, forKey: FeatureSwitches.typeKey)
+        d.set(false, forKey: FeatureSwitches.typeKey)
         XCTAssertFalse(FeatureSwitches.dictationEnabled(in: d))
-        XCTAssertTrue(FeatureSwitches.typeEnabled(in: d))
+        XCTAssertFalse(FeatureSwitches.typeEnabled(in: d))
     }
 
     func testNeitherSwitchIsSynced() {
