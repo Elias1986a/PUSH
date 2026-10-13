@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 8.2.8</title>
-            <pubDate>Sat, 10 Oct 2026 18:24:54 -0700</pubDate>
-            <sparkle:version>102</sparkle:version>
-            <sparkle:shortVersionString>8.2.8</sparkle:shortVersionString>
+            <title>Version 9.0.0</title>
+            <pubDate>Mon, 12 Oct 2026 17:31:54 -0700</pubDate>
+            <sparkle:version>103</sparkle:version>
+            <sparkle:shortVersionString>9.0.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,28 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 8.2.8 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 9.0.0 <span class="tag">New</span></h2>
+<h3>New</h3>
+<ul>
+<li><strong>Type.</strong> As you type in any app, PUSH suggests how your sentence goes on, in gray right at the cursor. Press Tab to take it a word at a time, or keep typing to ignore it. It works in Mail, Notes, Messages, TextEdit, web pages in Safari and Chrome, and Claude Code in Terminal. Like dictation, it runs entirely on this Mac: nothing you type leaves it.</li>
+<li><strong>Suggestions right after dictation.</strong> Finish a dictated sentence and the next suggestion appears on its own, space included.</li>
+<li><strong>Pick your model.</strong> Four sizes, from Qwen3.5 0.8B (630 MB) to Gemma 4 E4B (5.3 GB, for Macs with 16 GB or more). Bigger models write better; smaller ones are lighter on memory. Change it any time in Settings ▸ Typing.</li>
+<li><strong>Make it yours.</strong> Choose the suggestion length and color, add a sign-off name and a note about how you write, and turn Type off in the apps where you don't want it. Words in your PUSH Dictionary finish themselves and are never treated as typos.</li>
+<li><strong>Learn from my writing</strong> (Settings ▸ Personal, off by default). PUSH keeps what you write, encrypted and only on this Mac, and uses it so suggestions sound like you. Never synced; Delete All erases it.</li>
+<li><strong>Context helps.</strong> What you just copied and the text around the field shape the suggestion. Neither is ever stored. Both can be turned off in Settings ▸ Typing.</li>
+<li><strong>Choose your features.</strong> Dictation and Type can each be switched on or off, in the welcome window, in Settings, and in the menu.</li>
+</ul>
+<h3>Changed</h3>
+<ul>
+<li><strong>New icon:</strong> a microphone over a keyboard, for voice and typing.</li>
+<li><strong>The menu bar symbol</strong> shows what's on: a microphone for Dictation, a text cursor for Type.</li>
+<li><strong>In the menu</strong>, "Model" is now "Voice".</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li><strong>Clicking the menu bar icon again closes the menu.</strong></li>
+</ul></div>
+<div class="older"><h2>Version 8.2.8</h2>
 <h3>New</h3>
 <ul>
 <li><strong>Drag to allow Accessibility.</strong> When PUSH sends you to System Settings for Accessibility, a PUSH card now rides along at the bottom of the window. Drag PUSH from the card into the list and you're done: no hunting for the + button, no digging through Applications. The card follows the window, steps aside when you switch apps, and goes away by itself the moment access is on. The push-to-talk key starts working straight away, no restart needed.</li>
@@ -139,6 +160,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.0.0/PUSH-v9.0.0.zip" type="application/octet-stream" sparkle:edSignature="c/1tReGUXgtAsxlNEUwLjgENR+YCy2M65lQXLxEh6ALF6TgAJcIHR2g8vja3tTN+47cjonxcQ88Mf3ZnhcuqCQ==" length="20993075" />
+        </item>
+        <item>
+            <title>Version 8.2.8</title>
+            <pubDate>Sat, 10 Oct 2026 18:24:54 -0700</pubDate>
+            <sparkle:version>102</sparkle:version>
+            <sparkle:shortVersionString>8.2.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v8.2.8/PUSH-v8.2.8.zip" type="application/octet-stream" sparkle:edSignature="O8z4nHzi4zWZtMrED/2eaAoki4CL6XTWvy27eq6CtLpN8iUwcVVX5H51mk/Z0d+Xa+TYg4x/x7HuwdIg9+iFBg==" length="14363193" />
         </item>
         <item>

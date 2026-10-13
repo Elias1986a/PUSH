@@ -1,5 +1,20 @@
 # NOTES
 
+## 9.0.0 released (2026-10-12) — Type for everyone
+
+feature/autocomplete fast-forwarded into main. The coming-soon gate
+(`OnboardingView.typeAvailable`, `feature.typePreview`) is gone; Type is off
+by default and switched on in the welcome window, Settings or the menu.
+Launch hooks (PUSH_ONBOARDING_STEP etc.) are debug-only. Last fix before
+release: after a finished sentence with no space (the end of most
+dictations) the output is forced to start with a space that is part of the
+suggestion — 3/10 → 10/10 shown on the new `stop-*` eval scenarios.
+Dictations are already learned by "Learn from my writing" (a paste triggers
+a suggestion, which observes the field); no separate dictation store and no
+down-weighting unless suggestions start to sound spoken. Messages confirmed by the
+user; not yet tested by hand: WhatsApp, Discord, Slack. Plan
+step skipped: walking onboarding on a clean macOS account. Next: website.
+
 ## Type — Phase 0 done (2026-10-10, branch `feature/autocomplete`)
 
 Catalog: Qwen3.5 0.8B / Qwen3.5 2B / Gemma 4 E2B base (max length 4–7 / 8–12 /
