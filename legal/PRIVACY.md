@@ -1,4 +1,4 @@
-# PUSH Privacy Policy
+# PUSHTYPE Privacy Policy
 
 > **DRAFT. Not legal advice.** California's Online Privacy Protection Act
 > (CalOPPA) requires a commercial website that collects personal information
@@ -8,26 +8,26 @@
 
 ## The short version
 
-Your voice and your typing stay on your Mac. PUSH turns speech into text and
+Your voice and your typing stay on your Mac. PUSHTYPE turns speech into text and
 suggests what you'll type next on your Mac's own chip. We never receive your audio, your transcripts or what you type, and
-there's nothing to opt out of because we don't collect it. PUSH has no
+there's nothing to opt out of because we don't collect it. PUSHTYPE has no
 analytics, no ads and no account.
 
-## What PUSH does on your Mac
+## What PUSHTYPE does on your Mac
 
 - **Audio** from the microphone is held in memory while you dictate, turned
   into text, and then thrown away. It's never saved to disk or sent anywhere.
-- **Transcripts** are pasted where you're typing, through the clipboard. PUSH
+- **Transcripts** are pasted where you're typing, through the clipboard. PUSHTYPE
   doesn't keep a history of them.
 - **What you type (Type, the autocomplete).** To suggest how your sentence
-  goes on, PUSH reads the text before and around your cursor, and anything you
+  goes on, PUSHTYPE reads the text before and around your cursor, and anything you
   copied in the last few minutes, at the moment it makes a suggestion. It's
   held in memory and never saved or sent. Password and sign-in fields are never
   read, and neither is anything a password manager copies.
-- **Text on screen (optional).** If you allow Screen Recording, PUSH reads the
+- **Text on screen (optional).** If you allow Screen Recording, PUSHTYPE reads the
   text of the few apps that only draw it on screen, the same way and for the
   same moment. Nothing is recorded or kept.
-- **Learn from my writing and voice (off unless you turn it on).** PUSH keeps
+- **Learn from my writing and voice (off unless you turn it on).** PUSHTYPE keeps
   what you type and dictate where suggestions are on, so they sound like you.
   It's encrypted with a key in your Mac's Keychain, stored at
   `~/Library/Application Support/PUSH/TypingHistory.sealed`, never synced and
@@ -36,18 +36,18 @@ analytics, no ads and no account.
   records operational events such as "model loaded" and timings. It never
   records what you said. It stays on your Mac unless you send it to us yourself.
 
-## The network connections PUSH makes
+## The network connections PUSHTYPE makes
 
 | When | To whom | What they receive | Why |
 |---|---|---|---|
 | You press **Download** for a speech or typing model | Hugging Face (huggingface.co) | A standard download request: your IP address and the files requested | To fetch the open model you picked. [Hugging Face privacy policy](https://huggingface.co/privacy) |
-| Once a day, if automatic updates are on | Our update feed at [yourdomain] | A standard web request: your IP address, PUSH version and macOS version | To check for updates (Sparkle). |
-| If "Sync settings and dictionary across my Macs" is on (Settings ▸ General) | Apple iCloud, through your own iCloud account | Your PUSH settings and personal dictionary entries | To keep your Macs in step. We can't read this data; it's stored under your Apple Account. Switch it off at any time. |
+| Once a day, if automatic updates are on | Our update feed at [yourdomain] | A standard web request: your IP address, PUSHTYPE version and macOS version | To check for updates (Sparkle). |
+| If "Sync settings and dictionary across my Macs" is on (Settings ▸ General) | Apple iCloud, through your own iCloud account | Your PUSHTYPE settings and personal dictionary entries | To keep your Macs in step. We can't read this data; it's stored under your Apple Account. Switch it off at any time. |
 | When you enter a licence key, when you remove a Mac from your licence, and at most once a day to confirm the licence is still valid | Polar (polar.sh), our merchant of record | Your licence key, an activation ID, and your Mac's model (for example "Mac mini (M4)") so you can tell your Macs apart. Like any web request, it also carries your IP address | To check the key is genuine and to count Macs (3 per licence). [Polar's privacy policy](https://polar.sh/legal/privacy) |
 
 None of these connections carries audio, transcripts or anything you type.
 
-## When you buy PUSH
+## When you buy PUSHTYPE
 
 The Buy buttons on our website open Polar's checkout. Polar, our merchant of
 record, collects your name, email, billing
@@ -72,7 +72,7 @@ analytics, name the tool here.]
 You can ask what we hold about you, ask us to correct or delete it, or opt out
 of marketing email by writing to [support@yourdomain]. We'll answer within 30
 days. We don't sell or share personal information for cross-context behavioural
-advertising, as the CCPA/CPRA defines it. PUSH isn't directed at children under
+advertising, as the CCPA/CPRA defines it. PUSHTYPE isn't directed at children under
 13, and we don't knowingly collect their information.
 
 ## Changes

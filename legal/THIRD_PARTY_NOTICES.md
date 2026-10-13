@@ -1,11 +1,11 @@
 # Third-party notices
 
-PUSH is built on open-source software and open speech models. We're grateful to
+PUSHTYPE is built on open-source software and open speech models. We're grateful to
 the people who made them. This file lists each one, its licence and what the
 licence asks of us. The full licence texts are in `legal/third-party/`, and the
 release build copies this whole folder into `PUSH.app/Contents/Resources/Legal`.
 
-The companies named here have not endorsed PUSH. Their names are used only to
+The companies named here have not endorsed PUSHTYPE. Their names are used only to
 say where each component comes from.
 
 ## Software shipped inside PUSH.app
@@ -31,14 +31,14 @@ there is nothing to mark.
 
 ## Speech models (downloaded on first use, not bundled)
 
-PUSH doesn't ship model weights. When you press **Download** in Settings, PUSH
+PUSHTYPE doesn't ship model weights. When you press **Download** in Settings, PUSHTYPE
 fetches the model you picked straight from its public Hugging Face repository
-onto your Mac. PUSH never sends your audio anywhere; the models run on your Mac.
+onto your Mac. PUSHTYPE never sends your audio anywhere; the models run on your Mac.
 
 We don't redistribute the weights, but we credit them anyway: it's what their
 authors ask for, and CC BY 4.0 requires it when a work is shared.
 
-| In PUSH | Model | Made by | Licence | Notice |
+| In PUSHTYPE | Model | Made by | Licence | Notice |
 |---|---|---|---|---|
 | Parakeet Ultra (default) | [moondream/parakeet-ultra](https://huggingface.co/moondream/parakeet-ultra), a post-training of [nvidia/parakeet-tdt-0.6b-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3); Core ML conversion [FluidInference/parakeet-ultra-coreml](https://huggingface.co/FluidInference/parakeet-ultra-coreml) | Moondream, from NVIDIA's Parakeet TDT 0.6B v3; converted by FluidInference | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | "Parakeet Ultra" by Moondream, based on "Parakeet TDT 0.6B v3" by NVIDIA, licensed under CC BY 4.0; converted to Core ML by FluidInference. |
 | Parakeet Unified, Parakeet Streaming | [nvidia/parakeet-unified-en-0.6b](https://huggingface.co/nvidia/parakeet-unified-en-0.6b); Core ML conversion [FluidInference/parakeet-unified-en-0.6b-coreml](https://huggingface.co/FluidInference/parakeet-unified-en-0.6b-coreml) | NVIDIA; converted by FluidInference | [NVIDIA Open Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/) | Licensed by NVIDIA Corporation under the NVIDIA Open Model License. |
@@ -55,12 +55,12 @@ authors ask for, and CC BY 4.0 requires it when a work is shared.
 ## Typing models (downloaded on first use, not bundled)
 
 Type, the inline autocomplete, runs one of these text models on your Mac
-through llama.cpp. As with the speech models, PUSH downloads the file you pick
+through llama.cpp. As with the speech models, PUSHTYPE downloads the file you pick
 from Hugging Face; we don't redistribute the weights. Each is the quantized
 GGUF build by mradermacher of the original model, and every one is licensed
 under the Apache License 2.0 (checked on each model card, 2026-10-12).
 
-| In PUSH | Model | Made by | GGUF build | Licence |
+| In PUSHTYPE | Model | Made by | GGUF build | Licence |
 |---|---|---|---|---|
 | Recommended | [Qwen/Qwen3.5-2B-Base](https://huggingface.co/Qwen/Qwen3.5-2B-Base) | Qwen team, Alibaba Cloud | [mradermacher/Qwen3.5-2B-Base-i1-GGUF](https://huggingface.co/mradermacher/Qwen3.5-2B-Base-i1-GGUF) | Apache 2.0 |
 | Best | [google/gemma-4-E2B](https://huggingface.co/google/gemma-4-E2B) | Google | [mradermacher/gemma-4-E2B-i1-GGUF](https://huggingface.co/mradermacher/gemma-4-E2B-i1-GGUF) | Apache 2.0 |

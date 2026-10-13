@@ -1,4 +1,4 @@
-# PUSH Terms of Sale
+# PUSHTYPE Terms of Sale
 
 > **DRAFT. Not legal advice.** Have an attorney review this before launch.
 > Placeholders are in `[brackets]`.
@@ -13,7 +13,7 @@ apply to your purchase.
 
 | Item | Price (USD, before tax) | What you get |
 |---|---|---|
-| PUSH licence | **$22**, once | One person, up to 3 Macs, every future PUSH for macOS update |
+| PUSHTYPE licence | **$22**, once | One person, up to 3 Macs, every future PUSHTYPE for macOS update |
 | Extra Mac | **$10** each, once | One more Mac on your existing licence |
 
 There is **no subscription**. You pay once and aren't charged again unless you
@@ -22,13 +22,13 @@ you've already made.
 
 ## Delivery
 
-Your licence key arrives by email as soon as payment clears. Download PUSH from
-[yourdomain]. To use PUSH, you need macOS [15] or later on an Apple silicon Mac,
+Your licence key arrives by email as soon as payment clears. Download PUSHTYPE from
+[yourdomain]. To use PUSHTYPE, you need macOS [15] or later on an Apple silicon Mac,
 plus about 600 MB of free space for each speech model you download.
 
 ## Refunds
 
-If PUSH doesn't work for you, email [support@yourdomain] or reply to your
+If PUSHTYPE doesn't work for you, email [support@yourdomain] or reply to your
 receipt **within 14 days of buying**, and you'll get a full refund with no
 questions asked. Once we've refunded you, your licence key stops working.
 
@@ -37,7 +37,7 @@ Those rights still apply.
 
 ## Moving or resetting Macs
 
-Replacing a Mac? Deactivate the old one in **PUSH ▸ Settings ▸ Licence**, or
+Replacing a Mac? Deactivate the old one in **PUSHTYPE ▸ Settings ▸ Licence**, or
 email us and we'll free up the seat.
 
 ## Contact
