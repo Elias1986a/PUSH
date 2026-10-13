@@ -1,6 +1,8 @@
 # CLAUDE.md — PUSH
 
 ## Project Overview
+Users see the name **PUSHTYPE** (since 9.1.0); the bundle id, executable,
+`PUSH.app`, prefs domain and Application Support/PUSH stay PUSH.
 PUSH is a macOS menu bar app for offline voice-to-text dictation. Hold a hotkey
 (or say a wake word), speak, and the transcription is pasted into the focused
 text field of any app. All speech recognition runs on-device.

@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 9.0.0</title>
-            <pubDate>Mon, 12 Oct 2026 17:31:54 -0700</pubDate>
-            <sparkle:version>103</sparkle:version>
-            <sparkle:shortVersionString>9.0.0</sparkle:shortVersionString>
+            <title>Version 9.1.0</title>
+            <pubDate>Mon, 12 Oct 2026 18:12:10 -0700</pubDate>
+            <sparkle:version>104</sparkle:version>
+            <sparkle:shortVersionString>9.1.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,28 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 9.0.0 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 9.1.0 <span class="tag">New</span></h2>
+<h3>New</h3>
+<ul>
+<li><strong>PUSH is now PUSHTYPE.</strong> Same app, new name, for voice and typing. Your settings, permissions and downloaded models carry over.</li>
+<li><strong>Choose your accept keys.</strong> In Settings ▸ Typing, pick the key that takes the next word (Tab by default) and the one that takes the whole suggestion (the ` ~ key by default). Keys you need for writing, like Return, Space and Esc, can't be used, and PUSHTYPE says why.</li>
+<li><strong>Suggestion color in the menu.</strong> Switch colors straight from the menu bar when gray is hard to see on a see-through field or a busy wallpaper.</li>
+<li><strong>Learn from my writing and voice.</strong> What you dictate where suggestions are on is learned too, as finished text and never audio. It's still off until you turn it on, encrypted, and only on this Mac.</li>
+<li><strong>Screen Recording gets its own welcome page</strong>, explaining what it reads and that nothing is kept. If macOS asks to quit and reopen PUSHTYPE after you allow it, the welcome window comes back on the same page.</li>
+<li><strong>Downloaded typing models</strong> show how much space they use, with Show in Finder.</li>
+</ul>
+<h3>Changed</h3>
+<ul>
+<li><strong>Type is on by default</strong>, like Dictation. Until a typing model is downloaded, the menu says where to get one.</li>
+<li><strong>A shorter welcome:</strong> two pages fewer. The pill's position is chosen on the Try it page, and the wake word and teleprompter are on the last page.</li>
+<li><strong>Settings:</strong> the Text page's options (formatting, spoken corrections, California mode) are now in Dictation. The Dictionary says up front that it's used for both voice and typing.</li>
+<li><strong>The smallest typing model (Qwen3.5 0.8B) is gone.</strong> If you used it, PUSHTYPE switches to Recommended.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li><strong>The menu's arrow stays on the icon</strong> when the icon changes, for example from the hourglass once the typing model is ready.</li>
+</ul></div>
+<div class="older"><h2>Version 9.0.0</h2>
 <h3>New</h3>
 <ul>
 <li><strong>Type.</strong> As you type in any app, PUSH suggests how your sentence goes on, in gray right at the cursor. Press Tab to take it a word at a time, or keep typing to ignore it. It works in Mail, Notes, Messages, TextEdit, web pages in Safari and Chrome, and Claude Code in Terminal. Like dictation, it runs entirely on this Mac: nothing you type leaves it.</li>
@@ -160,6 +181,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.1.0/PUSH-v9.1.0.zip" type="application/octet-stream" sparkle:edSignature="KZFjdLIrwlpi9PKuhvNnrZ30ceQyIdzuNsVdKP0ihOsEJEEpnzxYy6fmT0RmaOHdqaZ2Rs8jIt9SvizN7OWiDg==" length="21013932" />
+        </item>
+        <item>
+            <title>Version 9.0.0</title>
+            <pubDate>Mon, 12 Oct 2026 17:31:54 -0700</pubDate>
+            <sparkle:version>103</sparkle:version>
+            <sparkle:shortVersionString>9.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.0.0/PUSH-v9.0.0.zip" type="application/octet-stream" sparkle:edSignature="c/1tReGUXgtAsxlNEUwLjgENR+YCy2M65lQXLxEh6ALF6TgAJcIHR2g8vja3tTN+47cjonxcQ88Mf3ZnhcuqCQ==" length="20993075" />
         </item>
         <item>
