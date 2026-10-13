@@ -236,6 +236,27 @@ struct MenuBarView: View {
                 }
                 .labelsHidden()
             }
+            // Here as well as in Settings: whether gray reads depends on the
+            // field behind it (see-through boxes over a wallpaper hid it),
+            // so the fix should be a click away (user, 2026-10-12).
+            labelled("Color") {
+                HStack(spacing: 6) {
+                    ForEach(SuggestionColor.Preset.allCases) { preset in
+                        let selected = appState.typingColor == .preset(preset)
+                        Button { appState.typingColor = .preset(preset) } label: {
+                            Circle()
+                                .fill(Color(nsColor: preset.color))
+                                .frame(width: 13, height: 13)
+                                .overlay(Circle().strokeBorder(Color.primary.opacity(selected ? 0.8 : 0), lineWidth: 1.5)
+                                    .padding(-2.5))
+                        }
+                        .buttonStyle(.plain)
+                        .help(preset.name)
+                        .accessibilityLabel(preset.name)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
             TypingPauseControl()
         }
         .font(.system(size: 12))
