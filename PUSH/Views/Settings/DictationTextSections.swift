@@ -2,9 +2,13 @@ import SwiftUI
 import AppKit
 import PUSHCore
 
-// MARK: - Text
+// MARK: - How dictated text is written
 
-struct TextSettingsView: View {
+/// Formatting, spoken corrections and California mode: what happens to
+/// dictated words before they are pasted. They were a Text pane of their
+/// own; with Type beside dictation that name read as covering typing too,
+/// so they live in the Dictation pane (user, 2026-10-12).
+struct DictationTextSections: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
@@ -12,7 +16,7 @@ struct TextSettingsView: View {
         // is what gives the controls below their `$appState` bindings.
         @Bindable var appState = appState
 
-        Form {
+        Group {
             Section("Formatting") {
                 Toggle("Double space after sentences", isOn: $appState.doubleSpaceAfterSentence)
             }
@@ -56,6 +60,5 @@ struct TextSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .formStyle(.grouped)
     }
 }

@@ -131,6 +131,8 @@ struct DictationSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            DictationTextSections()
         }
         .formStyle(.grouped)
         .onAppear(perform: refreshDevices)
