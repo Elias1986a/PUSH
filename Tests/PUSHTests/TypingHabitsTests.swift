@@ -43,6 +43,9 @@ final class TypingHabitsTests: XCTestCase {
         XCTAssertEqual(a.firstWordRight, a.offered)
         XCTAssertEqual(a.allRight, a.offered)
         XCTAssertEqual(TypingHabitsAssessment.measure(texts: ["too few"]), TypingHabitsAssessment())
+        // Short pieces in a long enough history (crashed the 9.1.3 test build).
+        let mixed = texts + ["ok", "", "sounds good", "a b"] + texts
+        XCTAssertGreaterThan(TypingHabitsAssessment.measure(texts: mixed).positions, 0)
     }
 }
 

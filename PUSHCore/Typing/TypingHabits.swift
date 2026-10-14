@@ -124,6 +124,7 @@ public struct TypingHabitsAssessment: Equatable, Sendable {
             let habits = TypingHabits(texts: training)
             for (i, text) in texts.enumerated() where i % folds == fold {
                 let tokens = TypingHabits.tokens(String(text.suffix(TypingHabits.charactersPerText)))
+                guard tokens.count > 3 else { continue }   // "ok thanks": nothing to replay
                 for k in 3..<tokens.count where tokens[k - 1] != "\n" && tokens[k] != "\n" {
                     result.positions += 1
                     let before = tokens[..<k].joined(separator: " ") + " "
