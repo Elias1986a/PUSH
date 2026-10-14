@@ -542,7 +542,9 @@ final class TypingCoordinator {
         if Self.typoAtCaret(before) {
             // Offer the spelling fix in place of a continuation, which would
             // only build on the typo.
-            if surface != .terminal, AppState.shared.typingFixTypos,
+            // Terminals too: Type only suggests at an agent's prompt there
+            // (Claude Code), which is prose, never in a shell command.
+            if AppState.shared.typingFixTypos,
                let fix = TypoFix.find(in: before, isTypo: { !Self.isRealWord($0) },
                                       isInProgress: Self.startsARealWord, guesses: Self.spellingGuesses) {
                 return showCorrection(fix, at: placement, surface: surface)
