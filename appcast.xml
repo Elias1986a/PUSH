@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 9.1.1</title>
-            <pubDate>Tue, 13 Oct 2026 14:08:04 -0700</pubDate>
-            <sparkle:version>105</sparkle:version>
-            <sparkle:shortVersionString>9.1.1</sparkle:shortVersionString>
+            <title>Version 9.1.2</title>
+            <pubDate>Tue, 13 Oct 2026 22:28:23 -0700</pubDate>
+            <sparkle:version>106</sparkle:version>
+            <sparkle:shortVersionString>9.1.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,12 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 9.1.1 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 9.1.2 <span class="tag">New</span></h2>
+<h3>New</h3>
+<ul>
+<li><strong>Type fixes typos.</strong> When the word you just typed is misspelled, the gray text shows the correction, like <strong>→ receive</strong>. Press your accept key (Tab) and PUSHTYPE swaps it in, then carries on suggesting. Corrections come from your Mac's own spell checker, offline. Turn it off in Settings ▸ Typing ▸ Offer spelling fixes.</li>
+</ul></div>
+<div class="older"><h2>Version 9.1.1</h2>
 <h3>Fixed</h3>
 <ul>
 <li><strong>Type works in Webex.</strong> With Webex in front, PUSHTYPE couldn't find the message box, so there was no Type icon and no suggestions. It now finds the box in Webex and in other apps built the same way.</li>
@@ -191,6 +196,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.1.2/PUSH-v9.1.2.zip" type="application/octet-stream" sparkle:edSignature="V0M74cc8WFhjXUqBT+57p6Om8PyvAbyof7UqeE7ZZPQJlA23IdYklFRP0Mlix3K5RE0/exWEszmm8UgVB/D/Cw==" length="21023475" />
+        </item>
+        <item>
+            <title>Version 9.1.1</title>
+            <pubDate>Tue, 13 Oct 2026 14:08:04 -0700</pubDate>
+            <sparkle:version>105</sparkle:version>
+            <sparkle:shortVersionString>9.1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.1.1/PUSH-v9.1.1.zip" type="application/octet-stream" sparkle:edSignature="m7M8RTGNHRDeYrGD3YsOb+3YEV8M+ZR8Jtwhmt6E5pkOYfO78NyfUqkxjod4I7XV1GdyDQj0dUltdoi+Bk0jCA==" length="21016456" />
         </item>
         <item>

@@ -62,6 +62,14 @@ struct TypingSettingsView: View {
                 }
                 acceptKeys
                 Toggle("Add a space after the last word", isOn: $appState.typingSpaceAfterLastWord)
+                Toggle(isOn: $appState.typingFixTypos) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Offer spelling fixes")
+                        Text("When a word is misspelled, the gray text shows the correction. Your accept key swaps it in.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Toggle(isOn: $appState.typingInCodeEditors) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Suggest in code editors")
