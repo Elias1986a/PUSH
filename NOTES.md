@@ -6,8 +6,7 @@ An outside AI review (docs/PUSHTYPE_PROJECT_REVIEW.md, untracked, the
 user's) was checked claim by claim. It read main mid-session, so its
 "iCloud licence not implemented" point is already done on next-release.
 Done:
-- Type: password keys never stay in KeystrokeBuffer (PR #49; on main,
-  not yet released). The buffer owns its field, clears on every change and
+- Type: password keys never stay in KeystrokeBuffer (PR #49, 9.2.1). The buffer owns its field, clears on every change and
   on secure fields; Tab clears it.
 - /thanks: no Google Analytics, credentials cleared from the address bar,
   the function requires Polar's customer_session_token (live token needs
@@ -19,6 +18,10 @@ Done:
 Not done yet: PUSH.app → PUSHTYPE.app in the DMG (needs a Sparkle rename
 test on the user's Macs). User decision: no trial; paid + 14-day refund.
 Launch list adds: remove noindex from home/benchmark, robots + sitemap.
+
+## 9.2.1 (2026-10-14) — password keystrokes never kept
+
+Ships PR #49 (see the external review follow-up above).
 
 ## 9.2.0 (2026-10-14) — spelling fixes, round two
 
