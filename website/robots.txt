@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /thanks/
+Disallow: /api/
+
+Sitemap: https://pushtype.app/sitemap.xml

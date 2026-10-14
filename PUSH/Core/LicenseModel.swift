@@ -18,12 +18,11 @@ import PUSHCore
 final class LicenseModel {
     static let shared = LicenseModel()
 
-    /// Whether Settings shows the Licence pane. Off until PUSH is sold: the
-    /// checkout links are still Polar's sandbox, and the user's own copies
-    /// have no key. Turn on at launch, with the production `PolarConfig`.
-    /// Until then `defaults write com.push.voicetotext licence.offered -bool
-    /// true` shows it on one Mac, for a test purchase against the sandbox.
-    static var isOffered: Bool { UserDefaults.standard.bool(forKey: "licence.offered") }
+    /// Whether the app is sold: shows the Licence pane and the activation page
+    /// in setup, and asks for a licence before Dictation and Type run. On
+    /// since launch (10.0), with the production `PolarConfig`. A debug build
+    /// can switch it off with `defaults write PUSH licence.offered -bool false`.
+    static var isOffered: Bool { UserDefaults.standard.object(forKey: "licence.offered") as? Bool ?? true }
 
     struct Stored: Codable, Equatable {
         var key: String

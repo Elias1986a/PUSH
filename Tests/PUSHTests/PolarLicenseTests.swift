@@ -118,3 +118,37 @@ final class PolarLicenseTests: XCTestCase {
         XCTAssertEqual(PolarLicenseClient.masked("ABCD-EFGH-1234"), "****-1234")
     }
 }
+
+/// The live store's settings: one mistyped link or ID here sends a buyer to
+/// the wrong product or the sandbox.
+final class PolarProductionConfigTests: XCTestCase {
+    private let live = PolarConfig.production
+
+    func testItTalksToTheLiveServerAndNotTheSandbox() {
+        XCTAssertEqual(live.baseURL.host, "api.polar.sh")
+        XCTAssertNotEqual(live.organizationID, PolarConfig.sandbox.organizationID)
+        XCTAssertTrue(Set(live.productIDs).isDisjoint(with: Set(PolarConfig.sandbox.productIDs)))
+        XCTAssertEqual(live.productIDs.count, 2)
+    }
+
+    /// Each Buy button opens a link for its own product; they must differ.
+    func testTheTwoCheckoutLinksAreDifferentLiveLinks() {
+        XCTAssertNotEqual(live.checkoutURL, live.addMacCheckoutURL)
+        for url in [live.checkoutURL, live.addMacCheckoutURL] {
+            XCTAssertEqual(url.host, "api.polar.sh")
+            XCTAssertTrue(url.path.hasPrefix("/v1/checkout-links/polar_cl_"), url.path)
+            XCTAssertTrue(url.path.hasSuffix("/redirect"), url.path)
+            XCTAssertFalse(url.absoluteString.contains("sandbox"))
+        }
+    }
+
+    func testThePortalIsTheLiveStores() {
+        XCTAssertEqual(live.portalURL.absoluteString, "https://polar.sh/pushtype/portal")
+    }
+
+    func testTheReleaseBuildUsesTheLiveStore() {
+        #if !DEBUG
+        XCTAssertEqual(PolarConfig.current, PolarConfig.production)
+        #endif
+    }
+}
