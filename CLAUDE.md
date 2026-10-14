@@ -49,6 +49,7 @@ text field of any app. All speech recognition runs on-device.
   Exception: Type's accepted words are posted as Unicode key events
   (`KeystrokeTyper`); Catalyst Messages ignores them.
 - Never log transcript text (privacy); PushLogger events are operational only.
+- Website house style: two spaces after every sentence and the Oxford comma. After editing a page run `python3 website/typography.py` (build_legal.py does it for the legal pages); it is idempotent.
 - American spelling in anything users see (license, color, behavior; "period", not "full stop"). Stored keys keep their old names (`licence.offered`, the Keychain services): renaming them would orphan saved data.
 - Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.
   The feed keeps every past release's `<item>`; the build script prepends.
