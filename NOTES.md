@@ -9,8 +9,8 @@ Done:
 - Type: password keys never stay in KeystrokeBuffer (PR #49, 9.2.1). The buffer owns its field, clears on every change and
   on secure fields; Tab clears it.
 - /thanks: no Google Analytics, credentials cleared from the address bar,
-  the function requires Polar's customer_session_token (live token needs
-  checkouts:read only), no older-key fallback.
+  order numbers work for 1 hour (Polar sends no session token, so the
+  function opens one), no older-key fallback, no 3-step email flow.
 - Site: self-hosted fonts, "What you say and type never leaves your Mac.",
   share card v3, font licences in notices.
 - release.yml deleted; the user deleted its 5 GitHub secrets (repo has
@@ -67,8 +67,8 @@ Space not built. Shipped on its own branch ahead of the licensing release.
 Decided with the user: keys stay (no sharing), made nearly invisible.
 Thank-you page (/thanks/?checkout_id=…) calls the Netlify function
 /api/purchase (website/netlify/functions/purchase.mts; env
-POLAR_ACCESS_TOKEN with checkouts:read only (2026-10-14: the buyer's own
-customer_session_token from Polar is required; no fallback session),
+POLAR_ACCESS_TOKEN with checkouts:read + customer_sessions:write (Polar's
+success URL carries only checkout_id; the order number works for 1 hour),
 POLAR_SERVER=production at launch) for a Download button (signed DMG URL)
 and Activate (pushtype://activate?key=…). App: key in iCloud Keychain
 (SyncedLicenseKey; new Mac on the same Apple Account activates once by
