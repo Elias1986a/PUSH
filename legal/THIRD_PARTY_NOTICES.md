@@ -79,3 +79,14 @@ All four speech-model licences allow commercial use. What each one requires:
   origin. Rights end on patent or copyright litigation over the model. There
   are no restrictions on outputs, so your transcripts are yours.
 - **MIT (Silero VAD).** Keep the copyright notice.
+
+## Fonts on pushtype.app
+
+The website serves its own copies of these fonts, so pages load nothing from
+Google. All four are under the [SIL Open Font License
+1.1](https://openfontlicense.org), which allows this; the fonts are unchanged.
+
+- **Archivo** by Omnibus-Type
+- **Instrument Sans** by Instrument
+- **JetBrains Mono** by JetBrains
+- **Shrikhand** by Jonny Pinhorn
