@@ -12,7 +12,7 @@ What it makes true (each step is skipped when it already is):
     benefit-grant events lib/seats.mts needs.
 
 The token is a short-lived admin token made for this, scopes products:write,
-webhooks:read and webhooks:write. It is read from the environment, never
+benefits:read, benefits:write, webhooks:read and webhooks:write. It is read from the environment, never
 printed, never stored. Create it in Polar (Settings ▸ Developers), run this,
 then delete it. The Netlify token is a different, smaller one.
 """
@@ -27,13 +27,11 @@ SERVERS = {
         "api": "https://api.polar.sh",
         "org": "d5c12043-0896-4c20-99a9-bbe1e2a833f1",
         "extra_product": "b764aace-6737-4932-9028-75b890ac4c11",
-        "extra_benefit": "cea19ca1-e6c9-45d9-ae60-5c57f050c2c2",
     },
     "sandbox": {
         "api": "https://sandbox-api.polar.sh",
         "org": "0673c8e8-a8e6-4c1b-9cc1-5ff5d0c33037",
         "extra_product": "9deeaf9c-0f19-4e76-aad4-48826f58e2c2",
-        "extra_benefit": "54dc6cec-6c2d-4a1f-8979-f3bcfc1d5de6",
     },
 }
 WEBHOOK_PATH = "/api/polar-webhook"
@@ -83,7 +81,37 @@ def main():
         b["id"] for p in org["products"] if p["id"] != cfg["extra_product"]
         for b in p.get("benefits", []) if b["type"] == "downloadables"
     )
-    want = [cfg["extra_benefit"], download]
+    extra_license = next((b["id"] for b in extra.get("benefits", []) if b["type"] == "license_keys"), None)
+    main_license = next(
+        (b["id"] for p in org["products"] if p["id"] != cfg["extra_product"]
+         for b in p.get("benefits", []) if b["type"] == "license_keys"), None)
+    if not extra_license:
+        print("Extra Mac has no licence-key benefit; one will be made: one Mac per key, "
+              "the rest copied from the main licence benefit.")
+        if command == "apply":
+            status, main_benefit = call(api, f"/v1/benefits/{main_license}", token)
+            if status != 200:
+                sys.exit(f"could not read the main licence benefit ({status}); does the token have benefits:read?")
+            props = main_benefit["properties"]
+            admin = bool((props.get("activations") or {}).get("enable_customer_admin"))
+            status, made = call(api, "/v1/benefits/", token, "POST", {
+                "type": "license_keys",
+                "description": "Extra Mac",
+                "organization_id": cfg["org"],
+                "properties": {
+                    "prefix": props.get("prefix"),
+                    "expires": props.get("expires"),
+                    "activations": {"limit": 1, "enable_customer_admin": admin},
+                    "limit_usage": props.get("limit_usage"),
+                },
+            })
+            print(f"  create benefit -> {status}")
+            if status not in (200, 201):
+                print(f"  {made.get('detail', '')}")
+                sys.exit(1)
+            extra_license = made["id"]
+            changed = True
+    want = [extra_license or "(new licence-key benefit)", download]
     if sorted(have) == sorted(want):
         print("Extra Mac benefits: already right (licence key + download).")
     else:

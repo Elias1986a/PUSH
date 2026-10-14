@@ -10,7 +10,7 @@
 // also needs the license_keys:write scope. Nothing is stored and keys are
 // never logged.
 import type { Config } from "@netlify/functions"
-import { idsFor, reconcileSeats } from "../lib/seats.mts"
+import { reconcileSeats, resolveIds } from "../lib/seats.mts"
 import { polarEnv } from "../lib/polar.mts"
 import { verifyWebhook } from "../lib/webhook.mts"
 
@@ -29,7 +29,7 @@ export default async (req: Request) => {
 
   let event: any
   try { event = JSON.parse(raw) } catch { return new Response("bad json", { status: 400 }) }
-  const ids = idsFor(env.production)
+  const ids = await resolveIds(env.api, env.production)
   const data = event?.data
   const isOrder = ORDER_EVENTS.has(event?.type)
   const isGrant = GRANT_EVENTS.has(event?.type)
