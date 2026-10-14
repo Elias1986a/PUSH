@@ -60,4 +60,24 @@ final class TypingTerminalLineTests: XCTestCase {
         let screen = "\(rule)\n> quoted output\nuser@mac ~ % git sta"
         XCTAssertEqual(TerminalLine.parse(textBeforeCaret: screen)?.kind, .shell)
     }
+
+    // MARK: - Text after the cursor
+
+    func testNothingAfterTheCursorAtTheEndOfThePrompt() {
+        XCTAssertNil(TerminalLine.textAfterCaret("      \n\(rule)\n  Opus 5.5 | Context: 77%\n  ▸▸ auto mode on"))
+        XCTAssertNil(TerminalLine.textAfterCaret("   │\n╰\(rule)╯"))
+        XCTAssertNil(TerminalLine.textAfterCaret(nil))
+    }
+
+    /// The user's photo: back after "I'm" to fix the sentence.
+    func testTheRestOfTheSentenceWhenTheCursorWentBack() {
+        let after = " I don't know how we could fix this.      \n\(rule)\n  Opus 5.5 | Context: 77%"
+        XCTAssertEqual(TerminalLine.textAfterCaret(after), "I don't know how we could fix this.")
+    }
+
+    func testWrappedPromptRowsBelowCount() {
+        let after = "   \n  and the second row of the prompt\n\(rule)"
+        XCTAssertEqual(TerminalLine.textAfterCaret(after), "and the second row of the prompt")
+        XCTAssertEqual(TerminalLine.textAfterCaret(" the rest │\n╰\(rule)╯"), "the rest")
+    }
 }

@@ -245,4 +245,28 @@ final class TypingCaretWordsTests: XCTestCase {
         XCTAssertFalse(SuggestionText.needsTrailingSpace(finishing: " team", nextInField: " "))
         XCTAssertFalse(SuggestionText.needsTrailingSpace(finishing: " team", nextInField: "x"))
     }
+
+    // MARK: - Repeating the text after the caret
+
+    /// The user's case: back after "I'm" in "…and I'm I don't know how we could fix this."
+    func testCutsWhereItStartsRepeatingTheTextAfterTheCaret() {
+        let after = " I don't know how we could fix this."
+        XCTAssertEqual(SuggestionText.cutAtRepeat(" sure I don't know how,", after: after), " sure")
+        XCTAssertNil(SuggestionText.cutAtRepeat(" I don’t know how", after: after))
+        XCTAssertEqual(SuggestionText.cutAtRepeat(" not sure", after: after), " not sure")
+    }
+
+    func testAWordStillStreamingCountsAsTheRepeat() {
+        XCTAssertEqual(SuggestionText.cutAtRepeat(" so I do", after: " I don't know"), " so")
+    }
+
+    func testNeverRepeatsTheNextWord() {
+        XCTAssertEqual(SuggestionText.cutAtRepeat(" so that", after: " that we can ship."), " so")
+    }
+
+    func testOnlyTheRestOfTheLineCounts() {
+        XCTAssertEqual(SuggestionText.cutAtRepeat(" and the plan", after: "\nThe plan is ready"), " and the plan")
+        XCTAssertEqual(SuggestionText.cutAtRepeat(" to see you", after: nil), " to see you")
+        XCTAssertEqual(SuggestionText.cutAtRepeat(" to see you", after: "   "), " to see you")
+    }
 }

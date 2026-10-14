@@ -21,16 +21,19 @@ public struct SuggestionJudge {
     /// Text the user can see besides `before` (screen, clipboard): numbers in
     /// it are theirs, not the model's guesses.
     let known: String
+    /// The text after the caret, which a suggestion must not repeat.
+    let after: String?
     /// Set once the glued-word question is settled (or never arises).
     private var judged: Bool
 
     public init(forced: String, before: String, length: LengthPreset, wordBoundary: Bool, known: String = "",
-                isRealWord: @escaping (String) -> Bool) {
+                after: String? = nil, isRealWord: @escaping (String) -> Bool) {
         self.forced = forced
         self.before = before
         self.length = length
         self.isRealWord = isRealWord
         self.known = known
+        self.after = after
         self.judged = wordBoundary || forced.isEmpty
     }
 
@@ -68,6 +71,9 @@ public struct SuggestionJudge {
         if !SuggestionText.matchesScript(polished, before: before) { return .reject("other writing system") }
         if SuggestionText.isUnwanted(polished, before: before) { return .reject("unwanted content") }
         if SuggestionText.repeats(polished, before: before) { return .reject("repeats or loops") }
-        return .show(polished)
+        guard let fresh = SuggestionText.cutAtRepeat(polished, after: after) else {
+            return .reject("repeats the text after the caret")
+        }
+        return .show(fresh)
     }
 }

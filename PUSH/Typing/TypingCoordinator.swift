@@ -560,7 +560,7 @@ final class TypingCoordinator {
             return
         }
         let request = Request(
-            before: before, after: surface == .terminal ? nil : focus.after,
+            before: before, after: surface == .terminal ? TerminalLine.textAfterCaret(focus.after) : focus.after,
             surfaceLine: surfaceLine,
             style: Self.nonEmpty(AppState.shared.typingAbout),
             userName: TypingPreferences.signOffName(saved: AppState.shared.typingName),
@@ -592,7 +592,8 @@ final class TypingCoordinator {
         generationTask = Task {
             var raw = ""
             var judge = SuggestionJudge(forced: forced, before: request.before, length: request.length,
-                                        wordBoundary: wordBoundary, known: request.known, isRealWord: Self.isRealWord)
+                                        wordBoundary: wordBoundary, known: request.known, after: request.after,
+                                        isRealWord: Self.isRealWord)
             /// False when this attempt is over (rejected, or retried).
             @MainActor func consider(final: Bool) -> Bool {
                 switch judge.judge(raw, final: final) {
@@ -649,7 +650,8 @@ final class TypingCoordinator {
         let (prompt, forced) = next.prompt
         prefetchTask = Task {
             var judge = SuggestionJudge(forced: forced, before: next.before, length: next.length,
-                                        wordBoundary: false, known: next.known, isRealWord: Self.isRealWord)
+                                        wordBoundary: false, known: next.known, after: next.after,
+                                        isRealWord: Self.isRealWord)
             var raw = ""
             do {
                 for try await piece in await LlamaEngine.shared.complete(
@@ -900,7 +902,8 @@ final class TypingCoordinator {
     /// the rest of the screen, not the rest of the line.
     private func placement(for focus: FocusSnapshot, terminal: Bool) -> GhostTextPanel.Placement? {
         TypingPlacement.decide(caretRect: caret(for: focus, terminal: terminal),
-                               after: terminal ? nil : focus.after, fieldFrame: focus.fieldFrame)
+                               after: terminal ? TerminalLine.textAfterCaret(focus.after) : focus.after,
+                               fieldFrame: focus.fieldFrame)
     }
 
     /// The caret moved (typed into or accepted part of the suggestion): read
