@@ -61,6 +61,20 @@ final class LicenseModel {
 
     var isLicensed: Bool { stored != nil }
 
+    /// Whether Dictation and Type may run: always until the store opens, then
+    /// only with a licence. No grace period; the 14-day refund is the trial.
+    var allowsUse: Bool { !Self.isOffered || isLicensed }
+
+    /// Put the way to activate in front of the user: the welcome window's
+    /// licence page if it is open, otherwise Settings ▸ Licence.
+    func askForLicence() {
+        if OnboardingWindowController.shared.isShowing {
+            OnboardingWindowController.shared.show()
+        } else {
+            SettingsWindowController.shared.show(pane: .licence)
+        }
+    }
+
     /// The key another of the user's Macs put in their iCloud Keychain.
     var iCloudKey: String? { synced.load() }
 

@@ -904,6 +904,7 @@ struct OnboardingView: View {
     private var continueDisabled: Bool {
         switch step {
         case .features: return !appState.dictationEnabled && !appState.typeEnabled
+        case .licence: return !LicenseModel.shared.isLicensed
         case .speechModel: return !isReady(appState.selectedWhisperModel)
         // A download in progress carries on in the background.
         case .typingModel:
