@@ -135,7 +135,7 @@ TEMPLATE = """<!doctype html>
 <div class="row" style="gap: 28px;">
 <a href="privacy.html">Privacy</a>
 <a href="terms.html">Terms of sale</a>
-<a href="eula.html">Licence (EULA)</a>
+<a href="eula.html">License (EULA)</a>
 <a href="notices.html">Third-party notices</a>
 </div>
 <div class="row socials" aria-label="PUSHTYPE elsewhere">

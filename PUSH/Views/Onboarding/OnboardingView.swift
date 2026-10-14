@@ -226,7 +226,7 @@ struct OnboardingView: View {
                         copiedRow("\(adoption.dictionaryWords) dictionary \(adoption.dictionaryWords == 1 ? "entry" : "entries")")
                     }
                     if adoption.hasProfile { copiedRow("Your name and About you") }
-                    if LicenseModel.shared.isLicensed { copiedRow("Your licence") }
+                    if LicenseModel.shared.isLicensed { copiedRow("Your license") }
                 }
                 if adoption.learning == true {
                     Divider()

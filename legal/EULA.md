@@ -11,15 +11,15 @@ updates and its documentation (together, "PUSHTYPE"). By installing or using PUS
 you agree to it. If you don't agree, don't install PUSHTYPE, and ask for a refund
 if you've already paid (see the Terms of Sale).
 
-## 1. Your licence
+## 1. Your license
 
 When you buy PUSHTYPE, we grant you a personal, non-exclusive, non-transferable,
-perpetual licence to install and use PUSHTYPE on **up to three (3) Macs** that you
+perpetual license to install and use PUSHTYPE on **up to three (3) Macs** that you
 own or control, for any lawful purpose, personal or commercial. Each additional
 Mac needs an additional seat, sold separately.
 
-The licence belongs to the person who bought it. Buying for a team means one
-licence per person, unless we agree otherwise in writing.
+The license belongs to the person who bought it. Buying for a team means one
+license per person, unless we agree otherwise in writing.
 
 ## 2. Updates
 
@@ -34,9 +34,9 @@ not included unless we say so when you buy.
 
 You may not, and may not help anyone else:
 
-- share, sell, rent, lend or sublicense PUSHTYPE or your licence key, or use one
+- share, sell, rent, lend or sublicense PUSHTYPE or your license key, or use one
   key on more Macs than you have seats for;
-- get around licence checks, or change or remove any notice in PUSHTYPE;
+- get around license checks, or change or remove any notice in PUSHTYPE;
 - reverse engineer, decompile or disassemble PUSHTYPE, except where applicable law
   allows it despite this restriction;
 - use PUSHTYPE to break the law or to record people without the consent the law
@@ -48,7 +48,7 @@ PUSHTYPE includes open-source software, and PUSHTYPE downloads open speech and
 typing models that run on your Mac. Each is licensed to you under its own terms, listed in
 **Third-Party Notices** (inside the app at `PUSH.app/Contents/Resources/Legal`,
 and on our website). Nothing in this agreement limits your rights under those
-licences.
+licenses.
 
 Earlier versions of PUSHTYPE, up to and including version 8.2.2 (then called
 PUSH), were published under the MIT License. Those copies stay under the MIT License. This agreement
@@ -67,9 +67,9 @@ PUSHTYPE is licensed, not sold. We, and our licensors where applicable, keep all
 rights in PUSHTYPE that this agreement doesn't expressly grant you. "PUSHTYPE", "PUSH" and
 the PUSHTYPE icon are our trademarks.
 
-## 7. Ending the licence
+## 7. Ending the license
 
-You can stop using PUSHTYPE at any time. The licence ends automatically if you
+You can stop using PUSHTYPE at any time. The license ends automatically if you
 materially break this agreement and don't fix it within 14 days of our notice.
 When it ends, delete PUSHTYPE from your Macs. Sections 6, 8, 9 and 10 still apply
 afterwards.

@@ -24,7 +24,7 @@ struct DictationTextSections: View {
             Section("Spoken corrections") {
                 Toggle("Act on corrections you say out loud", isOn: $appState.resolveSelfCorrections)
 
-                Text("Say “the red car, I mean the blue car” and only “the blue car” is pasted. Also recognises “no wait”, “make that” and “scratch that”.")
+                Text("Say “the red car, I mean the blue car” and only “the blue car” is pasted. Also recognizes “no wait”, “make that” and “scratch that”.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

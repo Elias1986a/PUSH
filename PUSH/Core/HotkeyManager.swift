@@ -376,7 +376,7 @@ final class HotkeyManager: @unchecked Sendable {
         // No licence (once the store is open): the key opens the licence
         // screen instead of recording.
         guard LicenseModel.shared.allowsUse else {
-            PushLogger.log("HotkeyManager: not activated, showing the licence screen")
+            PushLogger.log("HotkeyManager: not activated, showing the license screen")
             LicenseModel.shared.askForLicence()
             return
         }

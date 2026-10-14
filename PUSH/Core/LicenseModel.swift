@@ -116,9 +116,10 @@ final class LicenseModel {
             keychain.save(record)
             stored = record
             UserDefaults.standard.set(true, forKey: Self.activatedHereKey)
-            // An Extra Mac key is good for this one Mac: it must not follow the
-            // user to the others through iCloud in place of the main key.
-            if activation.activationLimit != 1 { synced.save(key) }
+            // The customer's first key is their main key whatever it started as
+            // (a single given away, say, later raised by buying the three), so
+            // whichever key this is goes to the user's other Macs too.
+            synced.save(key)
             PushLogger.log("License: activated on this Mac")
         } catch let error as LicenseError {
             message = Self.sentence(for: error, activating: true)
@@ -161,9 +162,9 @@ final class LicenseModel {
             keychain.save(updated)
             stored = updated
         } catch LicenseError.notFound {
-            forget("This Mac's licence is no longer active. It may have been removed from another Mac or refunded.")
+            forget("This Mac's license is no longer active. It may have been removed from another Mac or refunded.")
         } catch LicenseError.refused(let detail) {
-            forget("This Mac's licence is no longer active (\(detail)).")
+            forget("This Mac's license is no longer active (\(detail)).")
         } catch {
             // Unreachable or unreadable: try again next launch.
         }
@@ -173,7 +174,7 @@ final class LicenseModel {
         keychain.delete()
         stored = nil
         message = sentence
-        PushLogger.log("License: Polar no longer recognises this Mac's seat")
+        PushLogger.log("License: Polar no longer recognizes this Mac's seat")
     }
 
     static func isLimit(_ detail: String) -> Bool {
@@ -186,7 +187,7 @@ final class LicenseModel {
         case .notFound:
             return "That key wasn't found. Copy it again from the email Polar sent you, all of it."
         case .refused(let detail) where isLimit(detail):
-            return "This licence is already on all its Macs. Add this Mac for $12, or free a place by removing one you no longer use."
+            return "This license is already on all its Macs. Add this Mac for $12, or free a place by removing one you no longer use."
         case .refused(let detail):
             return "Polar didn't accept this key: \(detail)."
         case .unreachable, .unexpected:

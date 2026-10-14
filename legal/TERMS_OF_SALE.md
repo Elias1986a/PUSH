@@ -3,7 +3,7 @@
 > **DRAFT. Not legal advice.** Have an attorney review this before launch.
 > Placeholders are in `[brackets]`.
 
-**Seller of the software licence:** Elias Atalah, an individual in California.
+**Seller of the software license:** Elias Atalah, an individual in California.
 **Payments:** handled by Polar ([polar.sh](https://polar.sh)), our merchant
 of record. They process your payment, calculate and collect sales tax
 or VAT, and issue your receipt, under [Polar's buyer terms](https://polar.sh/legal/checkout-buyer-terms), which also
@@ -13,8 +13,8 @@ apply to your purchase.
 
 | Item | Price (USD, before tax) | What you get |
 |---|---|---|
-| PUSHTYPE licence | **$35**, once | One person, up to 3 Macs, every future PUSHTYPE for macOS update |
-| Extra Mac | **$12** each, once | One more Mac on your existing licence |
+| PUSHTYPE license | **$35**, once | One person, up to 3 Macs, every future PUSHTYPE for macOS update |
+| Extra Mac | **$12** each, once | One more Mac on your existing license |
 
 There is **no subscription**. You pay once and aren't charged again unless you
 buy something else. Prices may change for future buyers, never for a purchase
@@ -22,7 +22,7 @@ you've already made.
 
 ## Delivery
 
-Your licence key arrives by email as soon as payment clears. Download PUSHTYPE from
+Your license key arrives by email as soon as payment clears. Download PUSHTYPE from
 pushtype.app. To use PUSHTYPE, you need macOS 15 or later on an Apple silicon Mac,
 plus about 600 MB of free space for each speech model you download.
 
@@ -30,14 +30,14 @@ plus about 600 MB of free space for each speech model you download.
 
 If PUSHTYPE doesn't work for you, email [support@pushtype.app](mailto:support@pushtype.app) or reply to your
 receipt **within 14 days of buying**, and you'll get a full refund with no
-questions asked. Once we've refunded you, your licence key stops working.
+questions asked. Once we've refunded you, your license key stops working.
 
 Your local law may give you more rights, such as the EU right of withdrawal.
 Those rights still apply.
 
 ## Moving or resetting Macs
 
-Replacing a Mac? Deactivate the old one in **PUSHTYPE ▸ Settings ▸ Licence**, or
+Replacing a Mac? Deactivate the old one in **PUSHTYPE ▸ Settings ▸ License**, or
 email us and we'll free up the seat.
 
 ## Contact

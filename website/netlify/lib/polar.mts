@@ -9,7 +9,7 @@ export type PolarCall = (
 export const polar: PolarCall = async (api, path, token, init = {}) => {
   const res = await fetch(api + path, {
     ...init,
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(init.headers ?? {}) },
+    headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), "content-type": "application/json", ...(init.headers ?? {}) },
   })
   const body = await res.json().catch(() => ({}))
   return { status: res.status, body }

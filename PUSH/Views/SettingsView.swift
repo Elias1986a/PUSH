@@ -49,7 +49,7 @@ struct SettingsView: View {
             case .teleprompter: return "Teleprompter"
             case .models: return "Models"
             case .dictionary: return "Dictionary"
-            case .licence: return "Licence"
+            case .licence: return "License"
             }
         }
 
