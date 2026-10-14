@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 9.2.1</title>
-            <pubDate>Wed, 14 Oct 2026 08:01:19 -0700</pubDate>
-            <sparkle:version>109</sparkle:version>
-            <sparkle:shortVersionString>9.2.1</sparkle:shortVersionString>
+            <title>Version 9.2.2</title>
+            <pubDate>Wed, 14 Oct 2026 08:43:47 -0700</pubDate>
+            <sparkle:version>110</sparkle:version>
+            <sparkle:shortVersionString>9.2.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,13 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 9.2.1 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 9.2.2 <span class="tag">New</span></h2>
+<h3>Better</h3>
+<ul>
+<li><strong>Going back to fix a word no longer covers your text.</strong> In Claude Code and other agent prompts in Terminal, when you move the cursor back into what you've written, the suggestion now appears in a small card below the line, as it already did in other apps, instead of on top of the words after the cursor.</li>
+<li><strong>No more repeats.</strong> A suggestion never repeats the words that are already after your cursor. Going back after "I'm" in "I'm I don't know how…" offers "sure", not "sure I don't know how".</li>
+</ul></div>
+<div class="older"><h2>Version 9.2.1</h2>
 <h3>Fixed</h3>
 <ul>
 <li><strong>Password keystrokes are never kept.</strong> For the few apps whose text PUSHTYPE can't read, Type remembers the keys you just typed in that field, in memory only. Keys typed into a password field could stay in that memory and, after Tab, be read as the next field's text. Now nothing typed into a password field is kept, the memory clears whenever you move to another field, and Tab clears it too.</li>
@@ -218,6 +224,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.2.2/PUSH-v9.2.2.zip" type="application/octet-stream" sparkle:edSignature="hMGKmfwFPKNOla0o6yUfxJVIIc8MAId58BveTGOrphLCRlTX7RIMCOnds0z0QsunablVVtMskcJzH6DmAS7SAA==" length="21062372" />
+        </item>
+        <item>
+            <title>Version 9.2.1</title>
+            <pubDate>Wed, 14 Oct 2026 08:01:19 -0700</pubDate>
+            <sparkle:version>109</sparkle:version>
+            <sparkle:shortVersionString>9.2.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.2.1/PUSH-v9.2.1.zip" type="application/octet-stream" sparkle:edSignature="uDBua6xIS0A+t6WR/3rGWyhkjHT2rEusmfGBu0eqgYDYaUWCuKntbpLtf1Az6l4oL2K7hDdBne6XOeTp6SaLDw==" length="21059060" />
         </item>
         <item>
