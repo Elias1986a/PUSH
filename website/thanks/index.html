@@ -59,7 +59,9 @@
 </main>
 <script>
 (function () {
-  var id = new URLSearchParams(location.search).get('checkout_id');
+  var query = new URLSearchParams(location.search);
+  var id = query.get('checkout_id');
+  var session = query.get('customer_session_token') || '';
   if (!id) return;
   var tries = 0;
   function show(data) {
@@ -80,7 +82,7 @@
     });
   }
   function load() {
-    fetch('/api/purchase?checkout_id=' + encodeURIComponent(id))
+    fetch('/api/purchase?checkout_id=' + encodeURIComponent(id) + '&customer_session_token=' + encodeURIComponent(session))
       .then(function (r) { return r.json().then(function (body) { return { status: r.status, body: body }; }); })
       .then(function (res) {
         if (res.status === 200 && res.body.key) return show(res.body);
