@@ -543,7 +543,8 @@ final class TypingCoordinator {
             // Offer the spelling fix in place of a continuation, which would
             // only build on the typo.
             if surface != .terminal, AppState.shared.typingFixTypos,
-               let fix = TypoFix.find(in: before, isTypo: { !Self.isRealWord($0) }, guesses: Self.spellingGuesses) {
+               let fix = TypoFix.find(in: before, isTypo: { !Self.isRealWord($0) },
+                                      isInProgress: Self.startsARealWord, guesses: Self.spellingGuesses) {
                 return showCorrection(fix, at: placement, surface: surface)
             }
             return skip("typo at caret")
@@ -751,6 +752,15 @@ final class TypingCoordinator {
         KeystrokeTyper.type(fix.typed)
         PushLogger.log("TypingCoordinator: spelling fix accepted")
         scheduleSuggestion(after: Self.terminalSettle)
+    }
+
+    /// Whether `partial` is the start of a dictionary word ("apprec" →
+    /// "appreciate"): still being typed, not a typo.
+    private static func startsARealWord(_ partial: String) -> Bool {
+        let range = NSRange(location: 0, length: (partial as NSString).length)
+        let completions = NSSpellChecker.shared.completions(forPartialWordRange: range, in: partial,
+                                                            language: nil, inSpellDocumentWithTag: 0) ?? []
+        return completions.contains { $0.count > partial.count && $0.lowercased().hasPrefix(partial.lowercased()) }
     }
 
     /// macOS's ranked corrections for a word, best first — the same checker
