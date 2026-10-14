@@ -114,6 +114,7 @@
 <p class="body">Take it a word at a time with Tab, all of it with one key, or ignore it and keep typing. When you finish a sentence, the next suggestion is already there.</p>
 <ul class="ticks" style="font-size: 16px;">
 <li><span class="dot"></span>Mail, Messages, Notes, Safari, Chrome and Claude Code in Terminal</li>
+<li><span class="dot"></span>Fixes typos: misspell a word and Tab swaps in the correction</li>
 <li><span class="dot"></span>Your own accept keys and color</li>
 <li><span class="dot"></span>Never in password fields or address bars</li>
 <li><span class="dot"></span>Three open models, 1.3 to 5.3 GB</li>
@@ -127,7 +128,46 @@
 </div>
 </section>
 
-<section class="raised section" id="two-in-one">
+<section class="raised section" id="learns">
+<div class="wrap">
+<div class="stack" style="gap: 48px;">
+<div class="stack head">
+<p class="eyebrow">It learns you</p>
+<h2 class="disp h2">The more you use it, the more it sounds like you.<a class="footnote-mark" href="#learns-note" aria-label="See note">*</a></h2>
+<p class="body">An autocomplete only sees your keyboard. A dictation app only hears your voice. PUSHTYPE learns from both, the emails you dictate and the replies you type, so its suggestions start to sound like you, not like everyone.</p>
+</div>
+<div class="learn-compare">
+<div class="card">
+<span class="pb-chip pb-chip-mono">Day one</span>
+<div class="field-demo" aria-label="Day one: “Thanks for sending the contract over. I” typed, with “ will review it and get back to you.” suggested">Thanks for sending the contract over. I<span class="caret"></span><span class="ghost"> will review it and get back to you.</span></div>
+<p class="body small">Fine, but anyone could have written it.</p>
+</div>
+<div class="card learned">
+<span class="pb-chip pb-chip-mono learned-chip">A month in</span>
+<div class="field-demo" aria-label="A month in: the same start, with “'ll have notes for you by Friday. Talk soon!” suggested">Thanks for sending the contract over. I<span class="caret"></span><span class="ghost">'ll have notes for you by Friday. Talk soon!</span></div>
+<p class="body small">Your phrasing, your sign-off, the way you'd actually say it.</p>
+</div>
+</div>
+<div class="learn-flow">
+<div class="sources">
+<div class="card"><h3>What you say</h3><p class="body small">Your dictations, as finished text. Never the audio.</p></div>
+<div class="card"><h3>What you type</h3><p class="body small">Your own writing, in the apps where suggestions are on.</p></div>
+</div>
+<span class="arrow" aria-hidden="true">→</span>
+<div class="card center"><h3>Your writing, on your Mac</h3><p class="body small">Encrypted with a key in your Keychain. Never synced, never sent. Off until you switch it on, with a Delete All button and apps you can leave out.</p></div>
+<span class="arrow" aria-hidden="true">→</span>
+<div class="card"><h3>Suggestions that sound like you</h3><p class="body small">When you start writing, PUSHTYPE finds what you've written before on the same subject and suggests the way you'd say it.</p></div>
+</div>
+<div class="grid g3">
+<div class="card"><h3>One dictionary, both ways</h3><p class="body small">Teach it a name once. Dictation spells it right, and when you type “Kub” it finishes “Kubernetes”, never flagging it as a typo.</p></div>
+<div class="card"><h3>About you</h3><p class="body small">Add the name you sign off with and a line about how you write: short and friendly, formal, British spelling. Suggestions follow it.</p></div>
+<div class="card"><h3>Reads the room</h3><p class="body small">It sees the email you're replying to, the chat above, the page you're on, and what you just copied. Read at the moment of a suggestion, then forgotten.</p></div>
+<p class="note learn-note" id="learns-note">* Learning is off until you turn it on. Everything it learns stays encrypted on your Mac, never synced or sent, and you can delete it all any time in Settings ▸ Personal.</p>
+</div>
+</div>
+</section>
+
+<section class="section" id="two-in-one">
 <div class="wrap">
 <div class="stack" style="gap: 48px;">
 <div class="stack head">
@@ -156,32 +196,7 @@
 </div>
 </section>
 
-<section class="section" id="learns">
-<div class="wrap">
-<div class="stack" style="gap: 48px;">
-<div class="stack head">
-<p class="eyebrow">It learns you</p>
-<h2 class="disp h2">It learns from how you talk and how you type.</h2>
-<p class="body">An autocomplete only sees your keyboard. A dictation app only hears your voice. PUSHTYPE has both, so the suggestions it makes are built from everything you write: the emails you dictate and the replies you type. The longer you use it, the more it sounds like you.</p>
-</div>
-<div class="learn-flow">
-<div class="sources">
-<div class="card"><h3>What you say</h3><p class="body small">Your dictations, as finished text. Never the audio.</p></div>
-<div class="card"><h3>What you type</h3><p class="body small">Your own writing, in the apps where suggestions are on.</p></div>
-</div>
-<span class="arrow" aria-hidden="true">→</span>
-<div class="card center"><h3>Your writing, on your Mac</h3><p class="body small">Encrypted with a key in your Keychain. Never synced, never sent. Off until you switch it on, with a Delete All button and apps you can leave out.</p></div>
-<span class="arrow" aria-hidden="true">→</span>
-<div class="card"><h3>Suggestions that sound like you</h3><p class="body small">When you start writing, PUSHTYPE finds what you've written before on the same subject and suggests the way you'd say it.</p></div>
-</div>
-<div class="grid g3">
-<div class="card"><h3>One dictionary, both ways</h3><p class="body small">Teach it a name once. Dictation spells it right, and when you type “Kub” it finishes “Kubernetes”, never flagging it as a typo.</p></div>
-<div class="card"><h3>About you</h3><p class="body small">Add the name you sign off with and a line about how you write: short and friendly, formal, British spelling. Suggestions follow it.</p></div>
-<div class="card"><h3>Reads the room</h3><p class="body small">It sees the email you're replying to, the chat above, the page you're on, and what you just copied. Read at the moment of a suggestion, then forgotten.</p></div>
-</div>
-</div>
-</div>
-</section>
+
 
 <section class="raised section" id="privacy">
 <div class="wrap">
@@ -321,7 +336,7 @@
 <div><h3>While you talk</h3><ul class="bullets"><li>Hold a key, or say a wake word</li><li>Lowers other apps' volume, then restores it</li><li>Choose which microphone to use</li><li>Optional sound when recording starts</li><li>English plus about 25 languages, detected automatically</li><li>Switch language from the menu bar</li></ul></div>
 <div><h3>Cleaning up</h3><ul class="bullets"><li>Drops “um” and “uh”</li><li>Follows “I mean”, “no wait”, “scratch that”</li><li>Times, money and percentages, done right</li><li>“Quote … end quote” gives real quotation marks</li><li>“New line”, “new paragraph” and lists</li><li>Adds the question mark the model forgot</li></ul></div>
 <div><h3>Your words</h3><ul class="bullets"><li>Personal dictionary for names and jargon</li><li>Fixes that apply always, or only in context</li><li>Dictionary words complete as you type</li><li>Two spaces after a full stop, if you like</li><li>Syncs across your Macs with your iCloud</li><li>California mode, if you need it</li></ul></div>
-<div><h3>While you type</h3><ul class="bullets"><li>Gray suggestions in the field's own font</li><li>Tab for a word, ` ~ for all of it, or your own keys</li><li>Uses the email or chat you're replying to</li><li>Three open typing models</li><li>Pause, or switch off per app</li><li>Stays out of sign-in fields and address bars</li></ul></div>
+<div><h3>While you type</h3><ul class="bullets"><li>Gray suggestions in the field's own font</li><li>Tab for a word, ` ~ for all of it, or your own keys</li><li>Uses the email or chat you're replying to</li><li>Fixes typos as you go</li><li>Pause, or switch off per app</li><li>Stays out of sign-in fields and address bars</li></ul></div>
 <div><h3>Learns you</h3><ul class="bullets"><li>From your dictations and your typing</li><li>Finished text only, never audio</li><li>Encrypted on your Mac, never synced</li><li>Off until you turn it on</li><li>Leave out any app</li><li>Delete All, any time</li></ul></div>
 <div><h3>Stays out of the way</h3><ul class="bullets"><li>Lives in the menu bar, no Dock icon</li><li>Turn Dictation or Type on and off from the menu</li><li>Opens at login if you like</li><li>Works offline once models are downloaded</li><li>Updates itself quietly</li><li>A short guided setup on first launch</li></ul></div>
 </div>
