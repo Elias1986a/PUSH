@@ -19,6 +19,16 @@ Not done yet: PUSH.app → PUSHTYPE.app in the DMG (needs a Sparkle rename
 test on the user's Macs). User decision: no trial; paid + 14-day refund.
 Launch list adds: remove noindex from home/benchmark, robots + sitemap.
 
+## 9.2.2 (2026-10-14) — no suggestion over the text after the cursor
+
+User photo: going back mid-prompt in Claude Code drew the suggestion over
+the words after the cursor (only arrow keys were tracked). Terminal reports
+the cursor, so TerminalLine.textAfterCaret reads the prompt after it → card
+below, and the model sees it. Then the model repeated that text, so
+SuggestionText.cutAtRepeat (in the judge, all apps) cuts a suggestion where
+it starts repeating the text after the caret. PR #51; user: "that worked
+better".
+
 ## 9.2.1 (2026-10-14) — password keystrokes never kept
 
 Ships PR #49 (see the external review follow-up above).
