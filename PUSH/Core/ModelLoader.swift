@@ -193,7 +193,7 @@ enum ModelLoader {
         await unload(state.activeModel)
         state.isModelReady = false
         state.modelUnavailable = markUnavailable
-        state.statusMessage = markUnavailable ? "Model unavailable" : "Dictation off"
+        state.statusMessage = markUnavailable ? "Model unavailable" : "Talk off"
         PushLogger.log("ModelLoader: Deactivated \(state.activeModel.rawValue)")
     }
 

@@ -23,7 +23,7 @@ to include the copyright notice and license text with every copy we distribute.
 | [Sparkle](https://sparkle-project.org) | 2.9.3 | MIT, plus BSD-style and public-domain components (bsdiff, sais-lite, ed25519, SUSignatureVerifier) | Andy Matuschak and the Sparkle contributors | `third-party/Sparkle-LICENSE.txt` |
 | [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern) | 1.1.0 | MIT | Sindre Sorhus | `third-party/LaunchAtLogin-Modern-LICENSE.txt` |
 | [voice-glow](https://github.com/Jakubantalik/Libraries.dev), ported as `VoiceGlow.swift` | — | MIT | © 2026 Jakub Antalik | `third-party/voice-glow-LICENSE.txt` |
-| [llama.cpp](https://github.com/ggml-org/llama.cpp) (with ggml), Type's text engine | b11147 | MIT | © 2023-2026 The ggml authors | `third-party/llama.cpp-LICENSE.txt` |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) (with ggml), TYPE's text engine | b11147 | MIT | © 2023-2026 The ggml authors | `third-party/llama.cpp-LICENSE.txt` |
 
 We didn't change FluidAudio, Sparkle, LaunchAtLogin, or llama.cpp. They're used as released (llama.cpp as its official prebuilt framework).
 Apache 2.0 §4(b) asks that modified files be marked; since we modified nothing,
@@ -54,7 +54,7 @@ authors ask for, and CC BY 4.0 requires it when a work is shared.
 
 ## Typing models (downloaded on first use, not bundled)
 
-Type, the inline autocomplete, runs one of these text models on your Mac
+TYPE, the inline autocomplete, runs one of these text models on your Mac
 through llama.cpp. As with the speech models, PUSHTYPE downloads the file you pick
 from Hugging Face; we don't redistribute the weights. Each is the quantized
 GGUF build by mradermacher of the original model, and every one is licensed

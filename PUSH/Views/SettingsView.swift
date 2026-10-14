@@ -42,8 +42,8 @@ struct SettingsView: View {
         var title: String {
             switch self {
             case .general: return "General"
-            case .dictation: return "Dictation"
-            case .typing: return "Typing"
+            case .dictation: return "Talk"
+            case .typing: return "TYPE"
             case .personal: return "Personal"
             case .pill: return "Pill"
             case .teleprompter: return "Teleprompter"

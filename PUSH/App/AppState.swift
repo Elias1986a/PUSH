@@ -305,7 +305,7 @@ final class AppState {
         }
     }
 
-    var wakeWord: String = "push" {
+    var wakeWord: String = "PUSH" {
         didSet {
             UserDefaults.standard.set(wakeWord, forKey: UserDefaultsKeys.wakeWord)
         }
