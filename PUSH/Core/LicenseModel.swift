@@ -56,6 +56,15 @@ final class LicenseModel {
         self.client = client
         self.keychain = keychain
         self.synced = synced
+        #if DEBUG
+        // A debug build cannot read the signed app's keychain item without a
+        // password prompt; opening the wizard on a chosen page for screenshots
+        // (PUSH_ONBOARDING_STEP) must not ask for one.
+        if ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"] != nil {
+            self.stored = nil
+            return
+        }
+        #endif
         self.stored = keychain.load()
     }
 

@@ -300,8 +300,12 @@ struct OnboardingView: View {
                 subtitle: "Optional. It all stays on this Mac, and Settings ▸ Personal changes it any time."
             )
 
-            TextField("Name", text: $appState.typingName,
-                      prompt: Text(TypingPreferences.signOffName(saved: "") ?? "Your name"))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Name").font(.system(size: 13, weight: .medium))
+                TextField("Name", text: $appState.typingName,
+                          prompt: Text(TypingPreferences.signOffName(saved: "") ?? "Your name"))
+                    .labelsHidden()
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text("About you").font(.system(size: 13, weight: .medium))
                 TextEditor(text: $appState.typingAbout)
