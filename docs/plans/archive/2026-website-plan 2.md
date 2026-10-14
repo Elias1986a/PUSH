@@ -225,7 +225,7 @@ The fix is to make the design system *first*, from what PUSH already is:
       ("PUSH Dictation", getpush.app, pushtotalk.app, pushdictate.com).
       A trademark attorney consult (~$150–300 flat) is worth it before you
       spend on a domain.
-- [ ] Sell under your own legal name, "Elias Atalah". Then no DBA is needed.
+- [ ] Sell under your own legal name. Then no DBA is needed.
       If you want the storefront to say "PUSH" as the business name, file a
       Fictitious Business Name with your county (about $30–50 plus newspaper
       publication).

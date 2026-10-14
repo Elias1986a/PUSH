@@ -22,7 +22,7 @@ final class TypingPromptTests: XCTestCase {
     func testCaretTextIsTheLastBytesWhateverElseIsThere() {
         let context = TypingContext(before: "Thanks,\n", after: "P.S. see you Friday", surfaceLine: surface,
                                     style: "Short, friendly sentences.", language: "English",
-                                    userName: "Elias", clipboard: "launch plan", screen: "Q4 launch plan",
+                                    userName: "Sam", clipboard: "launch plan", screen: "Q4 launch plan",
                                     examples: ["Sounds good, ship it."])
         XCTAssertTrue(TypingPrompt.render(context).hasSuffix("\n\nThanks,\n"))
     }
@@ -45,13 +45,13 @@ final class TypingPromptTests: XCTestCase {
 
     func testNameOnlyAtASignOff() {
         for signOff in ["Thanks,\n", "Best,", "Cheers,\n", "Kind regards,\n", "Thank you,\n"] {
-            XCTAssertTrue(TypingPrompt.render(TypingContext(before: "See you then.\n\n" + signOff, userName: "Elias"))
-                .contains("Elias"), signOff)
+            XCTAssertTrue(TypingPrompt.render(TypingContext(before: "See you then.\n\n" + signOff, userName: "Sam"))
+                .contains("Sam"), signOff)
         }
-        XCTAssertFalse(TypingPrompt.render(TypingContext(before: "Thanks for the help", userName: "Elias"))
-            .contains("Elias"))
-        XCTAssertFalse(TypingPrompt.render(TypingContext(before: "All the best, and", userName: "Elias"))
-            .contains("Elias"))
+        XCTAssertFalse(TypingPrompt.render(TypingContext(before: "Thanks for the help", userName: "Sam"))
+            .contains("Sam"))
+        XCTAssertFalse(TypingPrompt.render(TypingContext(before: "All the best, and", userName: "Sam"))
+            .contains("Sam"))
     }
 
     func testBudgetHeldAndBeforeKeepsItsLast1000() {

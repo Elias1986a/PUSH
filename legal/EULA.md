@@ -5,7 +5,7 @@
 
 **Effective:** October 14, 2026
 
-This agreement is between you and **Elias Atalah**, an individual doing business
+This agreement is between you and **PUSHTYPE**, a business
 in California ("we", "us"). It covers the PUSHTYPE application for macOS (formerly called PUSH), its
 updates and its documentation (together, "PUSHTYPE"). By installing or using PUSHTYPE,
 you agree to it. If you don't agree, don't install PUSHTYPE, and ask for a refund
@@ -108,4 +108,4 @@ for fraud.
 - **Entire agreement.** This agreement, the Terms of Sale, and the Privacy Policy
   are the whole agreement between us about PUSHTYPE. If a court strikes out any part,
   the rest still applies.
-- **Contact.** [support@pushtype.app](mailto:support@pushtype.app) · Elias Atalah, California.
+- **Contact.** [support@pushtype.app](mailto:support@pushtype.app) · PUSHTYPE, California.

@@ -4,7 +4,7 @@
 > (CalOPPA) requires a commercial website that collects personal information
 > from Californians to post a privacy policy. This is it. Review it before launch.
 
-**Effective:** October 13, 2026 · **Who we are:** Elias Atalah, California ("we"). Contact: [support@pushtype.app](mailto:support@pushtype.app)
+**Effective:** October 13, 2026 · **Who we are:** PUSHTYPE, a business in California ("we"). Contact: [support@pushtype.app](mailto:support@pushtype.app)
 
 ## The short version
 

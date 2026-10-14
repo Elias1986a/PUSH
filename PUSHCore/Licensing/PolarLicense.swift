@@ -166,7 +166,7 @@ public struct PolarLicenseClient: Sendable {
 }
 
 /// The label Polar shows next to a seat: "Mac mini (M4)". The Mac's model and
-/// chip, never its name — "Elias's MacBook Pro" is personal information the
+/// chip, never its name — "Sam's MacBook Pro" is personal information the
 /// privacy policy promises not to send.
 public enum MacModelLabel {
     /// `productName` is the model with its year ("Mac mini (2024)");
