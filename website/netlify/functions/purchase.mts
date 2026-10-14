@@ -7,6 +7,10 @@
 // in the POLAR_ACCESS_TOKEN environment variable and never reaches the page.
 // POLAR_SERVER is "sandbox" until the live store opens. Nothing is stored,
 // and keys are never logged.
+//
+// Environment variables are frozen per deploy: after changing one, redeploy
+// (Netlify ▸ Deploys ▸ Trigger deploy). A push that touches nothing under
+// website/ is skipped by Netlify and does not count.
 import type { Config } from "@netlify/functions"
 
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
