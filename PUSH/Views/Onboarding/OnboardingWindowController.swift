@@ -15,7 +15,7 @@ final class OnboardingWindowController {
 
     /// Fixed size — the wizard is laid out for it and there is nothing here
     /// worth resizing.
-    static let contentSize = CGSize(width: 640, height: 560)
+    static let contentSize = CGSize(width: 640, height: 600)
 
     private static let seenKey = "hasSeenOnboarding"
 
@@ -71,6 +71,8 @@ final class OnboardingWindowController {
     static func markSeen() {
         UserDefaults.standard.set(true, forKey: seenKey)
     }
+
+    var isShowing: Bool { window != nil }
 
     /// Open the wizard, or bring it forward if it is already up.
     func show() {

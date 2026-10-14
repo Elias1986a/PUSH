@@ -22,6 +22,59 @@ final class CorrectionsScriptBoundaryTests: XCTestCase {
         }
     }
 
+    // MARK: - Entries that start or end with a symbol
+
+    /// The user's own entry: "&" heard, "AMP" wanted. `\b` before an ampersand
+    /// needs a letter in front of it, so it never matched a spoken "&".
+    func testAnAmpersandEntryFiresOnAStandaloneAmpersand() {
+        let corrections = [Correction(wrong: "&", right: "AMP")]
+        XCTAssertEqual(CorrectionsStore.applyReplacements(corrections, to: "Tom & Jerry"), "Tom AMP Jerry")
+        XCTAssertEqual(CorrectionsStore.applyReplacements(corrections, to: "Tom &"), "Tom AMP")
+        XCTAssertEqual(CorrectionsStore.applyReplacements(corrections, to: "& Jerry"), "AMP Jerry")
+    }
+
+    /// Not inside another term: AT&T and R&D are not the word the user means.
+    func testAnAmpersandEntryLeavesAmpersandsInsideWordsAlone() {
+        let corrections = [Correction(wrong: "&", right: "AMP")]
+        XCTAssertEqual(CorrectionsStore.applyReplacements(corrections, to: "AT&T and R&D"), "AT&T and R&D")
+    }
+
+    func testAnEntryEndingInAFullStopFiresBeforeASpace() {
+        let corrections = [Correction(wrong: "dr.", right: "Doctor")]
+        XCTAssertEqual(CorrectionsStore.applyReplacements(corrections, to: "see dr. Lee"), "see Doctor Lee")
+    }
+
+    func testAnEntryWithASymbolInsideStillMatchesWholeWords() {
+        let corrections = [Correction(wrong: "c++", right: "C++")]
+        XCTAssertEqual(CorrectionsStore.applyReplacements(corrections, to: "I write c++ daily"), "I write C++ daily")
+        XCTAssertEqual(CorrectionsStore.applyReplacements(corrections, to: "abc++"), "abc++")
+    }
+
+    /// Saying "ampersand" gives "ampersand" at the dictionary and "&" only after
+    /// the formatting, so a symbol entry needs its own pass after it.
+    func testASpokenAmpersandReachesASymbolEntryAfterFormatting() {
+        let corrections = [Correction(wrong: "&", right: "AMP"), Correction(wrong: "jerry", right: "Gerry")]
+        let first = CorrectionsStore.applyReplacements(corrections.filter { $0.kind == .always }, to: "Tom ampersand jerry")
+        XCTAssertEqual(first, "Tom ampersand Gerry")
+        let formatted = TranscriptionPipeline.smartSymbols(first)
+        XCTAssertEqual(formatted, "Tom & Gerry")
+        XCTAssertEqual(
+            CorrectionsStore.applyReplacements(CorrectionsStore.symbolOnlyEntries(corrections), to: formatted),
+            "Tom AMP Gerry")
+    }
+
+    func testOnlySymbolOnlyAlwaysEntriesGetTheSecondPass() {
+        let entries = [Correction(wrong: "&", right: "AMP"), Correction(wrong: "c++", right: "C++"),
+                       Correction(wrong: "@", right: "at", kind: .contextual), Correction(wrong: "dr.", right: "Doctor")]
+        XCTAssertEqual(CorrectionsStore.symbolOnlyEntries(entries).map(\.wrong), ["&"])
+    }
+
+    func testTheContextualLaneMatchesSymbolEntriesToo() async {
+        let corrections = [Correction(wrong: "&", right: "AMP", kind: .contextual)]
+        let result = await CorrectionsStore.applyContextAware(corrections, to: "Tom & Jerry", using: ApproveAll())
+        XCTAssertEqual(result, "Tom AMP Jerry")
+    }
+
     // MARK: - Scripts written without spaces
 
     func testJapaneseEntryInsideARunOfKanaIsReplaced() {

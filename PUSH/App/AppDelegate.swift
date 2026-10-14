@@ -129,6 +129,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     #endif
 
+    /// `pushtype://activate?key=…`, opened by the Activate button on the
+    /// thank-you page after a purchase: activate, and show where it stands.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let key = urls.lazy.compactMap(LicenseKeyText.key(inActivationLink:)).first else { return }
+        PushLogger.log("License: activation link opened")
+        Task {
+            if LicenseModel.shared.stored?.key != key { await LicenseModel.shared.activate(key: key) }
+            // The welcome window has its own licence page; otherwise Settings.
+            if !OnboardingWindowController.shared.isShowing {
+                SettingsWindowController.shared.show(pane: .licence)
+            }
+        }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         hotkeyManager?.stopListening()
         // Don't leave the user's audio quieted if they quit mid-dictation.
@@ -392,7 +406,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             // The licence's daily check with Polar, in its own task: a slow or
             // absent network must never hold up anything else at launch.
-            Task { await LicenseModel.shared.revalidateIfDue() }
+            Task {
+                await LicenseModel.shared.revalidateIfDue()
+                await LicenseModel.shared.activateFromICloudIfNeeded()
+            }
 
             // Only now start Sparkle. `startUpdater` can put up a modal (an
             // update prompt, a permission request, an error), and a modal runs

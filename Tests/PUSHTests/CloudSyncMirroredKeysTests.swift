@@ -29,10 +29,62 @@ final class CloudSyncMirroredKeysTests: XCTestCase {
             Set(CloudSync.mirroredSettingKeys).isDisjoint(with: Set(CloudSync.retiredSettingKeys)))
     }
 
+    /// The user's name, their About you note and the apps learning skips
+    /// follow them. The writing is a file, not a key, so it cannot.
+    func testThePersonalSettingsAreMirrored() {
+        for key in [TypingPreferences.nameKey, TypingPreferences.aboutKey,
+                    TypingHistoryStore.excludedKey] {
+            XCTAssertTrue(CloudSync.mirroredSettingKeys.contains(key), key)
+        }
+    }
+
+    /// Seeded, not live: a Mac copies it once, when the user says they already
+    /// use PUSHTYPE elsewhere. A work Mac with learning off is never switched on
+    /// by another Mac's choice.
+    func testTheLearningSwitchIsSeededNotLive() {
+        XCTAssertTrue(CloudSync.seededSettingKeys.contains(TypingHistoryStore.enabledKey))
+        XCTAssertFalse(CloudSync.liveSettingKeys.contains(TypingHistoryStore.enabledKey))
+    }
+
+    /// Only the person's name and note are applied to a Mac without being asked.
+    func testOnlyNameAndAboutAreLive() {
+        XCTAssertEqual(Set(CloudSync.liveSettingKeys), [TypingPreferences.nameKey, TypingPreferences.aboutKey])
+    }
+
+    /// The wake word switch holds the microphone open and the rest depend on
+    /// this Mac's hardware or downloads, so none of them leave it.
+    func testPerMacSettingsAreNotPublished() {
+        for key in ["wakeWordEnabled", "pillPosition", "inputDevicePriority", "selectedWhisperModel",
+                    TypingPreferences.modelKey, TypingPreferences.pauseOnBatteryKey,
+                    TypingPreferences.pausedUntilKey, TypingPreferences.clipboardKey,
+                    TypingPreferences.screenKey, FeatureSwitches.dictationKey, FeatureSwitches.typeKey,
+                    TypingHistoryStore.pausedUntilKey] {
+            XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(key), key)
+        }
+    }
+
+    /// Sharing what Type learned is a per-Mac choice, copied only at setup. The
+    /// writing itself travels in its own chunks, never as a mirrored setting.
+    func testTheShareSwitchIsSeededAndTheWritingIsNotASetting() {
+        XCTAssertTrue(CloudSync.seededSettingKeys.contains(LearnedWritingSync.shareKey))
+        XCTAssertFalse(CloudSync.liveSettingKeys.contains(LearnedWritingSync.shareKey))
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains { $0.hasPrefix("sync.history") })
+    }
+
+    func testNoKeyIsBothLiveAndSeeded() {
+        XCTAssertTrue(Set(CloudSync.liveSettingKeys).isDisjoint(with: Set(CloudSync.seededSettingKeys)))
+    }
+
+    /// The Type model is a download, like the speech model.
+    func testNothingLearnedOrDownloadedIsMirrored() {
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingPreferences.modelKey))
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains { $0.lowercased().contains("sealed") })
+    }
+
     /// The settings that *should* follow the user are still doing so — this is
     /// the list that would silently shrink if someone edited the wrong line.
     func testTheOrdinarySettingsAreStillMirrored() {
-        for key in ["selectedHotkey", "wakeWord", "wakeWordEnabled", "previewSize"] {
+        for key in ["selectedHotkey", "wakeWord", "previewSize"] {
             XCTAssertTrue(CloudSync.mirroredSettingKeys.contains(key), key)
         }
     }

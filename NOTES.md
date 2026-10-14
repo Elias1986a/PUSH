@@ -1,5 +1,39 @@
 # NOTES
 
+## Dictionary entries for symbols (2026-10-14, next-release, not released)
+
+User: a dictionary entry heard "&" → "AMP" never fired. Two causes.
+CorrectionsStore.matchPattern wrapped every entry in `\b`, which needs a letter
+at the entry's edge, so an entry starting or ending in a symbol ("&", "dr.")
+could never match; at a symbol edge it now means "not glued to a letter or
+digit" ("&" fixes "Tom & Jerry", not "AT&T"). And the dictionary runs before
+the formatting that turns the spoken "ampersand" into "&", so symbol-only
+`.always` entries also get a second pass after postProcess
+(symbolOnlyEntries). 7 tests. Not in a release yet.
+
+## Sync rules, second-Mac flow, learning in setup (2026-10-14, next-release, not released)
+
+User agreed docs/sync-rules.csv. CloudSync now has liveSettingKeys (name,
+About you), seededSettingKeys (copied once, never applied to a Mac on its
+own) and the MERGE dictionary + Keychain licence as before. Per Mac: wake word
+switch, pill, mic priority, models, feature switches, battery pause,
+clipboard/screen context, learning pause. iCloud keeps the latest choice
+per seeded key as the template (only keys changed locally are pushed).
+First run: if iCloud holds another Mac's data (CloudSync.otherMacDataAvailable)
+the wizard opens with "Already use PUSHTYPE on another Mac?"; yes =
+adoptFromOtherMac (sync on, copy seeds + dictionary + name/About; the
+learning switch is shown and applied only when the user continues), and
+skips welcome + personal pages; permissions/models/features still asked.
+Settings ▸ General has Copy Settings From My Other Macs. New wizard page
+"Make it sound like you" (name, About you, learning); welcome now names Type
+and learning; clipboard toggle on the screen page; finish bullets mention
+cleanup phrases, typos, pausing. Pause learning (LearningPause,
+LearningPauseControl in the menu bar and Settings ▸ Personal, per Mac): stops
+keeping, drops the field in progress, skips fields written while paused.
+Open: syncing the learned writing itself (needs CloudKit/iCloud Drive +
+Keychain key + new profile; user to decide 10.0 or later). Not checked on
+two real Macs, and the new pages are not yet eyeballed in the app.
+
 ## Launch checklist (2026-10-14)
 
 **The launch build is 10.0, and it starts clean (user's call).**

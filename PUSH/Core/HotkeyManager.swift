@@ -373,6 +373,13 @@ final class HotkeyManager: @unchecked Sendable {
             PushLogger.log("HotkeyManager: dictation is off, ignoring hotkey")
             return
         }
+        // No licence (once the store is open): the key opens the licence
+        // screen instead of recording.
+        guard LicenseModel.shared.allowsUse else {
+            PushLogger.log("HotkeyManager: not activated, showing the licence screen")
+            LicenseModel.shared.askForLicence()
+            return
+        }
         // Recording does not need the model — only transcription does. Start
         // capturing immediately rather than silently swallowing the press
         // during startup; the engine finishes loading long before the user
@@ -522,6 +529,10 @@ final class HotkeyManager: @unchecked Sendable {
 
     private func handleWakeWordDetected() {
         PushLogger.log("HotkeyManager: Wake word detected - starting recording with VAD")
+        guard LicenseModel.shared.allowsUse else {
+            PushLogger.log("HotkeyManager: not activated, ignoring wake word")
+            return
+        }
         guard AppState.shared.isModelReady else {
             PushLogger.log("HotkeyManager: Model not ready yet, ignoring wake word")
             return

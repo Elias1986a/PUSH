@@ -39,6 +39,10 @@ struct MenuBarView: View {
         @Bindable var appState = appState
 
         VStack(alignment: .leading, spacing: 0) {
+            if !LicenseModel.shared.allowsUse {
+                activateRow
+                Divider()
+            }
             // Each feature switches on and off here as well as in Settings
             // (user, 2026-10-12). Its rows, and dictation's status line, mean
             // nothing with it off — and the voice picker would load a speech
@@ -92,6 +96,21 @@ struct MenuBarView: View {
     }
 
     /// A feature's on/off switch, heading its section.
+    /// Without a licence nothing else in this menu works yet.
+    private var activateRow: some View {
+        Button {
+            run { LicenseModel.shared.askForLicence() }
+        } label: {
+            Label("Activate PUSHTYPE…", systemImage: "key.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.regular)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
     private func featureSwitch(_ title: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 8) {
             Text(title)
@@ -258,6 +277,7 @@ struct MenuBarView: View {
                 }
             }
             TypingPauseControl()
+            LearningPauseControl()
         }
         .font(.system(size: 12))
         .controlSize(.small)

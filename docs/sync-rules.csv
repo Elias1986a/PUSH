@@ -1,0 +1,42 @@
+Setting,Where you see it,Key,Built (next-release),I'd suggest,Your rule,Why
+Dictation hotkey,Settings ▸ Dictation,selectedHotkey,SEED,SEED,,SEED
+Start sound on/off,Settings ▸ Dictation,playSoundOnStart,SEED,SEED,,SEED
+Chirp sound,Settings ▸ Dictation,chirpSound,SEED,SEED,,SEED
+Wake word on/off,Settings ▸ Dictation,wakeWordEnabled,PER-MAC,PER-MAC,,PER-MAC
+Wake word phrase,Settings ▸ Dictation,wakeWord,SEED,SEED,,SEED
+Media while dictating,Settings ▸ Dictation,mediaBehavior,SEED,SEED,,SEED
+Live preview on/off,Settings ▸ Dictation,showLivePreview,SEED,SEED,,SEED
+Preview size,Settings ▸ Dictation,previewSize,SEED,SEED,,SEED
+Fix spoken self-corrections,Settings ▸ Dictation,resolveSelfCorrections,SEED,SEED,,SEED
+Double space after a full stop,Settings ▸ Dictation,doubleSpaceAfterSentence,SEED,SEED,,SEED
+California mode,Settings ▸ Dictation,californiaMode,SEED,SEED,,SEED
+Pill position,(drag the pill),pillPosition,PER-MAC,PER-MAC,,PER-MAC
+Microphone priority,Settings ▸ Dictation,inputDevicePriority,PER-MAC,PER-MAC,,PER-MAC
+Speech model choice,Settings ▸ Dictation,selectedWhisperModel,PER-MAC,PER-MAC,,PER-MAC
+Dictation on/off (menu bar),Menu bar,feature.dictationEnabled,PER-MAC,PER-MAC,,PER-MAC
+Type on/off (menu bar),Menu bar,feature.typeEnabled,PER-MAC,PER-MAC,,PER-MAC
+Type model,Settings ▸ Type,typing.model,PER-MAC,PER-MAC,,PER-MAC
+Suggestion length,Settings ▸ Type,typing.length,SEED,SEED,,SEED
+Code editors,Settings ▸ Type,typing.codeEditors,SEED,SEED,,SEED
+Suggestion colour,Settings ▸ Type,typing.color,SEED,SEED,,SEED
+Space after last word,Settings ▸ Type,typing.spaceAfterLastWord,SEED,SEED,,SEED
+Fix typos,Settings ▸ Type,typing.fixTypos,SEED,SEED,,SEED
+Pause on battery,Settings ▸ Type,typing.pauseOnBattery,PER-MAC,PER-MAC,,PER-MAC
+Pause until…,Menu bar,typing.pausedUntil,PER-MAC,PER-MAC,,PER-MAC
+Show indicator,Settings ▸ Type,typing.showIndicator,SEED,SEED,,SEED
+Apps with no suggestions,Settings ▸ Type,typing.excludedApps,SEED,SEED,,SEED
+Accept key: next word,Settings ▸ Type,typing.keys.nextWord,SEED,SEED,,SEED
+Accept key: whole suggestion,Settings ▸ Type,typing.keys.whole,SEED,SEED,,SEED
+Use clipboard as context,Settings ▸ Personal/Type,typing.context.clipboard,PER-MAC,PER-MAC,,PER-MAC
+Use screen text as context,Settings ▸ Personal/Type,typing.context.screen,PER-MAC,PER-MAC,,PER-MAC
+Your name,Settings ▸ Personal,typing.profile.name,LIVE,LIVE,,LIVE
+About you,Settings ▸ Personal,typing.profile.about,LIVE,LIVE,,LIVE
+Learn from my writing: on/off,Settings ▸ Personal,typing.history.enabled,SEED,PER-MAC,"Copied only when you say yes at setup, and shown to you first; a work Mac can say no.",SEED
+Never keep from these apps,Settings ▸ Personal,typing.history.excludedApps,SEED,SEED,,SEED
+Share learned writing with my other Macs,Settings ▸ Personal,typing.history.share,SEED,SEED,Your call on each Mac; copied with the learning switch at setup.,SEED
+What it learned from your writing,(sealed file),TypingHistory.sealed,Built (opt-in per Mac),MERGE (new),"Only while learning is on and 'Share with my other Macs' is on, per Mac. Compressed, sealed with a key in iCloud Keychain, sent through iCloud's key-value store (newest writing first if it won't fit). Delete All erases it on every Mac.",MERGE
+Custom dictionary,Settings ▸ Dictionary,sync.dictionary,MERGE,MERGE,"Live and combined: your Live, as MERGE so one Mac's edit never wipes another's.",MERGE
+Licence key,Settings ▸ Licence,iCloud Keychain item,Keychain (E2E),Keychain (E2E),,Keychain (E2E)
+iCloud sync on/off,Settings ▸ General,iCloudSyncEnabled,PER-MAC,PER-MAC,"Switched on for a new Mac when you answer yes to 'Already use PUSHTYPE on another Mac?'; after that, per Mac.",PER-MAC
+Onboarding done / resume,First launch,"hasSeenOnboarding, onboarding.resume*",PER-MAC,PER-MAC,Not copied (it would skip permissions); instead a yes at setup skips the welcome and personal pages.,PER-MAC
+Internal bookkeeping,(none),"hotkeyAutoRelaunchAt, mediaControllerDuckedVolume, licence.everActivatedHere",PER-MAC,PER-MAC,,PER-MAC

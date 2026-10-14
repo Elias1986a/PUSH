@@ -315,7 +315,7 @@ final class TypingCoordinator {
 
     private var mayRun: Bool {
         let state = AppState.shared
-        return active && state.typeEnabled && state.typingModelReady
+        return active && state.typeEnabled && state.typingModelReady && LicenseModel.shared.allowsUse
             && !state.isListening && !state.isProcessing && !Teleprompter.isRunning
             && (state.typingPausedUntil.map { $0 <= Date() } ?? true)
             && !(state.typingPauseOnBattery && PowerSource.shouldConserve)
