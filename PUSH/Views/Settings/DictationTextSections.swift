@@ -24,7 +24,7 @@ struct DictationTextSections: View {
             Section("Spoken corrections") {
                 Toggle("Act on corrections you say out loud", isOn: $appState.resolveSelfCorrections)
 
-                Text("Say “the red car, I mean the blue car” and only “the blue car” is pasted. Also recognizes “no wait”, “make that” and “scratch that”.")
+                Text("Say “the red car, I mean the blue car” and only “the blue car” is pasted. Also recognizes “no wait”, “make that”, and “scratch that”.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -55,7 +55,7 @@ struct DictationTextSections: View {
             Section("California mode") {
                 Toggle("Remove casual “like”", isOn: $appState.californiaMode)
 
-                Text("“It was like really good” becomes “It was really good.” Keeps “I like it”, “looks like rain”, “like I said”, “like 30 minutes” and “he was like, no way.”")
+                Text("“It was like really good” becomes “It was really good.” Keeps “I like it”, “looks like rain”, “like I said”, “like 30 minutes”, and “he was like, no way.”")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
