@@ -81,7 +81,7 @@ export default async (req: Request) => {
   const ids = await resolveIds(env.api, env.production)
   let seats: Awaited<ReturnType<typeof reconcileSeats>>
   try {
-    seats = await reconcileSeats(env, ids, co.customer_id, { customerToken, since: createdAt - 5 * 60 * 1000 })
+    seats = await reconcileSeats(env, ids, co.customer_id, { customerToken, since: createdAt })
   } catch (error) {
     console.log(`seats failed: ${(error as Error).message}`)
     return json({ error: "polar_error", step: "seats" }, 502)

@@ -84,7 +84,7 @@ export interface Seats {
   key: any
   /** How many Macs it now allows. */
   limit: number
-  /** True when the main key is older than `since`: this purchase joined an existing licence. */
+  /** True when the main key is older than `since` (the moment this checkout was made): this purchase joined an existing licence. */
   joinedExisting: boolean
   changed: boolean
 }
