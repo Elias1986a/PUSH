@@ -1,28 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js). Paths only: the thank-you page's query string
-     carries the order number and a Polar session token, which must not reach
-     Google. No Google signals or ad personalisation. -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VFSBVHWZLN"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-VFSBVHWZLN', {
-    page_location: location.origin + location.pathname,
-    allow_google_signals: false,
-    allow_ad_personalization_signals: false
-  });
-</script>
-
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Thank you · PUSHTYPE</title>
 <meta name="description" content="Your PUSHTYPE licence is on its way.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="../assets/icon.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../assets/fonts.css">
 <link rel="stylesheet" href="../assets/tokens.css">
 <link rel="stylesheet" href="../assets/components.css">
 <link rel="stylesheet" href="../assets/site.css">
@@ -79,10 +64,18 @@
 </main>
 <script>
 (function () {
+  // The order number and session token in the address are what unlock the
+  // key: read them, then take them out of the address bar and history. The
+  // tab keeps them so a reload still works. No third-party script runs here.
   var query = new URLSearchParams(location.search);
   var id = query.get('checkout_id');
   var session = query.get('customer_session_token') || '';
-  if (!id) return;
+  try {
+    if (id) sessionStorage.setItem('purchase', JSON.stringify({ id: id, session: session }));
+    else { var kept = JSON.parse(sessionStorage.getItem('purchase') || 'null'); if (kept) { id = kept.id; session = kept.session; } }
+  } catch (e) {}
+  if (location.search) history.replaceState(null, '', location.pathname);
+  if (!id || !session) return;
   var tries = 0;
   function show(data) {
     document.getElementById('manual').hidden = true;

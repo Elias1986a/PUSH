@@ -44,7 +44,8 @@ Space not built. Shipped on its own branch ahead of the licensing release.
 Decided with the user: keys stay (no sharing), made nearly invisible.
 Thank-you page (/thanks/?checkout_id=…) calls the Netlify function
 /api/purchase (website/netlify/functions/purchase.mts; env
-POLAR_ACCESS_TOKEN with checkouts:read + customer_sessions:write,
+POLAR_ACCESS_TOKEN with checkouts:read only (2026-10-14: the buyer's own
+customer_session_token from Polar is required; no fallback session),
 POLAR_SERVER=production at launch) for a Download button (signed DMG URL)
 and Activate (pushtype://activate?key=…). App: key in iCloud Keychain
 (SyncedLicenseKey; new Mac on the same Apple Account activates once by
