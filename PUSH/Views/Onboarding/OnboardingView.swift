@@ -978,7 +978,7 @@ struct OnboardingView: View {
                 bullet("Click the ", symbol: "music.mic", rest: " in the menu bar to pause Type or learning, start the teleprompter, open Settings, or quit.")
                 bullet("Settings has the push-to-talk key, the language, the pill's position and your dictionary of names and jargon.")
                 if appState.dictationEnabled {
-                    bullet("Say “new line”, “new paragraph” or “scratch that” and PUSHTYPE follows.")
+                    bullet("Say “new line”, “new paragraph”, or “scratch that” and PUSHTYPE follows.")
                 }
                 if appState.typeEnabled {
                     bullet("Suggestions fix typos as you go, and you can switch them off in any one app under Settings ▸ Typing.")
