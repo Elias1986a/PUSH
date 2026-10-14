@@ -120,7 +120,7 @@ struct HeuristicVerdictSource: VerdictSource {
 /// Pure prompt/parse helpers for the batched warm-LLM gate. Kept separate and
 /// side-effect-free so they are unit-testable without a model, and so a concrete
 /// `VerdictSource` backed by SwiftLlama can drop in behind `VerdictSource`
-/// (see docs/plans/2026-07-01-context-aware-dictionary-design.md) without
+/// (see docs/plans/archive/2026-07-01-context-aware-dictionary-design.md) without
 /// touching the pipeline.
 enum ContextGatePrompt {
     /// One prompt for the whole batch — every candidate numbered, one line each.

@@ -3,6 +3,11 @@
 **Status:** planned, not committed. Written 2026-08-29 as a shelf document so the
 decision can be made later with the analysis already done.
 
+> **Superseded by `2026-10-07-windows-linux-port-design.md`**, which adds Linux,
+> replaces WPF with a Rust core + Tauri shell, and re-plans the engines for the
+> v8.2.7 lineup (TDT v2 and Unified are gone; Ultra is TDT v3-derived). The
+> Windows traps below still hold.
+
 ## Goal
 
 A commercial Windows version of PUSH: same product — hold a hotkey, speak, text

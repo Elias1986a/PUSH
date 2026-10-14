@@ -2,7 +2,7 @@
 
 ## External review follow-up (2026-10-14)
 
-An outside AI review (docs/PUSHTYPE_PROJECT_REVIEW.md, untracked, the
+An outside AI review (docs/reviews/2026-10-13-external-review.md, the
 user's) was checked claim by claim. It read main mid-session, so its
 "iCloud licence not implemented" point is already done on next-release.
 Done:
@@ -168,7 +168,7 @@ downloader (live-tested against HF), TypingModelStore
 while Type is on; warm-up in background: 15.8s first ever, 0.27s after).
 All three models are cloned into TypingModels for dev testing.
 Overnight 2026-10-11: gap analysis vs Cotypist + Cotabby in
-docs/plans/2026-10-11-type-gap-analysis.md. Biggest bug: prompts ending in a
+docs/plans/archive/2026-10-11-type-gap-analysis.md. Biggest bug: prompts ending in a
 SPACE produced years/numbers/HTML ('love to ' → '2018.'); fixed by healing the
 trailing space. Also: anchored 4,000-char window, repetition penalty,
 50 ms debounce, Cotabby-style content policy, sign-in/Mail-header stand-down,

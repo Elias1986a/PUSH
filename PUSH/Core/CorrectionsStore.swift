@@ -4,7 +4,7 @@ import PUSHCore
 /// User-defined word corrections (e.g. "Hammer" -> "Hamer") applied to transcriptions
 /// after Whisper runs, to fix names/jargon Whisper consistently mishears.
 ///
-/// Entries come in two kinds (see docs/plans/2026-07-01-context-aware-dictionary-design.md):
+/// Entries come in two kinds (see docs/plans/archive/2026-07-01-context-aware-dictionary-design.md):
 /// `.always` entries replace unconditionally (unique jargon), while `.contextual`
 /// entries are gated by a `VerdictSource` so a homophone like "Hammer" the tool is
 /// left alone when the person "Hamer" isn't the one being talked about.
