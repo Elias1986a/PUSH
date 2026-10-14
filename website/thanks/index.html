@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Thank you · PUSHTYPE</title>
-<meta name="description" content="Your PUSHTYPE licence is on its way.">
+<meta name="description" content="Your PUSHTYPE license is on its way.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="../assets/icon.png">
 <link rel="stylesheet" href="../assets/fonts.css">
@@ -48,11 +48,11 @@
 </section>
 
 <section class="bench-section" id="manual" hidden>
-<p class="note" id="manual-note">Your download and licence key are in the receipt Polar emailed you. Can't find it? Check spam, or get both from <a href="https://polar.sh/pushtype/portal">Polar's customer portal</a> with the email you bought with.</p>
+<p class="note" id="manual-note">Your download and license key are in the receipt Polar emailed you. Can't find it? Check spam, or get both from <a href="https://polar.sh/pushtype/portal">Polar's customer portal</a> with the email you bought with.</p>
 </section>
 
 <section class="bench-section">
-<p class="note"><span id="macs-note">One licence works on 3 of your Macs, and each extra Mac is $12.</span> Moving to a new Mac? Open Settings ▸ Licence on the old one and click Remove This Mac to free its place. Stuck, or changed your mind within 14 days? <a href="../support/">We can help</a>.</p>
+<p class="note"><span id="macs-note">One license works on 3 of your Macs, and each extra Mac is $12.</span> Moving to a new Mac? Open Settings ▸ License on the old one and click Remove This Mac to free its place. Stuck, or changed your mind within 14 days? <a href="../support/">We can help</a>.</p>
 </section>
 </main>
 <script>
@@ -71,25 +71,25 @@
   var tries = 0;
   // Only if the lookup can't be done: the receipt email has everything.
   function fallback() {
-    document.getElementById('thanks-lede').textContent = 'Polar has emailed you a receipt with your download and licence key.';
+    document.getElementById('thanks-lede').textContent = 'Polar has emailed you a receipt with your download and license key.';
     document.getElementById('manual').hidden = false;
   }
-  // An Extra Mac adds a place to a PUSHTYPE licence; this email has none.
+  // An Extra Mac adds a place to a PUSHTYPE license; this email has none.
   function noLicence() {
-    document.getElementById('thanks-lede').textContent = 'Extra Mac adds a Mac to a PUSHTYPE licence, and we couldn\'t find one under the email you used.';
+    document.getElementById('thanks-lede').textContent = 'Extra Mac adds a Mac to a PUSHTYPE license, and we couldn\'t find one under the email you used.';
     document.getElementById('manual').hidden = false;
     document.getElementById('manual-note').innerHTML = 'Your payment went through. Email <a href="mailto:support@pushtype.app">support@pushtype.app</a> with the email you bought with and we\'ll sort it out, or buy PUSHTYPE with that email first.';
   }
   if (!id) return fallback();
   function show(data) {
     document.getElementById('thanks-lede').textContent = data.kind === 'extra'
-      ? (data.added === 1 ? 'That\'s one more Mac on your licence.' : 'That adds ' + data.added + ' Macs to your licence.')
+      ? (data.added === 1 ? 'That\'s one more Mac on your license.' : 'That adds ' + data.added + ' Macs to your license.')
         + ' It now covers ' + data.macs + '. Install and activate it on the new Mac.'
-      : 'Two clicks and you\'re talking. Polar has also emailed you a receipt with your download and licence key.';
+      : 'Two clicks and you\'re talking. Polar has also emailed you a receipt with your download and license key.';
     // What this key covers: one Mac for a single, more once things are added.
     document.getElementById('macs-note').textContent = data.macs === 1
-      ? 'This key covers 1 Mac. Each extra Mac is $12, and the $35 licence adds 3 more (buy with the same email).'
-      : 'This licence covers ' + data.macs + ' Macs, and each extra Mac is $12.';
+      ? 'This key covers 1 Mac. Each extra Mac is $12, and the $35 license adds 3 more (buy with the same email).'
+      : 'This license covers ' + data.macs + ' Macs, and each extra Mac is $12.';
     document.getElementById('quick').hidden = false;
     var dl = document.getElementById('download-btn');
     if (data.download) {
@@ -126,7 +126,7 @@
 <a href="../support/">Support</a>
 <a href="../legal/privacy.html">Privacy</a>
 <a href="../legal/terms.html">Terms of sale</a>
-<a href="../legal/eula.html">Licence (EULA)</a>
+<a href="../legal/eula.html">License (EULA)</a>
 <a href="../legal/notices.html">Third-party notices</a>
 </div>
 <div class="row socials" aria-label="PUSHTYPE elsewhere">

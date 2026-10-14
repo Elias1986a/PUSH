@@ -37,7 +37,7 @@ struct LicenseSettingsView: View {
                 Section {
                     LicenseActivationControls()
                 } header: {
-                    Text("Licence")
+                    Text("License")
                 } footer: {
                     Text(LicenseActivationControls.footnote)
                 }
@@ -61,7 +61,7 @@ struct LicenseActivationControls: View {
     @State private var iCloudKey: String?
     @State private var copiedKey: String?
 
-    static let footnote = "One licence works on 3 of your Macs; a fourth can be added for $12. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSHTYPE. Never your audio or anything you type."
+    static let footnote = "One license works on 3 of your Macs; a fourth can be added for $12. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSHTYPE. Never your audio or anything you type."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -69,7 +69,7 @@ struct LicenseActivationControls: View {
                 Button {
                     Task { await license.activate(key: key) }
                 } label: {
-                    Label("Use the licence from your other Mac", systemImage: "icloud")
+                    Label("Use the license from your other Mac", systemImage: "icloud")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(license.isWorking)
@@ -84,7 +84,7 @@ struct LicenseActivationControls: View {
             }
 
             HStack {
-                TextField("Licence key", text: $keyText, prompt: Text("Or paste the key from Polar's email"))
+                TextField("License key", text: $keyText, prompt: Text("Or paste the key from Polar's email"))
                     .font(.body.monospaced())
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { Task { await license.activate(key: keyText) } }
@@ -125,7 +125,7 @@ private struct LicenseLimitChoices: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Link("Add this Mac for $12", destination: PolarConfig.current.addMacCheckoutURL)
-            Link("Buy another licence ($35)", destination: PolarConfig.current.checkoutURL)
+            Link("Buy another license ($35)", destination: PolarConfig.current.checkoutURL)
             Link("Free a place: remove a Mac you no longer use", destination: PolarConfig.current.portalURL)
         }
         .padding(10)

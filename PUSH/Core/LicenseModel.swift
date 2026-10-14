@@ -163,9 +163,9 @@ final class LicenseModel {
             keychain.save(updated)
             stored = updated
         } catch LicenseError.notFound {
-            forget("This Mac's licence is no longer active. It may have been removed from another Mac or refunded.")
+            forget("This Mac's license is no longer active. It may have been removed from another Mac or refunded.")
         } catch LicenseError.refused(let detail) {
-            forget("This Mac's licence is no longer active (\(detail)).")
+            forget("This Mac's license is no longer active (\(detail)).")
         } catch {
             // Unreachable or unreadable: try again next launch.
         }
@@ -175,7 +175,7 @@ final class LicenseModel {
         keychain.delete()
         stored = nil
         message = sentence
-        PushLogger.log("License: Polar no longer recognises this Mac's seat")
+        PushLogger.log("License: Polar no longer recognizes this Mac's seat")
     }
 
     static func isLimit(_ detail: String) -> Bool {
@@ -188,7 +188,7 @@ final class LicenseModel {
         case .notFound:
             return "That key wasn't found. Copy it again from the email Polar sent you, all of it."
         case .refused(let detail) where isLimit(detail):
-            return "This licence is already on all its Macs. Add this Mac for $12, or free a place by removing one you no longer use."
+            return "This license is already on all its Macs. Add this Mac for $12, or free a place by removing one you no longer use."
         case .refused(let detail):
             return "Polar didn't accept this key: \(detail)."
         case .unreachable, .unexpected:
