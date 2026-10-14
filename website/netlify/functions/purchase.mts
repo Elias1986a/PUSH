@@ -17,7 +17,7 @@
 // website/ is skipped by Netlify and does not count.
 import type { Config } from "@netlify/functions"
 import { polar, polarEnv } from "../lib/polar.mts"
-import { idsFor, reconcileSeats } from "../lib/seats.mts"
+import { reconcileSeats, resolveIds } from "../lib/seats.mts"
 
 const MAX_AGE_MS = 60 * 60 * 1000
 
@@ -78,7 +78,7 @@ export default async (req: Request) => {
   // (the webhook does the same, so whichever runs first the answer is the
   // same). The key handed back is that main key, so a single given away
   // earlier and a three bought later end up on one key.
-  const ids = idsFor(env.production)
+  const ids = await resolveIds(env.api, env.production)
   let seats: Awaited<ReturnType<typeof reconcileSeats>>
   try {
     seats = await reconcileSeats(env, ids, co.customer_id, { customerToken, since: createdAt - 5 * 60 * 1000 })

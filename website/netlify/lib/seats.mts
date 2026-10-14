@@ -42,6 +42,43 @@ export const PRODUCTION: Ids = {
 
 export const idsFor = (production: boolean): Ids => (production ? PRODUCTION : SANDBOX)
 
+const cache = new Map<string, { at: number; ids: Ids }>()
+
+/**
+ * The ids to use right now: the products are fixed, but each product's
+ * licence-key benefit is read from Polar's public store data, so a benefit
+ * that is deleted and made again (as happened to Extra Mac's) cannot leave
+ * this pointing at a benefit that no longer exists. Falls back to the
+ * built-in ids if Polar cannot be reached.
+ */
+export async function resolveIds(
+  api: string,
+  production: boolean,
+  call: PolarCall = defaultCall,
+  now: number = Date.now(),
+): Promise<Ids> {
+  const fallback = idsFor(production)
+  const hit = cache.get(api)
+  if (hit && now - hit.at < 5 * 60 * 1000) return hit.ids
+  try {
+    const store = await call(api, "/v1/customer-portal/organizations/pushtype", "")
+    if (store.status !== 200) return fallback
+    const licenceBenefit = (productId: string): string | undefined =>
+      ((store.body.products ?? []) as any[])
+        .find((p) => p.id === productId)
+        ?.benefits?.find((b: any) => b.type === "license_keys")?.id
+    const ids: Ids = {
+      ...fallback,
+      mainBenefit: licenceBenefit(fallback.mainProduct) ?? fallback.mainBenefit,
+      extraBenefit: licenceBenefit(fallback.extraProduct) ?? fallback.extraBenefit,
+    }
+    cache.set(api, { at: now, ids })
+    return ids
+  } catch {
+    return fallback
+  }
+}
+
 export interface Seats {
   /** The customer's main key, as the customer portal shows it. */
   key: any

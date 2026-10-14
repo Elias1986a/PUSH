@@ -2,7 +2,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { createHmac } from "node:crypto"
-import { PRODUCTION, reconcileSeats, countsAsSeat } from "../lib/seats.mts"
+import { PRODUCTION, SANDBOX, reconcileSeats, resolveIds, countsAsSeat } from "../lib/seats.mts"
 import { verifyWebhook } from "../lib/webhook.mts"
 
 const env = { api: "https://api.polar.sh", token: "polar_oat_test" }
@@ -161,6 +161,29 @@ test("a session the page already holds is reused", async () => {
   const spy = async (a: string, p: string, t: string, i?: RequestInit) => { calls.push(p); return f.call(a, p, t, i) }
   await reconcileSeats(env, ids, "cust", { customerToken: "polar_cst_held", call: spy })
   assert.equal(calls.some((c) => c.startsWith("/v1/customer-sessions/")), false)
+})
+
+// ---- benefit ids come from Polar's public store data ----
+
+test("benefit ids are read from the store, so a recreated benefit is picked up", async () => {
+  const store = { products: [
+    { id: PRODUCTION.mainProduct, benefits: [{ id: "new-main", type: "license_keys" }, { id: "dl", type: "downloadables" }] },
+    { id: PRODUCTION.extraProduct, benefits: [{ id: "new-extra", type: "license_keys" }, { id: "dl", type: "downloadables" }] },
+  ] }
+  const ids = await resolveIds("https://test-a.example", true, async () => ({ status: 200, body: store }))
+  assert.equal(ids.mainBenefit, "new-main")
+  assert.equal(ids.extraBenefit, "new-extra")
+  assert.equal(ids.extraProduct, PRODUCTION.extraProduct)
+})
+
+test("an Extra Mac with no licence-key benefit yet, or Polar down, falls back to the built-in ids", async () => {
+  const noKey = { products: [{ id: SANDBOX.extraProduct, benefits: [{ id: "dl", type: "downloadables" }] }] }
+  const a = await resolveIds("https://test-b.example", false, async () => ({ status: 200, body: noKey }))
+  assert.equal(a.extraBenefit, SANDBOX.extraBenefit)
+  const b = await resolveIds("https://test-c.example", false, async () => { throw new Error("offline") })
+  assert.deepEqual(b, SANDBOX)
+  const c = await resolveIds("https://test-d.example", true, async () => ({ status: 503, body: {} }))
+  assert.deepEqual(c, PRODUCTION)
 })
 
 // ---- webhook signatures (Standard Webhooks) ----
