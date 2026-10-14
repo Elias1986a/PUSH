@@ -54,6 +54,22 @@ public struct TerminalLine: Sendable, Equatable {
         return text.isEmpty ? nil : TerminalLine(kind: .shell, text: text)
     }
 
+    /// The prompt's text after the cursor: the rest of its row and any rows
+    /// below it, down to the rule that closes the prompt, without borders or
+    /// padding. Nil when the cursor is at the end. Going back to fix a word
+    /// left a suggestion drawn on top of the words after it (user photo,
+    /// 2026-10-14); with this, it goes in a card below, as in other apps.
+    public static func textAfterCaret(_ after: String?) -> String? {
+        guard let after else { return nil }
+        var pieces: [String] = []
+        for line in after.split(separator: "\n", omittingEmptySubsequences: false) {
+            if isRule(String(line)) { break }
+            let text = line.filter { !"│┃".contains($0) }.trimmingCharacters(in: .whitespaces)
+            if !text.isEmpty { pieces.append(text) }
+        }
+        return pieces.isEmpty ? nil : pieces.joined(separator: " ")
+    }
+
     /// A line without a box's left border and the spaces after it.
     private static func unboxed(_ line: String) -> Substring {
         var line = Substring(line)

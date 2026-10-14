@@ -2,11 +2,12 @@
 // the buyer back from, return that purchase's licence key and a link to
 // download PUSHTYPE.
 //
-// Polar puts {CHECKOUT_ID} in the success URL, and adds a customer session
-// token of its own (customer_session_token); only the buyer has them, and
-// both are needed. The page passes both. The Polar access token (scope
-// checkouts:read) lives in the POLAR_ACCESS_TOKEN environment variable and
-// never reaches the page.
+// Polar puts {CHECKOUT_ID} in the success URL (and sometimes a customer
+// session token of its own, customer_session_token); only the buyer has
+// them. The order number unlocks the key, so it works only for an hour after
+// payment, and the page takes it out of the address bar at once. The Polar
+// access token (scopes checkouts:read and customer_sessions:write) lives in
+// the POLAR_ACCESS_TOKEN environment variable and never reaches the page.
 // POLAR_SERVER is "sandbox" until the live store opens. Nothing is stored,
 // and keys are never logged.
 //
@@ -15,7 +16,7 @@
 // website/ is skipped by Netlify and does not count.
 import type { Config } from "@netlify/functions"
 
-const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+const MAX_AGE_MS = 60 * 60 * 1000
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -37,11 +38,7 @@ export default async (req: Request) => {
   const params = new URL(req.url).searchParams
   const checkoutID = params.get("checkout_id") ?? ""
   const sessionToken = params.get("customer_session_token") ?? ""
-  // Both are needed: the order number alone is not enough to read what the
-  // buyer bought.
-  if (!/^[0-9a-f-]{36}$/i.test(checkoutID) || !/^polar_cst_[A-Za-z0-9]+$/.test(sessionToken)) {
-    return json({ error: "bad_request" }, 400)
-  }
+  if (!/^[0-9a-f-]{36}$/i.test(checkoutID)) return json({ error: "bad_request" }, 400)
 
   const token = Netlify.env.get("POLAR_ACCESS_TOKEN")
   if (!token) return json({ error: "not_configured" }, 503)
@@ -57,15 +54,31 @@ export default async (req: Request) => {
   // Right after payment the checkout can still be "confirmed" for a moment.
   if (co.status !== "succeeded" || !co.customer_id) return json({ error: "not_ready", status: co.status }, 409)
   const createdAt = Date.parse(co.created_at)
-  if (!Number.isFinite(createdAt) || Date.now() - createdAt > MAX_AGE_MS) return json({ error: "expired" }, 410)
+  const paidAt = Date.parse(co.modified_at ?? co.created_at)
+  if (!Number.isFinite(paidAt) || Date.now() - paidAt > MAX_AGE_MS) return json({ error: "expired" }, 410)
 
-  // The buyer's own short-lived session, which Polar hands the success page.
-  const me = await polar(api, "/v1/customer-portal/customers/me", sessionToken)
-  if (me.status !== 200 || me.body.id !== co.customer_id) return json({ error: "not_found" }, 404)
+  // A short-lived session for this buyer only, to read what they own: the
+  // one Polar handed the page if it did and it is theirs, else a new one.
+  let customerToken = ""
+  if (/^polar_cst_[A-Za-z0-9]+$/.test(sessionToken)) {
+    const me = await polar(api, "/v1/customer-portal/customers/me", sessionToken)
+    if (me.status === 200 && me.body.id === co.customer_id) customerToken = sessionToken
+  }
+  if (!customerToken) {
+    const session = await polar(api, "/v1/customer-sessions/", token, {
+      method: "POST",
+      body: JSON.stringify({ customer_id: co.customer_id }),
+    })
+    if (session.status !== 201 && session.status !== 200) {
+      console.log(`customer session failed: ${session.status}`)
+      return json({ error: "polar_error", step: "session", status: session.status }, 502)
+    }
+    customerToken = session.body.token
+  }
 
   const [keys, files] = await Promise.all([
-    polar(api, "/v1/customer-portal/license-keys/?limit=100", sessionToken),
-    polar(api, "/v1/customer-portal/downloadables/?limit=100", sessionToken),
+    polar(api, "/v1/customer-portal/license-keys/?limit=100", customerToken),
+    polar(api, "/v1/customer-portal/downloadables/?limit=100", customerToken),
   ])
   if (keys.status !== 200) {
     console.log(`licence keys failed: ${keys.status}`)

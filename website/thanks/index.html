@@ -28,7 +28,7 @@
 <section class="bench-intro">
 <p class="eyebrow">Thank you</p>
 <h1 class="disp">You're on the air.</h1>
-<p class="lede" id="thanks-lede">Polar has emailed you a receipt with your download and licence key. Here's how to start talking.</p>
+<p class="lede" id="thanks-lede">Getting your download ready…</p>
 </section>
 
 <section class="bench-section" id="quick" hidden>
@@ -47,15 +47,8 @@
 <p class="note">Activate not doing anything? Copy your key, <code id="key-text"></code> <button class="thanks-copy" id="copy-btn" type="button">Copy</button>, then open PUSHTYPE: it offers to use the key you copied.</p>
 </section>
 
-<section class="bench-section" id="manual">
-<div class="card bench-quote">
-<ol class="thanks-steps">
-<li><strong>Download PUSHTYPE</strong> from the link in Polar's email, drag it to Applications and open it.</li>
-<li><strong>Copy your licence key</strong> from the same email.</li>
-<li><strong>Open PUSHTYPE.</strong> It offers to use the key you copied. Or click PUSHTYPE in the menu bar, open Settings ▸ Licence, paste the key and click Activate.</li>
-</ol>
-</div>
-<p class="note" id="manual-note">Can't find the email? Check spam, or get your download and key from <a href="https://polar.sh/pushtype/portal" id="portal-link">Polar's customer portal</a> with the email you bought with.</p>
+<section class="bench-section" id="manual" hidden>
+<p class="note">Your download and licence key are in the receipt Polar emailed you. Can't find it? Check spam, or get both from <a href="https://polar.sh/pushtype/portal">Polar's customer portal</a> with the email you bought with.</p>
 </section>
 
 <section class="bench-section">
@@ -75,10 +68,14 @@
     else { var kept = JSON.parse(sessionStorage.getItem('purchase') || 'null'); if (kept) { id = kept.id; session = kept.session; } }
   } catch (e) {}
   if (location.search) history.replaceState(null, '', location.pathname);
-  if (!id || !session) return;
   var tries = 0;
+  // Only if the lookup can't be done: the receipt email has everything.
+  function fallback() {
+    document.getElementById('thanks-lede').textContent = 'Polar has emailed you a receipt with your download and licence key.';
+    document.getElementById('manual').hidden = false;
+  }
+  if (!id) return fallback();
   function show(data) {
-    document.getElementById('manual').hidden = true;
     document.getElementById('thanks-lede').textContent = 'Two clicks and you\'re talking. Polar has also emailed you a receipt with your download and licence key.';
     document.getElementById('quick').hidden = false;
     var dl = document.getElementById('download-btn');
@@ -101,8 +98,9 @@
         if (res.status === 200 && res.body.key) return show(res.body);
         // Polar can take a few seconds to finish the order after payment.
         if (res.status === 409 && ++tries < 8) return setTimeout(load, 2000);
+        fallback();
       })
-      .catch(function () {});
+      .catch(fallback);
   }
   load();
 })();
