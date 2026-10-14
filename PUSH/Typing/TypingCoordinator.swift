@@ -548,6 +548,15 @@ final class TypingCoordinator {
             }
             return skip("typo at caret")
         }
+        // The user's own habit for these words, learned from all their
+        // writing: their phrasing, at once, without the model.
+        if surface != .terminal, let habit = TypingHistoryStore.shared.habitContinuation(before: before) {
+            generationTask?.cancel()
+            nextInField = focus.after?.first
+            learningTally.count(habit: true, examples: 0)
+            show(habit, at: placement, surface: surface, request: nil)
+            return
+        }
         let request = Request(
             before: before, after: surface == .terminal ? nil : focus.after,
             surfaceLine: surfaceLine,
@@ -561,6 +570,7 @@ final class TypingCoordinator {
                 : AppState.shared.typingUsesScreen ? conversation : nil,
             surface: surface, length: AppState.shared.typingLength)
         nextInField = surface == .terminal ? nil : focus.after?.first
+        if surface != .terminal { learningTally.count(habit: false, examples: request.examples.count) }
         if let ready = prefetched, ready.before == before {
             show(ready.text, at: placement, surface: surface, request: request)
             return
@@ -711,6 +721,9 @@ final class TypingCoordinator {
     private static var vocabulary: Set<String> {
         DictionaryCompletion.vocabulary(from: CorrectionsStore.shared.corrections.map(\.right))
     }
+
+    /// How much learning is used, logged every 50 suggestions — counts only.
+    private var learningTally = LearningTally()
 
     /// A spelling fix on screen instead of a suggestion.
     private var correction: TypoFix?
@@ -879,5 +892,21 @@ final class TypingCoordinator {
             shown?.placement = placement
             if let visible = GhostTextPanel.shared.show(current.text, at: placement) { shown?.text = visible }
         }
+    }
+}
+
+/// Counts how often learning shaped a suggestion: a habit offered outright,
+/// or the prompt given past passages. Logged as numbers, never text.
+struct LearningTally {
+    private var suggestions = 0, habits = 0, withPassages = 0
+
+    mutating func count(habit: Bool, examples: Int) {
+        suggestions += 1
+        if habit { habits += 1 }
+        if examples > 0 { withPassages += 1 }
+        guard suggestions >= 50 else { return }
+        PushLogger.log("TypingCoordinator: learning — of \(suggestions) suggestions, \(habits) habits, "
+                       + "\(withPassages) with past passages")
+        self = LearningTally()
     }
 }

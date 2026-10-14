@@ -13,11 +13,18 @@ public struct TypingHistoryRecord: Codable, Sendable, Equatable {
     /// another thread, another document — must not surface here. Nil in
     /// records kept before, which therefore no longer serve as examples.
     public var windowTitle: String?
+    /// The parts of `text` that were dictated rather than typed (each a
+    /// PUSHTYPE paste found in the field). Nil in records kept before
+    /// 9.1.3. Lets the learning assessment compare how the user talks with
+    /// how they type; nothing else reads it.
+    public var dictated: [String]?
 
-    public init(text: String, bundleID: String, windowTitle: String? = nil, date: Date = Date()) {
+    public init(text: String, bundleID: String, windowTitle: String? = nil, dictated: [String]? = nil,
+                date: Date = Date()) {
         self.text = text
         self.bundleID = bundleID
         self.windowTitle = windowTitle
+        self.dictated = dictated
         self.date = date
     }
 }
