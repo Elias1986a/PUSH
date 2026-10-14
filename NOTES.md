@@ -1,5 +1,19 @@
 # NOTES
 
+## 9.3.0 released (2026-10-14)
+
+Second-Mac setup question, seeded settings, learning in the wizard, Pause
+learning, dictionary symbol entries, and sharing learned writing between Macs
+(opt-in per Mac, LearnedWritingSync: compressed + sealed with a key in iCloud
+Keychain, chunks in iCloud KVS under sync.history.*, 600 KB budget, newest
+first; Delete All publishes a clearedAt so every Mac drops older writing).
+PR #37 was merged into main for it, so main now carries the licence code
+(still off: LicenseModel.isOffered) and the site changes. Wizard pages
+checked on screen (the menu-bar pause row could not be opened for a
+screenshot). NOT yet tried on two real Macs: user to test sync, the
+"Already use PUSHTYPE on another Mac?" question (needs another Mac's
+settings in iCloud first) and sharing. Post-release work goes on next-release.
+
 ## Dictionary entries for symbols (2026-10-14, next-release, not released)
 
 User: a dictionary entry heard "&" → "AMP" never fired. Two causes.
