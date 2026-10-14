@@ -94,17 +94,21 @@ def main():
                 sys.exit(f"could not read the main licence benefit ({status}); does the token have benefits:read?")
             props = main_benefit["properties"]
             admin = bool((props.get("activations") or {}).get("enable_customer_admin"))
-            status, made = call(api, "/v1/benefits/", token, "POST", {
+            body = {
                 "type": "license_keys",
                 "description": "Extra Mac",
-                "organization_id": cfg["org"],
                 "properties": {
                     "prefix": props.get("prefix"),
                     "expires": props.get("expires"),
                     "activations": {"limit": 1, "enable_customer_admin": admin},
                     "limit_usage": props.get("limit_usage"),
                 },
-            })
+            }
+            # An organization token knows its organization and refuses the id;
+            # a personal token needs it. Try the first, fall back to the second.
+            status, made = call(api, "/v1/benefits/", token, "POST", body)
+            if status == 422 and "organization_id" in json.dumps(made):
+                status, made = call(api, "/v1/benefits/", token, "POST", {**body, "organization_id": cfg["org"]})
             print(f"  create benefit -> {status}")
             if status not in (200, 201):
                 print(f"  {made.get('detail', '')}")
