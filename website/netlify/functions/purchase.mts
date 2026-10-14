@@ -17,7 +17,7 @@
 // website/ is skipped by Netlify and does not count.
 import type { Config } from "@netlify/functions"
 import { polar, polarEnv } from "../lib/polar.mts"
-import { reconcileSeats, resolveIds } from "../lib/seats.mts"
+import { EXTRA_MACS, MAIN_MACS, reconcileSeats, resolveIds } from "../lib/seats.mts"
 
 const MAX_AGE_MS = 60 * 60 * 1000
 
@@ -99,6 +99,9 @@ export default async (req: Request) => {
     key: key.key,
     displayKey: key.display_key,
     macs: seats.limit,
+    // How many places this purchase added, and whether it joined a licence
+    // the customer already had (so the page can say so).
+    added: co.product_id === ids.extraProduct ? EXTRA_MACS : MAIN_MACS,
     kind: seats.joinedExisting ? "extra" : "licence",
     download: dmg?.file?.download?.url
       ? { url: dmg.file.download.url, name: dmg.file.name, size: dmg.file.size_readable }
