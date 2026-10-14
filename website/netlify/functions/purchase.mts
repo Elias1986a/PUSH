@@ -37,7 +37,11 @@ export default async (req: Request) => {
   const params = new URL(req.url).searchParams
   const checkoutID = params.get("checkout_id") ?? ""
   const sessionToken = params.get("customer_session_token") ?? ""
-  if (!/^[0-9a-f-]{36}$/i.test(checkoutID)) return json({ error: "bad_request" }, 400)
+  // Both are needed: the order number alone is not enough to read what the
+  // buyer bought.
+  if (!/^[0-9a-f-]{36}$/i.test(checkoutID) || !/^polar_cst_[A-Za-z0-9]+$/.test(sessionToken)) {
+    return json({ error: "bad_request" }, 400)
+  }
 
   const token = Netlify.env.get("POLAR_ACCESS_TOKEN")
   if (!token) return json({ error: "not_configured" }, 503)
@@ -55,9 +59,7 @@ export default async (req: Request) => {
   const createdAt = Date.parse(co.created_at)
   if (!Number.isFinite(createdAt) || Date.now() - createdAt > MAX_AGE_MS) return json({ error: "expired" }, 410)
 
-  // The buyer's own short-lived session, which Polar hands the success page:
-  // the order number alone is not enough to read what they bought.
-  if (!/^polar_cst_[A-Za-z0-9]+$/.test(sessionToken)) return json({ error: "bad_request" }, 400)
+  // The buyer's own short-lived session, which Polar hands the success page.
   const me = await polar(api, "/v1/customer-portal/customers/me", sessionToken)
   if (me.status !== 200 || me.body.id !== co.customer_id) return json({ error: "not_found" }, 404)
 
