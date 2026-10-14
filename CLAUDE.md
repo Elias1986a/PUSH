@@ -49,6 +49,7 @@ text field of any app. All speech recognition runs on-device.
   Exception: Type's accepted words are posted as Unicode key events
   (`KeystrokeTyper`); Catalyst Messages ignores them.
 - Never log transcript text (privacy); PushLogger events are operational only.
+- American spelling in anything users see (license, color, behavior; "period", not "full stop"). Stored keys keep their old names (`licence.offered`, the Keychain services): renaming them would orphan saved data.
 - Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.
   The feed keeps every past release's `<item>`; the build script prepends.
 - The chosen model is per-machine and never synced (`CloudSync.mirroredSettingKeys`),
