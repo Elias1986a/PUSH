@@ -43,7 +43,7 @@ export default async (req: Request) => {
   if (checkout.status === 404) return json({ error: "not_found" }, 404)
   if (checkout.status !== 200) {
     console.log(`checkout lookup failed: ${checkout.status}`)
-    return json({ error: "polar_error" }, 502)
+    return json({ error: "polar_error", step: "checkout", status: checkout.status }, 502)
   }
   const co = checkout.body
   // Right after payment the checkout can still be "confirmed" for a moment.
@@ -58,7 +58,7 @@ export default async (req: Request) => {
   })
   if (session.status !== 201 && session.status !== 200) {
     console.log(`customer session failed: ${session.status}`)
-    return json({ error: "polar_error" }, 502)
+    return json({ error: "polar_error", step: "session", status: session.status, detail: session.body?.detail }, 502)
   }
   const customerToken: string = session.body.token
 
@@ -68,7 +68,7 @@ export default async (req: Request) => {
   ])
   if (keys.status !== 200) {
     console.log(`licence keys failed: ${keys.status}`)
-    return json({ error: "polar_error" }, 502)
+    return json({ error: "polar_error", step: "keys", status: keys.status, detail: keys.body?.detail }, 502)
   }
 
   // This purchase's key: granted, and made no earlier than the checkout.
