@@ -542,8 +542,13 @@ final class TypingCoordinator {
         if Self.typoAtCaret(before) {
             // Offer the spelling fix in place of a continuation, which would
             // only build on the typo.
-            if surface != .terminal, AppState.shared.typingFixTypos,
-               let fix = TypoFix.find(in: before, isTypo: { !Self.isRealWord($0) }, guesses: Self.spellingGuesses) {
+            // Terminals too: Type only suggests at an agent's prompt there
+            // (Claude Code), which is prose, never in a shell command.
+            if AppState.shared.typingFixTypos,
+               let fix = TypoFix.find(in: before, isTypo: { !Self.isRealWord($0) },
+                                      isInProgress: Self.startsARealWord,
+                                      guesses: { Self.spellingCorrections(for: $0, in: before) }) {
+                nextInField = surface == .terminal ? nil : focus.after?.first
                 return showCorrection(fix, at: placement, surface: surface)
             }
             return skip("typo at caret")
@@ -746,19 +751,48 @@ final class TypingCoordinator {
     /// Deletes the typo (and the space after it) and types the fix, then
     /// carries on suggesting from the corrected text.
     private func applyCorrection(_ fix: TypoFix) {
+        let next = nextInField
         hide()
+        // A fix at the caret ends the word: add the space after it, as for an
+        // accepted suggestion, unless the field already has one there.
+        let spaced = fix.trailing.isEmpty && AppState.shared.typingSpaceAfterLastWord
+            && SuggestionText.needsTrailingSpace(finishing: fix.replacement, nextInField: next)
         KeystrokeTyper.backspace(fix.deleteCount)
-        KeystrokeTyper.type(fix.typed)
+        KeystrokeTyper.type(fix.typed + (spaced ? " " : ""))
         PushLogger.log("TypingCoordinator: spelling fix accepted")
         scheduleSuggestion(after: Self.terminalSettle)
     }
 
-    /// macOS's ranked corrections for a word, best first — the same checker
-    /// that underlines it in red, offline and instant.
-    private static func spellingGuesses(_ word: String) -> [String] {
-        let range = NSRange(location: 0, length: (word as NSString).length)
-        return NSSpellChecker.shared.guesses(forWordRange: range, in: word, language: nil,
-                                             inSpellDocumentWithTag: 0) ?? []
+    /// Whether `partial` is the start of a dictionary word ("apprec" →
+    /// "appreciate"): still being typed, not a typo.
+    private static func startsARealWord(_ partial: String) -> Bool {
+        let range = NSRange(location: 0, length: (partial as NSString).length)
+        let completions = NSSpellChecker.shared.completions(forPartialWordRange: range, in: partial,
+                                                            language: nil, inSpellDocumentWithTag: 0) ?? []
+        return completions.contains { $0.count > partial.count && $0.lowercased().hasPrefix(partial.lowercased()) }
+    }
+
+    /// The fix for `word`, best first: macOS's autocorrect pick (what its own
+    /// autocorrect would type), then its list of guesses. Both see the
+    /// sentence around the word. The guess list alone is poorly ranked —
+    /// "recive" lists "recipe" before "receive", and the user got "revive" —
+    /// while the autocorrect pick says "receive".
+    private static func spellingCorrections(for word: String, in text: String) -> [String] {
+        let checker = NSSpellChecker.shared
+        let ns = text as NSString
+        var range = ns.range(of: word, options: .backwards)
+        var context = text
+        if range.location == NSNotFound {
+            context = word
+            range = NSRange(location: 0, length: (word as NSString).length)
+        }
+        var result: [String] = []
+        if let pick = checker.correction(forWordRange: range, in: context, language: checker.language(),
+                                         inSpellDocumentWithTag: 0) {
+            result.append(pick)
+        }
+        result += checker.guesses(forWordRange: range, in: context, language: nil, inSpellDocumentWithTag: 0) ?? []
+        return result
     }
 
     private func show(_ text: String, at placement: GhostTextPanel.Placement, surface: SurfaceClass,
