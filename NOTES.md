@@ -1,5 +1,25 @@
 # NOTES
 
+## External review follow-up (2026-10-14)
+
+An outside AI review (docs/PUSHTYPE_PROJECT_REVIEW.md, untracked, the
+user's) was checked claim by claim. It read main mid-session, so its
+"iCloud licence not implemented" point is already done on next-release.
+Done:
+- Type: password keys never stay in KeystrokeBuffer (PR #49; on main,
+  not yet released). The buffer owns its field, clears on every change and
+  on secure fields; Tab clears it.
+- /thanks: no Google Analytics, credentials cleared from the address bar,
+  the function requires Polar's customer_session_token (live token needs
+  checkouts:read only), no older-key fallback.
+- Site: self-hosted fonts, "What you say and type never leaves your Mac.",
+  share card v3, font licences in notices.
+- release.yml deleted. Still to do by the user: delete the 5 GitHub
+  secrets (CERTIFICATE_*, NOTARIZATION_*), since the tool was blocked.
+Not done yet: PUSH.app → PUSHTYPE.app in the DMG (needs a Sparkle rename
+test on the user's Macs). User decision: no trial; paid + 14-day refund.
+Launch list adds: remove noindex from home/benchmark, robots + sitemap.
+
 ## 9.2.0 (2026-10-14) — spelling fixes, round two
 
 User tested 9.1.2's fixes: few showed (log: 49 typo stand-downs vs 2
