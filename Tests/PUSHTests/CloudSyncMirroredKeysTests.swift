@@ -29,6 +29,21 @@ final class CloudSyncMirroredKeysTests: XCTestCase {
             Set(CloudSync.mirroredSettingKeys).isDisjoint(with: Set(CloudSync.retiredSettingKeys)))
     }
 
+    /// The user's name, their About you note, the learning switch and the apps
+    /// it skips follow them. The writing is a file, not a key, so it cannot.
+    func testThePersonalSettingsAreMirrored() {
+        for key in [TypingPreferences.nameKey, TypingPreferences.aboutKey,
+                    TypingHistoryStore.enabledKey, TypingHistoryStore.excludedKey] {
+            XCTAssertTrue(CloudSync.mirroredSettingKeys.contains(key), key)
+        }
+    }
+
+    /// The Type model is a download, like the speech model.
+    func testNothingLearnedOrDownloadedIsMirrored() {
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingPreferences.modelKey))
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains { $0.lowercased().contains("sealed") })
+    }
+
     /// The settings that *should* follow the user are still doing so — this is
     /// the list that would silently shrink if someone edited the wrong line.
     func testTheOrdinarySettingsAreStillMirrored() {

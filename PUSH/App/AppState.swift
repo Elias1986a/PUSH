@@ -443,6 +443,12 @@ final class AppState {
         for (value, path) in flags where self[keyPath: path] != value {
             self[keyPath: path] = value
         }
+
+        let name = TypingPreferences.name(in: d)
+        if name != typingName { typingName = name }
+        let about = TypingPreferences.about(in: d)
+        if about != typingAbout { typingAbout = about }
+        TypingHistoryStore.shared.reloadFromDefaults()
     }
 
     /// Whether to act on spoken self-corrections — "the red car, I mean the

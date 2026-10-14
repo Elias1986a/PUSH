@@ -42,7 +42,15 @@ final class CloudSync: ObservableObject {
         "showLivePreview",
         "previewSize",
         "resolveSelfCorrections",
-        "californiaMode"
+        "californiaMode",
+        // Who the user is and whether Type may learn from them. The writing
+        // itself is a sealed file on one Mac and never travels (see
+        // `TypingHistoryStore`); only the switch, the apps it skips and the
+        // two things the user typed about themselves do.
+        TypingPreferences.nameKey,
+        TypingPreferences.aboutKey,
+        TypingHistoryStore.enabledKey,
+        TypingHistoryStore.excludedKey
     ]
 
     /// Keys this app used to mirror and no longer does.

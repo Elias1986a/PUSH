@@ -1,5 +1,15 @@
 # NOTES
 
+## Personal settings sync (2026-10-14, on next-release, not released)
+
+User: the Personal pane should follow them across Macs. Now mirrored through
+the existing iCloud switch: name, About you, "Learn from my writing" and its
+never-keep apps (CloudSync.mirroredSettingKeys; AppState.reloadFromDefaults
+and TypingHistoryStore.reloadFromDefaults apply them live). The writing
+itself stays a sealed file per Mac, never synced. Because the switch syncs,
+turning learning on at one Mac turns it on at the others; the copy says so
+(Settings, site, privacy policy). Untested across two real Macs.
+
 ## Launch checklist (2026-10-14)
 
 **The launch build is 10.0, and it starts clean (user's call).**
