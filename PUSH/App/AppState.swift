@@ -234,6 +234,10 @@ final class AppState {
         didSet { UserDefaults.standard.set(typingSpaceAfterLastWord, forKey: TypingPreferences.spaceAfterKey) }
     }
 
+    var typingFixTypos: Bool = TypingPreferences.fixTypos() {
+        didSet { UserDefaults.standard.set(typingFixTypos, forKey: TypingPreferences.fixTyposKey) }
+    }
+
     var typingPauseOnBattery: Bool = TypingPreferences.pauseOnBattery() {
         didSet { UserDefaults.standard.set(typingPauseOnBattery, forKey: TypingPreferences.pauseOnBatteryKey) }
     }
