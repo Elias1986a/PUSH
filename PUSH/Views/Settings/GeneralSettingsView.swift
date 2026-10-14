@@ -87,7 +87,7 @@ struct GeneralSettingsView: View {
             Section("iCloud") {
                 Toggle("Sync across my Macs", isOn: $appState.iCloudSyncEnabled)
 
-                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. What Type has learned travels only if you switch on Share in Settings ▸ Personal. Everything else is copied once, when you ask, and then each Mac keeps its own.")
+                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. What TYPE has learned travels only if you switch on Share in Settings ▸ Personal. Everything else is copied once, when you ask, and then each Mac keeps its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -111,7 +111,7 @@ struct GeneralSettingsView: View {
                 )
                 PermissionRow(
                     title: "Accessibility",
-                    reason: "Needed for the push-to-talk key and for pasting text.",
+                    reason: "Needed for the PUSH-to-talk key and for pasting text.",
                     status: permissions.accessibility,
                     openSettings: { PermissionGuide.shared.show(.accessibility) }
                 )

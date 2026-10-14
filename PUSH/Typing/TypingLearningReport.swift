@@ -47,7 +47,7 @@ enum TypingLearningReport {
                      "- Replaying your own writing (each fifth against habits from the rest): at \(habits.positions) word boundaries, a habit was offered \(habits.offered) times (\(pct(habits.offered, habits.positions)))",
                      "- When offered: first word right \(pct(habits.firstWordRight, habits.offered)), every word right \(pct(habits.allRight, habits.offered))", ""]
         if dictated.isEmpty {
-            lines.append("_The typed-vs-dictated rows fill in as you dictate into fields where Type is on. Run this again in a week._")
+            lines.append("_The typed-vs-dictated rows fill in as you dictate into fields where TYPE is on. Run this again in a week._")
         }
         return lines.joined(separator: "\n") + "\n"
     }

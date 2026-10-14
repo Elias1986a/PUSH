@@ -27,7 +27,7 @@ struct DictationSettingsView: View {
             Section {
                 Toggle(isOn: $appState.dictationEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Dictation")
+                        Text("Talk")
                         Text("Hold a key, speak, and your words are typed into any app. Everything runs on this Mac.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -65,7 +65,7 @@ struct DictationSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("Push to talk") {
+            Section("PUSH to talk") {
                 Toggle("Hold a key to dictate", isOn: $appState.hotkeyEnabled)
 
                 Picker("Key", selection: $appState.selectedHotkey) {
@@ -119,7 +119,7 @@ struct DictationSettingsView: View {
                     // labelsHidden + prompt: inside a Form the first argument
                     // becomes a *label* beside the field, so "push" was drawn
                     // twice — once as a label, once as placeholder text.
-                    TextField("", text: $appState.wakeWord, prompt: Text("push"))
+                    TextField("", text: $appState.wakeWord, prompt: Text("PUSH"))
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
                         .multilineTextAlignment(.leading)
@@ -127,7 +127,7 @@ struct DictationSettingsView: View {
                 }
                 .disabled(!appState.wakeWordEnabled)
 
-                Text("Recording stops after a second of silence. Push to talk keeps working. Listening for a wake word holds the microphone open the whole time.")
+                Text("Recording stops after a second of silence. PUSH to talk keeps working. Listening for a wake word holds the microphone open the whole time.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -365,20 +365,20 @@ struct OnboardingView: View {
 
             featureCard(
                 icon: "mic.fill",
-                title: "Dictation",
+                title: "Talk",
                 detail: "Hold a key, speak, and your words are typed into any app. Includes the teleprompter, which follows along as you read a script."
             ) {
-                Toggle("Dictation", isOn: $appState.dictationEnabled)
+                Toggle("Talk", isOn: $appState.dictationEnabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
             }
 
             featureCard(
                 icon: "text.cursor",
-                title: "Type",
+                title: "TYPE",
                 detail: "As you type in any app, PUSHTYPE suggests how the sentence goes on. Press Tab to take it a word at a time. Runs on this Mac like everything else."
             ) {
-                Toggle("Type", isOn: $appState.typeEnabled)
+                Toggle("TYPE", isOn: $appState.typeEnabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
             }
@@ -432,7 +432,7 @@ struct OnboardingView: View {
                 icon: "hand.tap.fill",
                 title: "Accessibility",
                 detail: appState.dictationEnabled
-                    ? "So PUSHTYPE can see the push-to-talk key and paste into the app you are using."
+                    ? "So PUSHTYPE can see the PUSH-to-talk key and paste into the app you are using."
                     : "So PUSHTYPE can read the text around your cursor and type the words you accept.",
                 status: permissions.accessibility,
                 actionTitle: "Open System Settings…",
@@ -699,8 +699,8 @@ struct OnboardingView: View {
             } else {
                 statusLine(icon: "info.circle",
                            text: appState.dictationEnabled
-                               ? "Type is off. You can switch it on any time in Settings → Typing."
-                               : "Type is off, and so is Dictation. Switch one on to continue.",
+                               ? "TYPE is off. You can switch it on any time in Settings ▸ TYPE."
+                               : "TYPE is off, and so is Talk. Switch one on to continue.",
                            tint: .secondary)
             }
 
@@ -788,7 +788,7 @@ struct OnboardingView: View {
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
 
             Label(
-                "You can skip this: Type works without it, using what it can read directly. macOS may remind you now and then that PUSHTYPE can see your screen. Change either in Settings ▸ Typing.",
+                "You can skip this: TYPE works without it, using what it can read directly. macOS may remind you now and then that PUSHTYPE can see your screen. Change either in Settings ▸ TYPE.",
                 systemImage: "info.circle"
             )
             .font(.callout)
@@ -868,7 +868,7 @@ struct OnboardingView: View {
         if !permissions.accessibility.isGranted {
             statusLine(
                 icon: "exclamationmark.triangle.fill",
-                text: "The push-to-talk key needs Accessibility, which is not granted yet. Go back a step to turn it on — nothing will happen when you hold the key until you do.",
+                text: "The PUSH-to-talk key needs Accessibility, which is not granted yet. Go back a step to turn it on — nothing will happen when you hold the key until you do.",
                 tint: .orange
             )
         } else if !permissions.microphone.isGranted {
@@ -961,7 +961,7 @@ struct OnboardingView: View {
             )) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Open PUSHTYPE at login").font(.system(size: 13, weight: .medium))
-                    Text("Recommended. Dictation is only useful if it is already running when you want it — otherwise the hotkey does nothing and you have to go and launch PUSHTYPE first.")
+                    Text("Recommended. Talk is only useful if it is already running when you want it — otherwise the PUSH-to-talk key does nothing and you have to go and launch PUSHTYPE first.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -975,13 +975,13 @@ struct OnboardingView: View {
                 Text("Where to find things")
                     .font(.system(size: 13, weight: .medium))
 
-                bullet("Click the ", symbol: "music.mic", rest: " in the menu bar to pause Type or learning, start the teleprompter, open Settings, or quit.")
-                bullet("Settings has the push-to-talk key, the language, the pill's position and your dictionary of names and jargon.")
+                bullet("Click the ", symbol: "music.mic", rest: " in the menu bar to pause TYPE or learning, start the teleprompter, open Settings, or quit.")
+                bullet("Settings has the PUSH-to-talk key, the language, the pill's position and your dictionary of names and jargon.")
                 if appState.dictationEnabled {
                     bullet("Say “new line”, “new paragraph”, or “scratch that” and PUSHTYPE follows.")
                 }
                 if appState.typeEnabled {
-                    bullet("Suggestions fix typos as you go, and you can switch them off in any one app under Settings ▸ Typing.")
+                    bullet("Suggestions fix typos as you go, and you can switch them off in any one app under Settings ▸ TYPE.")
                 }
             }
 
@@ -994,7 +994,7 @@ struct OnboardingView: View {
                     Toggle(isOn: $appState.wakeWordEnabled) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text("Start recording when I say “\(appState.wakeWord)”").font(.system(size: 13, weight: .medium))
-                            Text("Off by default: it keeps the microphone open the whole time, where push-to-talk opens it only while you hold the key.")
+                            Text("Off by default: it keeps the microphone open the whole time, where PUSH to talk opens it only while you hold the key.")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

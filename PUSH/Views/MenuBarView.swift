@@ -51,13 +51,13 @@ struct MenuBarView: View {
                 header
                 Divider()
             }
-            featureSwitch("Dictation", isOn: $appState.dictationEnabled)
+            featureSwitch("Talk", isOn: $appState.dictationEnabled)
             if appState.dictationEnabled {
                 hotkeyRow
                 controls
             }
             Divider()
-            featureSwitch("Type", isOn: $appState.typeEnabled)
+            featureSwitch("TYPE", isOn: $appState.typeEnabled)
             if appState.typeEnabled { typingControls }
             Divider()
             commands
@@ -151,8 +151,8 @@ struct MenuBarView: View {
         // wake word bindings below.
         @Bindable var appState = appState
         return VStack(alignment: .leading, spacing: 9) {
-            // "Voice" beside Type's "Typing": both pickers choose a model.
-            labelled("Voice") {
+            // Under each feature's own switch, so "Model" says enough.
+            labelled("Model") {
                 Picker("", selection: modelBinding) {
                     ForEach(offeredModels) { model in
                         Text(model.shortName).tag(model)
@@ -233,7 +233,7 @@ struct MenuBarView: View {
             TypingModelStore.shared.onDisk.contains($0) || $0 == appState.selectedTypingModel
         }
         return VStack(alignment: .leading, spacing: 9) {
-            labelled("Typing") {
+            labelled("Model") {
                 Picker("", selection: $appState.selectedTypingModel) {
                     ForEach(offered) { Text("\($0.tier) · \($0.displayName)").tag($0) }
                 }
@@ -242,7 +242,7 @@ struct MenuBarView: View {
             }
             // Type is on by default, but nothing runs until a model is here.
             if !TypingModelStore.shared.onDisk.contains(appState.selectedTypingModel) {
-                Text("Download a model in Settings ▸ Typing to get suggestions.")
+                Text("Download a model in Settings ▸ TYPE to get suggestions.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -389,7 +389,7 @@ struct MenuBarView: View {
             // It listens through dictation's speech model.
             .disabled(!appState.dictationEnabled)
             if !appState.dictationEnabled {
-                Text("Needs Dictation, which is switched off.")
+                Text("Needs Talk, which is switched off.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
@@ -457,7 +457,7 @@ struct MenuBarView: View {
     }
 
     private var statusText: String {
-        if !appState.dictationEnabled { return "Dictation off" }
+        if !appState.dictationEnabled { return "Talk off" }
         if appState.modelUnavailable { return "Model unavailable" }
         if appState.isCapturing { return "Listening" }
         if appState.isListening { return "Warming up…" }
