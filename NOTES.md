@@ -1,5 +1,15 @@
 # NOTES
 
+## 9.2.0 (2026-10-14) — spelling fixes, round two
+
+User tested 9.1.2's fixes: few showed (log: 49 typo stand-downs vs 2
+fixes). Now: the previous word's fix stays offered while the next word is
+typed (TypoFix trailing = " " + partial); partials that start a dictionary
+word are not typos; the fix is NSSpellChecker.correction() in sentence
+context first (guess list is badly ranked: "recive" → recipe, receive,
+revive — user got "revive"), then guesses; a space after a fix at the
+caret (spaceAfterLastWord); terminal agent prompts included.
+
 ## 9.1.3 (2026-10-14) — habits, quit crash
 
 - TypingHabits (PUSHCore): phrase continuations learned from all finished
