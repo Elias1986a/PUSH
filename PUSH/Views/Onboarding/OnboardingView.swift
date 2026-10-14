@@ -28,24 +28,42 @@ struct OnboardingView: View {
     @StateObject private var permissions = PermissionsModel()
     @StateObject private var launchAtLogin = LaunchAtLoginModel()
 
-    @State private var step: OnboardingFlow.Step = Self.initialStep
+    @State private var step: OnboardingFlow.Step
+    /// iCloud holds another Mac's settings, so the wizard opens by asking.
+    @State private var offerOtherMac: Bool
+    /// What the user chose to copy from it (nil until they answer yes).
+    @State private var adoption: CloudSync.Adoption?
+    @State private var learnHere = false
+    @State private var history = TypingHistoryStore.shared
     @State private var typingStepSeen = false
     @State private var typingSandbox = ""
     @FocusState private var typingSandboxFocused: Bool
 
+    init(onFinish: @escaping () -> Void) {
+        self.onFinish = onFinish
+        let (step, offer) = Self.opening()
+        _step = State(initialValue: step)
+        _offerOtherMac = State(initialValue: offer)
+    }
+
+    /// The first page, and whether to offer copying from another Mac.
     /// `PUSH_ONBOARDING_STEP=typingModel` opens the wizard on that step, for
     /// screenshots and testing. Debug builds only. After macOS relaunched
-    /// PUSH mid-wizard, the page the user was on.
-    private static var initialStep: OnboardingFlow.Step {
-        if let resumed = OnboardingWindowController.takeResumeStep() { return resumed }
+    /// PUSH mid-wizard, the page the user was on (and no second question).
+    private static func opening() -> (OnboardingFlow.Step, Bool) {
+        if let resumed = OnboardingWindowController.takeResumeStep() { return (resumed, false) }
         #if DEBUG
-        if let raw = ProcessInfo.processInfo.environment["PUSH_ONBOARDING_STEP"],
+        let env = ProcessInfo.processInfo.environment
+        if let raw = env["PUSH_ONBOARDING_STEP"],
            let step = OnboardingFlow.Step.allCases.first(where: { "\($0)" == raw }) {
-            return step
+            return (step, step == .otherMac)
         }
         #endif
-        return .welcome
+        let offer = CloudSync.otherMacDataAvailable()
+        return (offer ? .otherMac : .welcome, offer)
     }
+
+    private var copied: Bool { adoption?.foundAnything == true }
     /// What the user dictated into the sandbox on step 3. Its contents are
     /// never read, logged, or persisted — only whether it is empty, to show the
     /// "that worked" confirmation.
@@ -64,9 +82,12 @@ struct OnboardingView: View {
     /// put when the list around it grows or shrinks.
     private var steps: [OnboardingFlow.Step] {
         OnboardingFlow.steps(dictation: appState.dictationEnabled, type: appState.typeEnabled,
-                             typingSeen: typingStepSeen, licence: LicenseModel.isOffered)
+                             typingSeen: typingStepSeen, licence: LicenseModel.isOffered,
+                             otherMac: offerOtherMac, copied: copied)
             // The try-it sandbox is dictation's until Type gets its own (Phase 5).
             .filter { $0 != .tryIt || appState.dictationEnabled }
+            // A copied Mac activates itself from the key in iCloud Keychain.
+            .filter { !($0 == .licence && copied && LicenseModel.shared.isLicensed) }
     }
 
     var body: some View {
@@ -108,12 +129,14 @@ struct OnboardingView: View {
     @ViewBuilder
     private var content: some View {
         switch step {
+        case .otherMac: otherMacStep
         case .welcome: welcomeStep
         case .licence: licenceStep
         case .features: featuresStep
         case .permissions: permissionsStep
         case .speechModel: modelStep
         case .typingModel: typingModelStep
+        case .personal: personalStep
         case .screenText: screenTextStep
         case .tryIt: tryItStep
         case .finish: finishStep
@@ -130,7 +153,7 @@ struct OnboardingView: View {
                 Text("Meet PUSHTYPE")
                     .font(.system(size: 26, weight: .semibold))
 
-                Text("Instant, on-device speech to text.")
+                Text("Dictation and autocomplete, on your Mac.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
@@ -139,22 +162,27 @@ struct OnboardingView: View {
                 highlight(
                     icon: "mic.fill",
                     title: "Hold a key, speak, let go",
-                    detail: "Your words land in whatever you were typing in — any app, any text field."
+                    detail: "Your words land in whatever you were typing in, in a fraction of a second. No server."
                 )
                 highlight(
-                    icon: "bolt.fill",
-                    title: "No waiting for a server",
-                    detail: "Transcription runs on this Mac's Neural Engine, in a fraction of a second."
+                    icon: "text.cursor",
+                    title: "Tab to finish your sentence",
+                    detail: "As you type, PUSHTYPE suggests how it goes on, using the email or chat you're replying to."
+                )
+                highlight(
+                    icon: "person.text.rectangle",
+                    title: "It can learn to sound like you",
+                    detail: "Switch on learning and it picks up your phrases, names and tone. Off until you do."
                 )
                 highlight(
                     icon: "lock.fill",
                     title: "Nothing leaves your Mac",
-                    detail: "No account, no upload, no transcript stored anywhere. It works on a plane."
+                    detail: "No account, no upload, no transcript history, never in password fields. Works on a plane."
                 )
                 highlight(
                     icon: "text.alignleft",
                     title: "And a teleprompter",
-                    detail: "Read a script off your screen while you record — invisible to the recording itself."
+                    detail: "Read a script off your screen while you record, invisible to the recording itself."
                 )
             }
             .padding(.top, 4)
@@ -177,6 +205,136 @@ struct OnboardingView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    // MARK: - Another Mac
+
+    /// Opens the wizard when iCloud already holds a Mac's settings: a yes copies
+    /// them (settings, dictionary, name and note) and skips the pages that
+    /// would only ask the same again. What belongs to this Mac (permissions,
+    /// models, which features run) is still asked next.
+    private var otherMacStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if let adoption, adoption.foundAnything {
+                stepHeader(title: "Copied from your other Mac",
+                           subtitle: "You won't be asked those again. This Mac still needs its own permissions and downloads, next.")
+                VStack(alignment: .leading, spacing: 10) {
+                    if adoption.settings > 0 { copiedRow("\(adoption.settings) settings") }
+                    if adoption.dictionaryWords > 0 {
+                        copiedRow("\(adoption.dictionaryWords) dictionary \(adoption.dictionaryWords == 1 ? "entry" : "entries")")
+                    }
+                    if adoption.hasProfile { copiedRow("Your name and About you") }
+                    if LicenseModel.shared.isLicensed { copiedRow("Your licence") }
+                }
+                if adoption.learning == true {
+                    Divider()
+                    Toggle(isOn: $learnHere) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Learn from my writing and voice on this Mac").font(.system(size: 13, weight: .medium))
+                            Text("Learning is on on your other Mac. Each Mac keeps its own copy of what it learns, encrypted, and it never leaves that Mac. Pause it any time from the menu bar.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .toggleStyle(.switch)
+                }
+            } else if adoption != nil {
+                stepHeader(title: "Nothing has arrived yet",
+                           subtitle: "iCloud can take a minute on a new Mac. Try again, or set this one up from scratch. Settings ▸ General can copy them later.")
+                HStack {
+                    Button("Try Again") { copyFromOtherMac() }
+                    Button("Set Up From Scratch") { startFresh() }
+                }
+            } else {
+                stepHeader(title: "Already use PUSHTYPE on another Mac?",
+                           subtitle: "Copy your settings, dictionary and what it knows about you, and skip what you've already answered. This Mac still needs its own permissions and downloads.")
+                VStack(alignment: .leading, spacing: 10) {
+                    Button { copyFromOtherMac() } label: {
+                        Text("Yes, copy from my other Mac").frame(maxWidth: .infinity)
+                    }
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
+                    Button { startFresh() } label: {
+                        Text("No, set this one up from scratch").frame(maxWidth: .infinity)
+                    }
+                    .controlSize(.large)
+                }
+                .frame(maxWidth: 360)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func copiedRow(_ text: String) -> some View {
+        Label(text, systemImage: "checkmark.circle.fill")
+            .foregroundStyle(.green)
+            .font(.callout)
+    }
+
+    private func copyFromOtherMac() {
+        let result = CloudSync.shared.adoptFromOtherMac()
+        adoption = result
+        learnHere = result.learning ?? false
+    }
+
+    private func startFresh() {
+        offerOtherMac = false
+        adoption = nil
+        withAnimation(.easeInOut(duration: 0.16)) { step = .welcome }
+    }
+
+    // MARK: - Make it sound like you
+
+    /// Type's biggest difference from a plain autocomplete, so it is asked here,
+    /// where people are choosing, and not left in a Settings pane. Everything is
+    /// optional and off until chosen.
+    private var personalStep: some View {
+        @Bindable var appState = appState
+        @Bindable var history = history
+        return VStack(alignment: .leading, spacing: 14) {
+            stepHeader(
+                title: "Make it sound like you",
+                subtitle: "Optional. It all stays on this Mac, and Settings ▸ Personal changes it any time."
+            )
+
+            TextField("Name", text: $appState.typingName,
+                      prompt: Text(TypingPreferences.signOffName(saved: "") ?? "Your name"))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("About you").font(.system(size: 13, weight: .medium))
+                TextEditor(text: $appState.typingAbout)
+                    .font(.body)
+                    .scrollContentBackground(.hidden)
+                    .padding(4)
+                    .frame(height: 58)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.secondary.opacity(0.3)))
+                Text("For example: “I run a small design studio. I write short, friendly emails.” Your name is only offered after a sign-off, like “Thanks,”.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Divider()
+
+            Toggle(isOn: $history.isOn) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Learn from my writing and voice").font(.system(size: 13, weight: .medium))
+                    Text("Suggestions start to sound like you: your phrases, your names, your tone. Only finished text is kept, never audio. Encrypted with a key in your Keychain, never sent anywhere.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .toggleStyle(.switch)
+
+            Text("Never kept from password or sign-in fields. Leave out any app, pause it, or Delete All any time. Without it, suggestions still read the email or chat you're replying to.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
         }
     }
 
@@ -494,7 +652,7 @@ struct OnboardingView: View {
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color(nsColor: .textBackgroundColor)))
                         .overlay(alignment: .topLeading) {
                             if typingSandbox.isEmpty {
-                                Text("Try it: type “Thanks for the update, I’ll” and wait a moment. Tab takes a word.")
+                                Text("Try it: type “Thanks for the update, I’ll” and wait a moment. Tab takes a word, ` takes all of it.")
                                     .font(.system(size: 15))
                                     .foregroundStyle(.tertiary)
                                     .padding(.horizontal, 13)
@@ -572,7 +730,7 @@ struct OnboardingView: View {
         return VStack(alignment: .leading, spacing: 18) {
             stepHeader(
                 title: "Reading the screen",
-                subtitle: "Optional. Suggestions are better when PUSHTYPE can see what you’re replying to."
+                subtitle: "Optional. Suggestions are better when PUSHTYPE can see what you’re replying to, and what you just copied."
             )
 
             Text("PUSHTYPE reads the text around the field you’re typing in — the email you’re answering, the chat above, the page you’re on. Most apps share that text directly. A few only draw it on screen, and for those PUSHTYPE needs Screen Recording to read it.")
@@ -596,6 +754,17 @@ struct OnboardingView: View {
                 Text("Use the text around the field").fontWeight(.medium)
                 Spacer()
                 Toggle("Use the text around the field", isOn: $appState.typingUsesScreen)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
+
+            HStack {
+                Text("Use what I just copied").fontWeight(.medium)
+                Spacer()
+                Toggle("Use what I just copied", isOn: $appState.typingUsesClipboard)
                     .toggleStyle(.switch)
                     .labelsHidden()
             }
@@ -791,9 +960,14 @@ struct OnboardingView: View {
                 Text("Where to find things")
                     .font(.system(size: 13, weight: .medium))
 
-                bullet("Click the ", symbol: "music.mic", rest: " in the menu bar for settings, the teleprompter, and to quit.")
-                bullet("Change the push-to-talk key, the dictation language and the pill's position in Settings.")
-                bullet("Teach PUSHTYPE names and jargon it keeps mishearing under Settings → Dictionary.")
+                bullet("Click the ", symbol: "music.mic", rest: " in the menu bar to pause Type or learning, start the teleprompter, open Settings, or quit.")
+                bullet("Settings has the push-to-talk key, the language, the pill's position and your dictionary of names and jargon.")
+                if appState.dictationEnabled {
+                    bullet("Say “new line”, “new paragraph” or “scratch that” and PUSHTYPE follows.")
+                }
+                if appState.typeEnabled {
+                    bullet("Suggestions fix typos as you go, and you can switch them off in any one app under Settings ▸ Typing.")
+                }
             }
 
             if appState.dictationEnabled {
@@ -854,7 +1028,10 @@ struct OnboardingView: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            if step == .welcome {
+            if step == .otherMac {
+                // The first page when it is asked: nowhere to go back to.
+                Color.clear.frame(width: 1, height: 1)
+            } else if step == .welcome {
                 // No way round a model step until that feature has a model on
                 // disk: the app cannot run it without one, and launch will not
                 // fetch it.
@@ -903,6 +1080,7 @@ struct OnboardingView: View {
 
     private var continueDisabled: Bool {
         switch step {
+        case .otherMac: return !copied
         case .features: return !appState.dictationEnabled && !appState.typeEnabled
         case .licence: return !LicenseModel.shared.isLicensed
         case .speechModel: return !isReady(appState.selectedWhisperModel)
@@ -930,6 +1108,9 @@ struct OnboardingView: View {
     private func advance(to offset: Int) {
         let steps = steps
         guard let index = steps.firstIndex(of: step), steps.indices.contains(index + offset) else { return }
+        // Leaving the copy page: only now does the user's choice about learning
+        // take effect on this Mac.
+        if step == .otherMac, offset > 0, adoption?.learning == true { history.isOn = learnHere }
         withAnimation(.easeInOut(duration: 0.16)) { step = steps[index + offset] }
     }
 }

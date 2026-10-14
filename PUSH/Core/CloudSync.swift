@@ -31,10 +31,26 @@ final class CloudSync: ObservableObject {
     /// all — a machine whose owner had never picked that model and may not have
     /// wanted it in the language the other Mac was set to. The models on disk
     /// differ per machine, so the choice between them has to as well.
-    static let mirroredSettingKeys = [
+    /// LIVE: every change on any Mac reaches the others, latest wins. Only what
+    /// is the same about the person on every Mac.
+    static let liveSettingKeys = [
+        TypingPreferences.nameKey,
+        TypingPreferences.aboutKey
+    ]
+
+    /// SEED: a new Mac copies these once, when the user says they already use
+    /// PUSHTYPE elsewhere (`adoptFromOtherMac`), and from then on keeps its
+    /// own. iCloud holds the latest choice made on any Mac, as the template.
+    /// Nothing here is ever applied to a Mac on its own: a work Mac with
+    /// learning off must stay off, however the others are set.
+    ///
+    /// Absent on purpose, so they stay per Mac: the wake word switch (it holds
+    /// the microphone open), the pill's position, microphone priority, every
+    /// model choice and on/off switch that depends on a download, battery
+    /// pause, and the clipboard and screen context.
+    static let seededSettingKeys = [
         "selectedHotkey",
         "playSoundOnStart",
-        "wakeWordEnabled",
         "wakeWord",
         "doubleSpaceAfterSentence",
         "mediaBehavior",
@@ -43,14 +59,21 @@ final class CloudSync: ObservableObject {
         "previewSize",
         "resolveSelfCorrections",
         "californiaMode",
-        // Who the user is, and the apps learning skips. The learning switch
-        // itself is per Mac on purpose (a work Mac can stay off), and the
-        // writing is a sealed file on one Mac that does not travel (see
-        // `TypingHistoryStore`).
-        TypingPreferences.nameKey,
-        TypingPreferences.aboutKey,
+        TypingPreferences.lengthKey,
+        TypingPreferences.codeEditorsKey,
+        TypingPreferences.colorKey,
+        TypingPreferences.spaceAfterKey,
+        TypingPreferences.fixTyposKey,
+        TypingPreferences.showIndicatorKey,
+        TypingPreferences.excludedAppsKey,
+        TypingPreferences.nextWordKeyKey,
+        TypingPreferences.wholeKeyKey,
+        TypingHistoryStore.enabledKey,
         TypingHistoryStore.excludedKey
     ]
+
+    /// Everything published to iCloud.
+    static let mirroredSettingKeys = liveSettingKeys + seededSettingKeys
 
     /// Keys this app used to mirror and no longer does.
     ///
@@ -59,7 +82,7 @@ final class CloudSync: ObservableObject {
     /// value it already published is still sitting in the store, and a Mac
     /// still running the older build keeps applying it. Removing it retires the
     /// key for every machine as soon as one of them updates.
-    static let retiredSettingKeys = ["selectedWhisperModel"]
+    static let retiredSettingKeys = ["selectedWhisperModel", "wakeWordEnabled"]
 
     private static let dictionaryKey = "sync.dictionary"
     private static let settingPrefix = "sync.setting."
@@ -112,6 +135,7 @@ final class CloudSync: ObservableObject {
         clearRetiredKeys()
         pullAll()
         pushAll()
+        lastPushed = Dictionary(uniqueKeysWithValues: Self.seededSettingKeys.map { ($0, UserDefaults.standard.object(forKey: $0)) })
         PushLogger.log("CloudSync: started")
     }
 
@@ -132,7 +156,24 @@ final class CloudSync: ObservableObject {
             try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled else { return }
             guard let self, !self.isApplyingRemote else { return }
-            for key in Self.mirroredSettingKeys { self.pushSetting(key) }
+            for key in Self.liveSettingKeys { self.pushSetting(key) }
+            self.pushChangedSeeds()
+        }
+    }
+
+    /// What each seeded key held the last time this Mac looked, so only a key
+    /// the user changed here is published. Pushing all of them on every change
+    /// would let a Mac that touched one setting overwrite the template for the rest.
+    private var lastPushed: [String: Any?] = [:]
+
+    private func pushChangedSeeds() {
+        for key in Self.seededSettingKeys {
+            let now = UserDefaults.standard.object(forKey: key)
+            let before = lastPushed[key] ?? nil
+            let same = (now as? NSObject)?.isEqual(before as? NSObject) ?? (now == nil && before == nil)
+            guard !same else { continue }
+            lastPushed[key] = now
+            pushSetting(key)
         }
     }
 
@@ -160,7 +201,11 @@ final class CloudSync: ObservableObject {
     private var pendingDictionaryPush: Task<Void, Never>?
 
     private func pushAll() {
-        for key in Self.mirroredSettingKeys { pushSetting(key) }
+        for key in Self.liveSettingKeys { pushSetting(key) }
+        // The first Mac sets the template; later ones add only what is missing.
+        for key in Self.seededSettingKeys where store.object(forKey: Self.settingPrefix + key) == nil {
+            pushSetting(key)
+        }
         pushDictionary()
     }
 
@@ -201,12 +246,12 @@ final class CloudSync: ObservableObject {
     private func pullAll() {
         isApplyingRemote = true
         defer { isApplyingRemote = false }
-        for key in Self.mirroredSettingKeys { pullSetting(key) }
+        for key in Self.liveSettingKeys { pullSetting(key) }
         pullDictionary()
     }
 
     private func pullSetting(_ key: String) {
-        guard Self.mirroredSettingKeys.contains(key),
+        guard Self.liveSettingKeys.contains(key),
               let value = store.object(forKey: Self.settingPrefix + key) else { return }
         UserDefaults.standard.set(value, forKey: key)
         AppState.shared.reloadFromDefaults()
@@ -229,6 +274,69 @@ final class CloudSync: ObservableObject {
         if !Self.payloadMatches(merged.alive + merged.tombstones, remote) {
             pushDictionary()
         }
+    }
+
+    // MARK: - A new Mac
+
+    /// Whether another Mac has left anything to copy: settings, a licence key
+    /// or dictionary words. Read from what iCloud has already delivered, so it
+    /// can be asked synchronously when the first-run wizard opens.
+    nonisolated static func otherMacDataAvailable() -> Bool {
+        let store = NSUbiquitousKeyValueStore.default
+        store.synchronize()
+        if store.dictionaryRepresentation.keys.contains(where: { $0.hasPrefix(settingPrefix) }) { return true }
+        if SyncedLicenseKey().load() != nil { return true }
+        if let data = store.data(forKey: dictionaryKey),
+           let entries = try? JSONDecoder().decode([CorrectionsStore.Correction].self, from: data),
+           entries.contains(where: { !$0.isDeleted }) { return true }
+        return false
+    }
+
+    /// What `adoptFromOtherMac` brought over, for the wizard to show.
+    struct Adoption: Equatable {
+        var settings = 0
+        var dictionaryWords = 0
+        var hasProfile = false
+        /// What the other Mac has learning set to. Not applied: the wizard
+        /// shows it and the user decides for this Mac.
+        var learning: Bool?
+        var foundAnything: Bool { settings > 0 || dictionaryWords > 0 || hasProfile }
+    }
+
+    /// "I already use PUSHTYPE on another Mac": switch sync on, take the
+    /// template for every seeded setting, merge the dictionary. This Mac keeps
+    /// its own choices from here on, so it never overwrites the template with
+    /// its own defaults: `lastPushed` is set to what was just copied.
+    ///
+    /// The learning switch is the one thing not applied here (it starts
+    /// collecting what the user writes, so the user sees it first).
+    @discardableResult
+    func adoptFromOtherMac() -> Adoption {
+        AppState.shared.iCloudSyncEnabled = true
+        start()
+        store.synchronize()
+
+        var result = Adoption()
+        isApplyingRemote = true
+        for key in Self.seededSettingKeys {
+            guard let value = store.object(forKey: Self.settingPrefix + key) else { continue }
+            if key == TypingHistoryStore.enabledKey {
+                result.learning = value as? Bool
+                continue
+            }
+            UserDefaults.standard.set(value, forKey: key)
+            lastPushed[key] = value
+            result.settings += 1
+        }
+        for key in Self.liveSettingKeys { pullSetting(key) }
+        pullDictionary()
+        isApplyingRemote = false
+        AppState.shared.reloadFromDefaults()
+
+        result.dictionaryWords = CorrectionsStore.shared.allForSync.filter { !$0.isDeleted }.count
+        result.hasProfile = !TypingPreferences.name().isEmpty || !TypingPreferences.about().isEmpty
+        PushLogger.log("CloudSync: copied \(result.settings) setting(s), \(result.dictionaryWords) dictionary entr(ies) from another Mac")
+        return result
     }
 
     // MARK: - Merge

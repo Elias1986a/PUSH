@@ -14,6 +14,7 @@ struct GeneralSettingsView: View {
     /// Sparkle owns the stored value; this mirrors it only for the toggle's
     /// binding, and writes straight back through on change.
     @State private var checksAutomatically = UpdaterManager.shared.automaticallyChecksForUpdates
+    @State private var copied: CloudSync.Adoption?
 
     /// The website's pages.
     static let acknowledgementsURL = URL(string: "https://pushtype.app/legal/notices.html")!
@@ -86,9 +87,19 @@ struct GeneralSettingsView: View {
             Section("iCloud") {
                 Toggle("Sync settings and dictionary across my Macs", isOn: $appState.iCloudSyncEnabled)
 
-                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced. The pill's position stays per-Mac.")
+                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. Everything else is copied once, when you ask, and then each Mac keeps its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                HStack {
+                    Button("Copy Settings From My Other Macs") { copied = CloudSync.shared.adoptFromOtherMac() }
+                    if let copied {
+                        Text(copied.foundAnything ? "Copied \(copied.settings) settings." : "Nothing found in iCloud yet.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .disabled(!appState.iCloudSyncEnabled)
             }
 
             Section("Permissions") {

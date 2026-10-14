@@ -444,6 +444,21 @@ final class AppState {
             self[keyPath: path] = value
         }
 
+        let length = TypingPreferences.length(in: d)
+        if length != typingLength { typingLength = length }
+        let editors = TypingPreferences.codeEditors(in: d)
+        if editors != typingInCodeEditors { typingInCodeEditors = editors }
+        let color = TypingPreferences.color(in: d)
+        if color != typingColor { typingColor = color }
+        let spaceAfter = TypingPreferences.spaceAfterLastWord(in: d)
+        if spaceAfter != typingSpaceAfterLastWord { typingSpaceAfterLastWord = spaceAfter }
+        let fixTypos = TypingPreferences.fixTypos(in: d)
+        if fixTypos != typingFixTypos { typingFixTypos = fixTypos }
+        let indicator = TypingPreferences.showIndicator(in: d)
+        if indicator != typingShowIndicator { typingShowIndicator = indicator }
+        let excluded = TypingPreferences.excludedApps(in: d)
+        if excluded != typingExcludedApps { typingExcludedApps = excluded }
+
         let name = TypingPreferences.name(in: d)
         if name != typingName { typingName = name }
         let about = TypingPreferences.about(in: d)

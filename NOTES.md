@@ -1,14 +1,27 @@
 # NOTES
 
-## Personal settings sync (2026-10-14, on next-release, not released)
+## Sync rules, second-Mac flow, learning in setup (2026-10-14, next-release, not released)
 
-User: the Personal pane should follow them across Macs. Now mirrored through
-the existing iCloud switch: name, About you and learning's never-keep apps
-(CloudSync.mirroredSettingKeys; AppState.reloadFromDefaults and
-TypingHistoryStore.reloadFromDefaults apply them live). The learning switch
-stays per Mac (user: work Mac can stay off). Open: syncing the learned writing
-itself, and a per-setting sync rule sheet (docs/sync-rules.csv, the user fills
-the last column). Untested across two real Macs.
+User agreed docs/sync-rules.csv. CloudSync now has liveSettingKeys (name,
+About you), seededSettingKeys (copied once, never applied to a Mac on its
+own) and the MERGE dictionary + Keychain licence as before. Per Mac: wake word
+switch, pill, mic priority, models, feature switches, battery pause,
+clipboard/screen context, learning pause. iCloud keeps the latest choice
+per seeded key as the template (only keys changed locally are pushed).
+First run: if iCloud holds another Mac's data (CloudSync.otherMacDataAvailable)
+the wizard opens with "Already use PUSHTYPE on another Mac?"; yes =
+adoptFromOtherMac (sync on, copy seeds + dictionary + name/About; the
+learning switch is shown and applied only when the user continues), and
+skips welcome + personal pages; permissions/models/features still asked.
+Settings ▸ General has Copy Settings From My Other Macs. New wizard page
+"Make it sound like you" (name, About you, learning); welcome now names Type
+and learning; clipboard toggle on the screen page; finish bullets mention
+cleanup phrases, typos, pausing. Pause learning (LearningPause,
+LearningPauseControl in the menu bar and Settings ▸ Personal, per Mac): stops
+keeping, drops the field in progress, skips fields written while paused.
+Open: syncing the learned writing itself (needs CloudKit/iCloud Drive +
+Keychain key + new profile; user to decide 10.0 or later). Not checked on
+two real Macs, and the new pages are not yet eyeballed in the app.
 
 ## Launch checklist (2026-10-14)
 

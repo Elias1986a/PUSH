@@ -42,10 +42,14 @@ final class TypingPreferencesTests: XCTestCase {
     }
 
     @MainActor
-    func testNeitherIsSynced() {
+    func testTheModelIsNeverSyncedAndTheRestOnlyCopiedOnRequest() {
+        // A model is a download, so it never leaves the Mac.
         XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingPreferences.modelKey))
-        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingPreferences.lengthKey))
-        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingPreferences.codeEditorsKey))
+        // Length and code editors are taste: copied once to a new Mac, never pushed onto an existing one.
+        for key in [TypingPreferences.lengthKey, TypingPreferences.codeEditorsKey] {
+            XCTAssertTrue(CloudSync.seededSettingKeys.contains(key))
+            XCTAssertFalse(CloudSync.liveSettingKeys.contains(key))
+        }
     }
 
     func testModelsLiveUnderApplicationSupport() {

@@ -277,6 +277,7 @@ struct MenuBarView: View {
                 }
             }
             TypingPauseControl()
+            LearningPauseControl()
         }
         .font(.system(size: 12))
         .controlSize(.small)

@@ -53,6 +53,7 @@ struct PersonalSettingsView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                LearningPauseControl()
                 if history.unreadable {
                     Text("Your saved writing could not be opened (its key is missing). Delete it to start again.")
                         .font(.caption)

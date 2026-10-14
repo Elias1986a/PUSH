@@ -38,10 +38,33 @@ final class CloudSyncMirroredKeysTests: XCTestCase {
         }
     }
 
-    /// Whether to learn is each Mac's own call: a work Mac stays off even when
-    /// the others are on.
-    func testTheLearningSwitchIsPerMac() {
-        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingHistoryStore.enabledKey))
+    /// Seeded, not live: a Mac copies it once, when the user says they already
+    /// use PUSHTYPE elsewhere. A work Mac with learning off is never switched on
+    /// by another Mac's choice.
+    func testTheLearningSwitchIsSeededNotLive() {
+        XCTAssertTrue(CloudSync.seededSettingKeys.contains(TypingHistoryStore.enabledKey))
+        XCTAssertFalse(CloudSync.liveSettingKeys.contains(TypingHistoryStore.enabledKey))
+    }
+
+    /// Only the person's name and note are applied to a Mac without being asked.
+    func testOnlyNameAndAboutAreLive() {
+        XCTAssertEqual(Set(CloudSync.liveSettingKeys), [TypingPreferences.nameKey, TypingPreferences.aboutKey])
+    }
+
+    /// The wake word switch holds the microphone open and the rest depend on
+    /// this Mac's hardware or downloads, so none of them leave it.
+    func testPerMacSettingsAreNotPublished() {
+        for key in ["wakeWordEnabled", "pillPosition", "inputDevicePriority", "selectedWhisperModel",
+                    TypingPreferences.modelKey, TypingPreferences.pauseOnBatteryKey,
+                    TypingPreferences.pausedUntilKey, TypingPreferences.clipboardKey,
+                    TypingPreferences.screenKey, FeatureSwitches.dictationKey, FeatureSwitches.typeKey,
+                    TypingHistoryStore.pausedUntilKey] {
+            XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(key), key)
+        }
+    }
+
+    func testNoKeyIsBothLiveAndSeeded() {
+        XCTAssertTrue(Set(CloudSync.liveSettingKeys).isDisjoint(with: Set(CloudSync.seededSettingKeys)))
     }
 
     /// The Type model is a download, like the speech model.
@@ -53,7 +76,7 @@ final class CloudSyncMirroredKeysTests: XCTestCase {
     /// The settings that *should* follow the user are still doing so — this is
     /// the list that would silently shrink if someone edited the wrong line.
     func testTheOrdinarySettingsAreStillMirrored() {
-        for key in ["selectedHotkey", "wakeWord", "wakeWordEnabled", "previewSize"] {
+        for key in ["selectedHotkey", "wakeWord", "previewSize"] {
             XCTAssertTrue(CloudSync.mirroredSettingKeys.contains(key), key)
         }
     }

@@ -20,6 +20,8 @@ final class TypingHistoryStore {
 
     static let enabledKey = "typing.history.enabled"
     static let excludedKey = "typing.history.excludedApps"
+    /// Per Mac, like the switch itself.
+    static let pausedUntilKey = "typing.history.pausedUntil"
     /// Oldest go first past this; old writing says little about how the
     /// user writes now, and the index stays quick to rebuild.
     static let maximumRecords = 5_000
@@ -38,8 +40,36 @@ final class TypingHistoryStore {
         didSet { UserDefaults.standard.set(excludedApps, forKey: Self.excludedKey) }
     }
 
+    private var pause = LearningPause(until: (UserDefaults.standard.object(forKey: pausedUntilKey) as? Date))
+    @ObservationIgnored private var pauseEndTask: Task<Void, Never>?
+
+    /// "Pause learning": nothing is kept until this time. Setting it drops the
+    /// field being written, so what was typed just before pressing Pause is
+    /// not kept either.
+    var pausedUntil: Date? {
+        get { pause.isPaused() ? pause.until : nil }
+        set {
+            pause.until = newValue
+            UserDefaults.standard.set(newValue, forKey: Self.pausedUntilKey)
+            if newValue != nil { active = nil; pendingDictation = nil }
+            schedulePauseEnd()
+        }
+    }
+
+    /// Clears an expired pause so the menu stops saying "Paused until".
+    private func schedulePauseEnd() {
+        pauseEndTask?.cancel()
+        guard let until = pause.until, until > Date() else { return }
+        pauseEndTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(until.timeIntervalSinceNow))
+            guard !Task.isCancelled, let self, self.pause.until == until else { return }
+            self.pausedUntil = nil
+        }
+    }
+
     /// Take the skipped apps from UserDefaults, which iCloud sync has just
-    /// written to. The switch is not here: it stays per Mac.
+    /// written to. The switch is not here: it is copied only when the user
+    /// confirms it (`CloudSync.adoptFromOtherMac`).
     func reloadFromDefaults() {
         let d = UserDefaults.standard
         let excluded = d.stringArray(forKey: Self.excludedKey) ?? []
@@ -66,6 +96,7 @@ final class TypingHistoryStore {
 
     private init() {
         if isOn { Task { await load() } }
+        schedulePauseEnd()
     }
 
     // MARK: - Recording
@@ -75,6 +106,7 @@ final class TypingHistoryStore {
     /// sign-in and terminal fields, excluded apps).
     func observe(element: Int, bundleID: String?, windowTitle: String?, before: String) {
         guard isOn, loaded, !unreadable, let bundleID, !excludedApps.contains(bundleID) else { return }
+        guard pause.mayKeep(element: element) else { return }
         if let current = active, current.element == element,
            TypingHistoryContinuity.isSameWriting(old: current.text, new: before) {
             active?.text = before
@@ -89,7 +121,7 @@ final class TypingHistoryStore {
     /// A dictation is about to be pasted: tag it as dictated if it shows up
     /// in the field being written in the next few seconds.
     func noteDictation(_ text: String) {
-        guard isOn else { return }
+        guard isOn, !pause.isPaused() else { return }
         let scrubbed = TypingHistoryScrubber.scrub(text).trimmingCharacters(in: .whitespacesAndNewlines)
         pendingDictation = scrubbed.isEmpty ? nil : (scrubbed, Date())
     }
