@@ -2,7 +2,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { createHmac } from "node:crypto"
-import { BASE_MACS, PRODUCTION, reconcileSeats, countsAsSeat } from "../lib/seats.mts"
+import { PRODUCTION, reconcileSeats, countsAsSeat } from "../lib/seats.mts"
 import { verifyWebhook } from "../lib/webhook.mts"
 
 const env = { api: "https://api.polar.sh", token: "polar_oat_test" }
@@ -10,7 +10,7 @@ const ids = PRODUCTION
 
 type Reply = { status: number; body: any }
 
-// A fake Polar: the customer's extra-Mac orders and main keys, and a log of what was changed.
+// A fake Polar: the customer's orders and keys, and a log of what was changed.
 function fakePolar(opts: { orders: any[]; keys: any[]; sessionStatus?: number; patchStatus?: number }) {
   const patches: { path: string; body: any }[] = []
   const call = async (_api: string, path: string, _token: string, init?: RequestInit): Promise<Reply> => {
@@ -30,78 +30,136 @@ function fakePolar(opts: { orders: any[]; keys: any[]; sessionStatus?: number; p
   return { call, patches }
 }
 
-const key = (id: string, created: string, limit = 3, extra: any = {}) => ({
-  id, key: `KEY-${id}`, display_key: `****-${id}`, status: "granted",
-  benefit_id: ids.mainBenefit, limit_activations: limit, created_at: created, ...extra,
+const mainKey = (id: string, created: string, extra: any = {}) => ({
+  id, key: `KEY-${id}`, status: "granted", benefit_id: ids.mainBenefit, limit_activations: 3, created_at: created, last_validated_at: null, ...extra,
 })
-const order = (status: string) => ({ id: crypto.randomUUID(), status, product_id: ids.extraProduct })
+const singleKey = (id: string, created: string, extra: any = {}) => ({
+  id, key: `KEY-${id}`, status: "granted", benefit_id: ids.extraBenefit, limit_activations: 1, created_at: created, last_validated_at: null, ...extra,
+})
+const main = (status = "paid") => ({ id: crypto.randomUUID(), status, product_id: ids.mainProduct })
+const single = (status = "paid") => ({ id: crypto.randomUUID(), status, product_id: ids.extraProduct })
+const run = (o: Parameters<typeof fakePolar>[0], since?: number) => {
+  const f = fakePolar(o)
+  return reconcileSeats(env, ids, "cust", { call: f.call, since }).then((seats) => ({ seats, patches: f.patches }))
+}
 
-test("one paid Extra Mac raises the main key from 3 to 4", async () => {
-  const { call, patches } = fakePolar({ orders: [order("paid")], keys: [key("a", "2026-10-01T00:00:00Z")] })
-  const seats = await reconcileSeats(env, ids, "cust", undefined, call)
-  assert.equal(seats?.limit, BASE_MACS + 1)
-  assert.equal(seats?.changed, true)
-  assert.deepEqual(patches, [{ path: "/v1/license-keys/a", body: { limit_activations: 4 } }])
+test("one $35 purchase: its own key, 3 Macs, nothing to change", async () => {
+  const { seats, patches } = await run({ orders: [main()], keys: [mainKey("a", "2026-10-01T00:00:00Z")] })
+  assert.equal(seats?.limit, 3)
+  assert.equal(patches.length, 0)
 })
 
-test("two Extra Macs make five places", async () => {
-  const { call, patches } = fakePolar({ orders: [order("paid"), order("paid")], keys: [key("a", "2026-10-01T00:00:00Z")] })
-  assert.equal((await reconcileSeats(env, ids, "cust", undefined, call))?.limit, 5)
-  assert.equal(patches[0].body.limit_activations, 5)
+// The giveaway: a free single stands on its own.
+test("a single alone is a one-Mac key", async () => {
+  const { seats, patches } = await run({ orders: [single()], keys: [singleKey("s", "2026-10-01T00:00:00Z")] })
+  assert.equal(seats?.limit, 1)
+  assert.equal(patches.length, 0)
+})
+
+// Single first, three later: the single's key is the main key for all four Macs.
+test("single first, then the $35: the single's key takes all 4 places, the new key is switched off", async () => {
+  const { seats, patches } = await run({
+    orders: [single(), main()],
+    keys: [singleKey("s", "2026-10-01T00:00:00Z"), mainKey("m", "2026-10-09T00:00:00Z")],
+  })
+  assert.equal(seats?.key.id, "s")
+  assert.equal(seats?.limit, 4)
+  assert.deepEqual(patches, [
+    { path: "/v1/license-keys/s", body: { limit_activations: 4 } },
+    { path: "/v1/license-keys/m", body: { status: "disabled" } },
+  ])
+})
+
+test("the $35 first, then a single: the first key takes the fourth place", async () => {
+  const { seats, patches } = await run({
+    orders: [main(), single()],
+    keys: [mainKey("m", "2026-10-01T00:00:00Z"), singleKey("s", "2026-10-09T00:00:00Z")],
+  }, Date.parse("2026-10-09T00:00:00Z") - 300_000)
+  assert.equal(seats?.key.id, "m")
+  assert.equal(seats?.limit, 4)
+  assert.equal(seats?.joinedExisting, true)
+  assert.deepEqual(patches.map((p) => p.path), ["/v1/license-keys/m", "/v1/license-keys/s"])
+})
+
+test("a first purchase is not 'joining' anything", async () => {
+  const { seats } = await run({ orders: [single()], keys: [singleKey("s", "2026-10-09T00:00:00Z")] }, Date.parse("2026-10-09T00:00:00Z") - 300_000)
+  assert.equal(seats?.joinedExisting, false)
+})
+
+test("two singles on top of the $35 make five places", async () => {
+  const { seats } = await run({
+    orders: [main(), single(), single()],
+    keys: [mainKey("m", "2026-10-01T00:00:00Z"), singleKey("s1", "2026-10-02T00:00:00Z"), singleKey("s2", "2026-10-03T00:00:00Z")],
+  })
+  assert.equal(seats?.limit, 5)
 })
 
 // Retried webhook, or the thank-you page and the webhook both running: no second change.
 test("running it again changes nothing", async () => {
-  const { call, patches } = fakePolar({ orders: [order("paid")], keys: [key("a", "2026-10-01T00:00:00Z", 4)] })
-  const seats = await reconcileSeats(env, ids, "cust", undefined, call)
+  const { seats, patches } = await run({
+    orders: [main(), single()],
+    keys: [mainKey("m", "2026-10-01T00:00:00Z", { limit_activations: 4 }), singleKey("s", "2026-10-09T00:00:00Z", { status: "disabled" })],
+  })
   assert.equal(seats?.changed, false)
   assert.equal(patches.length, 0)
 })
 
-test("a refunded Extra Mac gives its place back; a partial refund keeps it", async () => {
-  const refunded = fakePolar({ orders: [order("paid"), order("refunded")], keys: [key("a", "2026-10-01T00:00:00Z", 5)] })
-  assert.equal((await reconcileSeats(env, ids, "cust", undefined, refunded.call))?.limit, 4)
-  const partial = fakePolar({ orders: [order("partially_refunded")], keys: [key("a", "2026-10-01T00:00:00Z", 3)] })
-  assert.equal((await reconcileSeats(env, ids, "cust", undefined, partial.call))?.limit, 4)
-  assert.equal(countsAsSeat(order("void")), false)
-  assert.equal(countsAsSeat(order("pending")), false)
+test("a later key already used on a Mac is left switched on", async () => {
+  const { patches } = await run({
+    orders: [main(), single()],
+    keys: [mainKey("m", "2026-10-01T00:00:00Z"), singleKey("s", "2026-10-09T00:00:00Z", { last_validated_at: "2026-10-09T01:00:00Z" })],
+  })
+  assert.equal(patches.some((p) => p.path.endsWith("/s")), false)
 })
 
-test("with two main keys the oldest takes the places", async () => {
-  const { call, patches } = fakePolar({
-    orders: [order("paid")],
-    keys: [key("new", "2026-10-10T00:00:00Z"), key("old", "2026-09-01T00:00:00Z")],
+test("a refund gives its places back; a partial refund keeps them", async () => {
+  const refunded = await run({
+    orders: [main(), single("refunded")],
+    keys: [mainKey("m", "2026-10-01T00:00:00Z", { limit_activations: 4 }), singleKey("s", "2026-10-09T00:00:00Z", { status: "revoked" })],
   })
-  await reconcileSeats(env, ids, "cust", undefined, call)
-  assert.equal(patches[0].path, "/v1/license-keys/old")
+  assert.equal(refunded.seats?.limit, 3)
+  const partial = await run({ orders: [single("partially_refunded")], keys: [singleKey("s", "2026-10-01T00:00:00Z")] })
+  assert.equal(partial.seats?.limit, 1)
+  assert.equal(countsAsSeat(single("void")), false)
+  assert.equal(countsAsSeat(single("pending")), false)
 })
 
-test("revoked keys and other benefits' keys are not touched", async () => {
-  const { call, patches } = fakePolar({
-    orders: [order("paid")],
-    keys: [key("dead", "2026-09-01T00:00:00Z", 3, { status: "revoked" }), key("other", "2026-09-02T00:00:00Z", 1, { benefit_id: "extra-benefit" })],
+// The first order refunded: its key is revoked, and the places move to the next key.
+test("when the first key is refunded away, the next one becomes the main", async () => {
+  const { seats, patches } = await run({
+    orders: [single("refunded"), main()],
+    keys: [singleKey("s", "2026-10-01T00:00:00Z", { status: "revoked" }), mainKey("m", "2026-10-09T00:00:00Z", { status: "disabled" })],
   })
-  assert.equal(await reconcileSeats(env, ids, "cust", undefined, call), null)
+  assert.equal(seats?.key.id, "m")
+  assert.deepEqual(patches, [{ path: "/v1/license-keys/m", body: { status: "granted" } }])
+})
+
+test("nothing paid, or no key granted yet, means nothing to do", async () => {
+  assert.equal((await run({ orders: [main("pending")], keys: [mainKey("a", "2026-10-01T00:00:00Z")] })).seats, null)
+  assert.equal((await run({ orders: [main()], keys: [] })).seats, null)
+})
+
+test("keys from other benefits are not touched", async () => {
+  const { seats, patches } = await run({
+    orders: [main()],
+    keys: [mainKey("a", "2026-10-01T00:00:00Z"), mainKey("other", "2026-10-02T00:00:00Z", { benefit_id: "unrelated" })],
+  })
+  assert.equal(seats?.key.id, "a")
   assert.equal(patches.length, 0)
 })
 
-test("an Extra Mac with no main licence has nothing to add to", async () => {
-  const { call } = fakePolar({ orders: [order("paid")], keys: [] })
-  assert.equal(await reconcileSeats(env, ids, "cust", undefined, call), null)
-})
-
 test("a Polar failure throws, so a webhook is retried", async () => {
-  const bad = fakePolar({ orders: [order("paid")], keys: [key("a", "2026-10-01T00:00:00Z")], patchStatus: 500 })
-  await assert.rejects(reconcileSeats(env, ids, "cust", undefined, bad.call), /licence key update 500/)
+  const bad = fakePolar({ orders: [main(), single()], keys: [mainKey("m", "2026-10-01T00:00:00Z"), singleKey("s", "2026-10-09T00:00:00Z")], patchStatus: 500 })
+  await assert.rejects(reconcileSeats(env, ids, "cust", { call: bad.call }), /licence key update 500/)
   const noSession = fakePolar({ orders: [], keys: [], sessionStatus: 401 })
-  await assert.rejects(reconcileSeats(env, ids, "cust", undefined, noSession.call), /customer session 401/)
+  await assert.rejects(reconcileSeats(env, ids, "cust", { call: noSession.call }), /customer session 401/)
 })
 
 test("a session the page already holds is reused", async () => {
   const calls: string[] = []
-  const { call } = fakePolar({ orders: [], keys: [key("a", "2026-10-01T00:00:00Z")] })
-  const spy = async (a: string, p: string, t: string, i?: RequestInit) => { calls.push(p); return call(a, p, t, i) }
-  await reconcileSeats(env, ids, "cust", "polar_cst_held", spy)
+  const f = fakePolar({ orders: [main()], keys: [mainKey("a", "2026-10-01T00:00:00Z")] })
+  const spy = async (a: string, p: string, t: string, i?: RequestInit) => { calls.push(p); return f.call(a, p, t, i) }
+  await reconcileSeats(env, ids, "cust", { customerToken: "polar_cst_held", call: spy })
   assert.equal(calls.some((c) => c.startsWith("/v1/customer-sessions/")), false)
 })
 
