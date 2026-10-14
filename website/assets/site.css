@@ -317,3 +317,10 @@ a:not(.pb-btn):hover { color: var(--on-air); }
 
 /* Layout classes set display; hidden must still win */
 [hidden] { display: none !important; }
+.dl-tile { display: flex; align-items: center; gap: 16px; margin: 12px 0 4px; padding: 14px 20px 14px 14px; max-width: 460px; border-radius: var(--radius-md); background: var(--studio); box-shadow: inset 0 0 0 1px var(--chrome); color: var(--ink); text-decoration: none; transition: box-shadow .15s, transform .15s; }
+.dl-tile:hover { box-shadow: inset 0 0 0 1.5px var(--on-air); transform: translateY(-1px); }
+.dl-tile img { width: 72px; height: 72px; flex: none; margin: -4px; }
+.dl-tile span { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.dl-tile strong { font: 700 18px/1.2 var(--font-body); }
+.dl-tile small { font: 400 14px/1.4 var(--font-body); color: var(--ink-muted); overflow-wrap: anywhere; }
+.dl-tile svg { flex: none; color: var(--on-air); }
