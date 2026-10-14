@@ -219,6 +219,9 @@ extension TranscriptionPipeline {
             PushLogger.log("TranscriptionPipeline: Injecting text...")
             let textToInject = formattedText
             await MainActor.run {
+                // Learning tags this paste as dictated when it lands in a field
+                // it keeps (it keeps nothing when "Learn from my writing" is off).
+                TypingHistoryStore.shared.noteDictation(textToInject)
                 TextInjector.shared.insertText(textToInject)
             }
 

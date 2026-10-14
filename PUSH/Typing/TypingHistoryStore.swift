@@ -46,7 +46,12 @@ final class TypingHistoryStore {
 
     private var loaded = false
     private var index: TypingHistoryIndex?
-    private var active: (element: Int, bundleID: String, windowTitle: String?, text: String)?
+    /// The user's phrasing habits, from all their finished writing in every
+    /// app (style travels; content stays in its window).
+    private var habits: TypingHabits?
+    private var active: (element: Int, bundleID: String, windowTitle: String?, text: String, dictated: [String])?
+    /// The last dictation pasted, until a field read shows where it landed.
+    private var pendingDictation: (text: String, at: Date)?
     private var saveTask: Task<Void, Never>?
     /// Bumped by Delete All, so a load or save already running is dropped.
     private var generation = 0
@@ -65,10 +70,34 @@ final class TypingHistoryStore {
         if let current = active, current.element == element,
            TypingHistoryContinuity.isSameWriting(old: current.text, new: before) {
             active?.text = before
+            claimDictation(in: before)
             return
         }
         finishActive()
-        active = (element, bundleID, windowTitle, before)
+        active = (element, bundleID, windowTitle, before, [])
+        claimDictation(in: before)
+    }
+
+    /// A dictation is about to be pasted: tag it as dictated if it shows up
+    /// in the field being written in the next few seconds.
+    func noteDictation(_ text: String) {
+        guard isOn else { return }
+        let scrubbed = TypingHistoryScrubber.scrub(text).trimmingCharacters(in: .whitespacesAndNewlines)
+        pendingDictation = scrubbed.isEmpty ? nil : (scrubbed, Date())
+    }
+
+    private func claimDictation(in before: String) {
+        guard let pending = pendingDictation else { return }
+        if Date().timeIntervalSince(pending.at) > 15 { pendingDictation = nil; return }
+        guard before.contains(pending.text) else { return }
+        active?.dictated.append(pending.text)
+        pendingDictation = nil
+    }
+
+    /// The user's usual next words, when they have a clear habit here.
+    func habitContinuation(before: String) -> String? {
+        guard isOn else { return nil }
+        return habits?.continuation(after: before)
     }
 
     /// The field being written joins the history.
@@ -80,7 +109,9 @@ final class TypingHistoryStore {
         // An earlier, shorter copy of the same writing (the user came back to
         // the note) is replaced rather than kept twice.
         records.removeAll { $0.bundleID == current.bundleID && text.contains($0.text.prefix(200)) }
-        records.append(TypingHistoryRecord(text: text, bundleID: current.bundleID, windowTitle: current.windowTitle))
+        let dictated = current.dictated.filter { text.contains($0) }
+        records.append(TypingHistoryRecord(text: text, bundleID: current.bundleID, windowTitle: current.windowTitle,
+                                           dictated: dictated.isEmpty ? nil : dictated))
         if records.count > Self.maximumRecords { records.removeFirst(records.count - Self.maximumRecords) }
         rebuildIndex()
         scheduleSave()
@@ -116,15 +147,38 @@ final class TypingHistoryStore {
         }
         loaded = true
         rebuildIndex()
+        writeAssessmentIfAsked()
+    }
+
+    // MARK: - Assessment
+
+    /// `defaults write com.push.voicetotext typing.assessLearning -bool true`,
+    /// then relaunch: writes learning-assessment.md next to the history —
+    /// numbers only, never a word of the text — and clears the switch.
+    static let assessKey = "typing.assessLearning"
+
+    private func writeAssessmentIfAsked() {
+        guard UserDefaults.standard.bool(forKey: Self.assessKey), !unreadable else { return }
+        UserDefaults.standard.removeObject(forKey: Self.assessKey)
+        let snapshot = records
+        Task.detached(priority: .utility) {
+            let report = TypingLearningReport.make(records: snapshot)
+            let url = TypingHistoryVault.fileURL.deletingLastPathComponent().appendingPathComponent("learning-assessment.md")
+            try? report.write(to: url, atomically: true, encoding: .utf8)
+            PushLogger.log("TypingHistoryStore: learning assessment written (\(snapshot.count) records)")
+        }
     }
 
     private func rebuildIndex() {
         let snapshot = records
         let started = generation
         Task {
-            let built = await Task.detached(priority: .utility) { TypingHistoryIndex(records: snapshot) }.value
+            let (built, learned) = await Task.detached(priority: .utility) {
+                (TypingHistoryIndex(records: snapshot), TypingHabits(texts: snapshot.map(\.text)))
+            }.value
             guard started == generation else { return }
             index = built
+            habits = learned
             passageCount = built.passageCount
         }
     }
@@ -163,6 +217,8 @@ final class TypingHistoryStore {
         active = nil
         records = []
         index = nil
+        habits = nil
+        pendingDictation = nil
         passageCount = 0
         unreadable = false
         loaded = true
