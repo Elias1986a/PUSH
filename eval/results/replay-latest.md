@@ -67,24 +67,24 @@ No suggestion: empty after cleanup 1, unwanted content 1
 | mail-01 | mid | …ick look and overall it looks go | od. | good | ✓ |
 | mail-02 | word | …ce last week. I wanted to follow |  up on the partnership we discussed. | up | ✓ |
 | mail-02 | space | …e last week. I wanted to follow  | up on the partnership we discussed. | up | ✓ |
-| mail-03 | word | … copy this week.⏎⏎Best regards,⏎ | Elias | Elias | ✓ |
+| mail-03 | word | … copy this week.⏎⏎Best regards,⏎ | Sam | Sam | ✓ |
 | mail-04 | mid | …Please send over a calendar invi | te. | invite | ✓ |
-| mail-05 | word | …e notes by end of day.⏎⏎Thanks,⏎ | Elias | Elias | ✓ |
+| mail-05 | word | …e notes by end of day.⏎⏎Thanks,⏎ | Sam | Sam | ✓ |
 | mail-06 | word | …eek. For anything urgent, please |  contact me directly. | reach |  |
 | mail-06 | space | …ek. For anything urgent, please  | contact me directly. | reach |  |
 | mail-06 | mid | …. For anything urgent, please re | ach out to me directly. | reach | ✓ |
-| mail-07 | word | …et back to you tomorrow.⏎⏎Best,⏎ | Elias | Elias | ✓ |
+| mail-07 | word | …et back to you tomorrow.⏎⏎Best,⏎ | Sam | Sam | ✓ |
 | mail-08 | word | … your team will have a chance to |  review and fix them? | look |  |
 | mail-08 | space | …your team will have a chance to  | review and fix them? | look |  |
 | mail-08 | mid | …ur team will have a chance to lo | ok at this? | look | ✓ |
 | gmail-02 | word | …13. The item arrived damaged and |  I was not informed of the damage | I | ✓ |
 | gmail-02 | space | …3. The item arrived damaged and  | I was not informed of the damage | I | ✓ |
-| gmail-03 | word | …ase for another year.⏎⏎Regards,⏎ | Elias | Elias | ✓ |
+| gmail-03 | word | …ase for another year.⏎⏎Regards,⏎ | Sam | Sam | ✓ |
 | gmail-04 | mid | …. Would it be possible to resche | dule the sync to Friday? | reschedule | ✓ |
 | gmail-05 | word | …ta science team. I think you two |  might be good friends. | would |  |
 | gmail-05 | space | …a science team. I think you two  | might be good friends. | would |  |
 | gmail-05 | mid | …science team. I think you two wo | uld be great to work together. | would | ✓ |
-| gmail-06 | word | …lly thoughtful of you.⏎⏎Cheers,⏎ | Elias | Elias | ✓ |
+| gmail-06 | word | …lly thoughtful of you.⏎⏎Cheers,⏎ | Sam | Sam | ✓ |
 | notes-01 | word | …Eggs, milk, bread, butter, |  cheese, and a few other items. | cheese | ✓ |
 | notes-01 | space | …Eggs, milk, bread, butter,  | cheese, and a few other items. | cheese | ✓ |
 | notes-01 | mid | …Eggs, milk, bread, butter, ch | eese, and a few other items. | cheese | ✓ |
@@ -201,24 +201,24 @@ No suggestion: unwanted content 2
 | mail-01 | mid | …ick look and overall it looks go | od. | good | ✓ |
 | mail-02 | word | …ce last week. I wanted to follow |  up on our conversation and see if | up | ✓ |
 | mail-02 | space | …e last week. I wanted to follow  | up on our conversation and see if | up | ✓ |
-| mail-03 | word | … copy this week.⏎⏎Best regards,⏎ | Elias | Elias | ✓ |
+| mail-03 | word | … copy this week.⏎⏎Best regards,⏎ | Sam | Sam | ✓ |
 | mail-04 | mid | …Please send over a calendar invi | te. | invite | ✓ |
-| mail-05 | word | …e notes by end of day.⏎⏎Thanks,⏎ | Elias | Elias | ✓ |
+| mail-05 | word | …e notes by end of day.⏎⏎Thanks,⏎ | Sam | Sam | ✓ |
 | mail-06 | word | …eek. For anything urgent, please | — unwanted content | reach |  |
 | mail-06 | space | …ek. For anything urgent, please  | — unwanted content | reach |  |
 | mail-06 | mid | …. For anything urgent, please re | ach out to me via email. | reach | ✓ |
-| mail-07 | word | …et back to you tomorrow.⏎⏎Best,⏎ | Elias | Elias | ✓ |
+| mail-07 | word | …et back to you tomorrow.⏎⏎Best,⏎ | Sam | Sam | ✓ |
 | mail-08 | word | … your team will have a chance to |  review them? | look |  |
 | mail-08 | space | …your team will have a chance to  | review them? | look |  |
 | mail-08 | mid | …ur team will have a chance to lo | ok at it? | look | ✓ |
 | gmail-02 | word | …13. The item arrived damaged and |  I was unable to use it. | I | ✓ |
 | gmail-02 | space | …3. The item arrived damaged and  | I was unable to use it. | I | ✓ |
-| gmail-03 | word | …ase for another year.⏎⏎Regards,⏎ | Elias | Elias | ✓ |
+| gmail-03 | word | …ase for another year.⏎⏎Regards,⏎ | Sam | Sam | ✓ |
 | gmail-04 | mid | …. Would it be possible to resche | dule the sync for another time? | reschedule | ✓ |
 | gmail-05 | word | …ta science team. I think you two |  would make a great pair! | would | ✓ |
 | gmail-05 | space | …a science team. I think you two  | would make a great pair! | would | ✓ |
 | gmail-05 | mid | …science team. I think you two wo | uld make a great pair! | would | ✓ |
-| gmail-06 | word | …lly thoughtful of you.⏎⏎Cheers,⏎ | Elias | Elias | ✓ |
+| gmail-06 | word | …lly thoughtful of you.⏎⏎Cheers,⏎ | Sam | Sam | ✓ |
 | notes-01 | word | …Eggs, milk, bread, butter, |  cheese, meat, vegetables, fruits, | cheese | ✓ |
 | notes-01 | space | …Eggs, milk, bread, butter,  | cheese, meat, vegetables, fruits, | cheese | ✓ |
 | notes-01 | mid | …Eggs, milk, bread, butter, ch | eese, meat, vegetables, fruits, | cheese | ✓ |
@@ -335,24 +335,24 @@ No suggestion: empty after cleanup 2
 | mail-01 | mid | …ick look and overall it looks go | od. | good | ✓ |
 | mail-02 | word | …ce last week. I wanted to follow |  up on our conversation about the partnership | up | ✓ |
 | mail-02 | space | …e last week. I wanted to follow  | up on our conversation about the partnership | up | ✓ |
-| mail-03 | word | … copy this week.⏎⏎Best regards,⏎ | Elias | Elias | ✓ |
+| mail-03 | word | … copy this week.⏎⏎Best regards,⏎ | Sam | Sam | ✓ |
 | mail-04 | mid | …Please send over a calendar invi | te and I\'ll confirm. | invite | ✓ |
-| mail-05 | word | …e notes by end of day.⏎⏎Thanks,⏎ | Elias | Elias | ✓ |
+| mail-05 | word | …e notes by end of day.⏎⏎Thanks,⏎ | Sam | Sam | ✓ |
 | mail-06 | word | …eek. For anything urgent, please |  contact me via email or phone. | reach |  |
 | mail-06 | space | …ek. For anything urgent, please  | contact me via email or phone. | reach |  |
 | mail-06 | mid | …. For anything urgent, please re | ach out to me via email or | reach | ✓ |
-| mail-07 | word | …et back to you tomorrow.⏎⏎Best,⏎ | Elias | Elias | ✓ |
+| mail-07 | word | …et back to you tomorrow.⏎⏎Best,⏎ | Sam | Sam | ✓ |
 | mail-08 | word | … your team will have a chance to |  review and update the metadata? | look |  |
 | mail-08 | space | …your team will have a chance to  | review and update the metadata? | look |  |
 | mail-08 | mid | …ur team will have a chance to lo | ok at this? | look | ✓ |
 | gmail-02 | word | …13. The item arrived damaged and |  I would like to return it for | I | ✓ |
 | gmail-02 | space | …3. The item arrived damaged and  | I would like to return it for | I | ✓ |
-| gmail-03 | word | …ase for another year.⏎⏎Regards,⏎ | Elias. | Elias | ✓ |
+| gmail-03 | word | …ase for another year.⏎⏎Regards,⏎ | Sam. | Sam | ✓ |
 | gmail-04 | mid | …. Would it be possible to resche | dule? | reschedule | ✓ |
 | gmail-05 | word | …ta science team. I think you two |  would get along great. | would | ✓ |
 | gmail-05 | space | …a science team. I think you two  | would get along great. | would | ✓ |
 | gmail-05 | mid | …science team. I think you two wo | uld get along great. | would | ✓ |
-| gmail-06 | word | …lly thoughtful of you.⏎⏎Cheers,⏎ | Elias. | Elias | ✓ |
+| gmail-06 | word | …lly thoughtful of you.⏎⏎Cheers,⏎ | Sam. | Sam | ✓ |
 | notes-01 | word | …Eggs, milk, bread, butter, |  cheese, meat, vegetables, fruits, | cheese | ✓ |
 | notes-01 | space | …Eggs, milk, bread, butter,  | cheese, meat, vegetables, fruits, | cheese | ✓ |
 | notes-01 | mid | …Eggs, milk, bread, butter, ch | eese, meat, vegetables, fruits, | cheese | ✓ |
@@ -469,24 +469,24 @@ No suggestion: unwanted content 1
 | mail-01 | mid | …ick look and overall it looks go | od. | good | ✓ |
 | mail-02 | word | …ce last week. I wanted to follow |  up on our discussion about potential partnerships | up | ✓ |
 | mail-02 | space | …e last week. I wanted to follow  | up on our discussion about potential partnerships | up | ✓ |
-| mail-03 | word | … copy this week.⏎⏎Best regards,⏎ | Elias | Elias | ✓ |
+| mail-03 | word | … copy this week.⏎⏎Best regards,⏎ | Sam | Sam | ✓ |
 | mail-04 | mid | …Please send over a calendar invi | te. | invite | ✓ |
-| mail-05 | word | …e notes by end of day.⏎⏎Thanks,⏎ | Elias | Elias | ✓ |
+| mail-05 | word | …e notes by end of day.⏎⏎Thanks,⏎ | Sam | Sam | ✓ |
 | mail-06 | word | …eek. For anything urgent, please |  contact me via email or phone. | reach |  |
 | mail-06 | space | …ek. For anything urgent, please  | contact me via email or phone. | reach |  |
 | mail-06 | mid | …. For anything urgent, please re | ach out to me via email or | reach | ✓ |
-| mail-07 | word | …et back to you tomorrow.⏎⏎Best,⏎ | Elias | Elias | ✓ |
+| mail-07 | word | …et back to you tomorrow.⏎⏎Best,⏎ | Sam | Sam | ✓ |
 | mail-08 | word | … your team will have a chance to |  look at them? | look | ✓ |
 | mail-08 | space | …your team will have a chance to  | look at them? | look | ✓ |
 | mail-08 | mid | …ur team will have a chance to lo | ok at them? | look | ✓ |
 | gmail-02 | word | …13. The item arrived damaged and |  I would like to return it for | I | ✓ |
 | gmail-02 | space | …3. The item arrived damaged and  | I would like to return it for | I | ✓ |
-| gmail-03 | word | …ase for another year.⏎⏎Regards,⏎ | Elias | Elias | ✓ |
+| gmail-03 | word | …ase for another year.⏎⏎Regards,⏎ | Sam | Sam | ✓ |
 | gmail-04 | mid | …. Would it be possible to resche | dule the meeting for Friday? | reschedule | ✓ |
 | gmail-05 | word | …ta science team. I think you two |  would get along great. | would | ✓ |
 | gmail-05 | space | …a science team. I think you two  | would get along great. | would | ✓ |
 | gmail-05 | mid | …science team. I think you two wo | uld get along great. | would | ✓ |
-| gmail-06 | word | …lly thoughtful of you.⏎⏎Cheers,⏎ | Elias | Elias | ✓ |
+| gmail-06 | word | …lly thoughtful of you.⏎⏎Cheers,⏎ | Sam | Sam | ✓ |
 | notes-01 | word | …Eggs, milk, bread, butter, |  cheese, jam, sugar, flour, | cheese | ✓ |
 | notes-01 | space | …Eggs, milk, bread, butter,  | cheese, jam, sugar, flour, | cheese | ✓ |
 | notes-01 | mid | …Eggs, milk, bread, butter, ch | eese, jam, sugar, flour, | cheese | ✓ |

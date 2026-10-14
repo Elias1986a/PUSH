@@ -3,7 +3,7 @@
 > **DRAFT. Not legal advice.** Have an attorney review this before launch.
 > Placeholders are in `[brackets]`.
 
-**Seller of the software license:** Elias Atalah, an individual in California.
+**Seller of the software license:** PUSHTYPE, a business in California.
 **Payments:** handled by Polar ([polar.sh](https://polar.sh)), our merchant
 of record. They process your payment, calculate and collect sales tax
 or VAT, and issue your receipt, under [Polar's buyer terms](https://polar.sh/legal/checkout-buyer-terms), which also

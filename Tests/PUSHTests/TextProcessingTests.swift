@@ -170,7 +170,7 @@ final class TextProcessingTests: XCTestCase {
     func testQuoteClosesItselfWhereAQuotationPlainlyStarts() {
         let q = TranscriptionPipeline.normalizeSpokenQuotes
         XCTAssertEqual(q("Quote alliance is here."), "\"Alliance is here.\"")
-        XCTAssertEqual(q("Elias said quote let's go home."), "Elias said \"let's go home.\"")
+        XCTAssertEqual(q("Sam said quote let's go home."), "Sam said \"let's go home.\"")
         XCTAssertEqual(q("He said, quote, let's go home. Then we left."),
                        "He said, \"Let's go home.\" Then we left.")
         XCTAssertEqual(q("She told me quote not now, maybe later."), "She told me \"not now, maybe later.\"")
@@ -180,8 +180,8 @@ final class TextProcessingTests: XCTestCase {
     /// "a" is fine, because the marker settles what was meant.
     func testPairedQuotesSpanSentencesAndResolveAmbiguity() {
         let q = TranscriptionPipeline.normalizeSpokenQuotes
-        XCTAssertEqual(q("Quote Elias is here. Elias is here, end quote."),
-                       "\"Elias is here. Elias is here.\"")
+        XCTAssertEqual(q("Quote Sam is here. Sam is here, end quote."),
+                       "\"Sam is here. Sam is here.\"")
         XCTAssertEqual(q("I think it's a quote big deal end quote."), "I think it's a \"big deal.\"")
     }
 
@@ -211,7 +211,7 @@ final class TextProcessingTests: XCTestCase {
     func testLoneQuoteMidSentenceStaysTheOrdinaryWord() {
         let q = TranscriptionPipeline.normalizeSpokenQuotes
         for s in ["I think it's a quote big deal.",
-                  "How about this quote Elias says here?",
+                  "How about this quote Sam says here?",
                   "Can you send me a quote for the roof?",
                   "She said, quote me on that.",
                   "His best quote is still the one about luck."] {
@@ -886,7 +886,7 @@ final class SpokenFormattingTests: XCTestCase {
         XCTAssertEqual(fmt("Hi John. New line. Thanks for the update."), "Hi John.\nThanks for the update.")
         XCTAssertEqual(fmt("That's the plan. New paragraph. The second thing is cost."),
                        "That's the plan.\n\nThe second thing is cost.")
-        XCTAssertEqual(fmt("Thanks, newline Elias."), "Thanks,\nElias.")
+        XCTAssertEqual(fmt("Thanks, newline Sam."), "Thanks,\nSam.")
         XCTAssertEqual(fmt("New line. And one more thing."), "\nAnd one more thing.")
     }
 

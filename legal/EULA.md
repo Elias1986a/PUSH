@@ -5,7 +5,7 @@
 
 **Effective:** October 14, 2026
 
-This agreement is between you and **Elias Atalah**, an individual doing business
+This agreement is between you and **PUSHTYPE**, a business
 in California ("we", "us"). It covers the PUSHTYPE application for macOS (formerly called PUSH), its
 updates and its documentation (together, "PUSHTYPE"). By installing or using PUSHTYPE,
 you agree to it. If you don't agree, don't install PUSHTYPE, and ask for a refund
@@ -25,7 +25,7 @@ license per person, unless we agree otherwise in writing.
 
 Your purchase includes **every update to PUSHTYPE for macOS that we release, at no
 extra charge and without a subscription**. We intend to keep improving PUSHTYPE.
-We don't promise a particular update schedule, feature or length of support.
+We don't promise a particular update schedule, feature, or length of support.
 
 Products for other platforms, and separate products we may release later, are
 not included unless we say so when you buy.
@@ -34,7 +34,7 @@ not included unless we say so when you buy.
 
 You may not, and may not help anyone else:
 
-- share, sell, rent, lend or sublicense PUSHTYPE or your license key, or use one
+- share, sell, rent, lend, or sublicense PUSHTYPE or your license key, or use one
   key on more Macs than you have seats for;
 - get around license checks, or change or remove any notice in PUSHTYPE;
 - reverse engineer, decompile or disassemble PUSHTYPE, except where applicable law
@@ -57,7 +57,7 @@ covers the versions released after it.
 ## 5. Your content and privacy
 
 PUSHTYPE turns your speech into text, and suggests how your sentences go on, on
-your Mac. We never receive your audio, your transcripts or what you type, and
+your Mac. We never receive your audio, your transcripts, or what you type, and
 we claim no rights in them. The Privacy Policy describes
 the few network connections PUSHTYPE makes.
 
@@ -71,13 +71,13 @@ the PUSHTYPE icon are our trademarks.
 
 You can stop using PUSHTYPE at any time. The license ends automatically if you
 materially break this agreement and don't fix it within 14 days of our notice.
-When it ends, delete PUSHTYPE from your Macs. Sections 6, 8, 9 and 10 still apply
+When it ends, delete PUSHTYPE from your Macs. Sections 6, 8, 9, and 10 still apply
 afterwards.
 
 ## 8. Warranty disclaimer
 
 Speech recognition and typing suggestions make mistakes. **Check what PUSHTYPE
-types, and the suggestions you accept, before you rely on them**, especially for medical, legal, financial or safety-critical text.
+types, and the suggestions you accept, before you rely on them**, especially for medical, legal, financial, or safety-critical text.
 
 TO THE EXTENT THE LAW ALLOWS, PUSHTYPE IS PROVIDED "AS IS" AND "AS AVAILABLE",
 WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING
@@ -105,7 +105,7 @@ for fraud.
 - **Export.** You'll follow the U.S. and other export laws that apply to you.
 - **Changes.** We may update this agreement for future versions. An update will
   never reduce the Macs or updates you've already paid for.
-- **Entire agreement.** This agreement, the Terms of Sale and the Privacy Policy
+- **Entire agreement.** This agreement, the Terms of Sale, and the Privacy Policy
   are the whole agreement between us about PUSHTYPE. If a court strikes out any part,
   the rest still applies.
-- **Contact.** [support@pushtype.app](mailto:support@pushtype.app) · Elias Atalah, California.
+- **Contact.** [support@pushtype.app](mailto:support@pushtype.app) · PUSHTYPE, California.

@@ -25,7 +25,7 @@ to include the copyright notice and license text with every copy we distribute.
 | [voice-glow](https://github.com/Jakubantalik/Libraries.dev), ported as `VoiceGlow.swift` | — | MIT | © 2026 Jakub Antalik | `third-party/voice-glow-LICENSE.txt` |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) (with ggml), Type's text engine | b11147 | MIT | © 2023-2026 The ggml authors | `third-party/llama.cpp-LICENSE.txt` |
 
-We didn't change FluidAudio, Sparkle, LaunchAtLogin or llama.cpp. They're used as released (llama.cpp as its official prebuilt framework).
+We didn't change FluidAudio, Sparkle, LaunchAtLogin, or llama.cpp. They're used as released (llama.cpp as its official prebuilt framework).
 Apache 2.0 §4(b) asks that modified files be marked; since we modified nothing,
 there is nothing to mark.
 
@@ -49,7 +49,7 @@ authors ask for, and CC BY 4.0 requires it when a work is shared.
 > We compiled the table above from FluidAudio's source and documentation plus
 > public listings of the upstream models. Hugging Face was unreachable from the
 > environment this file was written in. Before the first paid release, open
-> each model card, check the license field and copy any `NOTICE` text word for
+> each model card, check the license field, and copy any `NOTICE` text word for
 > word. If you find a mismatch, fix it here and in the website's legal page.
 
 ## Typing models (downloaded on first use, not bundled)
@@ -69,7 +69,7 @@ under the Apache License 2.0 (checked on each model card, 2026-10-12).
 All four speech-model licenses allow commercial use. What each one requires:
 
 - **CC BY 4.0.** Credit the creators, link to the license, say whether changes
-  were made (we made none) and don't imply endorsement.
+  were made (we made none), and don't imply endorsement.
 - **NVIDIA Open Model License.** When redistributing, pass on the agreement and
   include the notice "Licensed by NVIDIA Corporation under the NVIDIA Open
   Model License". Rights end if you sue over the model's IP, or if you bypass
