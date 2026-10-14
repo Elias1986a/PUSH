@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 9.2.2</title>
-            <pubDate>Wed, 14 Oct 2026 08:43:47 -0700</pubDate>
-            <sparkle:version>110</sparkle:version>
-            <sparkle:shortVersionString>9.2.2</sparkle:shortVersionString>
+            <title>Version 9.3.0</title>
+            <pubDate>Wed, 14 Oct 2026 14:41:24 -0700</pubDate>
+            <sparkle:version>111</sparkle:version>
+            <sparkle:shortVersionString>9.3.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,23 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 9.2.2 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 9.3.0 <span class="tag">New</span></h2>
+<h3>New</h3>
+<ul>
+<li><strong>Set up a second Mac in a minute.</strong> When you open PUSHTYPE on a Mac that shares your iCloud with another, setup starts by asking "Already use PUSHTYPE on another Mac?" Say yes and your settings, dictionary, name and About you come across, and the pages you've already answered are skipped. Each Mac still asks for its own permissions and downloads. Settings ▸ General has a Copy Settings button for later.</li>
+<li><strong>Share what it learns between your Macs.</strong> Switch on "Share what it learns with my other Macs" in Settings ▸ Personal, on each Mac you want it on. It travels through your own iCloud, encrypted with a key only your Apple Account has, and Delete All erases it everywhere. Off by default.</li>
+<li><strong>Pause learning.</strong> Like Pause Type: for an hour or until tomorrow, from the menu bar or Settings ▸ Personal. Nothing you write while paused is kept, including the note you were in the middle of.</li>
+<li><strong>Setup now covers learning.</strong> A new page, "Make it sound like you", asks for your name, an About you note and whether to learn from your writing. The welcome page and the screen page now cover autocomplete, learning and what you copy.</li>
+</ul>
+<h3>Better</h3>
+<ul>
+<li><strong>Each Mac keeps its own choices.</strong> Only your name and About you follow you automatically. Everything else is copied once, when you ask, so a work Mac can stay different. The wake word, models and microphone choices never leave a Mac.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li><strong>Dictionary entries for symbols now work.</strong> An entry like "&amp;" → "AMP" never fired, because the dictionary needed a letter beside it. It now works for "&amp;", "@" and entries ending in a full stop, and it catches the symbol when you say the word "ampersand".</li>
+</ul></div>
+<div class="older"><h2>Version 9.2.2</h2>
 <h3>Better</h3>
 <ul>
 <li><strong>Going back to fix a word no longer covers your text.</strong> In Claude Code and other agent prompts in Terminal, when you move the cursor back into what you've written, the suggestion now appears in a small card below the line, as it already did in other apps, instead of on top of the words after the cursor.</li>
@@ -224,6 +240,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.3.0/PUSH-v9.3.0.zip" type="application/octet-stream" sparkle:edSignature="sJGyUkkUrAGPQkVE+O1ZdH3YVfCsK2K95zQ93G53eqjr5iBIqGpM+97YFM15HJuTJ2sYHDhPc4BAIx61n7uBAw==" length="21185102" />
+        </item>
+        <item>
+            <title>Version 9.2.2</title>
+            <pubDate>Wed, 14 Oct 2026 08:43:47 -0700</pubDate>
+            <sparkle:version>110</sparkle:version>
+            <sparkle:shortVersionString>9.2.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.2.2/PUSH-v9.2.2.zip" type="application/octet-stream" sparkle:edSignature="hMGKmfwFPKNOla0o6yUfxJVIIc8MAId58BveTGOrphLCRlTX7RIMCOnds0z0QsunablVVtMskcJzH6DmAS7SAA==" length="21062372" />
         </item>
         <item>
