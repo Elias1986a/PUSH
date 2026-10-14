@@ -36,7 +36,10 @@ async function polar(api: string, path: string, token: string, init: RequestInit
 
 export default async (req: Request) => {
   const params = new URL(req.url).searchParams
-  const checkoutID = params.get("checkout_id") ?? ""
+  // The order number is a UUID. Take just that from the start of the value, so
+  // a stray character after it in Polar's success URL ("{CHECKOUT_ID}.") cannot
+  // turn a real purchase into the email-only fallback.
+  const checkoutID = (params.get("checkout_id") ?? "").match(/^[0-9a-f-]{36}/i)?.[0] ?? ""
   const sessionToken = params.get("customer_session_token") ?? ""
   if (!/^[0-9a-f-]{36}$/i.test(checkoutID)) return json({ error: "bad_request" }, 400)
 
