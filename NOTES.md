@@ -1201,3 +1201,5 @@ For local test builds without notarising, see the throwaway script pattern:
   become a genuine cross-thread race, and event ordering must stay FIFO
   (`DispatchQueue.main.async`, not `Task`). Held back as too risky to bundle;
   the watchdog covers the observed failure.
+
+**Live free-checkout test passed (2026-10-14):** the user used a 100%-off code on the PUSHTYPE-only link; /thanks showed the 9.3.0 download tile and the licence key. Needed Netlify's POLAR_ACCESS_TOKEN (live, every context) plus a separate POLAR_SERVER=production (it was missing, so the function hit the sandbox and got 401). The live Polar product currently carries the 9.3.0 DMG: replace it with 10.0's. The test key is in a screenshot: refund that order in Polar to revoke it.

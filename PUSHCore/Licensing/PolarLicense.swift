@@ -15,8 +15,9 @@ public struct PolarConfig: Sendable, Equatable {
     public let productIDs: [String]
     /// Polar's checkout for the $35 product, for the app's "Buy PUSHTYPE".
     public let checkoutURL: URL
-    /// The $12 add-on: its own key, good for one more Mac, which that Mac
-    /// activates with instead of the main key.
+    /// The $12 add-on. It adds one place to the buyer's main key (the
+    /// website's webhook sets the key's limit to 3 plus the Extra Macs paid),
+    /// so the new Mac activates with the main key like the others.
     public let addMacCheckoutURL: URL
     /// Polar's customer portal: the buyer signs in with their email and a
     /// code, and sees their key, their download and which Macs use the key.

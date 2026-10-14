@@ -6,7 +6,8 @@
 // session token of its own, customer_session_token); only the buyer has
 // them. The order number unlocks the key, so it works only for an hour after
 // payment, and the page takes it out of the address bar at once. The Polar
-// access token (scopes checkouts:read and customer_sessions:write) lives in
+// access token (scopes checkouts:read, customer_sessions:write and
+// license_keys:write, the last to add a Mac to a key) lives in
 // the POLAR_ACCESS_TOKEN environment variable and never reaches the page.
 // POLAR_SERVER is "sandbox" until the live store opens. Nothing is stored,
 // and keys are never logged.
@@ -15,6 +16,8 @@
 // (Netlify ▸ Deploys ▸ Trigger deploy). A push that touches nothing under
 // website/ is skipped by Netlify and does not count.
 import type { Config } from "@netlify/functions"
+import { polar, polarEnv } from "../lib/polar.mts"
+import { idsFor, reconcileSeats } from "../lib/seats.mts"
 
 const MAX_AGE_MS = 60 * 60 * 1000
 
@@ -23,15 +26,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { "content-type": "application/json", "cache-control": "no-store" },
   })
-}
-
-async function polar(api: string, path: string, token: string, init: RequestInit = {}) {
-  const res = await fetch(api + path, {
-    ...init,
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...(init.headers ?? {}) },
-  })
-  const body = await res.json().catch(() => ({}))
-  return { status: res.status, body: body as any }
 }
 
 export default async (req: Request) => {
@@ -43,9 +37,9 @@ export default async (req: Request) => {
   const sessionToken = params.get("customer_session_token") ?? ""
   if (!/^[0-9a-f-]{36}$/i.test(checkoutID)) return json({ error: "bad_request" }, 400)
 
-  const token = Netlify.env.get("POLAR_ACCESS_TOKEN")
-  if (!token) return json({ error: "not_configured" }, 503)
-  const api = Netlify.env.get("POLAR_SERVER") === "production" ? "https://api.polar.sh" : "https://sandbox-api.polar.sh"
+  const env = polarEnv()
+  if (!env) return json({ error: "not_configured" }, 503)
+  const { api, token } = env
 
   const checkout = await polar(api, `/v1/checkouts/${checkoutID}`, token)
   if (checkout.status === 404) return json({ error: "not_found" }, 404)
@@ -79,6 +73,22 @@ export default async (req: Request) => {
     customerToken = session.body.token
   }
 
+  // An Extra Mac adds a place to the buyer's main key rather than being a key
+  // of its own: set the places now (the webhook does the same, so whichever
+  // comes first, the answer is the same), and hand back the main key.
+  const ids = idsFor(env.production)
+  let extraMac: { key: any; limit: number } | null = null
+  if (co.product_id === ids.extraProduct) {
+    try {
+      const seats = await reconcileSeats(env, ids, co.customer_id, customerToken)
+      if (!seats) return json({ error: "no_licence" }, 404)
+      extraMac = { key: seats.key, limit: seats.limit }
+    } catch (error) {
+      console.log(`seats failed: ${(error as Error).message}`)
+      return json({ error: "polar_error", step: "seats" }, 502)
+    }
+  }
+
   const [keys, files] = await Promise.all([
     polar(api, "/v1/customer-portal/license-keys/?limit=100", customerToken),
     polar(api, "/v1/customer-portal/downloadables/?limit=100", customerToken),
@@ -90,7 +100,7 @@ export default async (req: Request) => {
 
   // This purchase's key: granted, and made no earlier than the checkout. An
   // older key is another purchase's; until this one's exists, the page waits.
-  const key = ((keys.body.items ?? []) as any[])
+  const key = extraMac?.key ?? ((keys.body.items ?? []) as any[])
     .filter((k) => k.status === "granted" && Date.parse(k.created_at) >= createdAt - 5 * 60 * 1000)
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0]
   if (!key) return json({ error: "not_ready", status: "no_key_yet" }, 409)
@@ -101,7 +111,8 @@ export default async (req: Request) => {
   return json({
     key: key.key,
     displayKey: key.display_key,
-    macs: key.limit_activations,
+    macs: extraMac?.limit ?? key.limit_activations,
+    kind: extraMac ? "extra" : "licence",
     download: dmg?.file?.download?.url
       ? { url: dmg.file.download.url, name: dmg.file.name, size: dmg.file.size_readable }
       : null,

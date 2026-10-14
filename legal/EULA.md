@@ -3,7 +3,7 @@
 > **DRAFT. Not legal advice.** Have a California-licensed attorney review this
 > before the first paid sale. Placeholders are in `[brackets]`.
 
-**Effective:** [date of first paid release]
+**Effective:** October 14, 2026
 
 This agreement is between you and **Elias Atalah**, an individual doing business
 in California ("we", "us"). It covers the PUSHTYPE application for macOS (formerly called PUSH), its
@@ -97,7 +97,7 @@ for fraud.
 ## 10. General
 
 - **Governing law.** This agreement is governed by the laws of the State of
-  California, excluding its conflict-of-laws rules. Courts in [County], California
+  California, excluding its conflict-of-laws rules. Courts in Los Angeles County, California
   have jurisdiction, unless your local consumer law gives you the right to go to
   court where you live.
 - **Consumer rights.** Nothing in this agreement removes rights you have under
