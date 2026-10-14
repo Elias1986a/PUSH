@@ -548,6 +548,7 @@ final class TypingCoordinator {
                let fix = TypoFix.find(in: before, isTypo: { !Self.isRealWord($0) },
                                       isInProgress: Self.startsARealWord,
                                       guesses: { Self.spellingCorrections(for: $0, in: before) }) {
+                nextInField = surface == .terminal ? nil : focus.after?.first
                 return showCorrection(fix, at: placement, surface: surface)
             }
             return skip("typo at caret")
@@ -750,9 +751,14 @@ final class TypingCoordinator {
     /// Deletes the typo (and the space after it) and types the fix, then
     /// carries on suggesting from the corrected text.
     private func applyCorrection(_ fix: TypoFix) {
+        let next = nextInField
         hide()
+        // A fix at the caret ends the word: add the space after it, as for an
+        // accepted suggestion, unless the field already has one there.
+        let spaced = fix.trailing.isEmpty && AppState.shared.typingSpaceAfterLastWord
+            && SuggestionText.needsTrailingSpace(finishing: fix.replacement, nextInField: next)
         KeystrokeTyper.backspace(fix.deleteCount)
-        KeystrokeTyper.type(fix.typed)
+        KeystrokeTyper.type(fix.typed + (spaced ? " " : ""))
         PushLogger.log("TypingCoordinator: spelling fix accepted")
         scheduleSuggestion(after: Self.terminalSettle)
     }
