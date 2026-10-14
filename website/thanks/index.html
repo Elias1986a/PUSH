@@ -34,7 +34,12 @@
 <section class="bench-section" id="quick" hidden>
 <div class="card bench-quote">
 <ol class="thanks-steps">
-<li><strong>Download PUSHTYPE.</strong> <a class="pb-btn pb-btn-push thanks-btn" id="download-btn" href="#">Download</a><br><span class="thanks-small" id="download-meta"></span></li>
+<li><strong>Download PUSHTYPE.</strong>
+<a class="dl-tile" id="download-btn" href="#" download>
+<img src="../assets/app-icon.png" alt="" width="64" height="64">
+<span><strong>Download for Mac</strong><small id="download-meta">macOS 15 or later, Apple silicon</small></span>
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+</a></li>
 <li><strong>Install it:</strong> open the downloaded file, drag PUSHTYPE to Applications, and open it.</li>
 <li><strong>Activate it.</strong> <a class="pb-btn pb-btn-push thanks-btn" id="activate-btn" href="#">Activate PUSHTYPE</a><br><span class="thanks-small">Your browser asks to open PUSHTYPE: allow it, and you're done. Your other Macs on the same Apple Account activate on their own.</span></li>
 </ol>
@@ -71,7 +76,7 @@
     var dl = document.getElementById('download-btn');
     if (data.download) {
       dl.href = data.download.url;
-      document.getElementById('download-meta').textContent = data.download.name + ', ' + data.download.size;
+      document.getElementById('download-meta').textContent = data.download.name + ' · ' + data.download.size;
     } else {
       dl.replaceWith(document.createTextNode('Use the link in Polar\'s email.'));
     }
