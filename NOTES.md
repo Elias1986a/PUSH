@@ -13,8 +13,8 @@ Done:
   checkouts:read only), no older-key fallback.
 - Site: self-hosted fonts, "What you say and type never leaves your Mac.",
   share card v3, font licences in notices.
-- release.yml deleted. Still to do by the user: delete the 5 GitHub
-  secrets (CERTIFICATE_*, NOTARIZATION_*), since the tool was blocked.
+- release.yml deleted; the user deleted its 5 GitHub secrets (repo has
+  none left).
 Not done yet: PUSH.app → PUSHTYPE.app in the DMG (needs a Sparkle rename
 test on the user's Macs). User decision: no trial; paid + 14-day refund.
 Launch list adds: remove noindex from home/benchmark, robots + sitemap.
