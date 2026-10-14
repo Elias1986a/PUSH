@@ -1,6 +1,6 @@
 /// What the user typed since focus, a click or a caret move — the "text before
 /// the caret" for apps whose fields Accessibility cannot read. Held in memory
-/// only: never stored, never logged.
+/// only: never stored, never logged, and never kept from a password field.
 public struct KeystrokeBuffer: Sendable, Equatable {
     public enum Key: Sendable, Equatable {
         case text(String), backspace, reset, ignore
@@ -11,6 +11,7 @@ public struct KeystrokeBuffer: Sendable, Equatable {
             115, 119, 116, 121,  // home, end, page up, page down
             117,                 // forward delete
             53,                  // escape
+            48,                  // tab: focus moves on to the next field
         ]
 
         public static func classify(keyCode: Int64, command: Bool, control: Bool, characters: String?) -> Key {
@@ -26,9 +27,22 @@ public struct KeystrokeBuffer: Sendable, Equatable {
     }
 
     public private(set) var text = ""
+    /// The field the text belongs to, as last read; nil until one is.
+    public private(set) var field: Int?
     private let limit: Int
 
     public init(limit: Int = 1_500) { self.limit = limit }
+
+    /// Hands the buffer to the field just read. Keys typed before focus came
+    /// here are not this field's text, and nothing typed into a password
+    /// field is kept. Returns whether the field changed.
+    @discardableResult
+    public mutating func focus(on field: Int, isSecure: Bool) -> Bool {
+        let changed = field != self.field
+        if changed || isSecure { text = "" }
+        self.field = field
+        return changed
+    }
 
     public mutating func apply(_ key: Key) {
         switch key {

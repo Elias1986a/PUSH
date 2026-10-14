@@ -1,5 +1,28 @@
 # NOTES
 
+## External review follow-up (2026-10-14)
+
+An outside AI review (docs/PUSHTYPE_PROJECT_REVIEW.md, untracked, the
+user's) was checked claim by claim. It read main mid-session, so its
+"iCloud licence not implemented" point is already done on next-release.
+Done:
+- Type: password keys never stay in KeystrokeBuffer (PR #49, 9.2.1). The buffer owns its field, clears on every change and
+  on secure fields; Tab clears it.
+- /thanks: no Google Analytics, credentials cleared from the address bar,
+  the function requires Polar's customer_session_token (live token needs
+  checkouts:read only), no older-key fallback.
+- Site: self-hosted fonts, "What you say and type never leaves your Mac.",
+  share card v3, font licences in notices.
+- release.yml deleted. Still to do by the user: delete the 5 GitHub
+  secrets (CERTIFICATE_*, NOTARIZATION_*), since the tool was blocked.
+Not done yet: PUSH.app → PUSHTYPE.app in the DMG (needs a Sparkle rename
+test on the user's Macs). User decision: no trial; paid + 14-day refund.
+Launch list adds: remove noindex from home/benchmark, robots + sitemap.
+
+## 9.2.1 (2026-10-14) — password keystrokes never kept
+
+Ships PR #49 (see the external review follow-up above).
+
 ## 9.2.0 (2026-10-14) — spelling fixes, round two
 
 User tested 9.1.2's fixes: few showed (log: 49 typo stand-downs vs 2
@@ -44,7 +67,8 @@ Space not built. Shipped on its own branch ahead of the licensing release.
 Decided with the user: keys stay (no sharing), made nearly invisible.
 Thank-you page (/thanks/?checkout_id=…) calls the Netlify function
 /api/purchase (website/netlify/functions/purchase.mts; env
-POLAR_ACCESS_TOKEN with checkouts:read + customer_sessions:write,
+POLAR_ACCESS_TOKEN with checkouts:read only (2026-10-14: the buyer's own
+customer_session_token from Polar is required; no fallback session),
 POLAR_SERVER=production at launch) for a Download button (signed DMG URL)
 and Activate (pushtype://activate?key=…). App: key in iCloud Keychain
 (SyncedLicenseKey; new Mac on the same Apple Account activates once by

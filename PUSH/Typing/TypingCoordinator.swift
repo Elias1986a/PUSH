@@ -114,8 +114,6 @@ final class TypingCoordinator {
     private var debounceTask: Task<Void, Never>?
     private var generationTask: Task<Void, Never>?
     private var shown: Shown?
-    /// The field the keystroke buffer belongs to.
-    private var bufferElement: Int?
     /// The field the last suggestion was made for, and an Esc pause on it:
     /// Esc means "not now", so the next keystroke must not bring one straight
     /// back (Cotypist pauses the field for a few seconds too).
@@ -159,6 +157,7 @@ final class TypingCoordinator {
             if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
             activationObserver = nil
             focusObserver.stop()
+            buffer = KeystrokeBuffer()
             cancelWork()
             hideAll()
         }
@@ -463,6 +462,7 @@ final class TypingCoordinator {
             guard mayRun, AppState.shared.typingShowIndicator else { return TypeIndicatorPanel.shared.hide() }
             let focus = await readFocus()
             guard !Task.isCancelled else { return }
+            if let focus, buffer.focus(on: focus.elementID, isSecure: focus.isSecure) { promptCaret.reset() }
             if shown != nil, focus?.elementID != suggestedElement { hide() }
             updateIndicator(for: focus)
         }
@@ -472,6 +472,9 @@ final class TypingCoordinator {
         guard mayRun else { return }
         guard let focus = await readFresh(stamp: stamp) else { return skip("no focused element") }
         guard stamp == keystrokes, mayRun else { return }
+        // Before any rule: keys typed into another field, or a password
+        // field, are never this field's text.
+        if buffer.focus(on: focus.elementID, isSecure: focus.isSecure) { promptCaret.reset() }
         if let id = focus.bundleID, focus.pid != ProcessInfo.processInfo.processIdentifier, focus.isTextInput {
             lastApp = (id, focus.appName ?? id)
         }
@@ -484,12 +487,6 @@ final class TypingCoordinator {
         if let paused, paused.element == focus.elementID, Date() < paused.until { return skip("esc pause") }
         suggestedElement = focus.elementID
 
-        // Keys typed into another field are not this field's text.
-        if focus.elementID != bufferElement {
-            if bufferElement != nil { buffer.apply(.reset) }
-            bufferElement = focus.elementID
-            promptCaret.reset()
-        }
         var before = focus.before ?? buffer.text
         var surfaceLine = SurfaceLine.render(surface: surface, appName: focus.appName, windowTitle: focus.windowTitle,
                                              url: focus.url, placeholder: focus.placeholder)
@@ -679,7 +676,7 @@ final class TypingCoordinator {
             guard stamp == keystrokes else { return nil }
             focus = await readFocus()
             guard let snapshot = focus, let before = snapshot.before, !typed.isEmpty,
-                  snapshot.elementID == bufferElement else { return focus }
+                  snapshot.elementID == buffer.field else { return focus }
             if before.hasSuffix(typed) { return focus }
             // A terminal agent's row ends in its drawn cursor and padding, not
             // the keys: compare its prompt text, or every key waited 120 ms.

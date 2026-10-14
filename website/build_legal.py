@@ -111,7 +111,7 @@ TEMPLATE = """<!doctype html>
 <title>{title} · PUSHTYPE</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="../assets/icon.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap">
+<link rel="stylesheet" href="../assets/fonts.css">
 <link rel="stylesheet" href="../assets/tokens.css">
 <link rel="stylesheet" href="../assets/components.css">
 <link rel="stylesheet" href="../assets/site.css">
@@ -143,7 +143,7 @@ TEMPLATE = """<!doctype html>
 <a href="https://www.instagram.com/pushtype/" aria-label="PUSHTYPE on Instagram" target="_blank" rel="noopener me"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg></a>
 <a href="https://www.tiktok.com/@pushtypeapp" aria-label="PUSHTYPE on TikTok" target="_blank" rel="noopener me"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.2 3c.3 2.3 1.7 3.9 4 4.1v3.1c-1.5 0-2.9-.5-4-1.3V15a6 6 0 1 1-6-6h.6v3.2a2.9 2.9 0 1 0 2.3 2.8V3h3.1z"/></svg></a>
 </div>
-<p>© 2026 Elias Atalah.</p>
+<p>© 2026 PUSHTYPE.</p>
 </div>
 </footer>
 </body>
