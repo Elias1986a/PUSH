@@ -37,7 +37,7 @@ struct DictionarySettingsView: View {
                 // At the top, where it is read before the list grows long: the
                 // same words serve both features (DictionaryCompletion for Type).
                 Label {
-                    Text("Used for both voice and typing. Dictation writes what it hears with these spellings. When you type, PUSHTYPE finishes these words for you (“Kub” → “Kubernetes”) and never treats them as typos.")
+                    Text("Used by both Talk and TYPE. Talk writes what it hears with these spellings. When you type, PUSHTYPE finishes these words for you (“Kub” → “Kubernetes”) and never treats them as typos.")
                 } icon: {
                     Image(systemName: "mic.and.signal.meter")
                 }

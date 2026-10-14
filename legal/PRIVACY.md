@@ -18,7 +18,7 @@ there's nothing to opt out of because we don't collect it. PUSHTYPE has no analy
   into text, and then thrown away. It's never saved to disk or sent anywhere.
 - **Transcripts** are pasted where you're typing, through the clipboard. PUSHTYPE
   doesn't keep a history of them.
-- **What you type (Type, the autocomplete).** To suggest how your sentence
+- **What you type (TYPE, the autocomplete).** To suggest how your sentence
   goes on, PUSHTYPE reads the text before and around your cursor, and anything you
   copied in the last few minutes, at the moment it makes a suggestion. It's
   held in memory and never saved or sent. Password and sign-in fields are never

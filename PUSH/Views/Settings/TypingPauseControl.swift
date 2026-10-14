@@ -34,7 +34,7 @@ struct TypingPauseControl: View {
                             appState.typingExcludedApps.append(app.bundleID)
                             choosing = false
                         }
-                        .help("Turns suggestions off in \(app.name) until you remove it in Settings → Typing")
+                        .help("Turns suggestions off in \(app.name) until you remove it in Settings ▸ TYPE")
                     }
                 }
             }
