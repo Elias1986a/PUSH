@@ -19,6 +19,16 @@ Not done yet: PUSH.app → PUSHTYPE.app in the DMG (needs a Sparkle rename
 test on the user's Macs). User decision: no trial; paid + 14-day refund.
 Launch list adds: remove noindex from home/benchmark, robots + sitemap.
 
+## Repo cleanup (2026-10-14)
+
+PR #53 plus GitHub: only main and next-release remain (local and remote);
+GitHub deletes branches on merge now, so PR #37 (launch) takes next-release
+with it. Old docs/scripts and the committed PUSH-Xcode binaries removed,
+shipped plans in docs/plans/archive, README rewritten (build + release
+steps). Local trash: ~/.Trash/PUSH-cleanup-2026-10-14 (old installers,
+caches, branch SHAs). All 31 GitHub releases kept until the repo goes
+private at launch (move the Sparkle feed first).
+
 ## 9.2.2 (2026-10-14) — no suggestion over the text after the cursor
 
 User photo: going back mid-prompt in Claude Code drew the suggestion over
