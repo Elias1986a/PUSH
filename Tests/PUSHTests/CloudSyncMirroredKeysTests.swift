@@ -29,13 +29,19 @@ final class CloudSyncMirroredKeysTests: XCTestCase {
             Set(CloudSync.mirroredSettingKeys).isDisjoint(with: Set(CloudSync.retiredSettingKeys)))
     }
 
-    /// The user's name, their About you note, the learning switch and the apps
-    /// it skips follow them. The writing is a file, not a key, so it cannot.
+    /// The user's name, their About you note and the apps learning skips
+    /// follow them. The writing is a file, not a key, so it cannot.
     func testThePersonalSettingsAreMirrored() {
         for key in [TypingPreferences.nameKey, TypingPreferences.aboutKey,
-                    TypingHistoryStore.enabledKey, TypingHistoryStore.excludedKey] {
+                    TypingHistoryStore.excludedKey] {
             XCTAssertTrue(CloudSync.mirroredSettingKeys.contains(key), key)
         }
+    }
+
+    /// Whether to learn is each Mac's own call: a work Mac stays off even when
+    /// the others are on.
+    func testTheLearningSwitchIsPerMac() {
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains(TypingHistoryStore.enabledKey))
     }
 
     /// The Type model is a download, like the speech model.

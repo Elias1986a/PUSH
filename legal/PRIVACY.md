@@ -31,8 +31,8 @@ analytics, no ads and no account.
   what you type and dictate where suggestions are on, so they sound like you.
   It's encrypted with a key in your Mac's Keychain, stored at
   `~/Library/Application Support/PUSH/TypingHistory.sealed`, never synced and
-  never sent. Only the on/off switch, and the apps you leave out, follow you to your
-  other Macs (see iCloud below), so each Mac keeps its own copy of the writing.
+  never sent. Only the apps you leave out follow you to your other Macs (see iCloud
+  below); the switch is per Mac, and each Mac keeps its own copy of the writing.
   Settings ▸ Personal ▸ Delete All erases it and its key.
 - **A diagnostic log** at `~/Library/Application Support/PUSH/push_debug.log`
   records operational events such as "model loaded" and timings. It never
@@ -45,7 +45,7 @@ analytics, no ads and no account.
 | You press **Download** for a speech or typing model | Hugging Face (huggingface.co) | A standard download request: your IP address and the files requested | To fetch the open model you picked. [Hugging Face privacy policy](https://huggingface.co/privacy) |
 | Once a day, if automatic updates are on | Our update feed on GitHub (raw.githubusercontent.com) | A standard web request: your IP address, PUSHTYPE version and macOS version | To check for updates (Sparkle). |
 | When you activate a licence | Your own iCloud Keychain (end-to-end encrypted by Apple) | Your licence key | So your other Macs signed in to the same Apple Account activate without asking. We can't read it. |
-| If "Sync settings and dictionary across my Macs" is on (Settings ▸ General) | Apple iCloud, through your own iCloud account | Your PUSHTYPE settings (including your name, your About you note and whether Learn from my writing is on) and personal dictionary entries. Never the writing itself | To keep your Macs in step. We can't read this data; it's stored under your Apple Account. Switch it off at any time. |
+| If "Sync settings and dictionary across my Macs" is on (Settings ▸ General) | Apple iCloud, through your own iCloud account | Your PUSHTYPE settings (including your name and your About you note) and personal dictionary entries. Never the writing itself | To keep your Macs in step. We can't read this data; it's stored under your Apple Account. Switch it off at any time. |
 | When you enter a licence key, when you remove a Mac from your licence, and at most once a day to confirm the licence is still valid | Polar (polar.sh), our merchant of record | Your licence key, an activation ID, and your Mac's model (for example "Mac mini (M4)") so you can tell your Macs apart. Like any web request, it also carries your IP address | To check the key is genuine and to count Macs (3 per licence). [Polar's privacy policy](https://polar.sh/legal/privacy) |
 
 None of these connections carries audio, transcripts or anything you type.

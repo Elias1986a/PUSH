@@ -38,13 +38,10 @@ final class TypingHistoryStore {
         didSet { UserDefaults.standard.set(excludedApps, forKey: Self.excludedKey) }
     }
 
-    /// Take the switch and the skipped apps from UserDefaults, which iCloud
-    /// sync has just written to. Only changes are applied, so turning the
-    /// switch on here loads the history once and off here seals the active field.
+    /// Take the skipped apps from UserDefaults, which iCloud sync has just
+    /// written to. The switch is not here: it stays per Mac.
     func reloadFromDefaults() {
         let d = UserDefaults.standard
-        let on = d.bool(forKey: Self.enabledKey)
-        if on != isOn { isOn = on }
         let excluded = d.stringArray(forKey: Self.excludedKey) ?? []
         if excluded != excludedApps { excludedApps = excluded }
     }

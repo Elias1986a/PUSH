@@ -43,13 +43,12 @@ final class CloudSync: ObservableObject {
         "previewSize",
         "resolveSelfCorrections",
         "californiaMode",
-        // Who the user is and whether Type may learn from them. The writing
-        // itself is a sealed file on one Mac and never travels (see
-        // `TypingHistoryStore`); only the switch, the apps it skips and the
-        // two things the user typed about themselves do.
+        // Who the user is, and the apps learning skips. The learning switch
+        // itself is per Mac on purpose (a work Mac can stay off), and the
+        // writing is a sealed file on one Mac that does not travel (see
+        // `TypingHistoryStore`).
         TypingPreferences.nameKey,
         TypingPreferences.aboutKey,
-        TypingHistoryStore.enabledKey,
         TypingHistoryStore.excludedKey
     ]
 
