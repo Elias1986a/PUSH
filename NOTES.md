@@ -1,5 +1,10 @@
 # NOTES
 
+## Pooled seats: Extra Mac adds a place to the main key (2026-10-14, live)
+
+Extra Mac is no longer a key of its own (its License Keys benefit was removed in Polar). lib/seats.mts sets the customer's main key to 3 + paid Extra Mac orders (idempotent; refunds lower it; with two main keys the oldest takes them). It runs from /api/purchase (thank-you page: returns the main key, kind "extra") and from the Polar webhook /api/polar-webhook (order.paid / refunded / updated, Standard Webhooks signature, secret POLAR_WEBHOOK_SECRET; the access token also needs license_keys:write). Live test passed: page said "It now covers 4" with the original key. Needs the same email as the main licence (else the page says to email support). Product ids, benefit ids and 13 node tests: website/netlify/lib, website/netlify/test (`node --test website/netlify/test/*.test.mts`). Old-style 1-seat Extra Mac keys still work in the app (not synced through iCloud).
+Spelling: the app, site and legal pages say "licence" (British); the user's Polar copy says "license". Open question whether to switch all to American.
+
 ## 9.3.0 released (2026-10-14)
 
 Second-Mac setup question, seeded settings, learning in the wizard, Pause
