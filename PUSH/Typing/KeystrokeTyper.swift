@@ -24,6 +24,24 @@ enum KeystrokeTyper {
         }
     }
 
+    /// Presses Delete `count` times: the first half of swapping in a spelling
+    /// fix. Carries the same marker, and the character a real Delete key
+    /// reports, so Type's tap takes each one off its own copy of the text.
+    static func backspace(_ count: Int) {
+        guard count > 0 else { return }
+        let source = CGEventSource(stateID: .privateState)
+        let delete = Array("\u{7f}".utf16)
+        for _ in 0..<count {
+            for keyDown in [true, false] {
+                guard let event = CGEvent(keyboardEventSource: source, virtualKey: 51, keyDown: keyDown) else { continue }
+                event.flags = []
+                event.setIntegerValueField(.eventSourceUserData, value: TypingKeyTap.ownEventMarker)
+                event.keyboardSetUnicodeString(stringLength: delete.count, unicodeString: delete)
+                event.post(tap: .cghidEventTap)
+            }
+        }
+    }
+
     /// Splits on character boundaries, so an emoji's surrogate pair or a
     /// combining accent never straddles two events.
     static func chunks(of text: String) -> [String] {

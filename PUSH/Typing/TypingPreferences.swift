@@ -9,6 +9,7 @@ enum TypingPreferences {
     static let codeEditorsKey = "typing.codeEditors"
     static let colorKey = "typing.color"
     static let spaceAfterKey = "typing.spaceAfterLastWord"
+    static let fixTyposKey = "typing.fixTypos"
     static let pauseOnBatteryKey = "typing.pauseOnBattery"
     static let excludedAppsKey = "typing.excludedApps"
     static let pausedUntilKey = "typing.pausedUntil"
@@ -57,6 +58,12 @@ enum TypingPreferences {
     /// it): finishing a suggestion types the space before the next word.
     static func spaceAfterLastWord(in d: UserDefaults = .standard) -> Bool {
         d.object(forKey: spaceAfterKey) as? Bool ?? true
+    }
+
+    /// On by default: a misspelled word gets macOS's correction offered in
+    /// place of a continuation.
+    static func fixTypos(in d: UserDefaults = .standard) -> Bool {
+        d.object(forKey: fixTyposKey) as? Bool ?? true
     }
 
     /// Off by default: a laptop on battery still has plenty for a 1–3 GB model.

@@ -179,6 +179,7 @@ final class TypingCoordinator {
     func hide() {
         watchTask?.cancel()
         shown = nil
+        correction = nil
         GhostTextPanel.shared.hide()
         TypingKeyTap.shared.setSuggestionVisible(false)
     }
@@ -197,7 +198,8 @@ final class TypingCoordinator {
             hide()
             if let element = suggestedElement { paused = (element, Date().addingTimeInterval(Self.escPause)) }
         case .own(let text):
-            buffer.apply(.text(text))
+            // PUSH's own Delete presses (a spelling fix) take a character off.
+            buffer.apply(text == "\u{7f}" ? .backspace : .text(text))
         case .paste:
             scheduleSuggestion(after: Self.pasteSettle)
         case .caret(let move):
@@ -205,8 +207,10 @@ final class TypingCoordinator {
             // ↑ in an empty prompt recalls a past message, caret at its end.
             promptCaret.apply(move == .vertical && promptText.isEmpty ? .toEnd : move)
         case .acceptWord:
+            if let fix = correction { return applyCorrection(fix) }
             accept(whole: false)
         case .acceptAll:
+            if let fix = correction { return applyCorrection(fix) }
             accept(whole: true)
         case .key(let key):
             guard key != .ignore else { return }
@@ -535,7 +539,15 @@ final class TypingCoordinator {
         }
         // A typo at the caret: whatever follows would build on it (Cotabby
         // holds completions while one forms; Cotypist says fix it first).
-        guard !Self.typoAtCaret(before) else { return skip("typo at caret") }
+        if Self.typoAtCaret(before) {
+            // Offer the spelling fix in place of a continuation, which would
+            // only build on the typo.
+            if surface != .terminal, AppState.shared.typingFixTypos,
+               let fix = TypoFix.find(in: before, isTypo: { !Self.isRealWord($0) }, guesses: Self.spellingGuesses) {
+                return showCorrection(fix, at: placement, surface: surface)
+            }
+            return skip("typo at caret")
+        }
         let request = Request(
             before: before, after: surface == .terminal ? nil : focus.after,
             surfaceLine: surfaceLine,
@@ -698,6 +710,42 @@ final class TypingCoordinator {
     /// entries: rebuilt when asked rather than cached and invalidated.
     private static var vocabulary: Set<String> {
         DictionaryCompletion.vocabulary(from: CorrectionsStore.shared.corrections.map(\.right))
+    }
+
+    /// A spelling fix on screen instead of a suggestion.
+    private var correction: TypoFix?
+
+    /// Shows "→ receive" where the suggestion would go. The accept keys swap
+    /// it in; any other key takes it down, like a suggestion.
+    private func showCorrection(_ fix: TypoFix, at placement: GhostTextPanel.Placement, surface: SurfaceClass) {
+        guard mayRun else { return }
+        generationTask?.cancel()
+        prefetchTask?.cancel()
+        if shown == nil, correction == nil { Self.applyKeys(surface: surface) }
+        GhostTextPanel.shared.textColor = AppState.shared.typingColor.color
+        let label = (fix.trailing.isEmpty ? " → " : "→ ") + fix.replacement
+        guard GhostTextPanel.shared.show(label, at: placement) != nil else { return hide() }
+        shown = nil
+        correction = fix
+        TypingKeyTap.shared.setSuggestionVisible(true)
+    }
+
+    /// Deletes the typo (and the space after it) and types the fix, then
+    /// carries on suggesting from the corrected text.
+    private func applyCorrection(_ fix: TypoFix) {
+        hide()
+        KeystrokeTyper.backspace(fix.deleteCount)
+        KeystrokeTyper.type(fix.typed)
+        PushLogger.log("TypingCoordinator: spelling fix accepted")
+        scheduleSuggestion(after: Self.terminalSettle)
+    }
+
+    /// macOS's ranked corrections for a word, best first — the same checker
+    /// that underlines it in red, offline and instant.
+    private static func spellingGuesses(_ word: String) -> [String] {
+        let range = NSRange(location: 0, length: (word as NSString).length)
+        return NSSpellChecker.shared.guesses(forWordRange: range, in: word, language: nil,
+                                             inSpellDocumentWithTag: 0) ?? []
     }
 
     private func show(_ text: String, at placement: GhostTextPanel.Placement, surface: SurfaceClass,
