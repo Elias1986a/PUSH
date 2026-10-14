@@ -70,6 +70,8 @@ Merging it to main publishes the site changes immediately, so it must go with th
 User side, done: live store, products, both links, discount codes, live token + POLAR_SERVER=production in Netlify, success-URL stray full stop fixed (function also tolerates one now).
 User side, left: upload the 10.0 DMG to the live Polar product; DBA or LLC, EULA date and county, attorney review; test purchase with a 100%-off code (user clicks; I check the thanks page and key); one real purchase and refund.
 
+**Name off everything (2026-10-14):** legal pages, LICENSE and sample names no longer say the user's name; the legal pages name PUSHTYPE as the party. That is only accurate once PUSHTYPE is a registered DBA (LA County fictitious business name) or an LLC: do it before the first paid sale. Still showing the name: the Developer ID certificate (only an Apple organization account, which needs an LLC + D-U-N-S, changes it) and the GitHub username in the feed/download URLs (gone when the feed moves to pushtype.app and the repo goes private at 10.0).
+
 Then me: Sparkle feed to pushtype.app and 10.0 release, merge `launch`, make the repo private, PUSHTYPE.app/DMG rename with a Sparkle test on the user's Mac.
 
 ## External review follow-up (2026-10-14)
