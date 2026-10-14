@@ -10,7 +10,7 @@ extension TranscriptionPipeline {
     ///
     /// - "quote … end quote" (also "unquote", "close quote", "open quote",
     ///   "begin quote"): the marker words go, the words between them are quoted,
-    ///   across sentences if need be — "Quote Elias is here. Elias is here, end
+    ///   across sentences if need be — "Quote Sam is here. Sam is here, end
     ///   quote." is one quotation.
     /// - Most people never say "end quote", so a "quote" that plainly opens a
     ///   quotation — at the start of a sentence, after a comma, or after "said",
@@ -18,7 +18,7 @@ extension TranscriptionPipeline {
     ///   sentence. So does "open quote". "and I quote …" works the same way and
     ///   keeps its words, which is how people write it too.
     /// - Anywhere else a lone "quote" is the ordinary word and is left alone:
-    ///   "get a quote from the contractor", "how about this quote Elias says".
+    ///   "get a quote from the contractor", "how about this quote Sam says".
     ///   Guessing there would put quotation marks where none were meant.
     ///
     /// Straight quotes, because they paste correctly into every app.
