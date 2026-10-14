@@ -10,6 +10,8 @@ import html
 import re
 from pathlib import Path
 
+from typography import typeset  # two spaces after each sentence (house style)
+
 ROOT = Path(__file__).resolve().parent.parent
 PAGES = {
     "privacy": ("legal/PRIVACY.md", "Privacy Policy"),
@@ -158,5 +160,5 @@ if __name__ == "__main__":
         if not body.lstrip().startswith("<h1"):
             body = f'<h1 class="disp">{html.escape(title)}</h1>\n' + body
         body = body.replace("<h1>", '<h1 class="disp">', 1)
-        (out_dir / f"{slug}.html").write_text(TEMPLATE.format(title=html.escape(title), body=body), encoding="utf-8")
+        (out_dir / f"{slug}.html").write_text(typeset(TEMPLATE.format(title=html.escape(title), body=body)), encoding="utf-8")
         print(f"wrote website/legal/{slug}.html")
