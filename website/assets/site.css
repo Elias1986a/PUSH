@@ -338,5 +338,6 @@ a:not(.pb-btn):hover { color: var(--on-air); }
 .learn-compare .learned .ghost { color: var(--on-air); opacity: .85; }
 .learn-compare .learned-chip { color: var(--on-air); box-shadow: inset 0 0 0 1px var(--on-air); }
 .footnote-mark { color: var(--on-air); text-decoration: none; font-size: .6em; vertical-align: super; margin-left: 2px; }
-.learn-note { margin: 0; max-width: 60em; font: 400 14px/1.6 var(--font-body); color: var(--ink-muted); }
+.learn-note { margin: -16px 0 0; max-width: none; font: 400 14px/1.6 var(--font-body); color: var(--ink-muted); }
+.footnote-star { color: var(--on-air); font-weight: 700; font-size: 1.3em; line-height: 0; vertical-align: -2px; }
 @media (max-width: 760px) { .learn-compare { grid-template-columns: minmax(0, 1fr); } }
