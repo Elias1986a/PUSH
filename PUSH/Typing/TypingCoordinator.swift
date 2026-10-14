@@ -546,7 +546,8 @@ final class TypingCoordinator {
             // (Claude Code), which is prose, never in a shell command.
             if AppState.shared.typingFixTypos,
                let fix = TypoFix.find(in: before, isTypo: { !Self.isRealWord($0) },
-                                      isInProgress: Self.startsARealWord, guesses: Self.spellingGuesses) {
+                                      isInProgress: Self.startsARealWord,
+                                      guesses: { Self.spellingCorrections(for: $0, in: before) }) {
                 return showCorrection(fix, at: placement, surface: surface)
             }
             return skip("typo at caret")
@@ -765,12 +766,27 @@ final class TypingCoordinator {
         return completions.contains { $0.count > partial.count && $0.lowercased().hasPrefix(partial.lowercased()) }
     }
 
-    /// macOS's ranked corrections for a word, best first — the same checker
-    /// that underlines it in red, offline and instant.
-    private static func spellingGuesses(_ word: String) -> [String] {
-        let range = NSRange(location: 0, length: (word as NSString).length)
-        return NSSpellChecker.shared.guesses(forWordRange: range, in: word, language: nil,
-                                             inSpellDocumentWithTag: 0) ?? []
+    /// The fix for `word`, best first: macOS's autocorrect pick (what its own
+    /// autocorrect would type), then its list of guesses. Both see the
+    /// sentence around the word. The guess list alone is poorly ranked —
+    /// "recive" lists "recipe" before "receive", and the user got "revive" —
+    /// while the autocorrect pick says "receive".
+    private static func spellingCorrections(for word: String, in text: String) -> [String] {
+        let checker = NSSpellChecker.shared
+        let ns = text as NSString
+        var range = ns.range(of: word, options: .backwards)
+        var context = text
+        if range.location == NSNotFound {
+            context = word
+            range = NSRange(location: 0, length: (word as NSString).length)
+        }
+        var result: [String] = []
+        if let pick = checker.correction(forWordRange: range, in: context, language: checker.language(),
+                                         inSpellDocumentWithTag: 0) {
+            result.append(pick)
+        }
+        result += checker.guesses(forWordRange: range, in: context, language: nil, inSpellDocumentWithTag: 0) ?? []
+        return result
     }
 
     private func show(_ text: String, at placement: GhostTextPanel.Placement, surface: SurfaceClass,
