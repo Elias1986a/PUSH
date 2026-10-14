@@ -560,7 +560,7 @@ final class TypingCoordinator {
             return
         }
         let request = Request(
-            before: before, after: surface == .terminal ? nil : focus.after,
+            before: before, after: surface == .terminal ? TerminalLine.textAfterCaret(focus.after) : focus.after,
             surfaceLine: surfaceLine,
             style: Self.nonEmpty(AppState.shared.typingAbout),
             userName: TypingPreferences.signOffName(saved: AppState.shared.typingName),
@@ -900,7 +900,8 @@ final class TypingCoordinator {
     /// the rest of the screen, not the rest of the line.
     private func placement(for focus: FocusSnapshot, terminal: Bool) -> GhostTextPanel.Placement? {
         TypingPlacement.decide(caretRect: caret(for: focus, terminal: terminal),
-                               after: terminal ? nil : focus.after, fieldFrame: focus.fieldFrame)
+                               after: terminal ? TerminalLine.textAfterCaret(focus.after) : focus.after,
+                               fieldFrame: focus.fieldFrame)
     }
 
     /// The caret moved (typed into or accepted part of the suggestion): read
