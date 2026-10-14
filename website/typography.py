@@ -20,14 +20,18 @@ ABBREVIATIONS = {"e.g", "i.e", "vs", "etc", "Mr", "Mrs", "Ms", "Dr", "St", "No",
 
 # A sentence end: a word, digit or closing quote, then . ? or ! (maybe a closing
 # quote or bracket), then exactly one space, then what starts a sentence.
-END = re.compile(r"(?P<word>[\w.’'\-]*[\w)\]”’\"%])(?P<mark>[.?!])(?P<close>[”’\")\]]?) (?=[A-Z0-9“\"(‘¿¡$€£]|$)")
+END = re.compile(r"(?P<word>(?:[\w.’'\-]*[\w)\]”’\"%])?)(?P<mark>[.?!])(?P<close>[”’\")\]]?) (?=[A-Z0-9“\"(‘¿¡$€£]|$)")
 TOKEN = re.compile(r"<!--.*?-->|<(script|style|pre|code|head|textarea)\b[^>]*>.*?</\1\s*>|<[^>]+>", re.S | re.I)
 
 
 def _sentences(text, next_is_opening_tag):
     def repl(m):
         word = m.group("word")
-        if word.rstrip(".") in ABBREVIATIONS or word in ABBREVIATIONS:
+        # No word before the mark: only a sentence end when it opens the text
+        # right after a tag ("<a>…</a>. Next"), never mid-text (". . .").
+        if not word and m.start() != 0:
+            return m.group(0)
+        if word and (word.rstrip(".") in ABBREVIATIONS or word in ABBREVIATIONS):
             return m.group(0)
         at_end = m.end() == len(text)
         if at_end and not next_is_opening_tag:
