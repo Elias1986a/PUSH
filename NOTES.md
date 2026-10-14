@@ -1,5 +1,33 @@
 # NOTES
 
+## 9.2.0 (2026-10-14) — spelling fixes, round two
+
+User tested 9.1.2's fixes: few showed (log: 49 typo stand-downs vs 2
+fixes). Now: the previous word's fix stays offered while the next word is
+typed (TypoFix trailing = " " + partial); partials that start a dictionary
+word are not typos; the fix is NSSpellChecker.correction() in sentence
+context first (guess list is badly ranked: "recive" → recipe, receive,
+revive — user got "revive"), then guesses; a space after a fix at the
+caret (spaceAfterLastWord); terminal agent prompts included.
+
+## 9.1.3 (2026-10-14) — habits, quit crash
+
+- TypingHabits (PUSHCore): phrase continuations learned from all finished
+  writing, offered without the model at 3+ identical uses (60%+ share,
+  2–8 words, stops at sentence end/line break). User decision 2026-10-14:
+  style travels across apps, past passages stay same-window (their
+  2026-10-11 rule). Records now tag dictated parts.
+- Learning assessment: `defaults write com.push.voicetotext
+  typing.assessLearning -bool true`, relaunch, use Type once →
+  ~/Library/Application Support/PUSH/learning-assessment.md (numbers only).
+  First run (2 days of history, 60 pieces, 4,087 words): 68% of pieces
+  share a window; 0 habits yet (none repeated 3x). Re-run ~2026-10-21 for
+  typed-vs-dictated and habit hit rates; still to build: a with/without
+  history model eval.
+- Quit crash since 9.0: llama.cpp's Metal static destructor aborts if a
+  model is loaded (exit 134 measured on 9.1.2); applicationWillTerminate
+  unloads first (exit 0 measured).
+
 ## 9.1.2 (2026-10-13) — Type offers spelling fixes
 
 User: "the app hasn't been good at suggesting typos." Type used to stand

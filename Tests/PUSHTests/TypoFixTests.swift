@@ -35,4 +35,22 @@ final class TypoFixTests: XCTestCase {
         XCTAssertNil(TypoFix.find(in: "zxqv", isTypo: { _ in true }, guesses: { _ in [] }))
         XCTAssertNil(TypoFix.find(in: "zxqv", isTypo: { _ in true }, guesses: { _ in ["zx qv"] }))
     }
+
+    func testKeepsOfferingTheFixWhileTheNextWordIsTyped() {
+        let f = fix("I will recieve i")
+        XCTAssertEqual(f, TypoFix(typo: "recieve", trailing: " i", replacement: "receive"))
+        XCTAssertEqual(f?.deleteCount, 9)
+        XCTAssertEqual(f?.typed, "receive i")
+        XCTAssertEqual(fix("that was wierd bu")?.typed, "weird bu")
+    }
+
+    func testAWordInProgressIsNotATypo() {
+        let f = TypoFix.find(in: "really apprec", isTypo: { $0 == "apprec" },
+                             isInProgress: { $0 == "apprec" }, guesses: { _ in ["approach"] })
+        XCTAssertNil(f)
+        // …but the misspelled word before it still gets its fix.
+        let g = TypoFix.find(in: "I will recieve apprec", isTypo: { $0 == "recieve" || $0 == "apprec" },
+                             isInProgress: { $0 == "apprec" }, guesses: { $0 == "recieve" ? ["receive"] : ["approach"] })
+        XCTAssertEqual(g?.typed, "receive apprec")
+    }
 }

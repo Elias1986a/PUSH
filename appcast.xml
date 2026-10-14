@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 9.1.2</title>
-            <pubDate>Tue, 13 Oct 2026 22:28:23 -0700</pubDate>
-            <sparkle:version>106</sparkle:version>
-            <sparkle:shortVersionString>9.1.2</sparkle:shortVersionString>
+            <title>Version 9.2.0</title>
+            <pubDate>Tue, 13 Oct 2026 23:13:10 -0700</pubDate>
+            <sparkle:version>108</sparkle:version>
+            <sparkle:shortVersionString>9.2.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,24 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 9.1.2 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 9.2.0 <span class="tag">New</span></h2>
+<h3>Better</h3>
+<ul>
+<li><strong>Spelling fixes catch more typos.</strong> The fix stays on offer while you carry on typing the next word ("I will recieve i" → "I will receive i"), so you don't have to stop at the typo. Words you're still typing ("apprec…") are never treated as mistakes.</li>
+<li><strong>The right word.</strong> Fixes now use the same choice as your Mac's own autocorrect, looking at the whole sentence, so "recive" becomes "receive", not "revive".</li>
+<li><strong>A space after the fix</strong>, like an accepted suggestion, when you fix the word you just typed.</li>
+<li><strong>Spelling fixes in Claude Code and other agent prompts in Terminal.</strong> Accept with your whole-suggestion key (` ~); Tab stays the terminal's.</li>
+</ul></div>
+<div class="older"><h2>Version 9.1.3</h2>
+<h3>New</h3>
+<ul>
+<li><strong>Type learns your habits.</strong> When you finish a phrase the same way again and again ("Thanks for sending this over. I'll take a look tonight."), PUSHTYPE offers your wording as soon as you start it. Habits are learned from everything you write with "Learn from my writing and voice" on, and only after you've written something the same way at least three times, so a one-off detail from one conversation never turns up in another. Past writing on the same topic still comes only from the same window.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li><strong>Quitting PUSHTYPE no longer ends in a crash.</strong> With a typing model loaded, macOS could report that PUSHTYPE quit unexpectedly every time you quit.</li>
+</ul></div>
+<div class="older"><h2>Version 9.1.2</h2>
 <h3>New</h3>
 <ul>
 <li><strong>Type fixes typos.</strong> When the word you just typed is misspelled, the gray text shows the correction, like <strong>→ receive</strong>. Press your accept key (Tab) and PUSHTYPE swaps it in, then carries on suggesting. Corrections come from your Mac's own spell checker, offline. Turn it off in Settings ▸ Typing ▸ Offer spelling fixes.</li>
@@ -196,6 +213,22 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.2.0/PUSH-v9.2.0.zip" type="application/octet-stream" sparkle:edSignature="2VmY9Hxf2pEV1vzvJqpoUtES5LVVaiDom0wiTg2j/tcHyttJ8UaZubtWuTAVe3RgzjiO9U2205Vtts81yXGvDQ==" length="21058557" />
+        </item>
+        <item>
+            <title>Version 9.1.3</title>
+            <pubDate>Tue, 13 Oct 2026 22:56:32 -0700</pubDate>
+            <sparkle:version>107</sparkle:version>
+            <sparkle:shortVersionString>9.1.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.1.3/PUSH-v9.1.3.zip" type="application/octet-stream" sparkle:edSignature="urgZmBP7sfqLRcdD1HXWMOjPoUAwLzFSFyg6KajOdSi2SrUzWmOPBOonazW/J2seClzlapahGyJ2K1HfElzwDQ==" length="21057445" />
+        </item>
+        <item>
+            <title>Version 9.1.2</title>
+            <pubDate>Tue, 13 Oct 2026 22:28:23 -0700</pubDate>
+            <sparkle:version>106</sparkle:version>
+            <sparkle:shortVersionString>9.1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.1.2/PUSH-v9.1.2.zip" type="application/octet-stream" sparkle:edSignature="V0M74cc8WFhjXUqBT+57p6Om8PyvAbyof7UqeE7ZZPQJlA23IdYklFRP0Mlix3K5RE0/exWEszmm8UgVB/D/Cw==" length="21023475" />
         </item>
         <item>

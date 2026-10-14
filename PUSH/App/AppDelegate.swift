@@ -148,6 +148,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Don't leave the user's audio quieted if they quit mid-dictation.
         MediaController.shared.endDictation()
         TypingHistoryStore.shared.flush()
+        // llama.cpp frees its Metal device in a static destructor at exit and
+        // aborts if a model's buffers are still alive: every quit with the
+        // typing model loaded showed "PUSHTYPE quit unexpectedly" (crash
+        // reports, 9.1.2). Free the model first; never wait more than 2 s.
+        let freed = DispatchSemaphore(value: 0)
+        Task.detached {
+            await LlamaEngine.shared.unload()
+            freed.signal()
+        }
+        if freed.wait(timeout: .now() + 2) == .timedOut {
+            PushLogger.log("AppDelegate: typing model still busy at quit")
+        }
     }
 
     // MARK: - Permissions
