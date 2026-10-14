@@ -592,7 +592,8 @@ final class TypingCoordinator {
         generationTask = Task {
             var raw = ""
             var judge = SuggestionJudge(forced: forced, before: request.before, length: request.length,
-                                        wordBoundary: wordBoundary, known: request.known, isRealWord: Self.isRealWord)
+                                        wordBoundary: wordBoundary, known: request.known, after: request.after,
+                                        isRealWord: Self.isRealWord)
             /// False when this attempt is over (rejected, or retried).
             @MainActor func consider(final: Bool) -> Bool {
                 switch judge.judge(raw, final: final) {
@@ -649,7 +650,8 @@ final class TypingCoordinator {
         let (prompt, forced) = next.prompt
         prefetchTask = Task {
             var judge = SuggestionJudge(forced: forced, before: next.before, length: next.length,
-                                        wordBoundary: false, known: next.known, isRealWord: Self.isRealWord)
+                                        wordBoundary: false, known: next.known, after: next.after,
+                                        isRealWord: Self.isRealWord)
             var raw = ""
             do {
                 for try await piece in await LlamaEngine.shared.complete(

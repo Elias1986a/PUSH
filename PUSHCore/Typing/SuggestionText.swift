@@ -187,6 +187,44 @@ public enum SuggestionText {
         "dick", "cock", "pussy", "boobs", "tits", "slut", "whore", "cum", "nsfw", "onlyfans",
     ]
 
+    /// The suggestion up to where it starts repeating the words already after
+    /// the caret on its line ("sure I don't know" before "I don't know how…"
+    /// → "sure"); nil when it is nothing but that repeat. Going back to add a
+    /// word, the model saw the rest of the sentence and offered it again (user,
+    /// 2026-10-14). A last word still streaming counts if the next word starts
+    /// with it.
+    public static func cutAtRepeat(_ suggestion: String, after: String?) -> String? {
+        let line = (after ?? "").prefix { $0 != "\n" }
+        let next = line.split(whereSeparator: \.isWhitespace).map(repeatKey)
+        guard !next.isEmpty else { return suggestion }
+        var ranges: [Range<String.Index>] = []
+        var i = suggestion.startIndex
+        while i < suggestion.endIndex {
+            guard !suggestion[i].isWhitespace else { i = suggestion.index(after: i); continue }
+            let start = i
+            while i < suggestion.endIndex, !suggestion[i].isWhitespace { i = suggestion.index(after: i) }
+            ranges.append(start..<i)
+        }
+        let own = ranges.map { repeatKey(suggestion[$0]) }
+        for k in own.indices {
+            let overlap = min(own.count - k, next.count)
+            let repeated = (0..<overlap).allSatisfy { j in
+                let word = own[k + j]
+                return word == next[j] || (k + j == own.count - 1 && !word.isEmpty && next[j].hasPrefix(word))
+            }
+            guard repeated else { continue }
+            return k == 0 ? nil : String(suggestion[..<ranges[k - 1].upperBound])
+        }
+        return suggestion
+    }
+
+    /// A word as compared for repeats: lowercase, straight apostrophes, no
+    /// punctuation around it.
+    private static func repeatKey<S: StringProtocol>(_ word: S) -> String {
+        word.lowercased().replacingOccurrences(of: "’", with: "'")
+            .trimmingCharacters(in: .punctuationCharacters.subtracting(CharacterSet(charactersIn: "'")))
+    }
+
     /// The model is looping or echoing (Cotabby suppresses "a short word
     /// sequence looping back to back" too):
     /// - it starts with the word just typed ("love to" + " to see you") —
