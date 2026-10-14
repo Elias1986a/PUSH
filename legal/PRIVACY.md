@@ -64,8 +64,17 @@ unsubscribe.
 ## The website
 
 pushtype.app is hosted by Netlify, which keeps standard server logs (IP
-address, pages requested) for security and operations. We don't use
-advertising cookies or cross-site tracking.
+address, pages requested) for security and operations.
+
+We use Google Analytics to count visits and see which pages people read. It
+sets cookies on pushtype.app and sends Google the page you're on (its path
+only, never order numbers or anything after it), your browser and device type,
+and your approximate location. Google signals and ad personalisation are off,
+so we don't use advertising cookies or cross-site tracking. It covers the
+website only: the app never sends anything to Google. To opt out, block
+cookies for pushtype.app or use Google's opt-out add-on
+([tools.google.com/dlpage/gaoptout](https://tools.google.com/dlpage/gaoptout)).
+[Google's privacy policy](https://policies.google.com/privacy)
 
 After you buy, the thank-you page asks Polar, through our website, for that
 purchase's download link and licence key, so you can download and activate in
