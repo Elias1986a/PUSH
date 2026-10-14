@@ -1,10 +1,11 @@
-// Polar calls this after an order is paid, refunded or changed. For an Extra
-// Mac order it sets that customer's main licence key to 3 Macs plus one per
-// paid Extra Mac (lib/seats.mts), so the extra Mac shares the one key.
+// Polar calls this after an order is paid, refunded or changed, and when a
+// licence key is granted. It puts everything the customer has paid for on
+// their first key (lib/seats.mts), so all their Macs share one key.
 //
 // Setup in Polar (Settings ▸ Webhooks ▸ Add endpoint): URL
 // https://pushtype.app/api/polar-webhook, format Raw, events order.paid,
-// order.refunded and order.updated, and a generated secret, which goes in
+// order.refunded, order.updated, benefit_grant.created and
+// benefit_grant.updated, and a generated secret, which goes in
 // the Netlify variable POLAR_WEBHOOK_SECRET (marked secret). The access token
 // also needs the license_keys:write scope. Nothing is stored and keys are
 // never logged.
@@ -13,7 +14,10 @@ import { idsFor, reconcileSeats } from "../lib/seats.mts"
 import { polarEnv } from "../lib/polar.mts"
 import { verifyWebhook } from "../lib/webhook.mts"
 
-const EVENTS = new Set(["order.paid", "order.refunded", "order.updated"])
+const ORDER_EVENTS = new Set(["order.paid", "order.refunded", "order.updated"])
+// The key is granted a moment after the order is paid; this is the event
+// that arrives when it exists.
+const GRANT_EVENTS = new Set(["benefit_grant.created", "benefit_grant.updated"])
 
 export default async (req: Request) => {
   const secret = Netlify.env.get("POLAR_WEBHOOK_SECRET")
@@ -25,19 +29,22 @@ export default async (req: Request) => {
 
   let event: any
   try { event = JSON.parse(raw) } catch { return new Response("bad json", { status: 400 }) }
-  // Anything else is acknowledged, so Polar does not retry it.
-  if (!EVENTS.has(event?.type)) return new Response("ignored", { status: 202 })
-
   const ids = idsFor(env.production)
-  const order = event.data
-  const product = order?.product_id ?? order?.product?.id
-  const customerId = order?.customer_id ?? order?.customer?.id
-  if (product !== ids.extraProduct || !customerId) return new Response("ignored", { status: 202 })
+  const data = event?.data
+  const isOrder = ORDER_EVENTS.has(event?.type)
+  const isGrant = GRANT_EVENTS.has(event?.type)
+  // Anything else is acknowledged, so Polar does not retry it.
+  if (!isOrder && !isGrant) return new Response("ignored", { status: 202 })
+  const customerId = data?.customer_id ?? data?.customer?.id
+  const ours = isOrder
+    ? [ids.mainProduct, ids.extraProduct].includes(data?.product_id ?? data?.product?.id)
+    : [ids.mainBenefit, ids.extraBenefit].includes(data?.benefit_id ?? data?.benefit?.id)
+  if (!ours || !customerId) return new Response("ignored", { status: 202 })
 
   try {
     const seats = await reconcileSeats(env, ids, customerId)
     // Counts only: never the key.
-    console.log(seats ? `seats: ${seats.extras} extra, limit ${seats.limit}, changed ${seats.changed}` : "seats: no main key for this customer")
+    console.log(seats ? `seats: limit ${seats.limit}, changed ${seats.changed}` : "seats: nothing to do yet")
     return new Response("ok", { status: 202 })
   } catch (error) {
     // A Polar error is worth a retry; Polar tries again with backoff.

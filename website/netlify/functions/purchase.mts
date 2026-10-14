@@ -7,7 +7,7 @@
 // them. The order number unlocks the key, so it works only for an hour after
 // payment, and the page takes it out of the address bar at once. The Polar
 // access token (scopes checkouts:read, customer_sessions:write and
-// license_keys:write, the last to add a Mac to a key) lives in
+// license_keys:write, the last to set how many Macs a key allows) lives in
 // the POLAR_ACCESS_TOKEN environment variable and never reaches the page.
 // POLAR_SERVER is "sandbox" until the live store opens. Nothing is stored,
 // and keys are never logged.
@@ -73,37 +73,24 @@ export default async (req: Request) => {
     customerToken = session.body.token
   }
 
-  // An Extra Mac adds a place to the buyer's main key rather than being a key
-  // of its own: set the places now (the webhook does the same, so whichever
-  // comes first, the answer is the same), and hand back the main key.
+  // Every purchase goes through the same step: the customer's first key is
+  // their main key, and what they have paid for sets how many Macs it allows
+  // (the webhook does the same, so whichever runs first the answer is the
+  // same). The key handed back is that main key, so a single given away
+  // earlier and a three bought later end up on one key.
   const ids = idsFor(env.production)
-  let extraMac: { key: any; limit: number } | null = null
-  if (co.product_id === ids.extraProduct) {
-    try {
-      const seats = await reconcileSeats(env, ids, co.customer_id, customerToken)
-      if (!seats) return json({ error: "no_licence" }, 404)
-      extraMac = { key: seats.key, limit: seats.limit }
-    } catch (error) {
-      console.log(`seats failed: ${(error as Error).message}`)
-      return json({ error: "polar_error", step: "seats" }, 502)
-    }
+  let seats: Awaited<ReturnType<typeof reconcileSeats>>
+  try {
+    seats = await reconcileSeats(env, ids, co.customer_id, { customerToken, since: createdAt - 5 * 60 * 1000 })
+  } catch (error) {
+    console.log(`seats failed: ${(error as Error).message}`)
+    return json({ error: "polar_error", step: "seats" }, 502)
   }
+  // Right after payment the key may not be granted yet: the page waits.
+  if (!seats) return json({ error: "not_ready", status: "no_key_yet" }, 409)
 
-  const [keys, files] = await Promise.all([
-    polar(api, "/v1/customer-portal/license-keys/?limit=100", customerToken),
-    polar(api, "/v1/customer-portal/downloadables/?limit=100", customerToken),
-  ])
-  if (keys.status !== 200) {
-    console.log(`licence keys failed: ${keys.status}`)
-    return json({ error: "polar_error", step: "keys", status: keys.status, detail: keys.body?.detail }, 502)
-  }
-
-  // This purchase's key: granted, and made no earlier than the checkout. An
-  // older key is another purchase's; until this one's exists, the page waits.
-  const key = extraMac?.key ?? ((keys.body.items ?? []) as any[])
-    .filter((k) => k.status === "granted" && Date.parse(k.created_at) >= createdAt - 5 * 60 * 1000)
-    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0]
-  if (!key) return json({ error: "not_ready", status: "no_key_yet" }, 409)
+  const files = await polar(api, "/v1/customer-portal/downloadables/?limit=100", customerToken)
+  const key = seats.key
 
   const downloads = files.status === 200 ? ((files.body.items ?? []) as any[]) : []
   const dmg = downloads.find((d) => String(d.file?.name ?? "").toLowerCase().endsWith(".dmg")) ?? downloads[0]
@@ -111,8 +98,8 @@ export default async (req: Request) => {
   return json({
     key: key.key,
     displayKey: key.display_key,
-    macs: extraMac?.limit ?? key.limit_activations,
-    kind: extraMac ? "extra" : "licence",
+    macs: seats.limit,
+    kind: seats.joinedExisting ? "extra" : "licence",
     download: dmg?.file?.download?.url
       ? { url: dmg.file.download.url, name: dmg.file.name, size: dmg.file.size_readable }
       : null,

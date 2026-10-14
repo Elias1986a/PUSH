@@ -117,9 +117,10 @@ final class LicenseModel {
             keychain.save(record)
             stored = record
             UserDefaults.standard.set(true, forKey: Self.activatedHereKey)
-            // An Extra Mac key is good for this one Mac: it must not follow the
-            // user to the others through iCloud in place of the main key.
-            if activation.activationLimit != 1 { synced.save(key) }
+            // The customer's first key is their main key whatever it started as
+            // (a single given away, say, later raised by buying the three), so
+            // whichever key this is goes to the user's other Macs too.
+            synced.save(key)
             PushLogger.log("License: activated on this Mac")
         } catch let error as LicenseError {
             message = Self.sentence(for: error, activating: true)
