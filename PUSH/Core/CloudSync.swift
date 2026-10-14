@@ -69,7 +69,8 @@ final class CloudSync: ObservableObject {
         TypingPreferences.nextWordKeyKey,
         TypingPreferences.wholeKeyKey,
         TypingHistoryStore.enabledKey,
-        TypingHistoryStore.excludedKey
+        TypingHistoryStore.excludedKey,
+        LearnedWritingSync.shareKey
     ]
 
     /// Everything published to iCloud.
@@ -135,6 +136,7 @@ final class CloudSync: ObservableObject {
         clearRetiredKeys()
         pullAll()
         pushAll()
+        LearnedWritingSync.shared.remoteChanged()
         lastPushed = Dictionary(uniqueKeysWithValues: Self.seededSettingKeys.map { ($0, UserDefaults.standard.object(forKey: $0)) })
         PushLogger.log("CloudSync: started")
     }
@@ -239,6 +241,9 @@ final class CloudSync: ObservableObject {
         }
         if changed.contains(Self.dictionaryKey) {
             pullDictionary()
+        }
+        if changed.contains(where: { $0.hasPrefix("sync.history.") }) {
+            LearnedWritingSync.shared.remoteChanged()
         }
         PushLogger.log("CloudSync: applied \(changed.count) remote key(s)")
     }

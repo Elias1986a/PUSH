@@ -85,9 +85,9 @@ struct GeneralSettingsView: View {
             }
 
             Section("iCloud") {
-                Toggle("Sync settings and dictionary across my Macs", isOn: $appState.iCloudSyncEnabled)
+                Toggle("Sync across my Macs", isOn: $appState.iCloudSyncEnabled)
 
-                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. Everything else is copied once, when you ask, and then each Mac keeps its own.")
+                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. What Type has learned travels only if you switch on Share in Settings ▸ Personal. Everything else is copied once, when you ask, and then each Mac keeps its own.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

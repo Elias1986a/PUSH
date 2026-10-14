@@ -7,6 +7,7 @@ struct PersonalSettingsView: View {
     @Environment(AppState.self) private var appState
     @State private var history = TypingHistoryStore.shared
     @State private var confirmingDelete = false
+    @State private var sharing = UserDefaults.standard.bool(forKey: LearnedWritingSync.shareKey)
 
     var body: some View {
         @Bindable var appState = appState
@@ -47,10 +48,28 @@ struct PersonalSettingsView: View {
                 Toggle(isOn: $history.isOn) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Learn from my writing and voice")
-                        Text("Keeps what you type and what you dictate where suggestions are on, so they sound like you. Only the finished text is kept, never audio. Encrypted on this Mac, never synced or sent anywhere. Passwords, sign-in fields and terminals are never kept.")
+                        Text("Keeps what you type and what you dictate where suggestions are on, so they sound like you. Only the finished text is kept, never audio. Encrypted on this Mac and never sent anywhere. Passwords, sign-in fields and terminals are never kept.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                if history.isOn {
+                    Toggle(isOn: $sharing) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Share what it learns with my other Macs")
+                            Text(appState.iCloudSyncEnabled
+                                 ? "Sent through your own iCloud, encrypted with a key only your Apple Account has. Each Mac must switch it on. Delete All erases it on all of them."
+                                 : "Needs iCloud sync, in Settings ▸ General.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .disabled(!appState.iCloudSyncEnabled)
+                    .onChange(of: sharing) { _, on in
+                        UserDefaults.standard.set(on, forKey: LearnedWritingSync.shareKey)
+                        LearnedWritingSync.shared.settingsChanged()
                     }
                 }
                 LearningPauseControl()
@@ -97,7 +116,9 @@ struct PersonalSettingsView: View {
         .confirmationDialog("Delete everything PUSHTYPE has kept of your writing?", isPresented: $confirmingDelete) {
             Button("Delete All", role: .destructive) { history.deleteAll() }
         } message: {
-            Text("This removes the saved writing and its encryption key from this Mac. It can’t be undone.")
+            Text(sharing && appState.iCloudSyncEnabled
+                 ? "This removes the saved writing and its encryption key from this Mac, and from your other Macs that share it. It can’t be undone."
+                 : "This removes the saved writing and its encryption key from this Mac. It can’t be undone.")
         }
     }
 }

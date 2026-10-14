@@ -33,7 +33,8 @@ Your name,Settings ▸ Personal,typing.profile.name,LIVE,LIVE,,LIVE
 About you,Settings ▸ Personal,typing.profile.about,LIVE,LIVE,,LIVE
 Learn from my writing: on/off,Settings ▸ Personal,typing.history.enabled,SEED,PER-MAC,"Copied only when you say yes at setup, and shown to you first; a work Mac can say no.",SEED
 Never keep from these apps,Settings ▸ Personal,typing.history.excludedApps,SEED,SEED,,SEED
-What it learned from your writing,(sealed file),TypingHistory.sealed,not built yet,MERGE (new),,MERGE (not built yet)
+Share learned writing with my other Macs,Settings ▸ Personal,typing.history.share,SEED,SEED,Your call on each Mac; copied with the learning switch at setup.,SEED
+What it learned from your writing,(sealed file),TypingHistory.sealed,Built (opt-in per Mac),MERGE (new),"Only while learning is on and 'Share with my other Macs' is on, per Mac. Compressed, sealed with a key in iCloud Keychain, sent through iCloud's key-value store (newest writing first if it won't fit). Delete All erases it on every Mac.",MERGE
 Custom dictionary,Settings ▸ Dictionary,sync.dictionary,MERGE,MERGE,"Live and combined: your Live, as MERGE so one Mac's edit never wipes another's.",MERGE
 Licence key,Settings ▸ Licence,iCloud Keychain item,Keychain (E2E),Keychain (E2E),,Keychain (E2E)
 iCloud sync on/off,Settings ▸ General,iCloudSyncEnabled,PER-MAC,PER-MAC,"Switched on for a new Mac when you answer yes to 'Already use PUSHTYPE on another Mac?'; after that, per Mac.",PER-MAC

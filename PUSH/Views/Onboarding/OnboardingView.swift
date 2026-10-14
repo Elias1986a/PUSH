@@ -35,6 +35,7 @@ struct OnboardingView: View {
     @State private var adoption: CloudSync.Adoption?
     @State private var learnHere = false
     @State private var history = TypingHistoryStore.shared
+    @State private var sharesLearning = UserDefaults.standard.bool(forKey: LearnedWritingSync.shareKey)
     @State private var typingStepSeen = false
     @State private var typingSandbox = ""
     @FocusState private var typingSandboxFocused: Bool
@@ -328,6 +329,16 @@ struct OnboardingView: View {
                 }
             }
             .toggleStyle(.switch)
+
+            if history.isOn {
+                Toggle("Share it with my other Macs, through my iCloud", isOn: $sharesLearning)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .onChange(of: sharesLearning) { _, on in
+                        UserDefaults.standard.set(on, forKey: LearnedWritingSync.shareKey)
+                        LearnedWritingSync.shared.settingsChanged()
+                    }
+            }
 
             Text("Never kept from password or sign-in fields. Leave out any app, pause it, or Delete All any time. Without it, suggestions still read the email or chat you're replying to.")
                 .font(.caption)

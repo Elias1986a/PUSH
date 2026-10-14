@@ -63,6 +63,14 @@ final class CloudSyncMirroredKeysTests: XCTestCase {
         }
     }
 
+    /// Sharing what Type learned is a per-Mac choice, copied only at setup. The
+    /// writing itself travels in its own chunks, never as a mirrored setting.
+    func testTheShareSwitchIsSeededAndTheWritingIsNotASetting() {
+        XCTAssertTrue(CloudSync.seededSettingKeys.contains(LearnedWritingSync.shareKey))
+        XCTAssertFalse(CloudSync.liveSettingKeys.contains(LearnedWritingSync.shareKey))
+        XCTAssertFalse(CloudSync.mirroredSettingKeys.contains { $0.hasPrefix("sync.history") })
+    }
+
     func testNoKeyIsBothLiveAndSeeded() {
         XCTAssertTrue(Set(CloudSync.liveSettingKeys).isDisjoint(with: Set(CloudSync.seededSettingKeys)))
     }
