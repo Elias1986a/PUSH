@@ -1,5 +1,16 @@
 # NOTES
 
+## 9.1.2 (2026-10-13) — Type offers spelling fixes
+
+User: "the app hasn't been good at suggesting typos." Type used to stand
+down on a misspelled word ("typo at caret"); now it shows "→ fix" and the
+accept key deletes the typo (+ its space) with Delete key events
+(KeystrokeTyper.backspace, marked as PUSH's own so the buffer follows) and
+types the NSSpellChecker correction. PUSHCore/Typing/TypoFix (tested).
+Lowercase 3+ letters only, no terminals; setting typing.fixTypos (on).
+Idea from Cotabby's TypoGate (offer/suppress/auto-apply); auto-apply on
+Space not built. Shipped on its own branch ahead of the licensing release.
+
 ## Licensing flow (2026-10-13, building on next-release; sandbox)
 
 Decided with the user: keys stay (no sharing), made nearly invisible.
