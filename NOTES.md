@@ -1,8 +1,30 @@
 # NOTES
 
+## Launch checklist (2026-10-14)
+
+**The launch build is 10.0, and it starts clean (user's call).**
+- Bump PUSH/Info.plist to 10.0 (build number keeps climbing; Sparkle compares that).
+- Move release-notes/*.md into release-notes/archive/. scripts/release_notes.py only reads the top folder, so Sparkle's window shows 10.0 alone.
+- Delete appcast.xml before building, so the feed holds only the 10.0 item. The script then prepends each later release as usual.
+- 10.0 is also the release that moves SUFeedURL to pushtype.app. Serve the same appcast at the old GitHub URL until the repo goes private, so the user's 9.x Macs get it.
+
+User side:
+- Live Polar store and products, with the 10.0 DMG.
+- Success URL `https://pushtype.app/thanks/?checkout_id={CHECKOUT_ID}`.
+- Live token (checkouts:read + customer_sessions:write) in Netlify, with POLAR_SERVER=production.
+- DBA or LLC, the EULA date and county, and attorney review.
+
+Then:
+- Production PolarConfig, and LicenseModel.isOffered on.
+- Buy buttons pointed at the live checkout; "Checkout opens at launch" removed.
+- noindex removed; robots and sitemap added.
+- PUSHTYPE.app/DMG rename, with a Sparkle test on the user's Mac.
+- Merge PR #37; make the repo private.
+- One real purchase and refund.
+
 ## External review follow-up (2026-10-14)
 
-An outside AI review (docs/PUSHTYPE_PROJECT_REVIEW.md, untracked, the
+An outside AI review (docs/reviews/2026-10-13-external-review.md, the
 user's) was checked claim by claim. It read main mid-session, so its
 "iCloud licence not implemented" point is already done on next-release.
 Done:
@@ -18,6 +40,16 @@ Done:
 Not done yet: PUSH.app → PUSHTYPE.app in the DMG (needs a Sparkle rename
 test on the user's Macs). User decision: no trial; paid + 14-day refund.
 Launch list adds: remove noindex from home/benchmark, robots + sitemap.
+
+## Repo cleanup (2026-10-14)
+
+PR #53 plus GitHub: only main and next-release remain (local and remote);
+GitHub deletes branches on merge now, so PR #37 (launch) takes next-release
+with it. Old docs/scripts and the committed PUSH-Xcode binaries removed,
+shipped plans in docs/plans/archive, README rewritten (build + release
+steps). Local trash: ~/.Trash/PUSH-cleanup-2026-10-14 (old installers,
+caches, branch SHAs). All 31 GitHub releases kept until the repo goes
+private at launch (move the Sparkle feed first).
 
 ## 9.2.2 (2026-10-14) — no suggestion over the text after the cursor
 
@@ -168,7 +200,7 @@ downloader (live-tested against HF), TypingModelStore
 while Type is on; warm-up in background: 15.8s first ever, 0.27s after).
 All three models are cloned into TypingModels for dev testing.
 Overnight 2026-10-11: gap analysis vs Cotypist + Cotabby in
-docs/plans/2026-10-11-type-gap-analysis.md. Biggest bug: prompts ending in a
+docs/plans/archive/2026-10-11-type-gap-analysis.md. Biggest bug: prompts ending in a
 SPACE produced years/numbers/HTML ('love to ' → '2018.'); fixed by healing the
 trailing space. Also: anchored 4,000-char window, repetition penalty,
 50 ms debounce, Cotabby-style content policy, sign-in/Mail-header stand-down,

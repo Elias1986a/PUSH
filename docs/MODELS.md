@@ -1,5 +1,10 @@
 # PUSH — Model Tracking & Upgrade Watch
 
+> **Out of date (2026-10-14).** Parts below predate the current lineup. What
+> ships now: speech models in CLAUDE.md (Tech Stack) and `WhisperModel`; Type
+> models in `PUSHCore/Typing/TypingModel.swift`. Refresh this at the next
+> monthly model review.
+
 > **Last reviewed: 2026-08-10 (v6.0.0).** This document was written in June 2026
 > and its findings table predates the 6.0.0 model refresh. What changed since,
 > verified by A/B on real dictation rather than published benchmarks:
@@ -137,7 +142,7 @@ considering, found by looking beyond what PUSH already ships.
 ## Type models (text, for autocomplete)
 
 Separate from the speech models: these power **Type** (inline autocomplete,
-`docs/plans/2026-10-10-autocomplete-design.md`). llama.cpp on the GPU, GGUF base
+`docs/plans/archive/2026-10-10-autocomplete-design.md`). llama.cpp on the GPU, GGUF base
 checkpoints, all Apache-2.0. Chosen 2026-10-10 from
 `eval/results/2026-10-autocomplete.md` (Mac mini M4, 24 GB).
 

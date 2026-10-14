@@ -6,7 +6,7 @@
   publish = "."
   command = ""
 
-# The update feed and downloads can move here later (see docs/website/PLAN.md).
+# The update feed and downloads can move here later (see docs/plans/archive/2026-website-plan.md).
 [[headers]]
   for = "/*"
   [headers.values]
