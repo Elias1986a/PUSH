@@ -324,3 +324,8 @@ a:not(.pb-btn):hover { color: var(--on-air); }
 .dl-tile strong { font: 700 18px/1.2 var(--font-body); }
 .dl-tile small { font: 400 14px/1.4 var(--font-body); color: var(--ink-muted); overflow-wrap: anywhere; }
 .dl-tile svg { flex: none; color: var(--on-air); }
+
+/* Footer: PUSHTYPE on X, Instagram and TikTok */
+.footer .socials { gap: 18px; margin-top: 18px; }
+.footer .socials a { display: inline-flex; color: var(--ink-muted); }
+.footer .socials a:hover { color: var(--on-air); }
