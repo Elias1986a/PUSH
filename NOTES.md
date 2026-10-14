@@ -1,5 +1,16 @@
 # NOTES
 
+## Dictionary entries for symbols (2026-10-14, next-release, not released)
+
+User: a dictionary entry heard "&" → "AMP" never fired. Two causes.
+CorrectionsStore.matchPattern wrapped every entry in `\b`, which needs a letter
+at the entry's edge, so an entry starting or ending in a symbol ("&", "dr.")
+could never match; at a symbol edge it now means "not glued to a letter or
+digit" ("&" fixes "Tom & Jerry", not "AT&T"). And the dictionary runs before
+the formatting that turns the spoken "ampersand" into "&", so symbol-only
+`.always` entries also get a second pass after postProcess
+(symbolOnlyEntries). 7 tests. Not in a release yet.
+
 ## Sync rules, second-Mac flow, learning in setup (2026-10-14, next-release, not released)
 
 User agreed docs/sync-rules.csv. CloudSync now has liveSettingKeys (name,

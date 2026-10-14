@@ -210,6 +210,12 @@ extension TranscriptionPipeline {
                 hasNativePunctuation: activeModel.hasNativePunctuation,
                 language: language)
 
+            // Entries for a symbol ("&" heard, "AMP" wanted) can only match now:
+            // "ampersand" becomes "&" in the formatting above, after the first
+            // pass of the dictionary has already run.
+            formattedText = CorrectionsStore.applyReplacements(
+                CorrectionsStore.symbolOnlyEntries(corrections), to: formattedText)
+
             // Typographic preference — off by request via Settings → General.
             if await MainActor.run(body: { AppState.shared.doubleSpaceAfterSentence }) {
                 formattedText = Self.doubleSpaceAfterPeriods(formattedText)

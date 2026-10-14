@@ -251,8 +251,20 @@ final class CorrectionsStore: ObservableObject {
 
     /// The search pattern for one dictionary entry. Shared by both lanes so the
     /// two can never disagree about what counts as a match.
+    ///
+    /// `\b` only exists next to a word character. An entry that starts or ends
+    /// with a symbol ("&", "Inc.", "C++") has no word character at that edge, so
+    /// `\b` there demanded a letter *outside* the term and the entry saved and
+    /// never fired. At such an edge the rule is instead that it must not be
+    /// glued to a letter or digit: "&" fixes "Tom & Jerry" but leaves "AT&T" alone.
     nonisolated static func matchPattern(for term: String) -> String {
-        scriptAwareBoundary + NSRegularExpression.escapedPattern(for: term) + scriptAwareBoundary
+        func isWord(_ scalar: Unicode.Scalar?) -> Bool {
+            guard let scalar else { return true }
+            return CharacterSet.alphanumerics.contains(scalar) || scalar == "_"
+        }
+        let lead = isWord(term.unicodeScalars.first) ? scriptAwareBoundary : "(?<![\\p{L}\\p{N}])"
+        let trail = isWord(term.unicodeScalars.last) ? scriptAwareBoundary : "(?![\\p{L}\\p{N}])"
+        return lead + NSRegularExpression.escapedPattern(for: term) + trail
     }
 
     /// Case-insensitive, whole-word replacement of every "wrong" with its
@@ -270,6 +282,17 @@ final class CorrectionsStore: ObservableObject {
             result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: template)
         }
         return result
+    }
+
+    /// The `.always` entries whose "heard as" has no letter or digit in it ("&",
+    /// "@", "#"). Spoken symbols ("ampersand", "at sign") only become symbols
+    /// in the formatting that runs after the dictionary, so an entry for the
+    /// symbol cannot match on the first pass and needs a second, after it.
+    nonisolated static func symbolOnlyEntries(_ corrections: [Correction]) -> [Correction] {
+        corrections.filter { entry in
+            entry.kind == .always && !entry.wrong.isEmpty
+                && !entry.wrong.unicodeScalars.contains { CharacterSet.alphanumerics.contains($0) }
+        }
     }
 
     // MARK: - Contextual lane
