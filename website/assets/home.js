@@ -27,31 +27,3 @@
   }, { threshold: 0.25 });
   videos.forEach(function (v) { seen.observe(v); });
 })();
-
-// Live preview: the pill fills a word at a time, the way the app shows a
-// sentence while you are still saying it. Runs only while on screen; with
-// reduced motion the whole sentence just sits there.
-(function () {
-  var el = document.getElementById('live-text');
-  if (!el) return;
-  var words = el.textContent.trim().split(/\s+/);
-  var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (still || !('IntersectionObserver' in window)) return;
-  var timer = null, shown = 0;
-  function tick() {
-    if (shown < words.length) {
-      shown += 1;
-      el.textContent = words.slice(0, shown).join(' ');
-      timer = setTimeout(tick, 260);
-    } else {
-      timer = setTimeout(function () { shown = 0; el.textContent = ''; tick(); }, 2400);
-    }
-  }
-  el.textContent = '';
-  new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (e.isIntersecting && !timer) tick();
-      else if (!e.isIntersecting && timer) { clearTimeout(timer); timer = null; }
-    });
-  }, { threshold: 0.5 }).observe(el);
-})();
