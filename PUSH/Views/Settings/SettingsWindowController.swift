@@ -39,11 +39,14 @@ final class SettingsWindowController {
 
         let window = NSWindow(contentViewController: hosting)
         window.title = "PUSHTYPE Settings"
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
-        window.setContentSize(NSSize(width: 820, height: 620))
-        // Remembers position and size across launches, which is what the
-        // SwiftUI scene did for free and what the user will miss if it stops.
+        // Not resizable, and no size of its own: `SettingsView` is a fixed
+        // 720×640, and a window set to 820×620 around it showed 100 pt of
+        // blank space at the side and clipped 20 pt off the bottom.
+        window.styleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+        // Remembers position across launches, which is what the SwiftUI scene
+        // did for free and what the user will miss if it stops.
         window.setFrameAutosaveName("PUSHSettingsWindow")
+        window.setContentSize(hosting.view.fittingSize)
         window.isReleasedWhenClosed = false
         window.center()
 

@@ -449,7 +449,7 @@ struct MenuBarView: View {
 
     private var statusColor: Color {
         if !appState.dictationEnabled { return .secondary }
-        if appState.modelUnavailable { return .red }
+        if appState.modelUnavailable { return appState.isWarmingUp ? .orange : .red }
         if appState.isProcessing { return .orange }
         if appState.isCapturing { return .green }
         if !appState.isModelReady || appState.isPrewarming { return .orange }
@@ -458,7 +458,7 @@ struct MenuBarView: View {
 
     private var statusText: String {
         if !appState.dictationEnabled { return "Talk off" }
-        if appState.modelUnavailable { return "Model unavailable" }
+        if appState.modelUnavailable { return appState.isWarmingUp ? "Loading model…" : "Model unavailable" }
         if appState.isCapturing { return "Listening" }
         if appState.isListening { return "Warming up…" }
         if appState.isProcessing { return "Transcribing…" }
