@@ -12,8 +12,9 @@ import {
 } from "remotion";
 import { FPS, VO_OFFSET_S, color, font } from "./theme";
 
-// Everything is timed in seconds on the voiceover's clock (see VO_OFFSET_S):
-// promo/voice/explainer-vo.mp3, measured 2026-10-15.
+// Everything is timed in seconds of the finished video, from the voiceover
+// (promo/voice/explainer-vo.mp3, second take, lines measured 2026-10-15) laid
+// in at VO_OFFSET_S.
 const s = (seconds: number) => Math.round(seconds * FPS);
 
 /** Scene boundaries, in seconds of the finished video. */
@@ -21,9 +22,9 @@ const T = {
   hook: [0, 2.4],
   talk: [2.4, 6.4],
   hands: [6.4, 7.6],
-  type: [7.6, 11.0],
-  prompter: [11.0, 14.2],
-  end: [14.2, 21],
+  type: [7.6, 11.1],
+  prompter: [11.1, 14.9],
+  end: [14.9, 21],
 } as const;
 
 /** Where each real clip plays from (seconds into the source). */
@@ -33,7 +34,8 @@ const SRC = {
   // on screen under "clean text".
   talkFrom: 27.3,
   talkRelease: 28.47,
-  // promo/type-demo.mp4: "Should we rent a car or" → gray "take the metro?" → Tab.
+  // promo/type-demo.mp4: "Should we rent a car or" → gray "take the metro?" →
+  // Tab at 21.52 s, which plays at 9.92 s under the word "Tab".
   typeFrom: 19.2,
 };
 
@@ -364,11 +366,12 @@ const EndCard: React.FC<{ vertical: boolean }> = ({ vertical }) => {
 
 /** The voiceover's words on screen, so the vertical cut works muted. */
 const LINES: { text: string; accent?: string; at: number; until: number }[] = [
-  { text: "Hold a key, and just talk.", accent: "talk.", at: 0.49, until: 2.4 },
-  { text: "Clean text, right where you're typing.", accent: "Clean text,", at: 2.65, until: 6.4 },
-  { text: "Start typing. It finishes your sentence.", accent: "finishes", at: 6.58, until: 9.45 },
-  { text: "Press Tab to take it.", accent: "Tab", at: 9.5, until: 11.0 },
-  { text: "On camera? The teleprompter follows your voice.", accent: "teleprompter", at: 11.13, until: 14.2 },
+  { text: "Hold a key, and just talk.", accent: "talk.", at: 0.48, until: 2.4 },
+  { text: "Clean text, right where you're typing.", accent: "Clean text,", at: 2.61, until: 6.4 },
+  { text: "Start typing. It finishes your sentence.", accent: "finishes", at: 6.55, until: 9.3 },
+  // The real Tab press in type-demo (21.52 s) plays at 9.92 s, under "Tab".
+  { text: "Just press Tab to accept.", accent: "Tab", at: 9.38, until: 11.1 },
+  { text: "On camera? The teleprompter automatically follows your voice.", accent: "teleprompter", at: 11.28, until: 14.9 },
 ];
 
 const Captions: React.FC<{ vertical: boolean }> = ({ vertical }) => {
@@ -400,7 +403,8 @@ const Captions: React.FC<{ vertical: boolean }> = ({ vertical }) => {
         fontWeight: 800,
         fontStretch: "112%",
         letterSpacing: "-0.02em",
-        fontSize: vertical ? 92 : onApp ? 76 : 84,
+        // Long lines a size down, so they wrap in three lines, not five.
+        fontSize: vertical ? 92 : onApp ? 76 : line.text.length > 45 ? 70 : 84,
         lineHeight: 1.0,
         color: color.ink,
         opacity: p * fadeOut,
