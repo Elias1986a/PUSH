@@ -1,10 +1,13 @@
 # NOTES
 
-## 10.0 review fixes (2026-10-14, PR #67, in progress)
+## 10.0 review fixes (2026-10-14, in progress)
 
-Work list: docs/reviews/2026-10-14-release-readiness-review.md. User decisions: website analytics is Umami Cloud's free tier (no paid tools; GA removed), plus a script to count Polar checkouts opened vs paid (not built yet); iCloud sync stays ON by default and the site is reworded to say what syncs (not done yet); a licence works 30 days offline, then asks for a check; the Teleprompter needs a licence.
-Done in #67: Umami, first-launch fixes (B1, H3, H5, H8, mic, quit), licensing (offline cap, periodic checks, link offers instead of replacing, validate after activate), legal (banners out, single Mac licensed, OFL text). On `launch`: licence.offered is debug-only.
-Left: website batch (headers into website/netlify.toml + CSP, 404, cache, favicon, OG/canonical, video loading, spacing table, iCloud wording, "By buying you agree" on the launch branch's Buy note), app UI batch (copy table, a11y, confirmations, Reduce Motion, popover permission state, onboarding download Cancel, spacing; needs screenshots), Extra Mac refund eviction in seats.mts (needs a sandbox run), feed move + FEED_BASE + DMG notarization with 10.0, Polar abandonment script. Merging needs the user (the review rule blocks `gh pr merge --admin` from here).
+Work list: docs/reviews/2026-10-14-release-readiness-review.md. User decisions: website analytics is Umami Cloud's free tier (no paid tools; GA removed); iCloud sync stays ON by default and the site says what syncs; a licence works 30 days offline, then asks for a check; the Teleprompter needs a licence.
+Merged (#67): Umami, first-launch fixes, licensing, legal. On `launch`: licence.offered debug-only, main merged in, Buy note says buying means agreeing.
+PR #68 (open): website headers/CSP/404/caching/spacing, scripts/polar_checkouts.py (not yet run against the live store), app UI batch (copy, VoiceOver, confirmations, Reduce Motion, permission state in the menu, setup download Cancel, compact spacing, footers).
+Left: Extra Mac refund eviction in seats.mts (needs a sandbox run); the feed move + FEED_BASE + DMG notarization with the 10.0 build; product calls the review raised but did not decide (onboarding 10 -> 8 pages, Models/Pill pane merges); re-capture Settings ▸ General after the link fix.
+**Crash found, not fixed (pre-existing, also on main):** the debug build crashed twice on the TYPE setup page (PUSH_ONBOARDING_STEP=typingModel): SwiftUI's accessibility bridge read `AppState.typeEnabled` through a Toggle binding on a background cooperative thread and the main-actor isolation check trapped (EXC_BREAKPOINT, _dispatch_assert_queue_fail). Intermittent; probably set off by an AX client (the installed PUSHTYPE's own TYPE reading the focused app). Check whether the release build has the same check before 10.0.
+**iCloud and .git:** a `git stash` died of SIGBUS (signal 10) mid-session; fsck was clean afterwards. The checkout is in iCloud-synced ~/Documents and only .build is symlinked out, so .git objects can be evicted too.
 
 ## One key per customer: the first key is the main key (2026-10-14, live)
 
@@ -714,7 +717,7 @@ Dictation, Text, Pill, Models, Dictionary. Shipped, notarized, appcast pushed.
   squeezed the field. Use `TextField("", text:, prompt:)` + `.labelsHidden()`.
 - **Verifying this app's UI hijacks the user's screen** (LSUIElement + menu bar
   extra + `screencapture`). Ask first, batch every pane into one scripted pass,
-  `pkill -x PUSH` after. `osascript ... key code 53` first — a menu left open
+  `pkill -x PUSH` after (it also kills an installed copy: kill the debug PID instead). Never send Esc with osascript: the terminal is frontmost and it cancels the running tool call. A menu left open
   blocks all System Events queries and looks like "the window never opened".
 - The caret fix is the one thing never confirmed on screen; the user was asked
   to eyeball it after installing.

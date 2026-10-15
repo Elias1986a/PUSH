@@ -6,7 +6,10 @@
 <title>Thank you · PUSHTYPE</title>
 <meta name="description" content="Your PUSHTYPE license is on its way.">
 <meta name="robots" content="noindex">
-<link rel="icon" href="../assets/icon.png">
+<link rel="icon" href="../assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta name="theme-color" content="#edebe6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="../assets/fonts.css">
 <link rel="stylesheet" href="../assets/tokens.css">
 <link rel="stylesheet" href="../assets/components.css">
@@ -17,11 +20,11 @@
 <header class="wrap nav">
 <a class="brand" href="../"><span class="disp">PUSHTYPE</span><span class="dot"></span></a>
 <span style="flex-grow: 1;"></span>
-<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false">
 <svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
 <svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
 </button>
-<a href="../" style="text-decoration: none; font-size: 15px; font-weight: 500;">← Back to PUSHTYPE</a>
+<a href="../" style="text-decoration: none; font-size: 15px; font-weight: 500;">← Back</a>
 </header>
 
 <main class="wrap bench">
@@ -55,63 +58,7 @@
 <p class="note"><span id="macs-note">One license works on 3 of your Macs, and each extra Mac is $12.</span> Moving to a new Mac?&nbsp; Open Settings ▸ License on the old one and click Remove This Mac to free its place.&nbsp; Stuck, or changed your mind within 14 days?&nbsp; <a href="../support/">We can help</a>.</p>
 </section>
 </main>
-<script>
-(function () {
-  // The order number and session token in the address are what unlock the
-  // key: read them, then take them out of the address bar and history.\u00a0 The
-  // tab keeps them so a reload still works.\u00a0 No third-party script runs here.
-  var query = new URLSearchParams(location.search);
-  var id = query.get('checkout_id');
-  var session = query.get('customer_session_token') || '';
-  try {
-    if (id) sessionStorage.setItem('purchase', JSON.stringify({ id: id, session: session }));
-    else { var kept = JSON.parse(sessionStorage.getItem('purchase') || 'null'); if (kept) { id = kept.id; session = kept.session; } }
-  } catch (e) {}
-  if (location.search) history.replaceState(null, '', location.pathname);
-  var tries = 0;
-  // Only if the lookup can't be done: the receipt email has everything.
-  function fallback() {
-    document.getElementById('thanks-lede').textContent = 'Polar has emailed you a receipt with your download and license key.';
-    document.getElementById('manual').hidden = false;
-  }
-  if (!id) return fallback();
-  function show(data) {
-    document.getElementById('thanks-lede').textContent = data.kind === 'extra'
-      ? (data.added === 1 ? 'That\'s one more Mac on your license.' : 'That adds ' + data.added + ' Macs to your license.')
-        + ' It now covers ' + data.macs + '.\u00a0 Install and activate it on the new Mac.'
-      : 'Two clicks and you\'re talking.\u00a0 Polar has also emailed you a receipt with your download and license key.';
-    // What this key covers: one Mac for a single, more once things are added.
-    document.getElementById('macs-note').textContent = data.macs === 1
-      ? 'This key covers 1 Mac.\u00a0 Each extra Mac is $12, and the $35 license adds 3 more (buy with the same email).'
-      : 'This license covers ' + data.macs + ' Macs, and each extra Mac is $12.';
-    document.getElementById('quick').hidden = false;
-    var dl = document.getElementById('download-btn');
-    if (data.download) {
-      dl.href = data.download.url;
-      document.getElementById('download-meta').textContent = data.download.name + ' · ' + data.download.size;
-    } else {
-      dl.replaceWith(document.createTextNode('Use the link in Polar\'s email.'));
-    }
-    document.getElementById('activate-btn').href = 'pushtype://activate?key=' + encodeURIComponent(data.key);
-    document.getElementById('key-text').textContent = data.key;
-    document.getElementById('copy-btn').addEventListener('click', function (e) {
-      navigator.clipboard.writeText(data.key).then(function () { e.target.textContent = 'Copied'; });
-    });
-  }
-  function load() {
-    fetch('/api/purchase?checkout_id=' + encodeURIComponent(id) + '&customer_session_token=' + encodeURIComponent(session))
-      .then(function (r) { return r.json().then(function (body) { return { status: r.status, body: body }; }); })
-      .then(function (res) {
-        if (res.status === 200 && res.body.key) return show(res.body);
-        // Polar can take a few seconds to finish the order after payment.
-        if (res.status === 409 && ++tries < 8) return setTimeout(load, 2000);
-        fallback();
-      })
-      .catch(fallback);
-  }
-  load();
-})();
-</script>
+<script src="../assets/thanks.js"></script>
 <footer class="footer">
 <div class="wrap">
 <div class="row" style="gap: 28px;">

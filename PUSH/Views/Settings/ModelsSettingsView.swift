@@ -15,6 +15,8 @@ struct ModelsSettingsView: View {
     @State private var downloadProgress: Double = 0
     @State private var downloadStatus: String = ""
     @State private var downloadError: String?
+    /// Asked before deleting: getting it back is another download.
+    @State private var confirmingDelete: AppState.WhisperModel?
     @State private var storageBytes: Double = 0
 
     /// Measured on-disk size per model, filled by `refreshStorage`. Empty until
@@ -27,14 +29,19 @@ struct ModelsSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Speech model") {
+            Section {
                 ForEach(AppState.WhisperModel.selectable) { model in
                     modelRow(model)
                 }
 
+            } header: {
+                Text("Speech model")
+            } footer: {
                 Text("Every model runs on this Mac. Nothing you say is sent anywhere.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Section("Storage") {
@@ -60,6 +67,15 @@ struct ModelsSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .confirmationDialog(
+            "Delete \(confirmingDelete?.shortName ?? "this model")?",
+            isPresented: Binding(get: { confirmingDelete != nil }, set: { if !$0 { confirmingDelete = nil } }),
+            presenting: confirmingDelete
+        ) { model in
+            Button("Delete", role: .destructive) { deleteModel(model) }
+        } message: { _ in
+            Text("Using it again means downloading it again.")
+        }
         .onAppear {
             refreshDownloaded()
             refreshStorage()
@@ -72,12 +88,13 @@ struct ModelsSettingsView: View {
     private func modelRow(_ model: AppState.WhisperModel) -> some View {
         let isSelected = appState.selectedWhisperModel == model
 
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 8) {
             Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                 .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                 .padding(.top, 2)
+                .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 7) {
                     Text(model.shortName)
                         .fontWeight(.medium)
@@ -90,6 +107,10 @@ struct ModelsSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                // The name is the row's button for VoiceOver (the row is picked by a tap).
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+                .accessibilityAction { select(model) }
 
                 Text(model.modelDescription)
                     .font(.caption)
@@ -157,7 +178,7 @@ struct ModelsSettingsView: View {
         } else if showsActiveBadge(for: model) {
             statusBadge(icon: "checkmark.circle.fill", color: .green, text: "Active")
         } else if downloaded.contains(model) {
-            Button("Delete") { deleteModel(model) }
+            Button("Delete…") { confirmingDelete = model }
                 .foregroundStyle(.red)
         } else {
             Button("Download") { downloadModel(model) }

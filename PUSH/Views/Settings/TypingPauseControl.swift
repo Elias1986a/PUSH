@@ -22,6 +22,7 @@ struct TypingPauseControl: View {
                     Button { choosing = false } label: { Image(systemName: "xmark") }
                         .buttonStyle(.borderless)
                         .help("Cancel")
+                        .accessibilityLabel("Cancel")
                 }
                 HStack(spacing: 6) {
                     Button("1 Hour") { pause(until: Date().addingTimeInterval(3600)) }

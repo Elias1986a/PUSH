@@ -77,6 +77,10 @@ struct OnboardingView: View {
     @State private var downloadingModel: WhisperModel?
     @State private var downloadProgress: Double = 0
     @State private var downloadError: String?
+    @State private var downloadTask: Task<Void, Never>?
+    /// When the download last grew: a long silence means a network that
+    /// blocks huggingface.co, which FluidAudio waits on without a timeout.
+    @State private var lastProgress = Date()
 
     /// The steps for the features chosen so far. Recomputed as the switches on
     /// the features step change; `step` is a value, not an index, so it stays
@@ -99,13 +103,13 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .padding(.horizontal, 36)
-                .padding(.top, 34)
+                .padding(.horizontal, 28)
+                .padding(.top, 24)
 
             Divider()
             footer
-                .padding(.horizontal, 24)
-                .padding(.vertical, 14)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
         }
         .frame(width: OnboardingWindowController.contentSize.width,
                height: OnboardingWindowController.contentSize.height)
@@ -147,8 +151,8 @@ struct OnboardingView: View {
     // MARK: - Step 1 · what this is
 
     private var welcomeStep: some View {
-        VStack(spacing: 18) {
-            AppIconImage(size: 84)
+        VStack(spacing: 12) {
+            AppIconImage(size: 64)
 
             VStack(spacing: 8) {
                 Text("Meet PUSHTYPE")
@@ -173,7 +177,7 @@ struct OnboardingView: View {
                 highlight(
                     icon: "person.text.rectangle",
                     title: "It can learn to sound like you",
-                    detail: "Switch on learning and it picks up your phrases, names and tone. Off until you do."
+                    detail: "Switch on learning and it picks up your phrases, names, and tone. Off until you do."
                 )
                 highlight(
                     icon: "lock.fill",
@@ -216,7 +220,7 @@ struct OnboardingView: View {
     /// would only ask the same again. What belongs to this Mac (permissions,
     /// models, which features run) is still asked next.
     private var otherMacStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 12) {
             if let adoption, adoption.foundAnything {
                 stepHeader(title: "Copied from your other Mac",
                            subtitle: "You won't be asked those again. This Mac still needs its own permissions and downloads, next.")
@@ -250,7 +254,7 @@ struct OnboardingView: View {
                 }
             } else {
                 stepHeader(title: "Already use PUSHTYPE on another Mac?",
-                           subtitle: "Copy your settings, dictionary and what it knows about you, and skip what you've already answered. This Mac still needs its own permissions and downloads.")
+                           subtitle: "Copy your settings, dictionary, and what it knows about you, and skip what you've already answered. This Mac still needs its own permissions and downloads.")
                 VStack(alignment: .leading, spacing: 10) {
                     Button { copyFromOtherMac() } label: {
                         Text("Yes, copy from my other Mac").frame(maxWidth: .infinity)
@@ -335,7 +339,7 @@ struct OnboardingView: View {
             .toggleStyle(.switch)
 
             if history.isOn {
-                Toggle("Share it with my other Macs, through my iCloud", isOn: $sharesLearning)
+                Toggle("Share what it learns with my other Macs", isOn: $sharesLearning)
                     .toggleStyle(.switch)
                     .controlSize(.small)
                     .onChange(of: sharesLearning) { _, on in
@@ -357,7 +361,7 @@ struct OnboardingView: View {
 
     private var featuresStep: some View {
         @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 16) {
+        return VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 title: "What should PUSHTYPE do?",
                 subtitle: "Turn on what you want. Each one can be switched on or off later in Settings."
@@ -394,7 +398,7 @@ struct OnboardingView: View {
     // MARK: - Step 2 · the permissions
 
     private var permissionsStep: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 12) {
             if OnboardingFlow.needsMicrophone(dictation: appState.dictationEnabled) {
                 stepHeader(
                     title: "Two permissions",
@@ -446,7 +450,7 @@ struct OnboardingView: View {
 
             if !permissions.accessibility.isGranted {
                 Label(
-                    "System Settings opens with PUSHTYPE on a card at the bottom — drag it into the list. This page ticks over on its own once you do — no need to restart PUSH.",
+                    "System Settings opens with PUSHTYPE on a card at the bottom — drag it into the list. This page ticks over on its own once you do — no need to restart PUSHTYPE.",
                     systemImage: "info.circle"
                 )
                 .font(.callout)
@@ -527,6 +531,9 @@ struct OnboardingView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture { choose(model) }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isChosen ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction { choose(model) }
         // Switching mid-download would abandon 600 MB half-fetched.
         .disabled(downloadingModel != nil)
         .opacity(downloadingModel != nil && !isChosen ? 0.5 : 1)
@@ -537,11 +544,11 @@ struct OnboardingView: View {
     private static func blurb(for model: WhisperModel) -> String {
         switch model {
         case .parakeetUltra:
-            return "English, plus Spanish, French, German and other European languages."
+            return "English, plus Spanish, French, German, and other European languages."
         case .parakeetStreaming:
             return "English only. Shows your words as you speak them."
         case .nemotronMultilingual:
-            return "Chinese, Japanese, Arabic, Hindi, Russian and more. Pick the language in Settings."
+            return "Chinese, Japanese, Arabic, Hindi, Russian, and more. Pick the language in Settings."
         }
     }
 
@@ -549,12 +556,22 @@ struct OnboardingView: View {
     private func modelAction(for chosen: WhisperModel) -> some View {
         if downloadingModel == chosen {
             VStack(alignment: .leading, spacing: 6) {
-                ProgressView(value: downloadProgress)
+                HStack {
+                    ProgressView(value: downloadProgress)
+                    Button("Cancel") { cancelDownload() }
+                }
                 Text(downloadProgress < 0.95
                      ? "Downloading \(chosen.shortName)… \(Int(downloadProgress * 100))%"
                      : "Getting \(chosen.shortName) ready…")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                TimelineView(.periodic(from: .now, by: 5)) { context in
+                    if downloadProgress < 0.95, context.date.timeIntervalSince(lastProgress) > 90 {
+                        statusLine(icon: "exclamationmark.triangle.fill",
+                                   text: "Nothing has arrived for a while. If this network blocks huggingface.co, try another network, or cancel and pick again.",
+                                   tint: .orange)
+                    }
+                }
             }
         } else if isReady(chosen) {
             statusLine(icon: "checkmark.circle.fill", text: "\(chosen.shortName) is ready.", tint: .green)
@@ -594,17 +611,29 @@ struct OnboardingView: View {
         appState.selectedWhisperModel = model
         downloadingModel = model
         downloadError = nil
-        Task {
+        lastProgress = Date()
+        downloadTask = Task {
             do {
-                try await ModelDownload.run(model) { downloadProgress = $0 }
+                try await ModelDownload.run(model) { progress in
+                    if progress != downloadProgress { lastProgress = Date() }
+                    downloadProgress = progress
+                }
             } catch is CancellationError {
                 // Superseded by another activation; nothing to report.
             } catch {
                 downloadError = error.localizedDescription
             }
             downloadingModel = nil
+            downloadTask = nil
             refreshModelsOnDisk()
         }
+    }
+
+    private func cancelDownload() {
+        ModelLoader.cancelActivation()
+        downloadTask?.cancel()
+        downloadingModel = nil
+        downloadProgress = 0
     }
 
     private func refreshModelsOnDisk() {
@@ -626,9 +655,9 @@ struct OnboardingView: View {
             )
 
             HStack {
-                Text("Suggest as I type").fontWeight(.medium)
+                Text("TYPE").fontWeight(.medium)
                 Spacer()
-                Toggle("Suggest as I type", isOn: $appState.typeEnabled)
+                Toggle("TYPE", isOn: $appState.typeEnabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
             }
@@ -656,18 +685,18 @@ struct OnboardingView: View {
                         .labelsHidden()
                 }
                 .padding(.horizontal, 12)
-                .help("Xcode, VS Code and Cursor use Tab for their own completions, so this starts off.")
+                .help("Xcode, VS Code, and Cursor use Tab for their own completions, so this starts off.")
 
                 if ready {
                     TextEditor(text: $typingSandbox)
                         .font(.system(size: 15))
                         .scrollContentBackground(.hidden)
                         .padding(8)
-                        .frame(height: 84)
+                        .frame(height: 72)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color(nsColor: .textBackgroundColor)))
                         .overlay(alignment: .topLeading) {
                             if typingSandbox.isEmpty {
-                                Text("Try it: type “Thanks for the update, I’ll” and wait a moment. Tab takes a word, ` takes all of it.")
+                                Text("Try it: type “Thanks for the update, I’ll” and wait a moment. Tab takes a word, \(AcceptKeyResolver.name(of: TypingPreferences.wholeKey(layout: KeyboardLayoutMap.current()), layout: KeyboardLayoutMap.current())) takes all of it.")
                                     .font(.system(size: 15))
                                     .foregroundStyle(.tertiary)
                                     .padding(.horizontal, 13)
@@ -718,7 +747,7 @@ struct OnboardingView: View {
     /// is room to say what it is for and what it is not (user, 2026-10-12).
     private var licenceStep: some View {
         let license = LicenseModel.shared
-        return VStack(alignment: .leading, spacing: 18) {
+        return VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 title: license.isLicensed ? "You're activated" : "Activate PUSHTYPE",
                 subtitle: license.isLicensed
@@ -742,7 +771,7 @@ struct OnboardingView: View {
 
     private var screenTextStep: some View {
         @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 18) {
+        return VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 title: "Reading the screen",
                 subtitle: "Optional. Suggestions are better when PUSHTYPE can see what you’re replying to, and what you just copied."
@@ -801,7 +830,7 @@ struct OnboardingView: View {
 
     private var tryItStep: some View {
         @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 18) {
+        return VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 title: "Try it right here",
                 subtitle: "Click the box below, then hold \(appState.selectedHotkey.displayName), say “hello world”, and let go."
@@ -814,7 +843,7 @@ struct OnboardingView: View {
                 .font(.system(size: 15))
                 .scrollContentBackground(.hidden)
                 .padding(10)
-                .frame(height: 120)
+                .frame(height: 96)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(Color(nsColor: .textBackgroundColor))
@@ -934,7 +963,7 @@ struct OnboardingView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(14)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(nsColor: .controlBackgroundColor))
@@ -949,7 +978,7 @@ struct OnboardingView: View {
 
     private var finishStep: some View {
         @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 16) {
+        return VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 title: "One last thing",
                 subtitle: "PUSHTYPE lives in the menu bar. It has no Dock icon and no window of its own."
@@ -961,7 +990,9 @@ struct OnboardingView: View {
             )) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Open PUSHTYPE at login").font(.system(size: 13, weight: .medium))
-                    Text("Recommended. Talk is only useful if it is already running when you want it — otherwise the PUSH-to-talk key does nothing and you have to go and launch PUSHTYPE first.")
+                    Text(appState.dictationEnabled
+                         ? "Recommended. Talk is only useful if it is already running when you want it — otherwise the PUSH-to-talk key does nothing and you have to go and launch PUSHTYPE first."
+                         : "Recommended. Suggestions only appear while PUSHTYPE is running.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -975,8 +1006,13 @@ struct OnboardingView: View {
                 Text("Where to find things")
                     .font(.system(size: 13, weight: .medium))
 
-                bullet("Click the ", symbol: "music.mic", rest: " in the menu bar to pause TYPE or learning, start the teleprompter, open Settings, or quit.")
-                bullet("Settings has the PUSH-to-talk key, the language, the pill's position and your dictionary of names and jargon.")
+                // With Talk off the menu-bar icon is the I-beam alone (MenuBarController.icon).
+                if appState.dictationEnabled {
+                    bullet("Click the ", symbol: "music.mic", rest: " in the menu bar to pause TYPE or learning, start the teleprompter, open Settings, or quit.")
+                } else {
+                    bullet("Click PUSHTYPE's I-beam in the menu bar to pause TYPE or learning, start the teleprompter, open Settings, or quit.")
+                }
+                bullet("Settings has the PUSH-to-talk key, the language, the pill's position, and your dictionary of names and jargon.")
                 if appState.dictationEnabled {
                     bullet("Say “new line”, “new paragraph”, or “scratch that” and PUSHTYPE follows.")
                 }
@@ -1031,9 +1067,9 @@ struct OnboardingView: View {
 
     private func stepHeader(title: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.system(size: 22, weight: .semibold))
+            Text(title).font(.system(size: 20, weight: .semibold))
             Text(subtitle)
-                .font(.title3)
+                .font(.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -1068,6 +1104,10 @@ struct OnboardingView: View {
             if step == .finish {
                 Button("Start Using PUSHTYPE", action: onFinish)
                     .keyboardShortcut(.defaultAction)
+            } else if step == .otherMac && !copied {
+                // The page's own Yes and No are the way on until something is
+                // copied; a greyed-out Continue beside them only confused.
+                Color.clear.frame(width: 1, height: 1)
             } else {
                 Button("Continue") { advance(to: 1) }
                     .keyboardShortcut(.defaultAction)
@@ -1167,7 +1207,7 @@ private struct OnboardingPermissionRow: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: status.isGranted)
-        .padding(14)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(nsColor: .controlBackgroundColor))

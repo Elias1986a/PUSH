@@ -40,7 +40,7 @@ struct TypingSettingsView: View {
             Section {
                 Toggle(isOn: $appState.typeEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Suggest as I type")
+                        Text("TYPE")
                         Text("Suggestions appear ahead of your cursor in any app. Everything runs on this Mac.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -73,7 +73,7 @@ struct TypingSettingsView: View {
                 Toggle(isOn: $appState.typingInCodeEditors) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Suggest in code editors")
-                        Text("Off by default: Xcode, VS Code and Cursor use Tab for their own completions.")
+                        Text("Off by default: Xcode, VS Code, and Cursor use Tab for their own completions.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -133,7 +133,7 @@ struct TypingSettingsView: View {
             }
 
             Section("Appearance") {
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     ForEach(SuggestionColor.Preset.allCases) { preset in
                         swatch(Color(nsColor: preset.color), selected: appState.typingColor == .preset(preset),
                                help: preset.name) { appState.typingColor = .preset(preset) }
@@ -161,6 +161,7 @@ struct TypingSettingsView: View {
                         } label: { Image(systemName: "minus.circle.fill").foregroundStyle(.secondary) }
                         .buttonStyle(.plain)
                         .help("Suggest in this app again")
+                        .accessibilityLabel("Suggest in this app again")
                     }
                 }
                 Menu("Turn Off in an App…") {
@@ -174,7 +175,7 @@ struct TypingSettingsView: View {
             } header: {
                 Text("Apps")
             } footer: {
-                Text("Always off in password managers, Keychain Access and System Settings, and in password and sign-in fields everywhere.")
+                Text("Always off in password managers, Keychain Access, and System Settings, and in password and sign-in fields everywhere.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
@@ -214,7 +215,7 @@ struct TypingSettingsView: View {
         Button(action: action) {
             Circle()
                 .fill(color)
-                .frame(width: 20, height: 20)
+                .frame(width: 16, height: 16)
                 .overlay(Circle().strokeBorder(Color.primary.opacity(selected ? 0.8 : 0), lineWidth: 2).padding(-3))
         }
         .buttonStyle(.plain)

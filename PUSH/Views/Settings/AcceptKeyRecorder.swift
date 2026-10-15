@@ -24,7 +24,7 @@ struct AcceptKeyRecorder: View {
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 3) {
-            Button(recording ? "Press a key…" : AcceptKeyResolver.name(of: current, layout: KeyboardLayoutMap.current())) {
+            Button(recording ? "Press a key (Esc cancels)…" : AcceptKeyResolver.name(of: current, layout: KeyboardLayoutMap.current())) {
                 recording ? stop() : start()
             }
             .frame(minWidth: 96)
