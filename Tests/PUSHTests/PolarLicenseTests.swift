@@ -99,6 +99,13 @@ final class PolarLicenseTests: XCTestCase {
         }
     }
 
+    /// The limit grows when the customer buys an Extra Mac; validate carries it.
+    func testValidateReturnsTheCurrentMacLimit() async throws {
+        reply(200, #"{"status":"granted","limit_activations":4}"#)
+        let limit = try await client().validate(key: "K", activationID: "act-1")
+        XCTAssertEqual(limit, 4)
+    }
+
     func testValidateAndDeactivateSendTheActivation() async throws {
         reply(200, #"{"status":"granted","display_key":"****-A1B2"}"#)
         try await client().validate(key: "K", activationID: "act-1")

@@ -43,24 +43,24 @@ class NotificationManager {
     /// Show a microphone permission error
     func showMicrophoneError() {
         showError(
-            title: "Microphone Access Required",
-            message: "PUSHTYPE needs microphone access to record audio. Please grant access in System Settings."
+            title: "Microphone is off for PUSHTYPE",
+            message: "Turn it on in System Settings ▸ Privacy & Security ▸ Microphone."
         )
     }
 
     /// Show a transcription error
     func showTranscriptionError() {
         showError(
-            title: "Transcription Failed",
-            message: "Unable to transcribe audio. Please try again."
+            title: "Nothing was transcribed",
+            message: "Hold the key and try again. If it keeps happening, pick another model in Settings ▸ Models."
         )
     }
 
     /// Show a model loading error
     func showModelError() {
         showError(
-            title: "Model Error",
-            message: "PUSHTYPE could not load the speech recognition model. Open Settings to choose or re-download one."
+            title: "Speech model didn't load",
+            message: "Open Settings ▸ Models to pick or re-download one."
         )
     }
 }

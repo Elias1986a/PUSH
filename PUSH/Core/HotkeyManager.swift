@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 import Carbon
 import Cocoa
 import PUSHCore
@@ -266,7 +267,9 @@ final class HotkeyManager: @unchecked Sendable {
         let path = Bundle.main.bundlePath
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/sh")
-        task.arguments = ["-c", "sleep 1; open \"\(path)\""]
+        // The path goes in as $0, never into the script text: a bundle path
+        // holding a quote or $(…) must not become shell syntax.
+        task.arguments = ["-c", "sleep 1; open \"$0\"", path]
         try? task.run()
         NSApp.terminate(nil)
     }
@@ -379,6 +382,17 @@ final class HotkeyManager: @unchecked Sendable {
             PushLogger.log("HotkeyManager: not activated, showing the license screen")
             LicenseModel.shared.askForLicence()
             return
+        }
+        // Microphone refused in System Settings: the input node delivers
+        // silence, so every press would end in "No speech detected" with no
+        // hint why. Say so at the press instead.
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .denied, .restricted:
+            PushLogger.log("HotkeyManager: microphone access is off, ignoring hotkey")
+            NotificationManager.shared.showMicrophoneError()
+            return
+        default:
+            break
         }
         // Recording does not need the model — only transcription does. Start
         // capturing immediately rather than silently swallowing the press

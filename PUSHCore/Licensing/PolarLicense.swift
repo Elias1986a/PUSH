@@ -58,7 +58,7 @@ public struct LicenseActivation: Sendable, Equatable, Codable {
     /// The key with most characters hidden ("****-1234"), safe to show.
     public let displayKey: String
     /// How many Macs this key allows, if Polar limits it.
-    public let activationLimit: Int?
+    public var activationLimit: Int?
 
     public init(activationID: String, displayKey: String, activationLimit: Int?) {
         self.activationID = activationID
@@ -118,8 +118,10 @@ public struct PolarLicenseClient: Sendable {
     }
 
     /// Whether this Mac's seat is still good. Throws `.notFound` for a key
-    /// that was revoked or a seat that was freed elsewhere.
-    public func validate(key: String, activationID: String) async throws {
+    /// that was revoked or a seat that was freed elsewhere. Returns the key's
+    /// current Mac limit, which grows when the customer buys an Extra Mac.
+    @discardableResult
+    public func validate(key: String, activationID: String) async throws -> Int? {
         let body: [String: Any] = [
             "key": key.trimmingCharacters(in: .whitespacesAndNewlines),
             "organization_id": config.organizationID,
@@ -129,6 +131,7 @@ public struct PolarLicenseClient: Sendable {
         if let status = json["status"] as? String, status != "granted" {
             throw LicenseError.refused(detail: status)
         }
+        return json["limit_activations"] as? Int
     }
 
     /// Free this Mac's seat so the key can be used on another.

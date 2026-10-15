@@ -1,8 +1,5 @@
 # PUSHTYPE End User License Agreement
 
-> **DRAFT. Not legal advice.** Have a California-licensed attorney review this
-> before the first paid sale. Placeholders are in `[brackets]`.
-
 **Effective:** October 14, 2026
 
 This agreement is between you and **PUSHTYPE**, a business
@@ -14,9 +11,10 @@ if you've already paid (see the Terms of Sale).
 ## 1. Your license
 
 When you buy PUSHTYPE, we grant you a personal, non-exclusive, non-transferable,
-perpetual license to install and use PUSHTYPE on **up to three (3) Macs** that you
-own or control, for any lawful purpose, personal or commercial. Each additional
-Mac needs an additional seat, sold separately.
+perpetual license to install and use PUSHTYPE on the number of Macs your
+purchases cover, that you own or control, for any lawful purpose, personal or
+commercial: **three (3) Macs** for a PUSHTYPE license, and **one (1) Mac** for
+each Extra Mac, whether it adds to a license you have or is bought on its own.
 
 The license belongs to the person who bought it. Buying for a team means one
 license per person, unless we agree otherwise in writing.
@@ -26,6 +24,9 @@ license per person, unless we agree otherwise in writing.
 Your purchase includes **every update to PUSHTYPE for macOS that we release, at no
 extra charge and without a subscription**. We intend to keep improving PUSHTYPE.
 We don't promise a particular update schedule, feature, or length of support.
+
+PUSHTYPE checks for updates about once a day and asks before installing one.
+You can turn the check off in PUSHTYPE ▸ Settings ▸ General.
 
 Products for other platforms, and separate products we may release later, are
 not included unless we say so when you buy.
@@ -37,7 +38,7 @@ You may not, and may not help anyone else:
 - share, sell, rent, lend, or sublicense PUSHTYPE or your license key, or use one
   key on more Macs than you have seats for;
 - get around license checks, or change or remove any notice in PUSHTYPE;
-- reverse engineer, decompile or disassemble PUSHTYPE, except where applicable law
+- reverse engineer, decompile, or disassemble PUSHTYPE, except where applicable law
   allows it despite this restriction;
 - use PUSHTYPE to break the law or to record people without the consent the law
   requires.
@@ -46,7 +47,7 @@ You may not, and may not help anyone else:
 
 PUSHTYPE includes open-source software, and PUSHTYPE downloads open speech and
 typing models that run on your Mac. Each is licensed to you under its own terms, listed in
-**Third-Party Notices** (inside the app at `PUSH.app/Contents/Resources/Legal`,
+**Third-Party Notices** (inside the app bundle, under `Contents/Resources/Legal`,
 and on our website). Nothing in this agreement limits your rights under those
 licenses.
 

@@ -94,7 +94,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Run from the signed build, which carries PUSH's Accessibility grant.
     static let typeSpikeText = "hello wörld 👋 naïve café 🎬 across chunks"
 
+    /// A development check only; a release build never looks at the variable.
     private func runTypeSpikeIfRequested() -> Bool {
+        #if DEBUG
         guard ProcessInfo.processInfo.environment["PUSH_TYPE_SPIKE"] != nil else { return false }
         let target = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?"
         KeystrokeTyper.type(Self.typeSpikeText)
@@ -103,6 +105,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print(line)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { exit(0) }
         return true
+        #else
+        return false
+        #endif
     }
 
     /// Deferred a beat rather than shown inline: `applicationDidFinishLaunching`
@@ -135,7 +140,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let key = urls.lazy.compactMap(LicenseKeyText.key(inActivationLink:)).first else { return }
         PushLogger.log("License: activation link opened")
         Task {
-            if LicenseModel.shared.stored?.key != key { await LicenseModel.shared.activate(key: key) }
+            // A Mac that already has a licence is only offered the new key
+            // (License pane): any web page can open this link.
+            if LicenseModel.shared.stored == nil {
+                await LicenseModel.shared.activate(key: key)
+            } else {
+                LicenseModel.shared.offer(key: key)
+            }
             // The welcome window has its own licence page; otherwise Settings.
             if !OnboardingWindowController.shared.isShowing {
                 SettingsWindowController.shared.show(pane: .licence)
@@ -152,6 +163,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // aborts if a model's buffers are still alive: every quit with the
         // typing model loaded showed "PUSHTYPE quit unexpectedly" (crash
         // reports, 9.1.2). Free the model first; never wait more than 2 s.
+        // Stand TYPE down before that (the saved switch is untouched): it
+        // cancels a suggestion in flight, which stops `generate` within a
+        // token, so the unload is not queued behind a long cold prompt.
+        TypingCoordinator.shared.setActive(false)
         let freed = DispatchSemaphore(value: 0)
         Task.detached {
             await LlamaEngine.shared.unload()
@@ -164,29 +179,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Permissions
 
+    /// Asks once, while the answer is still undetermined. A refusal is not
+    /// re-raised here: a modal alert at every launch blocked the main queue
+    /// (and every main-actor task) for as long as it stayed up. The PUSH-to-talk
+    /// key reports it instead, at the moment it matters (`HotkeyManager`).
     private func requestMicrophonePermission() {
-        AVCaptureDevice.requestAccess(for: .audio) { granted in
-            if !granted {
-                DispatchQueue.main.async {
-                    self.showPermissionAlert(for: "Microphone")
-                }
-            }
-        }
-    }
-
-    private func showPermissionAlert(for permission: String) {
-        let alert = NSAlert()
-        alert.messageText = "\(permission) Access Required"
-        alert.informativeText = "PUSHTYPE needs \(permission.lowercased()) access to function. Please grant access in System Settings > Privacy & Security."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Open Settings")
-        alert.addButton(withTitle: "Cancel")
-
-        if alert.runModal() == .alertFirstButtonReturn {
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy") {
-                NSWorkspace.shared.open(url)
-            }
-        }
+        AVCaptureDevice.requestAccess(for: .audio) { _ in }
     }
 
     // MARK: - Floating Pill Window
@@ -409,6 +407,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task {
                 await LicenseModel.shared.revalidateIfDue()
                 await LicenseModel.shared.activateFromICloudIfNeeded()
+                LicenseModel.shared.startPeriodicChecks()
             }
 
             // Only now start Sparkle. `startUpdater` can put up a modal (an

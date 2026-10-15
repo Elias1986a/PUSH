@@ -6,14 +6,35 @@ import PUSHCore
 
 struct LicenseSettingsView: View {
     @State private var license = LicenseModel.shared
+    @State private var confirmingRemove = false
 
     var body: some View {
         Form {
             if let stored = license.stored {
+                if let offered = license.offeredKey {
+                    Section {
+                        Text("An activation link brought a different key (\(PolarLicenseClient.masked(offered))). Switch this Mac to it? Its place on the current key is freed.")
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack {
+                            Button("Switch to This Key") { Task { await license.switchToOfferedKey() } }
+                                .disabled(license.isWorking)
+                            Button("Keep Current Key") { license.declineOfferedKey() }
+                        }
+                    }
+                }
                 Section {
                     LabeledContent("Status") {
-                        Label("Activated on this Mac", systemImage: "checkmark.seal.fill")
-                            .foregroundStyle(.green)
+                        if license.needsCheck() {
+                            HStack {
+                                Label("Needs a check with Polar", systemImage: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                Button("Check Now") { Task { await license.revalidate(force: true) } }
+                                    .disabled(license.isWorking)
+                            }
+                        } else {
+                            Label("Activated on this Mac", systemImage: "checkmark.seal.fill")
+                                .foregroundStyle(.green)
+                        }
                     }
                     LabeledContent("Key") {
                         Text(stored.activation.displayKey).font(.body.monospaced())
@@ -27,7 +48,7 @@ struct LicenseSettingsView: View {
                 }
                 Section {
                     HStack {
-                        Button("Remove This Mac") { Task { await license.removeThisMac() } }
+                        Button("Remove This Mac…") { confirmingRemove = true }
                             .disabled(license.isWorking)
                         Spacer()
                         Link("See all your Macs", destination: PolarConfig.current.portalURL)
@@ -39,7 +60,7 @@ struct LicenseSettingsView: View {
                 } header: {
                     Text("License")
                 } footer: {
-                    Text(LicenseActivationControls.footnote)
+                    Text(.init(LicenseActivationControls.footnote))
                 }
             }
 
@@ -48,6 +69,11 @@ struct LicenseSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .confirmationDialog("Remove PUSHTYPE from this Mac?", isPresented: $confirmingRemove) {
+            Button("Remove This Mac", role: .destructive) { Task { await license.removeThisMac() } }
+        } message: {
+            Text("Talk and TYPE stop on this Mac, and its place goes back to your license for another Mac.")
+        }
     }
 }
 
@@ -61,7 +87,8 @@ struct LicenseActivationControls: View {
     @State private var iCloudKey: String?
     @State private var copiedKey: String?
 
-    static let footnote = "One license works on 3 of your Macs; a fourth can be added for $12. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSHTYPE. Never your audio or anything you type."
+    /// Markdown (the agreement is a link): show it with `Text(.init(footnote))`.
+    static let footnote = "One license works on 3 of your Macs; a fourth can be added for $12. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSHTYPE. Never your audio or anything you type. By activating, you agree to the [License Agreement](https://pushtype.app/legal/eula.html)."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -124,7 +151,7 @@ struct LicenseActivationControls: View {
 private struct LicenseLimitChoices: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Link("Add this Mac for $12", destination: PolarConfig.current.addMacCheckoutURL)
+            Link("Add this Mac for $12 (same email as your license)", destination: PolarConfig.current.addMacCheckoutURL)
             Link("Buy another license ($35)", destination: PolarConfig.current.checkoutURL)
             Link("Free a place: remove a Mac you no longer use", destination: PolarConfig.current.portalURL)
         }

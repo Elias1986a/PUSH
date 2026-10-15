@@ -19,6 +19,7 @@ struct GeneralSettingsView: View {
     /// The website's pages.
     static let acknowledgementsURL = URL(string: "https://pushtype.app/legal/notices.html")!
     static let privacyURL = URL(string: "https://pushtype.app/legal/privacy.html")!
+    static let licenseAgreementURL = URL(string: "https://pushtype.app/legal/eula.html")!
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
@@ -43,15 +44,16 @@ struct GeneralSettingsView: View {
                         Text("Version \(appVersion)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("Offline voice to text")
+                        Text("Dictation and autocomplete, on your Mac.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         // The open-source licences PUSH ships under ask for
                         // credit where users can find it; the full texts are
                         // also in the app bundle (Contents/Resources/Legal).
                         HStack(spacing: 10) {
-                            Link("Acknowledgements", destination: Self.acknowledgementsURL)
+                            Link("License Agreement", destination: Self.licenseAgreementURL)
                             Link("Privacy Policy", destination: Self.privacyURL)
+                            Link("Acknowledgments", destination: Self.acknowledgementsURL)
                         }
                         .font(.caption)
                         .padding(.top, 2)

@@ -10,9 +10,8 @@ import PUSHCore
 /// Mac's (a seat is per Mac); the key alone is also kept in the user's iCloud
 /// Keychain, so their other Macs can activate without asking.
 ///
-/// Nothing here stops dictation yet. What happens without a licence (a trial,
-/// or not) is still to be decided; this is the part that knows whether there
-/// is one.
+/// Once the store is open (`isOffered`), `allowsUse` gates Talk, TYPE, the
+/// wake word and the teleprompter. No trial: the 14-day refund is the trial.
 @MainActor
 @Observable
 final class LicenseModel {
@@ -54,6 +53,20 @@ final class LicenseModel {
     /// How often a working licence is re-checked with Polar.
     static let revalidateInterval: TimeInterval = 24 * 60 * 60
 
+    /// How long the app keeps working without a successful check: offline is
+    /// fine, but not forever, or a refunded key behind a blocked polar.sh
+    /// would never stop (user, 2026-10-14: 30 days).
+    nonisolated static let offlineAllowance: TimeInterval = 30 * 24 * 60 * 60
+
+    /// A key from an activation link while this Mac already holds a different
+    /// one. Never applied on its own: any web page can open such a link, and
+    /// it must not swap a working licence (and the one in iCloud) unasked.
+    /// The License pane offers it.
+    private(set) var offeredKey: String?
+
+    private var wakeObserver: NSObjectProtocol?
+    private var checkTimer: Timer?
+
     private let client: PolarLicenseClient
     private let keychain: LicenseKeychain
     private let synced: SyncedLicenseKey
@@ -77,13 +90,40 @@ final class LicenseModel {
 
     var isLicensed: Bool { stored != nil }
 
-    /// Whether Dictation and Type may run: always until the store opens, then
-    /// only with a licence. No grace period; the 14-day refund is the trial.
-    var allowsUse: Bool { !Self.isOffered || isLicensed }
+    /// Whether Talk and TYPE may run: always until the store opens, then only
+    /// with a licence checked with Polar in the last 30 days. No trial; the
+    /// 14-day refund is the trial.
+    var allowsUse: Bool { !Self.isOffered || (isLicensed && !needsCheck()) }
+
+    /// Too long since Polar last confirmed this Mac's seat. A date in the
+    /// future counts too: no real check is dated there, so the record was
+    /// edited, and treating it as fresh would let it skip every check.
+    func needsCheck(now: Date = Date()) -> Bool {
+        guard let stored else { return false }
+        return Self.isOverdue(lastValidated: stored.lastValidated, now: now)
+    }
+
+    nonisolated static func isOverdue(lastValidated: Date, now: Date) -> Bool {
+        let elapsed = now.timeIntervalSince(lastValidated)
+        return elapsed < 0 || elapsed >= offlineAllowance
+    }
 
     /// Put the way to activate in front of the user: the welcome window's
-    /// licence page if it is open, otherwise Settings ▸ Licence.
+    /// licence page if it is open, otherwise Settings ▸ Licence. A Mac that
+    /// has a licence but is overdue for a check tries the check first, and
+    /// only shows the pane if that does not settle it.
     func askForLicence() {
+        guard stored == nil else {
+            Task {
+                await revalidate(force: true)
+                if !allowsUse { presentLicence() }
+            }
+            return
+        }
+        presentLicence()
+    }
+
+    private func presentLicence() {
         if OnboardingWindowController.shared.isShowing {
             OnboardingWindowController.shared.show()
         } else {
@@ -119,7 +159,13 @@ final class LicenseModel {
         refusedForLimit = false
         defer { isWorking = false }
         do {
-            let activation = try await client.activate(key: key, label: MacModelLabel.current())
+            var activation = try await client.activate(key: key, label: MacModelLabel.current())
+            // Validate at once: it is what marks the key as in use on Polar's
+            // side (the website's seat merging leaves a key alone only once
+            // it has been validated), and it reads the current Mac limit.
+            if let limit = try? await client.validate(key: key, activationID: activation.activationID) {
+                activation.activationLimit = limit
+            }
             let record = Stored(key: key, activation: activation, lastValidated: Date())
             keychain.save(record)
             stored = record
@@ -158,24 +204,73 @@ final class LicenseModel {
     }
 
     /// Re-check with Polar at most once a day. Offline or an odd answer
-    /// changes nothing: dictation works offline and must not stop because a
-    /// server did not answer. Only Polar saying the key or seat is gone does.
+    /// changes nothing for 30 days: the app works offline and must not stop
+    /// because a server did not answer. Polar saying the key or seat is gone
+    /// does, and so does a month without any answer (`needsCheck`).
     func revalidateIfDue(now: Date = Date()) async {
-        guard let record = stored, !isWorking,
-              now.timeIntervalSince(record.lastValidated) >= Self.revalidateInterval else { return }
+        await revalidate(force: false, now: now)
+    }
+
+    /// `force`: check now whatever the date (the Check Now button, or a press
+    /// refused for being overdue).
+    func revalidate(force: Bool, now: Date = Date()) async {
+        guard let record = stored, !isWorking else { return }
+        let elapsed = now.timeIntervalSince(record.lastValidated)
+        guard force || elapsed < 0 || elapsed >= Self.revalidateInterval else { return }
+        isWorking = true
+        defer { isWorking = false }
         do {
-            try await client.validate(key: record.key, activationID: record.activation.activationID)
+            let limit = try await client.validate(key: record.key, activationID: record.activation.activationID)
             var updated = record
             updated.lastValidated = now
+            if let limit { updated.activation.activationLimit = limit }
             keychain.save(updated)
             stored = updated
+            message = nil
         } catch LicenseError.notFound {
             forget("This Mac's license is no longer active. It may have been removed from another Mac or refunded.")
         } catch LicenseError.refused(let detail) {
-            forget("This Mac's license is no longer active (\(detail)).")
+            forget("This Mac's license is no longer active (\(detail)). If you bought more than once, your Macs share your first key: use Activate on the thank-you page, or the key from your other Mac.")
         } catch {
-            // Unreachable or unreadable: try again next launch.
+            // Unreachable or unreadable: try again later, and say so once it
+            // is the reason the app has stopped.
+            if needsCheck(now: now) {
+                message = "PUSHTYPE hasn't been able to check your license with Polar for 30 days. Connect to the internet and press Check Now."
+            }
         }
+    }
+
+    /// Re-check on wake and every few hours while running: a menu-bar app runs
+    /// for weeks, and a check only at launch let a refund go unnoticed until
+    /// the next relaunch. `revalidateIfDue` still asks Polar at most once a day.
+    func startPeriodicChecks() {
+        guard wakeObserver == nil else { return }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+            Task { @MainActor in await LicenseModel.shared.revalidateIfDue() }
+        }
+        checkTimer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) { _ in
+            Task { @MainActor in await LicenseModel.shared.revalidateIfDue() }
+        }
+    }
+
+    /// An activation link brought `key` while this Mac has a licence: hold it
+    /// for the License pane to offer, rather than activate it.
+    func offer(key: String) {
+        guard stored != nil, stored?.key != key else { return }
+        offeredKey = key
+    }
+
+    func declineOfferedKey() { offeredKey = nil }
+
+    /// The user chose the offered key: give this Mac's place on the old key
+    /// back first, so it does not linger on Polar, then activate the new one.
+    func switchToOfferedKey() async {
+        guard let key = offeredKey else { return }
+        offeredKey = nil
+        await removeThisMac()
+        guard stored == nil else { return }   // could not free the old place; message says why
+        await activate(key: key)
     }
 
     private func forget(_ sentence: String) {
@@ -195,9 +290,9 @@ final class LicenseModel {
         case .notFound:
             return "That key wasn't found. Copy it again from the email Polar sent you, all of it."
         case .refused(let detail) where isLimit(detail):
-            return "This license is already on all its Macs. Add this Mac for $12, or free a place by removing one you no longer use."
+            return "This license is already on all its Macs. Add this Mac for $12 (buy it with the same email), or free a place by removing one you no longer use."
         case .refused(let detail):
-            return "Polar didn't accept this key: \(detail)."
+            return "Polar didn't accept this key: \(detail). If you bought more than once, your Macs share your first key: use Activate on the thank-you page, or the key from your other Mac."
         case .unreachable, .unexpected:
             return "Couldn't reach Polar. Check your internet connection and try again."
         }

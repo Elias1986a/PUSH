@@ -247,6 +247,11 @@ final class TeleprompterSession: ObservableObject {
     /// what happens when the model isn't available.
     func start(script: String, followVoice: Bool = true) async {
         guard !isRunning else { return }
+        // Licensed like Talk and TYPE (user, 2026-10-14): it runs the speech model.
+        guard LicenseModel.shared.allowsUse else {
+            LicenseModel.shared.askForLicence()
+            return
+        }
 
         aligner = ScriptAligner(script: script)
         timedCursor = 0
