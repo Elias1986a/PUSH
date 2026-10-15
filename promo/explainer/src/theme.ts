@@ -28,6 +28,6 @@ void Promise.all([
 ]);
 
 export const FPS = 30;
-export const DURATION_S = 19.5;
+export const DURATION_S = 21;
 /** The voiceover starts this late, so the first frame isn't mid-word. */
 export const VO_OFFSET_S = 0.4;
