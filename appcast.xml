@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 9.3.1</title>
-            <pubDate>Wed, 14 Oct 2026 21:45:27 -0700</pubDate>
-            <sparkle:version>112</sparkle:version>
-            <sparkle:shortVersionString>9.3.1</sparkle:shortVersionString>
+            <title>Version 9.3.2</title>
+            <pubDate>Wed, 14 Oct 2026 22:19:06 -0700</pubDate>
+            <sparkle:version>113</sparkle:version>
+            <sparkle:shortVersionString>9.3.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,12 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 9.3.1 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 9.3.2 <span class="tag">New</span></h2>
+<h3>Better</h3>
+<ul>
+<li><strong>Your words land even sooner.</strong> PUSHTYPE no longer waits before pasting what you said, which takes about another 0.05 seconds off the moment you let go of the PUSH-to-talk key.</li>
+</ul></div>
+<div class="older"><h2>Version 9.3.1</h2>
 <h3>Better</h3>
 <ul>
 <li><strong>Your words land more than twice as fast.</strong> Text now appears about 0.13 seconds after you let go of the PUSH-to-talk key, down from about 0.35. The pill's glow was holding the app up for a moment after every dictation, and stopping the microphone now happens in the background.</li>
@@ -264,6 +269,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.3.2/PUSH-v9.3.2.zip" type="application/octet-stream" sparkle:edSignature="2lZF99xwSGP7i4moEIDEHwZyjk0Y3LSTsCmVurMuU/53Z2KAHZQ2eBy/Gxdt+iolva+GbgTjX75MDH6cl/o+AQ==" length="21256559" />
+        </item>
+        <item>
+            <title>Version 9.3.1</title>
+            <pubDate>Wed, 14 Oct 2026 21:45:27 -0700</pubDate>
+            <sparkle:version>112</sparkle:version>
+            <sparkle:shortVersionString>9.3.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.3.1/PUSH-v9.3.1.zip" type="application/octet-stream" sparkle:edSignature="1IIKRWUwyfx7Hr6Jf8rbhl51uVMigU2o0jIzW1AL8yppRncvbsLXVFbKQGSrIhTBeKut4rT/XhSb4x+XszzLDg==" length="21256994" />
         </item>
         <item>
