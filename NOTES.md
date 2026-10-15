@@ -1,5 +1,11 @@
 # NOTES
 
+## 10.0 review fixes (2026-10-14, PR #67, in progress)
+
+Work list: docs/reviews/2026-10-14-release-readiness-review.md. User decisions: website analytics is Umami Cloud's free tier (no paid tools; GA removed), plus a script to count Polar checkouts opened vs paid (not built yet); iCloud sync stays ON by default and the site is reworded to say what syncs (not done yet); a licence works 30 days offline, then asks for a check; the Teleprompter needs a licence.
+Done in #67: Umami, first-launch fixes (B1, H3, H5, H8, mic, quit), licensing (offline cap, periodic checks, link offers instead of replacing, validate after activate), legal (banners out, single Mac licensed, OFL text). On `launch`: licence.offered is debug-only.
+Left: website batch (headers into website/netlify.toml + CSP, 404, cache, favicon, OG/canonical, video loading, spacing table, iCloud wording, "By buying you agree" on the launch branch's Buy note), app UI batch (copy table, a11y, confirmations, Reduce Motion, popover permission state, onboarding download Cancel, spacing; needs screenshots), Extra Mac refund eviction in seats.mts (needs a sandbox run), feed move + FEED_BASE + DMG notarization with 10.0, Polar abandonment script. Merging needs the user (the review rule blocks `gh pr merge --admin` from here).
+
 ## One key per customer: the first key is the main key (2026-10-14, live)
 
 **Pricing decision (2026-10-14, user):** a single ($12) works on its own, so 1 Mac is effectively $12 and 3 Macs $35. Intended, not a loophole ("I'd make an extra dollar").
