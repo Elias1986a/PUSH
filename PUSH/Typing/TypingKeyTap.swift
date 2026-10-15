@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import PUSHCore
 
 /// Type's own event tap, separate from dictation's `HotkeyManager`. It runs on
@@ -114,6 +115,13 @@ final class TypingKeyTap: @unchecked Sendable {
         default:
             return pass
         }
+
+        // Secure input on (a password field, in any app): the key is never
+        // read, not even into the buffer. macOS mostly withholds these from
+        // taps already; this covers the web and Electron fields that turn it
+        // on without the AX "secure" role the coordinator checks for. A cheap
+        // flag read, so it costs nothing per key.
+        if IsSecureEventInputEnabled() { return pass }
 
         let characters = Self.characters(of: event)
         if event.getIntegerValueField(.eventSourceUserData) == Self.ownEventMarker {

@@ -13,6 +13,9 @@ final class WakeWordListener: @unchecked Sendable {
     private var checkTimer: Timer?
     private var sampleContinuation: AsyncStream<[Float]>.Continuation?
     private var drainTask: Task<Void, Never>?
+    /// Bumped by every start and stop, so a start whose engine is still being
+    /// built in the background is dropped if it was stopped in the meantime.
+    private var startGeneration = 0
 
     // Configuration
     private let sampleRate: Double = 16000
@@ -43,16 +46,31 @@ final class WakeWordListener: @unchecked Sendable {
         guard AppState.shared.wakeWordEnabled else { return }
 
         PushLogger.log("WakeWordListener: Starting wake word detection")
+        startGeneration &+= 1
+        let generation = startGeneration
+        // Building the engine and reading its input format bring the input
+        // device up: about 4 s cold, measured for AudioRecorder. Done here on
+        // the main thread at launch, that froze the app (and risked the
+        // hotkey's event tap), so it is built in the background like
+        // AudioRecorder's, and the rest happens back here.
+        Task { [weak self] in
+            let (engine, inputFormat) = await Task.detached(priority: .userInitiated) {
+                let engine = AVAudioEngine()
+                return (engine, engine.inputNode.outputFormat(forBus: 0))
+            }.value
+            guard let self, generation == self.startGeneration, !self.isListening,
+                  AppState.shared.wakeWordEnabled else { return }
+            self.finishStarting(engine: engine, inputFormat: inputFormat)
+        }
+    }
 
+    private func finishStarting(engine: AVAudioEngine, inputFormat: AVAudioFormat) {
         audioBuffer = Data()
         recentAudioLevels = []
         hasSpeechInBuffer = false
-        audioEngine = AVAudioEngine()
-
-        guard let engine = audioEngine else { return }
+        audioEngine = engine
 
         let inputNode = engine.inputNode
-        let inputFormat = inputNode.outputFormat(forBus: 0)
         // No input device: installTap would raise on this format (see AudioRecorder).
         guard AudioRecorder.isUsable(inputFormat) else {
             PushLogger.log("WakeWordListener: no input device — not listening")
@@ -98,10 +116,13 @@ final class WakeWordListener: @unchecked Sendable {
             try engine.start()
             isListening = true
 
-            // Start periodic wake word checking
-            checkTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
-                Task { @MainActor in
-                    await self?.checkForWakeWord()
+            // Start periodic wake word checking — unless a dictation paused us
+            // while the engine was still being built; resumeListening starts it.
+            if !isPaused {
+                checkTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
+                    Task { @MainActor in
+                        await self?.checkForWakeWord()
+                    }
                 }
             }
 
@@ -112,6 +133,7 @@ final class WakeWordListener: @unchecked Sendable {
     }
 
     func stopListening() {
+        startGeneration &+= 1   // drops a start still building its engine
         guard isListening else { return }
 
         checkTimer?.invalidate()
