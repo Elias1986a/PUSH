@@ -256,7 +256,7 @@ struct MenuBarView: View {
             }
             // Type is on by default, but nothing runs until a model is here.
             if !TypingModelStore.shared.onDisk.contains(appState.selectedTypingModel) {
-                Text("Download a model in Settings ▸ TYPE to get suggestions.")
+                Text("Download a model in Settings ▸ Models to get suggestions.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
