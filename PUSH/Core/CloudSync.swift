@@ -105,6 +105,10 @@ final class CloudSync: ObservableObject {
 
     /// Begin syncing. Safe to call more than once.
     func start() {
+        // Not a real .app (`swift run`, the debug build): it has no iCloud
+        // entitlement and must never push its own empty dictionary and
+        // settings over the user's.
+        guard Bundle.main.bundleIdentifier != nil else { return }
         guard !started, AppState.shared.iCloudSyncEnabled else { return }
         started = true
 

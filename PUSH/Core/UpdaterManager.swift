@@ -70,6 +70,10 @@ final class UpdaterManager: ObservableObject {
     /// modal from Sparkle can never block startup. Safe to call more than once.
     func start() {
         guard !hasStarted else { return }
+        // Not a real .app (`swift run`, the debug build): Sparkle cannot start,
+        // and its "Unable to Check For Updates" alert held the main thread,
+        // which swallowed the PUSH-to-talk key while it was up.
+        guard Bundle.main.bundleIdentifier != nil else { return }
         hasStarted = true
         controller.startUpdater()
         PushLogger.log("UpdaterManager: Sparkle updater started")
@@ -83,6 +87,7 @@ final class UpdaterManager: ObservableObject {
     /// than a deliberate delay.
     func checkForUpdates() {
         start()
+        guard hasStarted else { return }
         controller.updater.checkForUpdates()
     }
 }
