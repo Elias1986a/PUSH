@@ -1,4 +1,5 @@
 import FluidAudio
+import Foundation
 
 /// The exact Hugging Face commit each speech model is downloaded from.
 ///
@@ -24,9 +25,43 @@ public enum SpeechModelPins {
     ]
 
     /// Before anything downloads: at launch, ahead of the first model load.
-    public static func apply() {
+    public static func apply(modelsDirectory: URL = defaultModelsDirectory) {
+        adoptExistingDownloads(in: modelsDirectory)
         var overrides = ModelRegistry.revisionOverrides
         for (repo, revision) in revisions { overrides[repo] = revision }
         ModelRegistry.revisionOverrides = overrides
+    }
+
+    /// FluidAudio's speech model cache.
+    public static var defaultModelsDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("FluidAudio", isDirectory: true)
+            .appendingPathComponent("Models", isDirectory: true)
+    }
+
+    /// The marker FluidAudio writes beside a pinned download.
+    static let revisionMarker = ".fluidaudio-revision"
+
+    /// Marks models already downloaded from `main` as the pinned commit.
+    ///
+    /// FluidAudio counts an unmarked folder as `main` and, once a revision
+    /// is pinned, deletes it and downloads the model again: 600 MB each for
+    /// Ultra and Streaming at the first launch after an update, the very
+    /// download launch must never start (seen 2026-10-14). These files came
+    /// from `main` while it held these commits, so they are the pinned ones.
+    /// Nemotron reuses its folders without a revision check and needs nothing.
+    static func adoptExistingDownloads(in modelsDirectory: URL) {
+        let fm = FileManager.default
+        for (remotePath, revision) in revisions {
+            guard let repo = Repo(rawValue: remotePath), repo != .nemotronMultilingual else { continue }
+            let folder = modelsDirectory.appendingPathComponent(repo.folderName, isDirectory: true)
+            let marker = folder.appendingPathComponent(revisionMarker)
+            guard !fm.fileExists(atPath: marker.path),
+                  let contents = try? fm.contentsOfDirectory(atPath: folder.path),
+                  !contents.isEmpty
+            else { continue }
+            try? Data((revision + "\n").utf8).write(to: marker, options: .atomic)
+            PushLogger.log("SpeechModelPins: kept the downloaded \(repo.folderName) as the pinned version")
+        }
     }
 }

@@ -19,6 +19,9 @@ final class AudioRecorder: @unchecked Sendable {
     /// Set for the window between a press and the engine being ready, so a
     /// second press can't kick off a parallel start.
     private var isStarting = false
+    /// The previous take's engine stop, which runs off the main thread; the
+    /// next start waits for it before touching the engine again.
+    private var stopping: Task<Void, Never>?
 
     // Audio format for Whisper: 16kHz, mono, 16-bit PCM
     private let sampleRate: Double = 16000
@@ -240,6 +243,8 @@ final class AudioRecorder: @unchecked Sendable {
         // building inline keeps the main thread free, so the pill keeps animating
         // and the event tap stays alive while the device comes up.
         let engine = await readyEngine()
+        await stopping?.value
+        stopping = nil
         PressTiming.mark("engine ready")
 
         // The key can be released while the capture path is still warming; don't
@@ -398,8 +403,13 @@ final class AudioRecorder: @unchecked Sendable {
         // audio should delay giving the mic back.
         // Stopped, not released: holding the engine keeps the input device
         // initialised so the next press doesn't re-pay for waking it.
+        // Removing the tap ends the take. Stopping the engine waits on the
+        // audio driver (~0.1 s on the main thread, measured 2026-10-14), time
+        // the user would wait for their text, so it happens off to the side.
         audioEngine?.inputNode.removeTap(onBus: 0)
-        audioEngine?.stop()
+        if let engine = audioEngine {
+            stopping = Task.detached(priority: .userInitiated) { engine.stop() }
+        }
         isRecording = false
         AppState.shared.isCapturing = false
         // The waveform reads the level without checking isCapturing, so silence
