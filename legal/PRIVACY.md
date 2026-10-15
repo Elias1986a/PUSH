@@ -10,7 +10,7 @@
 
 Your voice and your typing stay on your Mac. PUSHTYPE turns speech into text and
 suggests what you'll type next on your Mac's own chip. We never receive your audio, your transcripts, or what you type, and
-there's nothing to opt out of because we don't collect it. PUSHTYPE has no analytics, no ads, and no account.
+there's nothing to opt out of because we don't collect it. The app has no analytics, no ads, and no account.
 
 ## What PUSHTYPE does on your Mac
 
@@ -68,15 +68,13 @@ unsubscribe.
 pushtype.app is hosted by Netlify, which keeps standard server logs (IP
 address, pages requested) for security and operations.
 
-We use Google Analytics to count visits and see which pages people read. It
-sets cookies on pushtype.app and sends Google the page you're on (its path
-only, never order numbers or anything after it), your browser and device type,
-and your approximate location. Google signals and ad personalization are off,
-so we don't use advertising cookies or cross-site tracking. It covers the
-website only: the app never sends anything to Google. To opt out, block
-cookies for pushtype.app or use Google's opt-out add-on
-([tools.google.com/dlpage/gaoptout](https://tools.google.com/dlpage/gaoptout)).
-[Google's privacy policy](https://policies.google.com/privacy)
+We use Umami to count visits and see which pages people read and where they
+leave. It sets no cookies and keeps no IP address. It receives the page you're
+on (its path only, never order numbers or anything after it), the site that
+sent you, your browser, device type, and country, and a click on the Buy
+button. It isn't on the thank-you page, and it covers the website only: the
+app never sends anything to Umami.
+[Umami's privacy policy](https://umami.is/privacy)
 
 After you buy, the thank-you page asks Polar, through our website, for that
 purchase's download link and license key, so you can download and activate in
