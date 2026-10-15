@@ -27,6 +27,26 @@ struct ModelsSettingsView: View {
     /// Measured size of each Nemotron vocab build, keyed by variant.
     @State private var buildBytes: [String: Double] = [:]
 
+    private var typingStorageRow: some View {
+        let onDisk = TypingModelStore.shared.onDisk
+        let bytes = onDisk.reduce(Int64(0)) { $0 + $1.bytes }
+        return HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("TYPE models")
+                Text(onDisk.isEmpty
+                     ? "Nothing downloaded yet"
+                     : "\(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)) in Application Support")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Show in Finder") {
+                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: TypingModelStore.directory.path)
+            }
+            .disabled(onDisk.isEmpty)
+        }
+    }
+
     var body: some View {
         Form {
             Section {
@@ -44,10 +64,19 @@ struct ModelsSettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            // TYPE's models live here too (they were in the TYPE pane): one
+            // place for everything PUSHTYPE downloads (2026-10-14).
+            Section {
+                ForEach(TypingModel.allCases) { TypingModelRow(model: $0) }
+            } header: {
+                Text("TYPE model")
+            }
+
             Section("Storage") {
+                typingStorageRow
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Downloaded models")
+                        Text("Speech models")
                         Text(storageBytes > 0
                              ? "\(Self.format(bytes: storageBytes)) in Application Support"
                              : "Nothing downloaded yet")

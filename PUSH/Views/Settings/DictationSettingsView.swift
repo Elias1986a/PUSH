@@ -115,6 +115,8 @@ struct DictationSettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            PillSettingsSections()
+
             Section {
                 Toggle("Start recording when you say a word", isOn: $appState.wakeWordEnabled)
                     .onChange(of: appState.wakeWordEnabled) { _, newValue in

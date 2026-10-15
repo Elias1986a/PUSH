@@ -142,7 +142,6 @@ struct OnboardingView: View {
         case .speechModel: modelStep
         case .typingModel: typingModelStep
         case .personal: personalStep
-        case .screenText: screenTextStep
         case .tryIt: tryItStep
         case .finish: finishStep
         }
@@ -151,7 +150,8 @@ struct OnboardingView: View {
     // MARK: - Step 1 · what this is
 
     private var welcomeStep: some View {
-        VStack(spacing: 12) {
+        @Bindable var appState = appState
+        return VStack(spacing: 12) {
             AppIconImage(size: 64)
 
             VStack(spacing: 8) {
@@ -163,17 +163,27 @@ struct OnboardingView: View {
                     .foregroundStyle(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 14) {
-                highlight(
+            // The two switches live here (they had a page of their own):
+            // Settings changes either one later.
+            VStack(alignment: .leading, spacing: 10) {
+                featureCard(
                     icon: "mic.fill",
-                    title: "Hold a key, speak, let go",
-                    detail: "Your words land in whatever you were typing in, in a fraction of a second. No server."
-                )
-                highlight(
+                    title: "Talk",
+                    detail: "Hold a key, speak, let go: your words land in any app, in a fraction of a second. Includes a teleprompter that follows your voice."
+                ) {
+                    Toggle("Talk", isOn: $appState.dictationEnabled)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                }
+                featureCard(
                     icon: "text.cursor",
-                    title: "Tab to finish your sentence",
-                    detail: "As you type, PUSHTYPE suggests how it goes on, using the email or chat you're replying to."
-                )
+                    title: "TYPE",
+                    detail: "As you type, PUSHTYPE suggests how the sentence goes on, using the email or chat you're replying to. Tab takes it."
+                ) {
+                    Toggle("TYPE", isOn: $appState.typeEnabled)
+                        .toggleStyle(.switch)
+                        .labelsHidden()
+                }
                 highlight(
                     icon: "person.text.rectangle",
                     title: "It can learn to sound like you",
@@ -184,11 +194,9 @@ struct OnboardingView: View {
                     title: "Nothing leaves your Mac",
                     detail: "No account, no upload, no transcript history, never in password fields. Works on a plane."
                 )
-                highlight(
-                    icon: "text.alignleft",
-                    title: "And a teleprompter",
-                    detail: "Read a script off your screen while you record, invisible to the recording itself."
-                )
+                if !appState.dictationEnabled && !appState.typeEnabled {
+                    statusLine(icon: "info.circle", text: "Turn on at least one to continue.", tint: .secondary)
+                }
             }
             .padding(.top, 4)
             .frame(maxWidth: 420)
@@ -295,42 +303,46 @@ struct OnboardingView: View {
     /// Type's biggest difference from a plain autocomplete, so it is asked here,
     /// where people are choosing, and not left in a Settings pane. Everything is
     /// optional and off until chosen.
+    /// "Make it yours": name, About you, learning, and reading the screen —
+    /// two pages until 2026-10-14. Every fact both pages said is still here,
+    /// in fewer words.
     private var personalStep: some View {
         @Bindable var appState = appState
         @Bindable var history = history
-        return VStack(alignment: .leading, spacing: 14) {
+        return VStack(alignment: .leading, spacing: 10) {
             stepHeader(
-                title: "Make it sound like you",
-                subtitle: "Optional. It all stays on this Mac, and Settings ▸ Personal changes it any time."
+                title: "Make it yours",
+                subtitle: "Optional. It all stays on this Mac, and Settings ▸ Personal and Settings ▸ TYPE change it any time."
             )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Name").font(.system(size: 13, weight: .medium))
+            HStack(spacing: 10) {
+                Text("Name").font(.system(size: 13, weight: .medium)).frame(width: 72, alignment: .leading)
                 TextField("Name", text: $appState.typingName,
                           prompt: Text(TypingPreferences.signOffName(saved: "") ?? "Your name"))
                     .labelsHidden()
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("About you").font(.system(size: 13, weight: .medium))
-                TextEditor(text: $appState.typingAbout)
-                    .font(.body)
-                    .scrollContentBackground(.hidden)
-                    .padding(4)
-                    .frame(height: 58)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.secondary.opacity(0.3)))
-                Text("For example: “I run a small design studio. I write short, friendly emails.” Your name is only offered after a sign-off, like “Thanks,”.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .top, spacing: 10) {
+                Text("About you").font(.system(size: 13, weight: .medium)).frame(width: 72, alignment: .leading)
+                    .padding(.top, 4)
+                VStack(alignment: .leading, spacing: 4) {
+                    TextEditor(text: $appState.typingAbout)
+                        .font(.body)
+                        .scrollContentBackground(.hidden)
+                        .padding(4)
+                        .frame(height: 44)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.secondary.opacity(0.3)))
+                    Text("For example: “I run a small design studio. I write short, friendly emails.” Your name is only offered after a sign-off, like “Thanks,”.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
-            Divider()
-
             Toggle(isOn: $history.isOn) {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Learn from my writing and voice").font(.system(size: 13, weight: .medium))
-                    Text("Suggestions start to sound like you: your phrases, your names, your tone. Only finished text is kept, never audio. Encrypted with a key in your Keychain, never sent anywhere.")
+                    Text("Your phrases, names, and tone. Only finished text is kept, never audio, encrypted with a key in your Keychain and never sent. Never from password or sign-in fields; leave out any app, pause it, or Delete All any time. Without it, suggestions still read the email or chat you're replying to.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -348,13 +360,41 @@ struct OnboardingView: View {
                     }
             }
 
-            Text("Never kept from password or sign-in fields. Leave out any app, pause it, or Delete All any time. Without it, suggestions still read the email or chat you're replying to.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Divider()
+
+            OnboardingPermissionRow(
+                icon: "rectangle.dashed.badge.record",
+                title: "Screen Recording (optional)",
+                detail: "Most apps share the text around your cursor directly; a few only draw it on screen, and reading those takes Screen Recording. Read only at the moment of a suggestion, never kept or sent; password fields are never read. Skip it and TYPE still works. macOS may remind you now and then.",
+                status: permissions.screenRecording,
+                actionTitle: "Allow Screen Recording…",
+                action: {
+                    OnboardingWindowController.rememberStep(.personal)
+                    permissions.requestScreenRecording()
+                }
+            )
+
+            HStack(spacing: 10) {
+                compactSwitch("Use the text around the field", isOn: $appState.typingUsesScreen)
+                compactSwitch("Use what I just copied", isOn: $appState.typingUsesClipboard)
+            }
 
             Spacer(minLength: 0)
         }
+    }
+
+    private func compactSwitch(_ title: String, isOn: Binding<Bool>) -> some View {
+        HStack {
+            Text(title).font(.callout)
+            Spacer(minLength: 6)
+            Toggle(title, isOn: isOn)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .labelsHidden()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.08)))
     }
 
     // MARK: - Features · what this Mac runs
@@ -785,65 +825,6 @@ struct OnboardingView: View {
         }
     }
 
-    private var screenTextStep: some View {
-        @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 12) {
-            stepHeader(
-                title: "Reading the screen",
-                subtitle: "Optional. Suggestions are better when PUSHTYPE can see what you’re replying to, and what you just copied."
-            )
-
-            Text("PUSHTYPE reads the text around the field you’re typing in — the email you’re answering, the chat above, the page you’re on. Most apps share that text directly. A few only draw it on screen, and for those PUSHTYPE needs Screen Recording to read it.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            OnboardingPermissionRow(
-                icon: "rectangle.dashed.badge.record",
-                title: "Screen Recording",
-                detail: "Read only at the moment of a suggestion, on this Mac. Nothing is recorded, kept or sent, and password fields are never read.",
-                status: permissions.screenRecording,
-                actionTitle: "Allow Screen Recording…",
-                action: {
-                    OnboardingWindowController.rememberStep(.screenText)
-                    permissions.requestScreenRecording()
-                }
-            )
-
-            HStack {
-                Text("Use the text around the field").fontWeight(.medium)
-                Spacer()
-                Toggle("Use the text around the field", isOn: $appState.typingUsesScreen)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
-
-            HStack {
-                Text("Use what I just copied").fontWeight(.medium)
-                Spacer()
-                Toggle("Use what I just copied", isOn: $appState.typingUsesClipboard)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.secondary.opacity(0.08)))
-
-            Label(
-                "You can skip this: TYPE works without it, using what it can read directly. macOS may remind you now and then that PUSHTYPE can see your screen. Change either in Settings ▸ TYPE.",
-                systemImage: "info.circle"
-            )
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
-        }
-    }
-
     private var tryItStep: some View {
         @Bindable var appState = appState
         return VStack(alignment: .leading, spacing: 12) {
@@ -1152,7 +1133,7 @@ struct OnboardingView: View {
     private var continueDisabled: Bool {
         switch step {
         case .otherMac: return !copied
-        case .features: return !appState.dictationEnabled && !appState.typeEnabled
+        case .welcome, .features: return !appState.dictationEnabled && !appState.typeEnabled
         case .licence: return !LicenseModel.shared.isLicensed
         case .speechModel: return !isReady(appState.selectedWhisperModel)
         // A download in progress carries on in the background.

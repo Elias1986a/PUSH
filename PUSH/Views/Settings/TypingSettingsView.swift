@@ -12,27 +12,6 @@ struct TypingSettingsView: View {
     /// Bumped when an accept key changes; the keys live in UserDefaults.
     @State private var keysVersion = 0
 
-    /// Where the typing models live, like Settings → Models has for voice.
-    private var storageRow: some View {
-        let onDisk = TypingModelStore.shared.onDisk
-        let bytes = onDisk.reduce(Int64(0)) { $0 + $1.bytes }
-        return HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Downloaded models")
-                Text(onDisk.isEmpty
-                     ? "Nothing downloaded yet"
-                     : "\(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)) in Application Support")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("Show in Finder") {
-                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: TypingModelStore.directory.path)
-            }
-            .disabled(onDisk.isEmpty)
-        }
-    }
-
     var body: some View {
         @Bindable var appState = appState
 
@@ -47,11 +26,6 @@ struct TypingSettingsView: View {
                     }
                 }
                 if appState.typeEnabled { TypingPauseControl() }
-            }
-
-            Section("Model") {
-                ForEach(TypingModel.allCases) { TypingModelRow(model: $0) }
-                storageRow
             }
 
             Section("Suggestions") {
