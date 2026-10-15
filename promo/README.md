@@ -7,6 +7,7 @@ recorded: `scripts/promo/README.md`.
 | File | What | Used |
 |---|---|---|
 | `talk-hero.mp4` | Talk: pill at the top (live preview off) on the dark backdrop, the voice dictating the passage into Notes, cleaned text landing on release. 32 s, with voice. **Real time, no edits**: the voice sits exactly where it was played. | Website, Talk section (`dictation.mp4`) (2026-10-14) |
+| `type-demo.mp4` | TYPE: a message to a friend about a Lisbon trip, typed in Notes on the dark backdrop. Shows the spelling fix ("excitd" → excited, Tab), a whole suggestion (`), three single Tabs, and typing on past a suggestion. 38.5 s, no sound. **Real time, real suggestions**: names, places and times are typed; TYPE only finishes everyday phrasing, and every stop was dry-run through the model first. | Website, TYPE section (`typing.mp4`) (2026-10-14) |
 | `live-preview.mp4` | Live preview, tight 4:3 shot: small pill at the bottom streaming the words, a small note above it where the cleaned text lands on release. 30.7 s, with voice. | Website, Live preview section (2026-10-14) |
 | `live-preview-large-pill.mp4` | The same take idea with the pill at Large, wide 16:9 frame. 30.6 s, with voice. | Promo video candidate |
 | `voice/benchmark-passage-jessica.mp3` | The ElevenLabs voice (Jessica) reading the benchmark passage, 27.4 s; speech runs 0.04–27.18 s. | Source audio for both |

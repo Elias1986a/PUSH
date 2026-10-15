@@ -3,6 +3,7 @@ import CoreGraphics
 // typekeys <script>: steps separated by "|":
 //   t:text   type text one character at a time (90 ms apart)
 //   tab      press Tab (TYPE: next word)      all   press ` (TYPE: whole suggestion)
+//   ret      press Return
 //   w:1.5    wait seconds
 // Every key checks that Notes is frontmost first, and stops if not.
 func guardNotes() {
@@ -32,6 +33,7 @@ for step in CommandLine.arguments[1].split(separator: "|").map(String.init) {
     if step.hasPrefix("t:") { type(String(step.dropFirst(2))) }
     else if step == "tab" { key(48) }
     else if step == "all" { key(50) }
+    else if step == "ret" { key(36) }
     else if step.hasPrefix("w:") { Thread.sleep(forTimeInterval: Double(step.dropFirst(2))!) }
 }
 print("typed")
