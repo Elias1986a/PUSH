@@ -14,8 +14,9 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
     # No inline scripts anywhere (they live in assets/*.js). Style attributes
     # are still inline, hence 'unsafe-inline' for styles only. Umami's script
-    # comes from cloud.umami.is and reports to gateway.umami.is.
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cloud.umami.is; connect-src 'self' https://cloud.umami.is https://gateway.umami.is; img-src 'self' data:; media-src 'self'; font-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    # comes from cloud.umami.is and reports to gateway.umami.is. The Meta
+    # Pixel loads from connect.facebook.net and reports to www.facebook.com.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cloud.umami.is https://connect.facebook.net; connect-src 'self' https://cloud.umami.is https://gateway.umami.is https://www.facebook.com; img-src 'self' data: https://www.facebook.com; media-src 'self'; font-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 
 # Fonts never change under the same name. Video, images and scripts change
 # rarely; a day keeps repeat visits cheap without pinning an old copy.

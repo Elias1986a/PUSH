@@ -96,6 +96,8 @@ TEMPLATE = """<!doctype html>
 <!-- Umami: cookieless visit counts, paths only (no query string or hash).
      Not on the thank-you page, which holds the license key. -->
 <script defer src="https://cloud.umami.is/script.js" data-website-id="b3f15c64-1d53-4fc2-83f7-58f3bd19019b" data-domains="pushtype.app" data-exclude-search="true" data-exclude-hash="true"></script>
+<!-- Meta Pixel: ads measurement.  Also not on the thank-you page. -->
+<script async src="../assets/meta-pixel.js"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -112,6 +114,7 @@ TEMPLATE = """<!doctype html>
 <script src="../assets/theme.js"></script>
 </head>
 <body>
+<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=1108475398808388&amp;ev=PageView&amp;noscript=1"></noscript>
 <header class="wrap nav">
 <a class="brand" href="../"><span class="disp">PUSHTYPE</span><span class="dot"></span></a>
 <span style="flex-grow: 1;"></span>
