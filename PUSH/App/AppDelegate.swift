@@ -140,7 +140,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let key = urls.lazy.compactMap(LicenseKeyText.key(inActivationLink:)).first else { return }
         PushLogger.log("License: activation link opened")
         Task {
-            if LicenseModel.shared.stored?.key != key { await LicenseModel.shared.activate(key: key) }
+            // A Mac that already has a licence is only offered the new key
+            // (License pane): any web page can open this link.
+            if LicenseModel.shared.stored == nil {
+                await LicenseModel.shared.activate(key: key)
+            } else {
+                LicenseModel.shared.offer(key: key)
+            }
             // The welcome window has its own licence page; otherwise Settings.
             if !OnboardingWindowController.shared.isShowing {
                 SettingsWindowController.shared.show(pane: .licence)
@@ -401,6 +407,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task {
                 await LicenseModel.shared.revalidateIfDue()
                 await LicenseModel.shared.activateFromICloudIfNeeded()
+                LicenseModel.shared.startPeriodicChecks()
             }
 
             // Only now start Sparkle. `startUpdater` can put up a modal (an

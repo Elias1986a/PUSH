@@ -74,12 +74,6 @@
     document.getElementById('thanks-lede').textContent = 'Polar has emailed you a receipt with your download and license key.';
     document.getElementById('manual').hidden = false;
   }
-  // An Extra Mac adds a place to a PUSHTYPE license; this email has none.
-  function noLicence() {
-    document.getElementById('thanks-lede').textContent = 'Extra Mac adds a Mac to a PUSHTYPE license, and we couldn\'t find one under the email you used.';
-    document.getElementById('manual').hidden = false;
-    document.getElementById('manual-note').innerHTML = 'Your payment went through.\u00a0 Email <a href="mailto:support@pushtype.app">support@pushtype.app</a> with the email you bought with and we\'ll sort it out, or buy PUSHTYPE with that email first.';
-  }
   if (!id) return fallback();
   function show(data) {
     document.getElementById('thanks-lede').textContent = data.kind === 'extra'
@@ -109,7 +103,6 @@
       .then(function (r) { return r.json().then(function (body) { return { status: r.status, body: body }; }); })
       .then(function (res) {
         if (res.status === 200 && res.body.key) return show(res.body);
-        if (res.status === 404 && res.body.error === 'no_licence') return noLicence();
         // Polar can take a few seconds to finish the order after payment.
         if (res.status === 409 && ++tries < 8) return setTimeout(load, 2000);
         fallback();
