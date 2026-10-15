@@ -34,6 +34,22 @@ The clip is muted, but the model needs real audio.
   is a smoke test for formatting (NOTES: "3.30" vs "3 30"); for plain words
   like these it is fine. Remove BlackHole afterwards if you like.
 
+## Dry run with the promo voice (2026-10-14, done)
+
+The ElevenLabs file from the promo video (Jessica, 27.4 s) is the benchmark
+passage ("Let's move the Q3 planning review to Tuesday…"). Fed through
+Parakeet Streaming the way the app does during a press, it gave 26 partials,
+about one a second, each extending the last cleanly. The partials keep the
+raw speech ("Um,", "like", "I mean, 1.52 seconds", "quote … end quote",
+"New paragraph"), so one take shows both features: the rough words in the
+pill while it talks, then the cleaned text landing in the note on release.
+That makes it **Option C, the best one**: the same voice as the promo, no
+speaking from the user, and no rehearsal needed for the words.
+
+Getting the file into the microphone still needs either BlackHole (Option
+B's route, cleanest) or playing it from the speakers into the TONOR mic
+(no install, but room sound; try once and compare).
+
 ## Before recording
 
 - Dry-run both sentences offline through Parakeet Streaming (an XCTest that
