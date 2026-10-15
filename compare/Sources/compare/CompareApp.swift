@@ -27,6 +27,12 @@ struct CompareApp: App {
                 .frame(minWidth: 620, minHeight: 480)
         }
         .defaultSize(width: 820, height: 720)
+
+        Window("Release to text", id: "endToEnd") {
+            EndToEndView()
+                .frame(minWidth: 620, minHeight: 520)
+        }
+        .defaultSize(width: 720, height: 640)
     }
 }
 
