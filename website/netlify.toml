@@ -1,4 +1,35 @@
-# Read when website/ is the base directory (see ../netlify.toml).
+# Read when website/ is the base directory, which it is (see ../netlify.toml).
+# Headers live here, not in ../netlify.toml: Netlify reads only this file,
+# so the headers placed there never reached a response.
 [build]
   publish = "."
   command = ""
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    # No inline scripts anywhere (they live in assets/*.js). Style attributes
+    # are still inline, hence 'unsafe-inline' for styles only. Umami's script
+    # comes from cloud.umami.is and reports to gateway.umami.is.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cloud.umami.is; connect-src 'self' https://cloud.umami.is https://gateway.umami.is; img-src 'self' data:; media-src 'self'; font-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+
+# Fonts never change under the same name. Video, images and scripts change
+# rarely; a day keeps repeat visits cheap without pinning an old copy.
+[[headers]]
+  for = "/assets/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/video/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/assets/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

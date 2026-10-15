@@ -52,7 +52,7 @@ None of these connections carries audio, transcripts, or anything you type.
 
 The Buy buttons on our website open Polar's checkout. Polar, our merchant of
 record, collects your name, email, billing details, and payment information to process the sale, under
-[Polar's privacy policy](https://polar.sh/legal/privacy). We receive your name, email, country, and order details so we can deliver your license, support you and issue refunds. We never
+[Polar's privacy policy](https://polar.sh/legal/privacy). We receive your name, email, country, and order details so we can deliver your license, support you, and issue refunds. We never
 see your full card number.
 
 We use your email only for your purchase and for support. We'll send
