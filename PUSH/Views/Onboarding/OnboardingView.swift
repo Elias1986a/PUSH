@@ -731,7 +731,7 @@ struct OnboardingView: View {
                     .foregroundStyle(.green)
             } else {
                 LicenseActivationControls()
-                Text(LicenseActivationControls.footnote)
+                Text(.init(LicenseActivationControls.footnote))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

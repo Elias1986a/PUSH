@@ -60,7 +60,7 @@ struct LicenseSettingsView: View {
                 } header: {
                     Text("License")
                 } footer: {
-                    Text(LicenseActivationControls.footnote)
+                    Text(.init(LicenseActivationControls.footnote))
                 }
             }
 
@@ -87,7 +87,8 @@ struct LicenseActivationControls: View {
     @State private var iCloudKey: String?
     @State private var copiedKey: String?
 
-    static let footnote = "One license works on 3 of your Macs; a fourth can be added for $12. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSHTYPE. Never your audio or anything you type."
+    /// Markdown (the agreement is a link): show it with `Text(.init(footnote))`.
+    static let footnote = "One license works on 3 of your Macs; a fourth can be added for $12. Activating sends the key and this Mac's model (\(MacModelLabel.current())) to Polar, which sells PUSHTYPE. Never your audio or anything you type. By activating, you agree to the [License Agreement](https://pushtype.app/legal/eula.html)."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

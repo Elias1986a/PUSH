@@ -40,17 +40,12 @@ authors ask for, and CC BY 4.0 requires it when a work is shared.
 
 | In PUSHTYPE | Model | Made by | License | Notice |
 |---|---|---|---|---|
-| Parakeet Ultra (default) | [moondream/parakeet-ultra](https://huggingface.co/moondream/parakeet-ultra), a post-training of [nvidia/parakeet-tdt-0.6b-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3); Core ML conversion [FluidInference/parakeet-ultra-coreml](https://huggingface.co/FluidInference/parakeet-ultra-coreml) | Moondream, from NVIDIA's Parakeet TDT 0.6B v3; converted by FluidInference | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | "Parakeet Ultra" by Moondream, based on "Parakeet TDT 0.6B v3" by NVIDIA, licensed under CC BY 4.0; converted to Core ML by FluidInference. |
-| Parakeet Unified, Parakeet Streaming | [nvidia/parakeet-unified-en-0.6b](https://huggingface.co/nvidia/parakeet-unified-en-0.6b); Core ML conversion [FluidInference/parakeet-unified-en-0.6b-coreml](https://huggingface.co/FluidInference/parakeet-unified-en-0.6b-coreml) | NVIDIA; converted by FluidInference | [NVIDIA Open Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/) | Licensed by NVIDIA Corporation under the NVIDIA Open Model License. |
+| Parakeet Ultra | [moondream/parakeet-ultra](https://huggingface.co/moondream/parakeet-ultra), a post-training of [nvidia/parakeet-tdt-0.6b-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3); Core ML conversion [FluidInference/parakeet-ultra-coreml](https://huggingface.co/FluidInference/parakeet-ultra-coreml) | Moondream, from NVIDIA's Parakeet TDT 0.6B v3; converted by FluidInference | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | "Parakeet Ultra" by Moondream, based on "Parakeet TDT 0.6B v3" by NVIDIA, licensed under CC BY 4.0; converted to Core ML by FluidInference. |
+| Parakeet Streaming | [nvidia/parakeet-unified-en-0.6b](https://huggingface.co/nvidia/parakeet-unified-en-0.6b); Core ML conversion [FluidInference/parakeet-unified-en-0.6b-coreml](https://huggingface.co/FluidInference/parakeet-unified-en-0.6b-coreml) | NVIDIA; converted by FluidInference | [NVIDIA Open Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/) | Licensed by NVIDIA Corporation under the NVIDIA Open Model License. |
 | Nemotron Multilingual | [NVIDIA Nemotron 3.5 ASR Streaming Multilingual 0.6B](https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b); Core ML conversion [FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML](https://huggingface.co/FluidInference/Nemotron-3.5-ASR-Streaming-Multilingual-0.6b-CoreML) | NVIDIA; converted by FluidInference | [OpenMDW-1.1](https://openmdw.ai/license/1-1/) | NVIDIA Nemotron 3.5 ASR Streaming Multilingual, © NVIDIA Corporation, made available under OpenMDW-1.1. |
 | Voice activity detection | [Silero VAD](https://github.com/snakers4/silero-vad); Core ML conversion [FluidInference/silero-vad-coreml](https://huggingface.co/FluidInference/silero-vad-coreml) | Silero Team; converted by FluidInference | MIT | Copyright (c) 2020-present Silero Team. |
 
-> **Before release: confirm each model license on its Hugging Face card.**
-> We compiled the table above from FluidAudio's source and documentation plus
-> public listings of the upstream models. Hugging Face was unreachable from the
-> environment this file was written in. Before the first paid release, open
-> each model card, check the license field, and copy any `NOTICE` text word for
-> word. If you find a mismatch, fix it here and in the website's legal page.
+Licenses checked on each model's Hugging Face card, 2026-10-14.
 
 ## Typing models (downloaded on first use, not bundled)
 
@@ -58,7 +53,7 @@ TYPE, the inline autocomplete, runs one of these text models on your Mac
 through llama.cpp. As with the speech models, PUSHTYPE downloads the file you pick
 from Hugging Face; we don't redistribute the weights. Each is the quantized
 GGUF build by mradermacher of the original model, and every one is licensed
-under the Apache License 2.0 (checked on each model card, 2026-10-12).
+under the Apache License 2.0 (checked on each model card, 2026-10-14).
 
 | In PUSHTYPE | Model | Made by | GGUF build | License |
 |---|---|---|---|---|
@@ -66,7 +61,7 @@ under the Apache License 2.0 (checked on each model card, 2026-10-12).
 | Best | [google/gemma-4-E2B](https://huggingface.co/google/gemma-4-E2B) | Google | [mradermacher/gemma-4-E2B-i1-GGUF](https://huggingface.co/mradermacher/gemma-4-E2B-i1-GGUF) | Apache 2.0 |
 | Pro | [google/gemma-4-E4B](https://huggingface.co/google/gemma-4-E4B) | Google | [mradermacher/gemma-4-E4B-i1-GGUF](https://huggingface.co/mradermacher/gemma-4-E4B-i1-GGUF) | Apache 2.0 |
 
-All four speech-model licenses allow commercial use. What each one requires:
+All four speech-model licenses (the table before this one) allow commercial use. What each one requires:
 
 - **CC BY 4.0.** Credit the creators, link to the license, say whether changes
   were made (we made none), and don't imply endorsement.
@@ -86,7 +81,9 @@ The website serves its own copies of these fonts, so pages load nothing from
 Google. All four are under the [SIL Open Font License
 1.1](https://openfontlicense.org), which allows this; the fonts are unchanged.
 
-- **Archivo** by Omnibus-Type
-- **Instrument Sans** by Instrument
-- **JetBrains Mono** by JetBrains
-- **Shrikhand** by Jonny Pinhorn
+- **Archivo** by Omnibus-Type. Copyright 2020 The Archivo Project Authors.
+- **Instrument Sans** by Instrument. Copyright 2022 The Instrument Sans Project Authors.
+- **JetBrains Mono** by JetBrains. Copyright 2020 The JetBrains Mono Project Authors.
+- **Shrikhand** by Jonny Pinhorn. Copyright (c) 2015 Jonny Pinhorn.
+
+The full license text, with these copyright lines, is served next to the fonts: [pushtype.app/assets/fonts/OFL.txt](https://pushtype.app/assets/fonts/OFL.txt).
