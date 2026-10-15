@@ -16,6 +16,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if runTypeSpikeIfRequested() { return }
+        // Before any model can download: the tested commit of each, not `main`.
+        SpeechModelPins.apply()
 
         // Say out loud what `LSUIElement` says in the shipped app's Info.plist:
         // a menu bar app with no Dock icon that can still be brought to the
