@@ -23,7 +23,7 @@ struct PermissionGuideCard: View {
         HStack(spacing: 16) {
             chip
                 .overlay(BundleDragSource(url: bundleURL, image: { chipImage }))
-                .accessibilityLabel("PUSH. Drag into the list above.")
+                .accessibilityLabel("PUSHTYPE. Drag into the list above.")
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {

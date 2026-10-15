@@ -46,7 +46,8 @@ struct FloatingPillView: View {
             y: shouldShow ? 1 : (isTopPlacement ? 0.001 : 0.85),
             anchor: isTopPlacement ? .top : .center
         )
-        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: shouldShow)
+        // Reduce Motion: a plain fade, no spring.
+        .animation(reduceMotion ? .easeInOut(duration: 0.15) : .spring(response: 0.35, dampingFraction: 0.75), value: shouldShow)
         .fixedSize()
         .task {
             // Start animation when view appears and is listening
@@ -78,9 +79,9 @@ struct FloatingPillView: View {
                 .frame(height: appState.pillTopInset)
 
             pillContent
-                .padding(.horizontal, 16)
-                .padding(.top, 3)
-                .padding(.bottom, 7)
+                .padding(.horizontal, 14)
+                .padding(.top, 2)
+                .padding(.bottom, 6)
         }
         .frame(minWidth: AppState.notchMinimumWidth)
         // No shadow: the tab reads as an extension of the hardware, and
@@ -250,7 +251,7 @@ struct FloatingPillView: View {
     private var baseStatusText: String {
         if appState.modelUnavailable {
             // A first download is under way (the key stays refused until it lands).
-            return appState.isWarmingUp ? "Loading model..." : "Model unavailable"
+            return appState.isWarmingUp ? "Loading model…" : "Model unavailable"
         } else if appState.isListening {
             // Only claim to be listening once the microphone is actually
             // capturing. On a cold press the audio device can take seconds to
@@ -258,15 +259,15 @@ struct FloatingPillView: View {
             // to talk into nothing — measured at 4.2s, with the whole sentence
             // lost. Recording can still legitimately start before the *model* is
             // ready; that isn't what this covers.
-            return appState.isCapturing ? "Listening" : "Warming up..."
+            return appState.isCapturing ? "Listening" : "Warming up…"
         } else if appState.isProcessing {
-            return "Processing..."
+            return "Transcribing…"
         } else if !appState.isModelReady {
-            return "Loading model..."
+            return "Loading model…"
         } else if appState.isWarmingUp || appState.isPrewarming {
             // Model is usable, but the capture path (and shaders) are still
             // warming. Shown until a press would actually be fast.
-            return "Warming up..."
+            return "Warming up…"
         } else {
             return ""
         }
@@ -277,6 +278,8 @@ struct FloatingPillView: View {
         dotPhase1 = 0
         dotPhase2 = 0
         dotPhase3 = 0
+        // Reduce Motion: the dots stay still (the "Listening" text says it).
+        guard !reduceMotion else { return }
 
         // Start animations with staggered delays
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {

@@ -87,11 +87,11 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
     public var modelDescription: String {
         switch self {
         case .parakeetUltra:
-            return "Accurate, and understands English and the European languages written in the Latin alphabet — Spanish, French, German, Italian, Portuguese and more — and switches between them on its own. For other languages, use Nemotron Multilingual."
+            return "Accurate, and understands English and the European languages written in the Latin alphabet — Spanish, French, German, Italian, Portuguese, and more — and switches between them on its own. For other languages, use Nemotron Multilingual."
         case .parakeetStreaming:
             return "English only. Shows your words as you speak and transcribes while you talk, so text lands the moment you let go."
         case .nemotronMultilingual:
-            return "For languages Parakeet Ultra doesn't cover — Chinese, Japanese, Arabic, Hindi, Russian, Greek and more. Streams as you speak, in the language you pick. For English and European languages like Spanish, French and German, use Parakeet Ultra."
+            return "For languages Parakeet Ultra doesn't cover — Chinese, Japanese, Arabic, Hindi, Russian, Greek, and more. Streams as you speak, in the language you pick. For English and European languages like Spanish, French, and German, use Parakeet Ultra."
         }
     }
 

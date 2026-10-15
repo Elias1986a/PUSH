@@ -185,6 +185,20 @@ enum ModelLoader {
         try await task.value
     }
 
+    /// Stop the activation in flight: the user cancelled a download. Its result,
+    /// should one still arrive, is discarded by the generation check, and the
+    /// model already serving (if any) carries on.
+    static func cancelActivation() {
+        guard let activation = currentActivation else { return }
+        activation.cancel()
+        currentActivation = nil
+        activationGeneration &+= 1
+        let state = AppState.shared
+        state.isWarmingUp = false
+        if state.isModelReady { state.statusMessage = "Ready" }
+        PushLogger.log("ModelLoader: activation cancelled by the user")
+    }
+
     /// Unload the active model and mark the app as having no model (used when
     /// the user deletes the active model's files). `markUnavailable: false` is
     /// for dictation being switched off: nothing is missing, it is just not in
@@ -420,7 +434,7 @@ enum ModelLoader {
                 message: """
                     Nothing has arrived for a while. If this Mac is on a network \
                     that blocks huggingface.co the download cannot start — pick \
-                    another model in PUSH's Settings.
+                    another model in PUSHTYPE's Settings ▸ Models.
                     """)
         }
     }

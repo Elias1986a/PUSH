@@ -1,14 +1,9 @@
 # Netlify serves only the marketing site in website/, never the app.
 # No build step: the site is plain HTML and CSS. After editing legal/*.md,
 # run `python3 website/build_legal.py` and commit the regenerated pages.
+# Headers and caching are in website/netlify.toml, the file Netlify reads
+# once the base directory is website/.
 [build]
   base = "website"
   publish = "."
   command = ""
-
-# The update feed and downloads can move here later (see docs/plans/archive/2026-website-plan.md).
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"

@@ -78,7 +78,7 @@ struct SettingsView: View {
             sidebar
             Divider()
             detail
-                .frame(width: 524)
+                .frame(width: 552)
         }
         .frame(width: 720, height: 640)
         .navigationTitle(pane.title)
@@ -90,7 +90,7 @@ struct SettingsView: View {
                 .tag(item)
         }
         .listStyle(.sidebar)
-        .frame(width: 196)
+        .frame(width: 168)
     }
 
     @ViewBuilder

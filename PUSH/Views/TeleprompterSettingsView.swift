@@ -18,7 +18,7 @@ struct TeleprompterSettingsView: View {
             Section("Script") {
                 TextEditor(text: $settings.script)
                     .font(.system(size: 12, design: .monospaced))
-                    .frame(minHeight: 160)
+                    .frame(minHeight: 120)
                     .scrollContentBackground(.hidden)
                     .padding(6)
                     .background(Color(nsColor: .textBackgroundColor))
@@ -40,7 +40,7 @@ struct TeleprompterSettingsView: View {
                 }
             }
 
-            Section("Appearance") {
+            Section {
                 Picker("Size", selection: $settings.size) {
                     ForEach(TeleprompterState.Size.allCases) { size in
                         Text(size.displayName).tag(size)
@@ -56,12 +56,17 @@ struct TeleprompterSettingsView: View {
                     .onChange(of: settings.hideFromScreenRecording) { _, _ in
                         TeleprompterWindow.shared.applySharingType()
                     }
+            } header: {
+                Text("Appearance")
+            } footer: {
                 Text("The prompter stays on your screen but is excluded from screen capture, so it never appears in the recording.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Section("Scrolling") {
+            Section {
                 Toggle("Follow my voice", isOn: $settings.followVoice)
                 Text("PUSHTYPE listens as you read and moves the script to keep up, at whatever pace you happen to be reading. It holds still if you go off-script or stop, and never moves on its own.")
                     .font(.caption)
@@ -69,7 +74,7 @@ struct TeleprompterSettingsView: View {
 
                 if TeleprompterSession.readiness == .needsDownload {
                     Label(
-                        "Voice-following needs the Parakeet model. Download it in Models.",
+                        "Follow my voice needs Parakeet Streaming. Download it in Settings ▸ Models.",
                         systemImage: "exclamationmark.triangle"
                     )
                     .font(.caption)
@@ -90,20 +95,30 @@ struct TeleprompterSettingsView: View {
                             .frame(width: 64, alignment: .trailing)
                     }
                 }
+            } header: {
+                Text("Scrolling")
+            } footer: {
                 Text(settings.followVoice
                      ? "Not used while Follow my voice is on — the pace comes from your voice. Turn that off to scroll at a set speed instead."
                      : "The pace the script scrolls at, regardless of what you say.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Section("While the prompter is running") {
+            Section {
                 shortcut("↑ / ↓", "Move back or forward one line")
                 shortcut("← / →", "Slower or faster, by 10 wpm")
                 shortcut(appState.selectedHotkey.displayName, "Stop the take")
+            } header: {
+                Text("While the prompter is running")
+            } footer: {
                 Text("These belong to the prompter only while it is running. The arrow keys work normally the rest of the time, and \(appState.selectedHotkey.displayName) goes back to starting dictation.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .formStyle(.grouped)

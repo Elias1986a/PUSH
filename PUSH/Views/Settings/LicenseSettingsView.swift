@@ -45,6 +45,7 @@ struct LicenseSettingsView: View {
                     LabeledContent("This Mac") { Text(MacModelLabel.current()) }
                 } footer: {
                     Text("Your other Macs signed in to the same Apple Account activate on their own. Moving to a new Mac? Remove this one first to free its place.")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Section {
                     HStack {
@@ -61,6 +62,7 @@ struct LicenseSettingsView: View {
                     Text("License")
                 } footer: {
                     Text(.init(LicenseActivationControls.footnote))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
 

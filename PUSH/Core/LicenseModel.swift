@@ -301,7 +301,14 @@ final class LicenseModel {
 
 /// One Keychain item holding the licence record.
 struct LicenseKeychain {
+    // A debug build keeps its own item. It is not signed like the installed
+    // app, so reading that app's item made macOS ask for the login password,
+    // once per launch: a screenshot pass raised fourteen prompts (2026-10-14).
+    #if DEBUG
+    var service = "com.push.voicetotext.licence.debug"
+    #else
     var service = "com.push.voicetotext.licence"
+    #endif
     private let account = "licence"
 
     private var query: [String: Any] {
