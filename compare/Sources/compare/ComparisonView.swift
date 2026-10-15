@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ComparisonView: View {
     @State private var model = ComparisonModel()
+    @Environment(\.openWindow) private var openWindow
     /// The tool's own preference, not PUSH's: this app has its own defaults domain.
     @AppStorage("resolveSelfCorrections") private var resolveSelfCorrections = true
     /// On by default here although it is off in PUSH: the passage says "like" on
@@ -30,6 +31,9 @@ struct ComparisonView: View {
                     .padding(18)
                 }
             }
+        }
+        .task {
+            if ProcessInfo.processInfo.environment["COMPARE_E2E"] != nil { openWindow(id: "endToEnd") }
         }
     }
 
@@ -81,6 +85,8 @@ struct ComparisonView: View {
                 Text("Engine comparison")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                 Spacer()
+                // What the user feels, which the engines alone can't show.
+                Button("Release to text…") { openWindow(id: "endToEnd") }
                 if !model.rerunnable.isEmpty {
                     Button("Re-run saved readings") { model.rerunSaved() }
                         .disabled(model.pending > 0 || !model.status.isEmpty)
