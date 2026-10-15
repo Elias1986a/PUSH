@@ -29,8 +29,9 @@ const T = {
 /** Where each real clip plays from (seconds into the source). */
 const SRC = {
   // promo/talk-hero.mp4: real time. Text lands at 28.82 s; the key came up
-  // ~0.35 s before. Played from 25.9 so the landing falls under "clean text".
-  talkFrom: 25.9,
+  // ~0.35 s before. Played from 27.3 so the text lands ~1.5 s in and stays
+  // on screen under "clean text".
+  talkFrom: 27.3,
   talkRelease: 28.47,
   // promo/type-demo.mp4: "Should we rent a car or" → gray "take the metro?" → Tab.
   typeFrom: 19.2,
@@ -201,10 +202,29 @@ const Crop: React.FC<{
   box: { left: number; top: number; width: number; height: number };
   srcSize?: { w: number; h: number };
   radius?: number;
-}> = ({ src, from, crop, box, srcSize = { w: 2560, h: 1440 }, radius = 22 }) => {
+  /** False for a crop that hangs from the frame's top edge, like the notch. */
+  fadeTop?: boolean;
+}> = ({ src, from, crop, box, srcSize = { w: 2560, h: 1440 }, radius = 22, fadeTop = true }) => {
   const scale = box.width / (crop.w * srcSize.w);
+  // Feathered edges: the recording's black is not quite the background's, so a
+  // hard-edged crop reads as a two-tone box. Faded at every edge, it melts in.
+  const fx = Math.min(80, box.width * 0.06);
+  const fy = Math.min(60, box.height * 0.22);
+  const mask = `linear-gradient(to right, transparent, #000 ${fx}px, #000 calc(100% - ${fx}px), transparent),
+                linear-gradient(to bottom, ${fadeTop ? "transparent" : "#000"}, #000 ${fy}px, #000 calc(100% - ${fy}px), transparent)`;
   return (
-    <div style={{ position: "absolute", ...box, overflow: "hidden", borderRadius: radius }}>
+    <div
+      style={{
+        position: "absolute",
+        ...box,
+        overflow: "hidden",
+        borderRadius: radius,
+        WebkitMaskImage: mask,
+        WebkitMaskComposite: "source-in",
+        maskImage: mask,
+        maskComposite: "intersect",
+      }}
+    >
       <OffthreadVideo
         src={staticFile(src)}
         startFrom={s(from)}
@@ -255,8 +275,9 @@ const TalkScene: React.FC<{ vertical: boolean }> = ({ vertical }) => {
   const { caption } = frameFor(vertical);
   // The pill (top centre) and the note's first lines, cut from one recording.
   const pill = { x: 0.37, y: 0, w: 0.26, h: 0.055 };
-  const text = vertical ? { x: 0.06, y: 0.22, w: 0.36, h: 0.2 } : { x: 0.06, y: 0.22, w: 0.6, h: 0.2 };
-  const pillBox = vertical ? boxFor(pill, 140, 250, 800) : boxFor(pill, 510, 150, 900);
+  const text = vertical ? { x: 0.05, y: 0.225, w: 0.37, h: 0.2 } : { x: 0.05, y: 0.225, w: 0.62, h: 0.2 };
+  // Hung from the top edge, where it lives on a Mac: under the notch.
+  const pillBox = vertical ? boxFor(pill, 140, 0, 800) : boxFor(pill, 510, 0, 900);
   const textBox = vertical ? boxFor(text, 60, 470, 960) : boxFor(text, 90, 330, 1740);
   // The pill closes on release in the recording; its empty strip goes with it.
   const pillOpacity = interpolate(f, [releaseAt, releaseAt + 6], [1, 0], {
@@ -267,7 +288,7 @@ const TalkScene: React.FC<{ vertical: boolean }> = ({ vertical }) => {
     <AbsoluteFill>
       <Label text="Talk" style={vertical ? { left: caption.left, top: 120 } : { left: 90, top: 60 }} />
       <div style={{ opacity: pillOpacity }}>
-        <Crop src="media/talk-hero.mp4" from={SRC.talkFrom} crop={pill} box={pillBox} radius={0} />
+        <Crop src="media/talk-hero.mp4" from={SRC.talkFrom} crop={pill} box={pillBox} radius={0} fadeTop={false} />
       </div>
       <Crop src="media/talk-hero.mp4" from={SRC.talkFrom} crop={text} box={textBox} />
       <KeyChip
