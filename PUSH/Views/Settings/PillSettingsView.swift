@@ -20,8 +20,8 @@ struct PillSettingsView: View {
         @Bindable var appState = appState
 
         Form {
-            Section("Position") {
-                HStack(spacing: 26) {
+            Section {
+                HStack(spacing: 16) {
                     Spacer()
                     ForEach(AppState.PillPosition.allCases) { position in
                         PillPositionThumbnail(
@@ -29,17 +29,26 @@ struct PillSettingsView: View {
                             isSelected: appState.pillPosition == position
                         )
                         .onTapGesture { appState.pillPosition = position }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(position.displayName)
+                        .accessibilityAddTraits(appState.pillPosition == position ? [.isButton, .isSelected] : .isButton)
+                        .accessibilityAction { appState.pillPosition = position }
                     }
                     Spacer()
                 }
-                .padding(.vertical, 6)
+                .padding(.vertical, 4)
 
+            } header: {
+                Text("Position")
+            } footer: {
                 Text("At the bottom the pill floats as a capsule, out of the way. At the top it hangs off the screen edge under the notch, where you are already reading.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Section("Live preview") {
+            Section {
                 Toggle("Show text in the pill as you speak", isOn: $appState.showLivePreview)
                     .disabled(!supportsLivePreview)
 
@@ -51,11 +60,16 @@ struct PillSettingsView: View {
                 .pickerStyle(.segmented)
                 .disabled(!supportsLivePreview || !appState.showLivePreview)
 
+            } header: {
+                Text("Live preview")
+            } footer: {
                 Text(supportsLivePreview
                      ? "A rough transcript, about two seconds behind you — the final text is cleaned up before it is inserted."
                      : "Only Parakeet Streaming transcribes while you speak, and \(appState.selectedWhisperModel.shortName) is selected. Switch in Models to turn this on.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .formStyle(.grouped)

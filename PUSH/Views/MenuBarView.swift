@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import AVFoundation
 import PUSHCore
 
 /// The menu bar dropdown.
@@ -62,7 +63,7 @@ struct MenuBarView: View {
             Divider()
             commands
         }
-        .frame(width: 290)
+        .frame(width: 272)
         .onAppear { downloaded = ModelAvailability.downloaded() }
         .task(id: appState.activeModel) { await resolveLanguages() }
     }
@@ -78,12 +79,25 @@ struct MenuBarView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(statusText)
                     .font(.system(size: 12, weight: .medium))
-                Text(appState.dictationEnabled ? appState.activeModel.shortName : "Switched off on this Mac")
-                    .font(.system(size: 10))
+                // The header shows only while Talk is on.
+                Text(appState.activeModel.shortName)
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
+
+            if let missing = missingPermission {
+                Button("Fix…") {
+                    run {
+                        switch missing {
+                        case .accessibility: PermissionGuide.shared.show(.accessibility)
+                        case .microphone: PermissionsModel().openMicrophoneSettings()
+                        }
+                    }
+                }
+                .controlSize(.small)
+            }
 
             // The same level the pill draws, so the popover can stand in for it
             // while you are setting things up with the menu open.
@@ -91,8 +105,8 @@ struct MenuBarView: View {
                 MenuLevelMeter(level: audioLevel.level)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     /// Without a licence (or one overdue for a check) nothing else in this
@@ -107,8 +121,8 @@ struct MenuBarView: View {
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.regular)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     private func featureSwitch(_ title: String, isOn: Binding<Bool>) -> some View {
@@ -121,8 +135,8 @@ struct MenuBarView: View {
                 .toggleStyle(.switch)
                 .controlSize(.small)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
     }
 
     private var hotkeyRow: some View {
@@ -140,8 +154,8 @@ struct MenuBarView: View {
                 .foregroundStyle(.secondary)
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Quick controls
@@ -150,10 +164,10 @@ struct MenuBarView: View {
         // Not `body`, so this needs its own `@Bindable` shadow for the pill and
         // wake word bindings below.
         @Bindable var appState = appState
-        return VStack(alignment: .leading, spacing: 9) {
+        return VStack(alignment: .leading, spacing: 6) {
             // Under each feature's own switch, so "Model" says enough.
             labelled("Model") {
-                Picker("", selection: modelBinding) {
+                Picker("Talk model", selection: modelBinding) {
                     ForEach(offeredModels) { model in
                         Text(model.shortName).tag(model)
                     }
@@ -167,7 +181,7 @@ struct MenuBarView: View {
             // English is the only option, which is worse than no row.
             if appState.activeModel.supportsLanguageSelection {
                 labelled("Language") {
-                    Picker("", selection: languageBinding) {
+                    Picker("Language", selection: languageBinding) {
                         ForEach(offeredLanguages) { language in
                             Text(language.displayName).tag(language)
                         }
@@ -178,9 +192,9 @@ struct MenuBarView: View {
 
                 if hasUndownloadedLanguages {
                     HStack(spacing: 8) {
-                        Color.clear.frame(width: 62, height: 0)
+                        Color.clear.frame(width: 56, height: 0)
                         Text("More languages in Settings — they need a download.")
-                            .font(.system(size: 10))
+                            .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                         Spacer(minLength: 0)
                     }
@@ -188,7 +202,7 @@ struct MenuBarView: View {
             }
 
             labelled("Pill") {
-                Picker("", selection: $appState.pillPosition) {
+                Picker("Pill position", selection: $appState.pillPosition) {
                     ForEach(AppState.PillPosition.allCases) { position in
                         Text(position.displayName).tag(position)
                     }
@@ -204,7 +218,7 @@ struct MenuBarView: View {
             HStack(spacing: 8) {
                 Text(wakeWordLabel)
                 Spacer(minLength: 0)
-                Toggle("", isOn: $appState.wakeWordEnabled)
+                Toggle(wakeWordLabel, isOn: $appState.wakeWordEnabled)
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.small)
@@ -220,8 +234,8 @@ struct MenuBarView: View {
         }
         .font(.system(size: 12))
         .controlSize(.small)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Type
@@ -232,9 +246,9 @@ struct MenuBarView: View {
         let offered = TypingModel.allCases.filter {
             TypingModelStore.shared.onDisk.contains($0) || $0 == appState.selectedTypingModel
         }
-        return VStack(alignment: .leading, spacing: 9) {
+        return VStack(alignment: .leading, spacing: 6) {
             labelled("Model") {
-                Picker("", selection: $appState.selectedTypingModel) {
+                Picker("TYPE model", selection: $appState.selectedTypingModel) {
                     ForEach(offered) { Text("\($0.tier) · \($0.displayName)").tag($0) }
                 }
                 .labelsHidden()
@@ -248,7 +262,7 @@ struct MenuBarView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             labelled("Length") {
-                Picker("", selection: $appState.typingLength) {
+                Picker("Suggestion length", selection: $appState.typingLength) {
                     ForEach(LengthPreset.offered(for: appState.selectedTypingModel), id: \.self) {
                         Text($0.label).tag($0)
                     }
@@ -281,8 +295,8 @@ struct MenuBarView: View {
         }
         .font(.system(size: 12))
         .controlSize(.small)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     /// A caption in a fixed gutter with its control filling the rest, so every
@@ -296,7 +310,7 @@ struct MenuBarView: View {
         HStack(spacing: 8) {
             Text(caption)
                 .foregroundStyle(.secondary)
-                .frame(width: 62, alignment: .leading)
+                .frame(width: 56, alignment: .leading)
             content()
                 .frame(maxWidth: .infinity)
         }
@@ -399,7 +413,7 @@ struct MenuBarView: View {
                 run { OnboardingWindowController.shared.show() }
             }
 
-            Divider().padding(.vertical, 4)
+            Divider().padding(.vertical, 2)
 
             // Not `SettingsLink`: that only works inside the SwiftUI scene
             // graph, and this view is now hosted in an AppKit popover. The
@@ -416,14 +430,14 @@ struct MenuBarView: View {
             )
             .disabled(!updater.canBeInvoked)
 
-            Divider().padding(.vertical, 4)
+            Divider().padding(.vertical, 2)
 
             CommandRow(title: "Quit PUSHTYPE", symbol: "power", shortcut: "⌘Q") {
                 NSApplication.shared.terminate(nil)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
     }
 
     /// Close the panel, then act.
@@ -447,8 +461,21 @@ struct MenuBarView: View {
 
     // MARK: - Derived
 
+    private enum MissingPermission { case accessibility, microphone }
+
+    /// A permission Talk cannot work without. Read as the menu opens: "Ready"
+    /// with Accessibility off meant a key that silently did nothing.
+    private var missingPermission: MissingPermission? {
+        if !AXIsProcessTrusted() { return .accessibility }
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .denied, .restricted: return .microphone
+        default: return nil
+        }
+    }
+
     private var statusColor: Color {
         if !appState.dictationEnabled { return .secondary }
+        if missingPermission != nil { return .red }
         if appState.modelUnavailable { return appState.isWarmingUp ? .orange : .red }
         if appState.isProcessing { return .orange }
         if appState.isCapturing { return .green }
@@ -458,6 +485,11 @@ struct MenuBarView: View {
 
     private var statusText: String {
         if !appState.dictationEnabled { return "Talk off" }
+        switch missingPermission {
+        case .accessibility: return "Needs Accessibility"
+        case .microphone: return "Needs Microphone"
+        case nil: break
+        }
         if appState.modelUnavailable { return appState.isWarmingUp ? "Loading model…" : "Model unavailable" }
         if appState.isCapturing { return "Listening" }
         if appState.isListening { return "Warming up…" }
@@ -539,7 +571,7 @@ private struct CommandRow: View {
             }
             .font(.system(size: 12))
             .padding(.horizontal, 6)
-            .padding(.vertical, 5)
+            .padding(.vertical, 4)
             .contentShape(Rectangle())
         }
     }

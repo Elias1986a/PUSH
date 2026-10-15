@@ -57,6 +57,7 @@ struct DictionarySettingsView: View {
                     }
                     .disabled(draft != nil)
                     .help("Add a correction")
+                    .accessibilityLabel("Add a correction")
                     Spacer()
                 }
 
@@ -200,6 +201,7 @@ struct DictionarySettingsView: View {
                 }
                 .buttonStyle(.borderless)
                 .help("Discard this row")
+                .accessibilityLabel("Discard this row")
             }
 
             if current.contextual {
@@ -229,6 +231,7 @@ struct DictionarySettingsView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 TextField("", text: correction.wrong)
+                    .accessibilityLabel("What it hears")
                     .textFieldStyle(.roundedBorder)
                     .labelsHidden()
                     .multilineTextAlignment(.leading)
@@ -239,6 +242,7 @@ struct DictionarySettingsView: View {
                     .foregroundStyle(.secondary)
 
                 TextField("", text: correction.right)
+                    .accessibilityLabel("What to write")
                     .textFieldStyle(.roundedBorder)
                     .labelsHidden()
                     .multilineTextAlignment(.leading)
@@ -257,6 +261,7 @@ struct DictionarySettingsView: View {
                 .buttonStyle(.borderless)
                 .foregroundStyle(.red)
                 .help("Remove this correction")
+                .accessibilityLabel("Remove this correction")
             }
 
             if correction.wrappedValue.kind == .contextual {
@@ -267,7 +272,7 @@ struct DictionarySettingsView: View {
     }
 
     private func modePicker(isContextual: Binding<Bool>) -> some View {
-        Picker("", selection: isContextual) {
+        Picker("When it applies", selection: isContextual) {
             Text("Always").tag(false)
             Text("In context").tag(true)
         }
@@ -282,7 +287,7 @@ struct DictionarySettingsView: View {
             Image(systemName: "arrow.turn.down.right")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            TextField("", text: text, prompt: Text("what is it? (e.g. a person named Hamer)"))
+            TextField("", text: text, prompt: Text("What is it? For example, a person's name"))
                 .textFieldStyle(.roundedBorder)
                 .labelsHidden()
                 .multilineTextAlignment(.leading)

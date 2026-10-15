@@ -35,13 +35,13 @@ struct DictationSettingsView: View {
                 }
             }
 
-            Section("Microphone") {
+            Section {
                 ForEach(Array(appState.inputDevicePriority.enumerated()), id: \.element.id) { index, device in
                     microphoneRow(device, at: index)
                 }
 
                 HStack {
-                    Menu("Add microphone") {
+                    Menu("Add Microphone…") {
                         ForEach(addableDevices) { device in
                             Button(device.name) {
                                 appState.inputDevicePriority.append(.init(uid: device.uid, name: device.name))
@@ -57,15 +57,19 @@ struct DictationSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-
+            } header: {
+                Text("Microphone")
+            } footer: {
                 Text(appState.inputDevicePriority.isEmpty
                      ? "PUSHTYPE uses the system default, which changes when you connect AirPods or a headset. Add microphones to choose which one PUSHTYPE uses."
                      : "PUSHTYPE uses the first microphone on the list that is connected, otherwise the system default. With the lid closed, the built-in microphone is skipped.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Section("PUSH to talk") {
+            Section {
                 Toggle("Hold a key to dictate", isOn: $appState.hotkeyEnabled)
 
                 Picker("Key", selection: $appState.selectedHotkey) {
@@ -74,13 +78,17 @@ struct DictationSettingsView: View {
                     }
                 }
                 .disabled(!appState.hotkeyEnabled)
-
+            } header: {
+                Text("PUSH to talk")
+            } footer: {
                 Text("Hold the key, speak, release. Press ⎋ Esc while recording to cancel without inserting text.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Section("While recording") {
+            Section {
                 Toggle("Play a sound when recording starts", isOn: $appState.playSoundOnStart)
 
                 // Choosing one plays it, so the menu doubles as a preview.
@@ -97,13 +105,17 @@ struct DictationSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
-
+            } header: {
+                Text("While recording")
+            } footer: {
                 Text("Lowers the output volume while you dictate, then restores it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Section("Wake word") {
+            Section {
                 Toggle("Start recording when you say a word", isOn: $appState.wakeWordEnabled)
                     .onChange(of: appState.wakeWordEnabled) { _, newValue in
                         if newValue {
@@ -126,10 +138,14 @@ struct DictationSettingsView: View {
                         .frame(width: 128)
                 }
                 .disabled(!appState.wakeWordEnabled)
-
+            } header: {
+                Text("Wake word")
+            } footer: {
                 Text("Recording stops after a second of silence. PUSH to talk keeps working. Listening for a wake word holds the microphone open the whole time.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             DictationTextSections()
@@ -167,6 +183,7 @@ struct DictationSettingsView: View {
             .buttonStyle(.borderless)
             .disabled(index == 0)
             .help("Prefer this microphone")
+            .accessibilityLabel("Prefer this microphone")
             Button {
                 appState.inputDevicePriority.remove(at: index)
             } label: {
@@ -174,6 +191,7 @@ struct DictationSettingsView: View {
             }
             .buttonStyle(.borderless)
             .help("Remove from the list")
+            .accessibilityLabel("Remove from the list")
         }
     }
 

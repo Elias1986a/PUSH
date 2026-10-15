@@ -32,11 +32,11 @@ struct GeneralSettingsView: View {
 
         Form {
             Section {
-                HStack(spacing: 15) {
+                HStack(spacing: 12) {
                     // NSApp's own icon, not a bundled asset: Bundle.module
                     // resource lookup crashes in distribution builds.
                     // See AppIconImage for the unbundled-build stand-in.
-                    AppIconImage(size: 56)
+                    AppIconImage(size: 48)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("PUSHTYPE")
@@ -51,9 +51,11 @@ struct GeneralSettingsView: View {
                         // credit where users can find it; the full texts are
                         // also in the app bundle (Contents/Resources/Legal).
                         HStack(spacing: 10) {
-                            Link("License Agreement", destination: Self.licenseAgreementURL)
-                            Link("Privacy Policy", destination: Self.privacyURL)
-                            Link("Acknowledgments", destination: Self.acknowledgementsURL)
+                            // Short names, never broken mid-word: three links share
+                            // the row with Check for Updates.
+                            Link("License", destination: Self.licenseAgreementURL).fixedSize()
+                            Link("Privacy", destination: Self.privacyURL).fixedSize()
+                            Link("Acknowledgments", destination: Self.acknowledgementsURL).fixedSize()
                         }
                         .font(.caption)
                         .padding(.top, 2)

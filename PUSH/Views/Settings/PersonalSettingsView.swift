@@ -21,7 +21,7 @@ struct PersonalSettingsView: View {
                     Text("About you")
                     TextEditor(text: $appState.typingAbout)
                         .font(.body)
-                        .frame(height: 64)
+                        .frame(height: 56)
                         .scrollContentBackground(.hidden)
                         .padding(4)
                         .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .textBackgroundColor)))
@@ -48,7 +48,7 @@ struct PersonalSettingsView: View {
                 Toggle(isOn: $history.isOn) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Learn from my writing and voice")
-                        Text("Keeps what you type and what you dictate where suggestions are on, so they sound like you. Only the finished text is kept, never audio. Encrypted on this Mac and never sent anywhere. Passwords, sign-in fields and terminals are never kept.")
+                        Text("Keeps what you type and what you dictate where suggestions are on, so they sound like you. Only the finished text is kept, never audio. Encrypted on this Mac and never sent anywhere. Passwords, sign-in fields, and terminals are never kept.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -93,6 +93,8 @@ struct PersonalSettingsView: View {
                                 history.excludedApps.removeAll { $0 == id }
                             } label: { Image(systemName: "minus.circle.fill").foregroundStyle(.secondary) }
                             .buttonStyle(.plain)
+                            .help("Learn from this app again")
+                            .accessibilityLabel("Learn from this app again")
                         }
                     }
                     HStack {

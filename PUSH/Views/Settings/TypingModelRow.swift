@@ -9,18 +9,20 @@ struct TypingModelRow: View {
     var allowsDelete = true
     /// One line, no description: the onboarding page also holds a try-it box.
     var compact = false
+    @State private var confirmingDelete = false
 
     private var store: TypingModelStore { .shared }
     private var isSelected: Bool { appState.selectedTypingModel == model }
     private var isOnDisk: Bool { store.onDisk.contains(model) }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 8) {
             Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                 .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                 .padding(.top, 2)
+                .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 7) {
                     Text(model.tier).fontWeight(.medium)
                     Text(model.displayName)
@@ -30,6 +32,10 @@ struct TypingModelRow: View {
                         .background(Capsule().fill(Color.secondary.opacity(0.15)))
                         .foregroundStyle(.secondary)
                 }
+                // The name is the row's button for VoiceOver (the row is picked by a tap).
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+                .accessibilityAction { if isOnDisk { appState.selectedTypingModel = model } }
                 if !compact {
                     Text(model.blurb)
                         .font(.caption)
@@ -75,11 +81,16 @@ struct TypingModelRow: View {
                 }
                 .font(.caption)
             } else if allowsDelete {
-                Button("Delete") { Task { await store.delete(model) } }
+                Button("Delete…") { confirmingDelete = true }
                     .foregroundStyle(.red)
+                    .confirmationDialog("Delete \(model.tier) (\(model.displayName))?", isPresented: $confirmingDelete) {
+                        Button("Delete", role: .destructive) { Task { await store.delete(model) } }
+                    } message: {
+                        Text("Using it again means downloading \(ByteCountFormatter.string(fromByteCount: model.bytes, countStyle: .file)) again.")
+                    }
             }
         } else if ProcessInfo.processInfo.physicalMemory < model.minimumMemory {
-            Text("Needs 16 GB").font(.caption).foregroundStyle(.secondary)
+            Text("Needs 16 GB of memory").font(.caption).foregroundStyle(.secondary)
         } else {
             Button("Download") {
                 appState.selectedTypingModel = model
