@@ -342,3 +342,15 @@ a:not(.pb-btn):hover { color: var(--on-air); }
 .learn-note { margin: -8px 0 0; max-width: none; font: 400 14px/1.6 var(--font-body); color: var(--ink-muted); }
 .footnote-star { color: var(--on-air); font-weight: 700; font-size: 1.3em; line-height: 0; vertical-align: -2px; }
 @media (max-width: 760px) { .learn-compare { grid-template-columns: minmax(0, 1fr); } }
+
+/* Live preview: a pill that fills with words as they are "heard" */
+.live-band { display: grid; grid-template-columns: 5fr 6fr; gap: 24px 64px; align-items: center; margin-top: 48px; padding-top: 40px; border-top: 1px solid var(--chrome); }
+.live-band h3 { margin: 0; font-size: clamp(26px, 3vw, 34px); line-height: 1.1; text-wrap: balance; }
+.live-demo { display: flex; justify-content: center; padding: 32px 0; }
+.live-pill { height: auto; min-height: 44px; width: min(100%, 520px); min-width: 0; padding: 12px 20px 12px 16px; } /* fixed, like the app's pill: words fill it, it does not grow */
+.live-pill .live-text { font: 500 17px/1.35 var(--font-body); position: relative; min-height: 1.35em; }
+.live-pill .live-text::after { content: ""; display: inline-block; width: 2px; height: 1em; margin-left: 3px; vertical-align: -2px; background: #efede8; animation: blink 1s steps(1) infinite; }
+.launch-price { margin: -10px 0 0; font: 600 14px/1.3 var(--font-body); color: var(--on-air); }
+@media (max-width: 960px) { .live-band { grid-template-columns: minmax(0, 1fr); } .live-demo { justify-content: flex-start; padding: 8px 0; } }
+@media (prefers-reduced-motion: reduce) { .live-pill .live-text::after { animation: none; } }
+[data-theme="dark"] .live-pill { box-shadow: inset 0 0 0 1px #3a3d44, var(--shadow-pill); }

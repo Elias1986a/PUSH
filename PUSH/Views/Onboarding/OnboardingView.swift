@@ -484,6 +484,22 @@ struct OnboardingView: View {
 
             modelAction(for: chosen)
 
+            // Live preview only exists with the streaming engine, and it is off
+            // by default, so this is where most people would ever meet it.
+            if chosen.engineType == .parakeetStreaming {
+                @Bindable var appState = appState
+                Toggle(isOn: $appState.showLivePreview) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Show my words as I speak").fontWeight(.medium)
+                        Text("The pill shows what it hears while you talk. The cleaned-up text still lands when you let go.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.switch)
+            }
+
             Spacer(minLength: 0)
         }
     }
