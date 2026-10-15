@@ -88,7 +88,13 @@ enum ModelLoader {
         // insist on. The literal inherits this context's instead.
         let ready = Set(AppState.WhisperModel.selectable.filter { ModelAvailability.isReadyToServe($0) })
         guard let model = launchModel(preferred: preferred, ready: ready) else {
+            // Unavailable, not merely loading: the PUSH-to-talk key must refuse
+            // until a download lands. A press let through here reached the
+            // engine with nothing loaded, and the engine fetched 600 MB on its
+            // own — the very download this function exists not to start.
             PushLogger.log("ModelLoader: no model on disk — waiting for one to be downloaded")
+            state.modelUnavailable = true
+            state.statusMessage = "No speech model"
             return
         }
         if model != preferred {

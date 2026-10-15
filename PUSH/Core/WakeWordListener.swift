@@ -53,6 +53,12 @@ final class WakeWordListener: @unchecked Sendable {
 
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
+        // No input device: installTap would raise on this format (see AudioRecorder).
+        guard AudioRecorder.isUsable(inputFormat) else {
+            PushLogger.log("WakeWordListener: no input device — not listening")
+            audioEngine = nil
+            return
+        }
 
         guard let outputFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,

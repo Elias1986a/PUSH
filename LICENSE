@@ -1,12 +1,12 @@
 Copyright (c) 2026 PUSHTYPE. All rights reserved.
 
-PUSH is proprietary software. Use of the application is governed by the
-PUSH End User License Agreement (legal/EULA.md). No licence to this source
-code is granted by its availability; you may not copy, modify or distribute
-it without written permission.
+PUSHTYPE (formerly PUSH) is proprietary software. Use of the application is
+governed by the PUSHTYPE End User License Agreement (legal/EULA.md). No license
+to this source code is granted by its availability; you may not copy, modify,
+or distribute it without written permission.
 
 Versions of PUSH up to and including 8.2.2 were released under the MIT
-License, and copies of those versions remain available under that licence.
+License, and copies of those versions remain available under that license.
 
-Third-party components keep their own licences: see
+Third-party components keep their own licenses: see
 legal/THIRD_PARTY_NOTICES.md and legal/third-party/.

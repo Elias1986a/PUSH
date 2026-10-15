@@ -80,6 +80,11 @@ final class AudioRecorder: @unchecked Sendable {
         await sileroVAD.setup()
     }
 
+    /// Whether a tap can be installed with this format at all.
+    nonisolated static func isUsable(_ format: AVAudioFormat) -> Bool {
+        format.sampleRate > 0 && format.channelCount > 0
+    }
+
     /// The process's one capture engine, built on first use.
     ///
     /// It outlives individual recordings on purpose. Constructing an engine and
@@ -254,6 +259,16 @@ final class AudioRecorder: @unchecked Sendable {
         let inputNode = engine.inputNode
         let inputFormat = inputNode.outputFormat(forBus: 0)
         PressTiming.mark("inputFormat")
+        // A Mac with no input device (a Mac mini or Studio with nothing plugged
+        // in) reports 0 Hz / 0 channels, and installTap raises an Objective-C
+        // exception on that format, which Swift cannot catch.
+        guard Self.isUsable(inputFormat) else {
+            PushLogger.log("AudioRecorder: no input device (\(inputFormat.sampleRate) Hz, \(inputFormat.channelCount) ch)")
+            NotificationManager.shared.showError(
+                title: "No microphone",
+                message: "PUSHTYPE can't find a microphone. Connect one, or pick one in Settings ▸ Talk.")
+            return
+        }
 
         guard let outputFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,

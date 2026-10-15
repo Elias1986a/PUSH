@@ -249,7 +249,8 @@ struct FloatingPillView: View {
 
     private var baseStatusText: String {
         if appState.modelUnavailable {
-            return "Model unavailable"
+            // A first download is under way (the key stays refused until it lands).
+            return appState.isWarmingUp ? "Loading model..." : "Model unavailable"
         } else if appState.isListening {
             // Only claim to be listening once the microphone is actually
             // capturing. On a cold press the audio device can take seconds to

@@ -62,21 +62,32 @@ final class TypingKeyTap: @unchecked Sendable {
         if let runLoop { CFRunLoopStop(runLoop) }
     }
 
+    /// Without Accessibility the tap cannot be created. On a first launch that
+    /// is the normal state until the setup wizard gets it granted, so keep
+    /// trying every 2 s on this thread rather than leave TYPE dead until the
+    /// next launch. `stop()` cancels the thread, which ends the wait.
     private func runTap() {
         let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.leftMouseDown.rawValue)
             | (1 << CGEventType.rightMouseDown.rawValue)
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
-            eventsOfInterest: CGEventMask(mask),
-            callback: { _, type, event, refcon in
-                let me = Unmanaged<TypingKeyTap>.fromOpaque(refcon!).takeUnretainedValue()
-                return me.handle(type, event)
-            },
-            userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
-            PushLogger.log("TypingKeyTap: could not create the event tap (Accessibility?)")
-            thread = nil
-            return
+        var created: CFMachPort?
+        var loggedFailure = false
+        while !Thread.current.isCancelled {
+            created = CGEvent.tapCreate(
+                tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
+                eventsOfInterest: CGEventMask(mask),
+                callback: { _, type, event, refcon in
+                    let me = Unmanaged<TypingKeyTap>.fromOpaque(refcon!).takeUnretainedValue()
+                    return me.handle(type, event)
+                },
+                userInfo: Unmanaged.passUnretained(self).toOpaque())
+            if created != nil { break }
+            if !loggedFailure {
+                PushLogger.log("TypingKeyTap: could not create the event tap (Accessibility?) — retrying every 2 s")
+                loggedFailure = true
+            }
+            Thread.sleep(forTimeInterval: 2)
         }
+        guard let tap = created else { return }   // stopped while waiting
         self.tap = tap
         self.runLoop = CFRunLoopGetCurrent()
         let source = CFMachPortCreateRunLoopSource(nil, tap, 0)

@@ -1,20 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Google tag (gtag.js). Paths only: the thank-you page's query string
-     carries the order number and a Polar session token, which must not reach
-     Google. No Google signals or ad personalization. -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-VFSBVHWZLN"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-VFSBVHWZLN', {
-    page_location: location.origin + location.pathname,
-    allow_google_signals: false,
-    allow_ad_personalization_signals: false
-  });
-</script>
+<!-- Umami: cookieless visit counts, paths only (no query string or hash).
+     Not on the thank-you page, which holds the license key. -->
+<script defer src="https://cloud.umami.is/script.js" data-website-id="b3f15c64-1d53-4fc2-83f7-58f3bd19019b" data-domains="pushtype.app" data-exclude-search="true" data-exclude-hash="true"></script>
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -214,7 +203,7 @@
 <div class="card">
 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-deep)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M3 3l18 18"/></svg>
 <h3>No account</h3>
-<p class="body small">No sign-up, no login, no analytics.&nbsp; Buy it, enter your key, start talking.</p>
+<p class="body small">No sign-up, no login, and no tracking in the app.&nbsp; Buy it, enter your key, start talking.</p>
 </div>
 <div class="card">
 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--chrome-deep)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>
@@ -398,7 +387,7 @@
 <li><span class="dot"></span>All speech and typing models</li>
 <li><span class="dot"></span>14-day refund, no questions</li>
 </ul>
-<a class="pb-btn pb-btn-push" id="buy" href="#pricing" aria-describedby="buy-note">Buy PUSHTYPE <span class="pb-price">$35</span></a>
+<a class="pb-btn pb-btn-push" id="buy" data-umami-event="Buy" href="#pricing" aria-describedby="buy-note">Buy PUSHTYPE <span class="pb-price">$35</span></a>
 <p id="buy-note" style="margin: 0; font-size: 14px; color: var(--ink-muted);">Checkout opens at launch.&nbsp; More Macs?&nbsp; $12 each.&nbsp; Taxes handled by Polar.</p>
 </div>
 </div>
