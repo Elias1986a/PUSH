@@ -34,7 +34,7 @@ there's nothing to opt out of because we don't collect it. The app has no analyt
   Mac that shares it.
 - **A diagnostic log** at `~/Library/Application Support/PUSH/push_debug.log`
   records operational events such as "model loaded" and timings. It never
-  records what you said. It stays on your Mac unless you send it to us yourself.
+  records what you say or type, or which apps you use. It stays on your Mac unless you send it to us yourself.
 
 ## The network connections PUSHTYPE makes
 

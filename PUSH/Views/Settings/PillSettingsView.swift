@@ -4,7 +4,9 @@ import PUSHCore
 
 // MARK: - Pill
 
-struct PillSettingsView: View {
+/// The pill's sections, shown in Settings ▸ Talk (the Pill pane was folded
+/// into Talk, 2026-10-14: everything here is about dictation).
+struct PillSettingsSections: View {
     @Environment(AppState.self) private var appState
 
     /// Keyed off the *selected* model rather than the active one, so the toggle
@@ -19,7 +21,7 @@ struct PillSettingsView: View {
         // is what gives the controls below their `$appState` bindings.
         @Bindable var appState = appState
 
-        Form {
+        Group {
             Section {
                 HStack(spacing: 16) {
                     Spacer()
@@ -39,7 +41,7 @@ struct PillSettingsView: View {
                 .padding(.vertical, 4)
 
             } header: {
-                Text("Position")
+                Text("Pill position")
             } footer: {
                 Text("At the bottom the pill floats as a capsule, out of the way. At the top it hangs off the screen edge under the notch, where you are already reading.")
                     .font(.caption)
@@ -72,6 +74,5 @@ struct PillSettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .formStyle(.grouped)
     }
 }

@@ -2,7 +2,7 @@
 /// pinned by tests rather than by reading a view.
 enum OnboardingFlow {
     enum Step: Equatable, CaseIterable {
-        case otherMac, welcome, licence, features, permissions, speechModel, typingModel, personal, screenText, tryIt, finish
+        case otherMac, welcome, licence, features, permissions, speechModel, typingModel, personal, tryIt, finish
     }
 
     /// `typingSeen`: the Type page was reached. It stays in the list even if
@@ -17,20 +17,23 @@ enum OnboardingFlow {
                       otherMac: Bool = false, copied: Bool = false) -> [Step] {
         let typing = type || typingSeen
         var start: [Step] = otherMac ? [.otherMac] : []
-        if !(otherMac && copied) { start.append(.welcome) }
+        // The welcome carries the Talk and TYPE switches (user, 2026-10-14:
+        // ten pages down to eight). Copying from another Mac skips the welcome,
+        // so then the switches get their own page, since they are per Mac.
+        let welcome = !(otherMac && copied)
+        if welcome { start.append(.welcome) }
         if licence { start.append(.licence) }
+        if !welcome { start.append(.features) }
         // Nothing chosen: the wizard cannot continue past the choice.
-        guard dictation || typing else { return start + [.features] }
-        var s: [Step] = start + [.features, .permissions]
+        guard dictation || typing else { return start }
+        var s: [Step] = start + [.permissions]
         if dictation { s.append(.speechModel) }
         if typing { s.append(.typingModel) }
-        // Who you are and whether it learns: Type's biggest difference from a
-        // plain autocomplete, so it gets a page rather than a Settings pane
-        // nobody opens. Skipped when it was copied from another Mac.
-        if type && !copied { s.append(.personal) }
-        // Screen Recording is optional and only Type uses it, so it gets its
-        // own page, where there is room to say why (user, 2026-10-12).
-        if type { s.append(.screenText) }
+        // "Make it yours": who you are, whether it learns, and whether it may
+        // read the screen. TYPE's biggest difference from a plain autocomplete,
+        // so a page rather than a Settings pane nobody opens. One page since
+        // 2026-10-14 (was two: personal, then screen text).
+        if type { s.append(.personal) }
         // The pill's position sits on Try it, and the wake word and teleprompter
         // on the last page: two pages fewer (user, 2026-10-12).
         s += [.tryIt, .finish]

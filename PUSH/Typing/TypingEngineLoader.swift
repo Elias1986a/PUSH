@@ -19,8 +19,20 @@ enum TypingEngineLoader {
         generation &+= 1
         let current = generation
         let state = AppState.shared
-        let wanted: TypingModel? = state.typeEnabled && TypingModelStore.shared.onDisk.contains(state.selectedTypingModel)
-            ? state.selectedTypingModel : nil
+        let onDisk = TypingModelStore.shared.onDisk
+        let wanted: TypingModel?
+        if !state.typeEnabled {
+            wanted = nil
+        } else if onDisk.contains(state.selectedTypingModel) {
+            wanted = state.selectedTypingModel
+        } else if let loaded, onDisk.contains(loaded) {
+            // The chosen model is still downloading: keep suggesting with the
+            // one already loaded until it lands (the store calls apply() then),
+            // rather than leaving TYPE dead for the length of the download.
+            wanted = loaded
+        } else {
+            wanted = nil
+        }
         if let target, target == wanted { return }
         if target == nil, wanted == loaded { return }
         target = .some(wanted)

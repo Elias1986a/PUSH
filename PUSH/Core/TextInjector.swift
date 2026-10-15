@@ -50,6 +50,13 @@ final class TextInjector: @unchecked Sendable {
 
     private var snapshot: Snapshot?
     private var pendingCopy: PendingCopy?
+    /// The user's own clipboard while a restore is still pending. A second
+    /// dictation inside the restore delay found the first one's transcript on
+    /// the clipboard, saved *that* as the user's, and put it back afterwards:
+    /// the real clipboard was lost. The newer dictation takes these over.
+    private var pendingRestore: (items: [[String: Data]], changeCount: Int)?
+    /// Bumped per injection; only the newest one's restore may run.
+    private var restoreGeneration = 0
     private static let snapshotQueue = DispatchQueue(label: "push.textinjector.clipboard")
 
     /// How long injection will wait for an in-flight background copy before
@@ -104,7 +111,11 @@ final class TextInjector: @unchecked Sendable {
         // is the only line that says why — worth carrying permanently, since
         // "it pasted somewhere else" is otherwise unfalsifiable from a log.
         let target = NSWorkspace.shared.frontmostApplication
-        PushLogger.log("TextInjector: frontmost app is \(target?.bundleIdentifier ?? target?.localizedName ?? "unknown"), PUSH isActive=\(NSApp.isActive), policy=\(NSApp.activationPolicy().rawValue)")
+        // Which app, never: the log would become a record of where the user
+        // dictated. Whether it is PUSHTYPE itself is what explains a paste
+        // into the wrong window.
+        let into = target == nil ? "no app" : target?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? "PUSHTYPE itself" : "another app"
+        PushLogger.log("TextInjector: pasting into \(into), PUSH isActive=\(NSApp.isActive), policy=\(NSApp.activationPolicy().rawValue)")
         PushLogger.log("TextInjector: Inserting text via clipboard paste (\(text.count) chars)")
         insertViaClipboard(text)
         PushLogger.log("TextInjector: ✅ Inserted via clipboard paste")
@@ -146,7 +157,12 @@ final class TextInjector: @unchecked Sendable {
         // the clipboard now only if it moved mid-dictation (the user copied
         // something while speaking) or the snapshot hasn't landed yet.
         let savedFlavorSets: [[String: Data]]
-        if let snapshot, snapshot.changeCount == pasteboard.changeCount {
+        if let pendingRestore, pendingRestore.changeCount == pasteboard.changeCount {
+            // The previous dictation has not put the clipboard back yet, and
+            // the user has not copied anything since: what is on it now is that
+            // transcript, not the user's.
+            savedFlavorSets = pendingRestore.items
+        } else if let snapshot, snapshot.changeCount == pasteboard.changeCount {
             savedFlavorSets = snapshot.items
         } else if let pendingCopy, pendingCopy.changeCount == pasteboard.changeCount,
                   let items = pendingCopy.wait(timeout: Self.pendingCopyWait) {
@@ -162,6 +178,8 @@ final class TextInjector: @unchecked Sendable {
         }
         snapshot = nil
         pendingCopy = nil
+        restoreGeneration &+= 1
+        let generation = restoreGeneration
         let savedItems = Self.pasteboardItems(from: savedFlavorSets)
         let originalChangeCount = pasteboard.changeCount
 
@@ -169,6 +187,7 @@ final class TextInjector: @unchecked Sendable {
         pasteboard.clearContents()
         pasteboard.writeObjects([Self.transcriptItem(text)])
         let injectedChangeCount = pasteboard.changeCount
+        pendingRestore = (savedFlavorSets, injectedChangeCount)
 
         // Wait a bit for clipboard to sync, then paste
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -178,6 +197,9 @@ final class TextInjector: @unchecked Sendable {
         // Restore clipboard after a longer delay (1s to let slow apps finish pasting)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             MainActor.assumeIsolated {
+                // A newer dictation owns the restore now.
+                guard generation == self.restoreGeneration else { return }
+                self.pendingRestore = nil
                 // Only restore if user hasn't modified the clipboard since we injected.
                 guard pasteboard.changeCount == injectedChangeCount else { return }
                 guard !savedItems.isEmpty else {

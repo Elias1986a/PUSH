@@ -58,6 +58,8 @@ text field of any app. All speech recognition runs on-device.
   and launch never downloads: `ModelLoader.activateAtLaunch` loads what is already
   on disk when the saved preference is not, since only the user pressing Download
   should be able to spend 600 MB.
+- Speech models download from fixed Hugging Face commits (`PUSHCore/ML/SpeechModelPins.swift`,
+  applied at launch), never `main`: to take a newer model, re-test, then bump the pin.
 - Nothing under `ModelLoader.load` has a timeout — FluidAudio fetches on
   URLSession's defaults (`timeoutIntervalForResource` is 7 days), so a blocked
   huggingface.co hangs forever without throwing. Activations therefore never wait
