@@ -120,6 +120,25 @@ struct GeneralSettingsView: View {
                     openSettings: { PermissionGuide.shared.show(.accessibility) }
                 )
             }
+
+            // For support: the user can send it when something goes wrong. It
+            // holds operational events and timings, never text or app names.
+            Section {
+                HStack {
+                    Text("Diagnostic log")
+                    Spacer()
+                    Button("Show in Finder") {
+                        if let url = PushLogger.fileURL { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+                    }
+                    Button("Clear") { PushLogger.clear() }
+                }
+            } footer: {
+                Text("Records what PUSHTYPE does and how long it takes, never what you say or type. It stays on this Mac unless you send it to us.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .formStyle(.grouped)
         .onAppear(perform: permissions.refresh)

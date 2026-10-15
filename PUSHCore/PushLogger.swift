@@ -53,6 +53,17 @@ public enum PushLogger {
         try? Data(trimmed).write(to: url)
     }
 
+    /// The diagnostic log, for Settings' Show Log.
+    public static var fileURL: URL? { logFileURL }
+
+    /// Empties the diagnostic log (Settings ▸ General ▸ Clear Log).
+    public static func clear() {
+        queue.async {
+            guard let url = logFileURL else { return }
+            try? Data().write(to: url)
+        }
+    }
+
     private static var logFileURL: URL? {
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             return nil
