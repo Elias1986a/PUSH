@@ -83,3 +83,6 @@ __pycache__/
 
 # iCloud duplicates ("name 2.md") of docs: identical copies, never meant for the repo.
 docs/**/* [0-9].md
+
+# Raw screen takes for promo clips: large, local only (re-cut from these; finished clips are in promo/).
+promo/raw/
