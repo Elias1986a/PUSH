@@ -79,7 +79,7 @@ struct VoiceGlow: View {
         static let brightness: Double = 1.35
         static let saturation: Double = 1.5
 
-        /// Seconds the whole effect takes to fade in and out with `isActive`.
+        /// Seconds the whole effect takes to fade in with `isActive`.
         static let fade: Double = 0.28
     }
 
@@ -94,7 +94,12 @@ struct VoiceGlow: View {
                 glow
                     .brightness(Tuning.brightness - 1)
                     .saturation(Tuning.saturation)
-                    .transition(.opacity)
+                    // Gone at once when dictation ends: the pill window
+                    // hides ~0.1 s later, and a glow still fading into a
+                    // hidden window waits on every frame, holding the main
+                    // thread (and the paste, and every key) for ~0.2 s
+                    // (measured 2026-10-14).
+                    .transition(.asymmetric(insertion: .opacity, removal: .identity))
             }
         }
         .animation(.easeInOut(duration: Tuning.fade), value: isActive)

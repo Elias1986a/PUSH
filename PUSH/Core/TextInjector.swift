@@ -188,6 +188,7 @@ final class TextInjector: @unchecked Sendable {
         pasteboard.writeObjects([Self.transcriptItem(text)])
         let injectedChangeCount = pasteboard.changeCount
         pendingRestore = (savedFlavorSets, injectedChangeCount)
+        ReleaseTiming.mark("clipboard set")
 
         // Wait a bit for clipboard to sync, then paste
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
@@ -264,5 +265,7 @@ final class TextInjector: @unchecked Sendable {
             keyUp.flags = .maskCommand
             keyUp.post(tap: .cghidEventTap)
         }
+        ReleaseTiming.mark("paste sent")
+        ReleaseTiming.end()
     }
 }

@@ -86,6 +86,8 @@ extension TranscriptionPipeline {
                 rawText = try await Self.transcribe(audioData: audioData, using: activeModel)
             }
 
+            ReleaseTiming.mark("transcribed")
+
             // Filter out empty results and Whisper's blank audio markers
             var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -222,6 +224,7 @@ extension TranscriptionPipeline {
             }
 
             // Step 2: Inject into active text field
+            ReleaseTiming.mark("cleaned up")
             PushLogger.log("TranscriptionPipeline: Injecting text...")
             let textToInject = formattedText
             await MainActor.run {
