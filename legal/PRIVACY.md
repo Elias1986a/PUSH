@@ -1,6 +1,6 @@
 # PUSHTYPE Privacy Policy
 
-**Effective:** October 14, 2026 · **Who we are:** PUSHTYPE, a business in California ("we"). Contact: [support@pushtype.app](mailto:support@pushtype.app)
+**Effective:** October 15, 2026 · **Who we are:** PUSHTYPE, a business in California ("we"). Contact: [support@pushtype.app](mailto:support@pushtype.app)
 
 ## The short version
 
@@ -72,6 +72,14 @@ button. It isn't on the thank-you page, and it covers the website only: the
 app never sends anything to Umami.
 [Umami's privacy policy](https://umami.is/privacy)
 
+We also use the Meta Pixel, from Meta Platforms, to measure our ads on
+Facebook and Instagram. It sets a cookie and sends Meta the page you're on
+(its full address), the site that sent you, your IP address, your browser and
+device, and the clicks you make on the page, and Meta may link this to your
+Facebook or Instagram account. It isn't on the thank-you page, it covers the
+website only, and it doesn't load at all if your browser sends Global Privacy
+Control. [Meta's privacy policy](https://www.facebook.com/privacy/policy/)
+
 After you buy, the thank-you page asks Polar, through our website, for that
 purchase's download link and license key, so you can download and activate in
 two clicks. It uses only the order number Polar adds to the page's address.
@@ -89,8 +97,10 @@ ImprovMX and Google handle it on the way. We use it only to answer you.
 
 You can ask what we hold about you, ask us to correct or delete it, or opt out
 of marketing email by writing to [support@pushtype.app](mailto:support@pushtype.app). We'll answer within 30
-days. We don't sell or share personal information for cross-context behavioral
-advertising, as the CCPA/CPRA defines it. PUSHTYPE isn't directed at children under
+days. We don't sell personal information. The Meta Pixel on our website may
+count as "sharing" for cross-context behavioral advertising, as the CCPA/CPRA
+defines it; to opt out, turn on Global Privacy Control in your browser and the
+pixel won't load, or write to us. PUSHTYPE isn't directed at children under
 13, and we don't knowingly collect their information.
 
 ## Changes
