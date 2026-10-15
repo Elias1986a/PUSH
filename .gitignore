@@ -80,3 +80,6 @@ eval/.server.log
 eval/.llm_eval_results.json
 eval/.autocomplete_eval.json
 __pycache__/
+
+# iCloud duplicates ("name 2.md") of docs: identical copies, never meant for the repo.
+docs/**/* [0-9].md
