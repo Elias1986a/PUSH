@@ -21,8 +21,16 @@ final class LicenseModel {
     /// Whether the app is sold: shows the Licence pane and the activation page
     /// in setup, and asks for a licence before Dictation and Type run. On
     /// since launch (10.0), with the production `PolarConfig`. A debug build
-    /// can switch it off with `defaults write PUSH licence.offered -bool false`.
-    static var isOffered: Bool { UserDefaults.standard.object(forKey: "licence.offered") as? Bool ?? true }
+    /// can switch it off with `defaults write PUSH licence.offered -bool false`;
+    /// a release build ignores the setting, or one Terminal command would
+    /// unlock a copy for good.
+    static var isOffered: Bool {
+        #if DEBUG
+        UserDefaults.standard.object(forKey: "licence.offered") as? Bool ?? true
+        #else
+        true
+        #endif
+    }
 
     struct Stored: Codable, Equatable {
         var key: String
