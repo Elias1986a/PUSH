@@ -451,6 +451,7 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     private func handleKeyUp() {
+        ReleaseTiming.begin()
         PushLogger.log("HotkeyManager: handleKeyUp called, hotkeyEnabled=\(AppState.shared.hotkeyEnabled)")
         stopReleaseWatchdog()
         guard AppState.shared.hotkeyEnabled else { return }
@@ -473,14 +474,17 @@ final class HotkeyManager: @unchecked Sendable {
 
             // Stop recording and process
             let audioData = await AudioRecorder.shared.stopRecording()
+            ReleaseTiming.mark("recording stopped")
 
             // Skip transcription if Silero VAD detected no speech — prevents
             // ambient noise and accidental key presses from producing random words.
             let hadSpeech = await SileroVAD.shared.speechWasDetected()
+            ReleaseTiming.mark("speech check")
             if let data = audioData, hadSpeech {
                 PushLogger.log("HotkeyManager: Sending to transcription pipeline")
                 await TranscriptionPipeline.shared.process(audioData: data)
                 PushLogger.log("HotkeyManager: Transcription complete")
+                ReleaseTiming.mark("pipeline done")
             } else if !hadSpeech {
                 AudioRecorder.shared.discardLiveDecoder()
                 PushLogger.log("HotkeyManager: No speech detected, skipping transcription")

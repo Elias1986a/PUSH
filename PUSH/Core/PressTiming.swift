@@ -1,4 +1,5 @@
 import Foundation
+import os
 import PUSHCore
 
 /// Millisecond timing for the hotkey-press → recording path.
@@ -29,5 +30,26 @@ enum PressTiming {
     /// don't keep firing against a stale start.
     static func end() {
         start = nil
+    }
+}
+
+/// Millisecond timing for the key-release → paste path, the latency the user
+/// feels after they stop talking. Same idea as `PressTiming`, but marked from
+/// the pipeline's background work too, so the start is behind a lock.
+enum ReleaseTiming {
+    private static let start = OSAllocatedUnfairLock<Date?>(initialState: nil)
+
+    static func begin() {
+        start.withLock { $0 = Date() }
+    }
+
+    static func mark(_ label: String) {
+        guard let start = start.withLock({ $0 }) else { return }
+        let ms = Date().timeIntervalSince(start) * 1000
+        PushLogger.log(String(format: "ReleaseTiming: %@ +%.0fms", label, ms))
+    }
+
+    static func end() {
+        start.withLock { $0 = nil }
     }
 }
