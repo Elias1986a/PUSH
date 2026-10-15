@@ -190,10 +190,11 @@ final class TextInjector: @unchecked Sendable {
         pendingRestore = (savedFlavorSets, injectedChangeCount)
         ReleaseTiming.mark("clipboard set")
 
-        // Wait a bit for clipboard to sync, then paste
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            self.simulatePaste()
-        }
+        // Paste at once. The write above is synchronous, and a 50 ms wait here
+        // (from the first version, no bug behind it) was a third of the time
+        // from release to text: ten back-to-back pastes with no wait landed
+        // whole and in order in TextEdit, Notes, Chrome and Safari (2026-10-14).
+        simulatePaste()
 
         // Restore clipboard after a longer delay (1s to let slow apps finish pasting)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
