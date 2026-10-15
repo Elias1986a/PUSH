@@ -23,7 +23,7 @@ const T = {
   hands: [6.4, 7.6],
   type: [7.6, 11.0],
   prompter: [11.0, 14.2],
-  end: [14.2, 19.5],
+  end: [14.2, 21],
 } as const;
 
 /** Where each real clip plays from (seconds into the source). */
@@ -76,7 +76,10 @@ export const Explainer: React.FC<ExplainerProps> = ({ vertical, music }) => {
         <Audio
           src={staticFile(`audio/${music}`)}
           volume={(f) =>
-            interpolate(f, [0, s(0.6), s(17.5), s(19.4)], [0, 0.32, 0.32, 0], {
+            // Under the voice ~12 dB down (measured in the mix), up for the
+            // end card once the last line is out; the track's last chord
+            // lands at 19 s, so it rings before the fade.
+            interpolate(f, [0, s(0.4), s(17.2), s(17.8), s(19.6), s(21)], [0, 0.18, 0.18, 0.3, 0.3, 0], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             })
