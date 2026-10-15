@@ -8,7 +8,7 @@ import Foundation
 /// row from an older schema costs that row rather than the file.
 @MainActor
 enum RunLog {
-    private static var directory: URL {
+    static var directory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("PUSHCompare", isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
