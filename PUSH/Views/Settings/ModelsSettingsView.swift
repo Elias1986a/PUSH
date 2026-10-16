@@ -274,9 +274,7 @@ struct ModelsSettingsView: View {
         // Unified and Streaming used to be one download that deleted as one,
         // so these rows said "shared with…". Since 8.1.1 each has its own
         // encoder and deletes on its own, and the note is gone.
-        // Punctuation is part of the English engines' download, not a setting.
-        let punctuation = model.writesEnglish ? " · includes punctuation (English only)" : ""
-        return "\(size)\(punctuation) · \(state)"
+        return "\(size) · \(state)"
     }
 
     // MARK: Language
