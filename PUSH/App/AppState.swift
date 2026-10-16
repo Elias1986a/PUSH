@@ -496,6 +496,30 @@ final class AppState {
         }
     }
 
+    /// The Talk cleanup models (`TalkCleanupPass`), on trial: each its own
+    /// switch and download. Per Mac and never synced, like every switch that
+    /// depends on a download (`CloudSync.seededSettingKeys`).
+    var talkPunctuationModel: Bool = UserDefaults.standard.bool(forKey: "talkPunctuationModel") {
+        didSet {
+            UserDefaults.standard.set(talkPunctuationModel, forKey: "talkPunctuationModel")
+            if talkPunctuationModel != oldValue { TalkCleanupLoader.apply() }
+        }
+    }
+
+    var talkAutocorrectModel: Bool = UserDefaults.standard.bool(forKey: "talkAutocorrectModel") {
+        didSet {
+            UserDefaults.standard.set(talkAutocorrectModel, forKey: "talkAutocorrectModel")
+            if talkAutocorrectModel != oldValue { TalkCleanupLoader.apply() }
+        }
+    }
+
+    func isTalkCleanupOn(_ pass: TalkCleanupPass) -> Bool {
+        switch pass {
+        case .punctuation: return talkPunctuationModel
+        case .autocorrect: return talkAutocorrectModel
+        }
+    }
+
     /// Where the pill lives on screen. At the top it stops being a floating
     /// capsule and becomes a tab hanging off the screen's top edge, continuing
     /// the notch downward — the reading position for a live transcript, rather

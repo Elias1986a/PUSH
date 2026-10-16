@@ -78,6 +78,11 @@ text field of any app. All speech recognition runs on-device.
   materialising entirely — `showSettingsWindow:` returns true while
   `NSApp.windows` holds no settings window. Don't reinstate either scene.
 
+- Talk cleanup models (on trial): `PUSHCore/TalkCleanup` (pass, prompts, guards)
+  and `PUSH/Core/TalkCleanup.swift` (store, loader, runner). A model's answer is
+  pasted only if it passes its pass's guard; never loosen a guard to make a
+  model look better. Their downloads are not pinned yet — pin before shipping.
+
 ## Type (inline autocomplete, 9.0)
 - `PUSH/Typing` (app side: TypingCoordinator, FocusReader, GhostTextPanel,
   TypingKeyTap) and `PUSHCore/Typing` (pure: TokenHealing, SuggestionJudge,
