@@ -217,19 +217,47 @@ enum TalkPunctuation: String, CaseIterable, Identifiable {
 }
 
 /// Keeps the fast punctuation model loaded while it is the chosen one and its
-/// files are on disk. Test copy for now: the files are placed by hand in
-/// TalkModels/punctuation-fast (see NOTES); hosting and the Streaming
-/// download come only if it wins the A/B.
+/// files are on disk. The files come down with the English speech models
+/// (`ModelDownload`), or from the Download button in Settings ▸ Talk.
 @MainActor
 enum FastPunctuationLoader {
     nonisolated static let directory = TalkCleanupStore.directory.appendingPathComponent("punctuation-fast", isDirectory: true)
     private static var generation = 0
     private(set) static var model: FastPunctuation?
 
-    static var isOnDisk: Bool {
-        let fm = FileManager.default
-        return fm.fileExists(atPath: directory.appendingPathComponent(FastPunctuation.modelName).path)
-            && fm.fileExists(atPath: directory.appendingPathComponent(FastPunctuation.vocabularyName).path)
+    /// Every pinned file, at its full size (the downloader only moves a file
+    /// in once its SHA-256 checks out).
+    nonisolated static var isOnDisk: Bool {
+        FastPunctuation.files.allSatisfy { file in
+            let size = (try? FileManager.default.attributesOfItem(
+                atPath: directory.appendingPathComponent(file.path).path)[.size]) as? Int64
+            return size == file.bytes
+        }
+    }
+
+    private static var downloadTask: Task<Void, Error>?
+
+    /// Fetches the pinned files (about 58 MB), resumable and SHA-256 checked,
+    /// reporting bytes on disk. Joins a download already running.
+    static func download(onBytes: @escaping @MainActor (Int64) -> Void = { _ in }) async throws {
+        if isOnDisk { onBytes(FastPunctuation.totalBytes); return }
+        if let downloadTask { return try await downloadTask.value }
+        let task = Task {
+            var done: Int64 = 0
+            for file in FastPunctuation.files {
+                let base = done
+                let spec = ModelFileDownloader.Spec(url: file.url, bytes: file.bytes, sha256: file.sha256)
+                try await ModelFileDownloader().download(spec, to: directory.appendingPathComponent(file.path)) { fraction in
+                    Task { @MainActor in onBytes(base + Int64(Double(file.bytes) * fraction)) }
+                }
+                done += file.bytes
+            }
+            PushLogger.log("FastPunctuationLoader: downloaded and verified (\(FastPunctuation.revision.prefix(7)))")
+        }
+        downloadTask = task
+        defer { downloadTask = nil }
+        try await task.value
+        apply()
     }
 
     static func apply() {

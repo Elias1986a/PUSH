@@ -16,6 +16,38 @@ public actor FastPunctuation {
     public static let vocabularyName = "vocab.tsv"
     static let window = 256
 
+    // MARK: - Pinned download
+
+    /// Our CoreML conversion, hosted under the PUSHTYPE account and fetched
+    /// from this fixed commit, never `main`: each file is held to its size
+    /// and SHA-256. A new conversion means a new commit and new pins here.
+    public static let repo = "PUSHTYPE/punct-cap-seg-en-coreml"
+    public static let revision = "9a0f3dc757ec0bd4a16adb5cfe5c39bda475cfc7"
+
+    public struct PinnedFile: Sendable {
+        public let path: String
+        public let bytes: Int64
+        public let sha256: String
+        public var url: URL { URL(string: "https://huggingface.co/\(FastPunctuation.repo)/resolve/\(FastPunctuation.revision)/\(path)")! }
+    }
+
+    public static let files: [PinnedFile] = [
+        PinnedFile(path: "vocab.tsv", bytes: 1_027_016,
+                   sha256: "04103dc1a939812dc335bc7fc9de3a6e9b8af8969c7b41c329c9bce9b322bb8f"),
+        PinnedFile(path: "PunctCapSeg.mlmodelc/metadata.json", bytes: 3_170,
+                   sha256: "a9710e6e33ee068be05dc408a3b29b8b2455a44fb3621641b27cd23889c5b476"),
+        PinnedFile(path: "PunctCapSeg.mlmodelc/model.mil", bytes: 88_083,
+                   sha256: "19c2adf330d95a434376d43d13cf840bcd84f8dac8aa482b0d99350849544692"),
+        PinnedFile(path: "PunctCapSeg.mlmodelc/coremldata.bin", bytes: 457,
+                   sha256: "f44ea818c9273d8d7b0f065a1114d2caa3126ecc2900122ac2124ee7620097b0"),
+        PinnedFile(path: "PunctCapSeg.mlmodelc/weights/weight.bin", bytes: 59_374_976,
+                   sha256: "89a8d4829de596c554fff1a8d48365a0a94f08d66affd77e56d2164cd5da2a74"),
+        PinnedFile(path: "PunctCapSeg.mlmodelc/analytics/coremldata.bin", bytes: 243,
+                   sha256: "15421f85b80acdf30909ad957cb5c3ef58c5f318dd497242268cb95c596da927"),
+    ]
+
+    public static var totalBytes: Int64 { files.reduce(0) { $0 + $1.bytes } }
+
     private let model: MLModel
     private let tokenizer: PunctuationTokenizer
 

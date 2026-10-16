@@ -130,6 +130,16 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Whether this engine writes English, and so brings the fast punctuation
+    /// model (English only) down with it. Nemotron is offered only for the
+    /// languages Ultra doesn't cover.
+    public var writesEnglish: Bool {
+        switch self {
+        case .parakeetUltra, .parakeetStreaming: return true
+        case .nemotronMultilingual: return false
+        }
+    }
+
     /// Where this engine's chosen language is persisted.
     ///
     /// Per engine, not global: each supports a different set of languages, and

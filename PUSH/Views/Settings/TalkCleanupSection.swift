@@ -18,11 +18,7 @@ struct TalkCleanupSection: View {
             if appState.talkPunctuation == .smallModel {
                 TalkCleanupRow(pass: .punctuation, isOn: nil)
             } else if appState.talkPunctuation == .fastModel {
-                Text(FastPunctuationLoader.isOnDisk
-                     ? "Fast model: about 55 MB, about 10 ms. Test copy on this Mac."
-                     : "Fast model isn't on this Mac yet.")
-                    .font(.caption)
-                    .foregroundStyle(FastPunctuationLoader.isOnDisk ? Color.secondary : Color.red)
+                FastPunctuationRow()
             }
             TalkCleanupRow(pass: .autocorrect, isOn: $appState.talkAutocorrectModel)
         } header: {
@@ -33,6 +29,57 @@ struct TalkCleanupSection: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// The fast punctuation model normally arrives with Streaming or Ultra; this
+/// row fetches it on its own when it isn't here (an older download, or that
+/// part of one failed).
+private struct FastPunctuationRow: View {
+    @State private var onDisk = FastPunctuationLoader.isOnDisk
+    @State private var downloading = false
+    @State private var progress = 0.0
+    @State private var error: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(onDisk ? "Fast model: about 10 ms, \(size)." : "Fast model isn't on this Mac yet (\(size)).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                if !onDisk, !downloading {
+                    Button("Download") { download() }
+                }
+            }
+            if downloading {
+                ProgressView(value: progress, total: 1).progressViewStyle(.linear)
+            }
+            if let error {
+                Text(error).font(.caption).foregroundStyle(.red)
+            }
+        }
+    }
+
+    private var size: String {
+        ByteCountFormatter.string(fromByteCount: FastPunctuation.totalBytes, countStyle: .file)
+    }
+
+    private func download() {
+        downloading = true
+        progress = 0
+        error = nil
+        Task {
+            do {
+                try await FastPunctuationLoader.download { bytes in
+                    progress = Double(bytes) / Double(FastPunctuation.totalBytes)
+                }
+            } catch {
+                self.error = error.localizedDescription
+            }
+            downloading = false
+            onDisk = FastPunctuationLoader.isOnDisk
         }
     }
 }

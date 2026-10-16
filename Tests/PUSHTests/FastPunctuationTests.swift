@@ -100,6 +100,25 @@ final class FastPunctuationTests: XCTestCase {
                        "We approved it, and legal has questions.")
     }
 
+    // MARK: - The hosted files (network; PUSH_NETWORK_TESTS=1)
+
+    /// Downloads the pinned files into an empty folder, as the app does, and
+    /// punctuates with them: the pins, the hosting and the files all agree.
+    func testPinnedFilesDownloadAndRun() async throws {
+        guard ProcessInfo.processInfo.environment["PUSH_NETWORK_TESTS"] == "1" else {
+            throw XCTSkip("set PUSH_NETWORK_TESTS=1 to download the hosted model")
+        }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("fast-punct-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for file in FastPunctuation.files {
+            let spec = ModelFileDownloader.Spec(url: file.url, bytes: file.bytes, sha256: file.sha256)
+            try await ModelFileDownloader().download(spec, to: dir.appendingPathComponent(file.path)) { _ in }
+        }
+        let model = try FastPunctuation(directory: dir)
+        let output = try await model.punctuate("Are you free tomorrow I was thinking we could grab lunch.")
+        XCTAssertEqual(output, "Are you free tomorrow? I was thinking we could grab lunch.")
+    }
+
     // MARK: - End to end, with the model
 
     func testFastPunctuationEndToEnd() async throws {

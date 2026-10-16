@@ -16,6 +16,19 @@ enum ModelDownload {
     /// when a newer activation supersedes this one.
     static func run(_ model: WhisperModel, onProgress: @escaping @MainActor (Double) -> Void) async throws {
         onProgress(0)
+        // The English engines bring the fast punctuation model with them
+        // (~58 MB): one download, one progress bar. Its failure never fails
+        // the speech model; Settings ▸ Talk offers it again.
+        final class Bytes { var value: Int64 = 0 }
+        let punctuationBytes = Bytes()
+        let punctuation: Task<Void, Never>? = (model.writesEnglish && !FastPunctuationLoader.isOnDisk) ? Task {
+            do {
+                try await FastPunctuationLoader.download { punctuationBytes.value = $0 }
+            } catch {
+                PushLogger.log("ModelDownload: punctuation model not downloaded: \(error)")
+            }
+        } : nil
+        let expected = expectedBytes + (punctuation == nil ? 0 : Double(FastPunctuation.totalBytes))
         let poll: Task<Void, Never>? = ModelAvailability.folder(for: model).map { folder in
             Task {
                 while !Task.isCancelled {
@@ -26,12 +39,13 @@ enum ModelDownload {
                         ModelAvailability.directorySize(at: folder)
                     }.value
                     guard !Task.isCancelled else { return }
-                    onProgress(min(onDisk / expectedBytes, 0.95))
+                    onProgress(min((onDisk + Double(punctuationBytes.value)) / expected, 0.95))
                 }
             }
         }
         defer { poll?.cancel() }
         try await ModelLoader.activate(model)
+        await punctuation?.value
         onProgress(1)
     }
 }
