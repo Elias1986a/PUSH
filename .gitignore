@@ -68,6 +68,10 @@ ui-debug.log
 !promo/studio/.claude/
 promo/studio/.claude/*
 !promo/studio/.claude/skills/
+# ...and the project's own skills (/promo), not its local settings
+!/.claude/
+/.claude/*
+!/.claude/skills/
 build.log
 dist-build/
 

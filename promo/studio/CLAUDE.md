@@ -37,10 +37,14 @@ the 16:9, 327 px for the 4:5) before calling them done.
   (`hero.mp4`, `hero-4x5.mp4` and their `.jpg` posters) into `website/assets/video/`.
 - `npx remotion add <package>`: add any `@remotion/*` package. It pins the
   same version as `remotion`; mismatched versions break the bundle.
-- `npx remotion ffmpeg` / `npx remotion ffprobe`: ffmpeg is not installed on
-  this Mac; use Remotion's. It is a trimmed build: loudnorm, aac and mp4 work, but
-  rawvideo, md5, psnr and ebur128 don't. Measure loudness with
-  `-af loudnorm=print_format=summary -f null -`.
+- `./scripts/check.sh <Id> [seconds…]`: stills at the size people see them,
+  tiled into `out/check/<Id>.png`, safe-zone guides on vertical frames, and the
+  render's loudness. Run it on every composition you change.
+- `ffmpeg` / `ffprobe` (Homebrew, full build) for anything else; `npx remotion
+  ffmpeg` is a trimmed fallback (no ebur128, psnr, tile, fps, rawvideo). In zsh
+  scripts, brace variables before a colon (`${LN}:${x}`): `$x:l…` is a zsh
+  modifier and silently mangles ffmpeg filter strings.
+- The whole flow, step by step: the `/promo` skill (`.claude/skills/promo`).
 
 ## Layout
 ```
