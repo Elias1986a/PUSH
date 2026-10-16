@@ -1,5 +1,9 @@
 # NOTES
 
+## 9.4.0 built, not published (2026-10-15)
+
+Menu bar "Suggest in <App>" switch: TYPE on/off in the app last typed in, both ways (Pause stays global and timed; its "Always in <App>" option is gone). Signed + notarized and installed on the user's Mac for them to try. Not released: no GitHub release, appcast.xml in the repo restored. The built ZIP, DMG and the generated feed are in ~/Library/Developer/SwiftPackages/PUSH-dist (appcast-9.4.0.xml); if nothing changes before release, publish those (`gh release create v9.4.0 …`, copy the feed over appcast.xml, commit). Plan: the benchmark study Fri 2026-10-16, production Sun 2026-10-18.
+
 ## 9.3.1 released (2026-10-14)
 
 Everything merged since 9.3.0 (#84–#89): setup in 7 pages (8 with the license), Settings panes General/Talk/TYPE/Models/Dictionary/Personal/Teleprompter/License (TYPE models in Models, pill in Talk), speech models pinned to tested commits, clipboard across quick dictations, wake word built off the main thread, TYPE keeps the old model during a download and ignores keys under secure input, diagnostic log section, and the release-latency fix. Installed on the user's Mac; its downloaded models were kept (pins adoption confirmed on the shipped app).
