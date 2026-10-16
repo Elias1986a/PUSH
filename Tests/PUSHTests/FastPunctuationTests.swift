@@ -57,7 +57,7 @@ final class FastPunctuationTests: XCTestCase {
         // "full, and had room. But" → "full and had room, but"
         XCTAssertEqual(
             merged("in full, and had room. But it", [(nil, []), (nil, []), (nil, []), (nil, []), (",", []), (nil, []), (".", [])]),
-            "in full and had room, but it.")
+            "In full and had room, but it.")
     }
 
     func testMergeKeepsCapitalsTheModelDoesNotPredict() {
@@ -72,12 +72,32 @@ final class FastPunctuationTests: XCTestCase {
     }
 
     func testMergeKeepsMarksItDoesNotPredict() {
-        XCTAssertEqual(merged("wow! it's 3:30", [(".", []), (nil, [0]), (nil, [])]), "wow! It's 3:30")
-        XCTAssertEqual(merged("the U.S. team", [(nil, []), (nil, []), (".", [])]), "the U.S. team.")
+        XCTAssertEqual(merged("wow! it's 3:30", [(".", []), (nil, [0]), (nil, [])]), "Wow! It's 3:30")
+        XCTAssertEqual(merged("the U.S. team", [(nil, []), (nil, []), (".", [])]), "The U.S. team.")
     }
 
     func testMergePutsMarksInsideClosingQuotes() {
-        XCTAssertEqual(merged("the word \"on\" but", [(nil, []), (nil, []), (",", []), (".", [])]), "the word \"on,\" but.")
+        XCTAssertEqual(merged("the word \"on\" but", [(nil, []), (nil, []), (",", []), (".", [])]), "The word \"on,\" but.")
+    }
+
+    func testAPeriodBeforeAJoiningWordBecomesAComma() {
+        // News style "pacing ahead. But the CTV…" is written "ahead, but".
+        XCTAssertEqual(merged("pacing ahead but the CTV numbers",
+                              [(nil, []), (".", []), (nil, [0]), (nil, []), (nil, []), (".", [])]),
+                       "Pacing ahead, but the CTV numbers.")
+    }
+
+    func testARealNewSentenceStays() {
+        XCTAssertEqual(merged("what happened the client approved it",
+                              [(nil, []), (".", []), (nil, []), (nil, []), (nil, []), (".", [])]),
+                       "What happened. The client approved it.")
+    }
+
+    func testTheModelsOtherCapitalsAreIgnored() {
+        // It wrote "Legal" for the legal team; only sentence starts and "I" get capitals.
+        XCTAssertEqual(merged("We approved it and legal has questions",
+                              [(nil, []), (nil, []), (",", []), (nil, []), (nil, [0]), (nil, []), (".", [])]),
+                       "We approved it, and legal has questions.")
     }
 
     // MARK: - End to end, with the model

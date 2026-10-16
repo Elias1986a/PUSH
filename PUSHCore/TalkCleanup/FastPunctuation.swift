@@ -169,37 +169,52 @@ public actor FastPunctuation {
     /// Marks the model doesn't predict; a word ending in one keeps its ending.
     private static let keptEndings: Set<Character> = ["!", ":", ";", "\u{2026}"]
 
+    /// Words that join a clause to the one before. The model, trained on news,
+    /// starts a new sentence with them ("pacing ahead. But the CTV…") where
+    /// people write a comma, so a period before one becomes a comma.
+    private static let joiningWords: Set<String> = [
+        "but", "and", "so", "or", "which", "because", "yet", "then", "nor"
+    ]
+
     static func merge(_ words: [Word]) -> String {
         var out: [String] = []
+        var sentenceEnded = true   // the first word starts one
         for (i, word) in words.enumerated() {
             guard let prediction = word.prediction else {
-                out.append(word.leading + word.core + word.trailing)
+                let text = word.leading + word.core + word.trailing
+                out.append(text)
+                if !text.isEmpty { sentenceEnded = text.last.map { ".?!".contains($0) } ?? false }
                 continue
             }
-            let isLast = !words[(i + 1)...].contains { $0.prediction != nil }
+            let rest = words[(i + 1)...]
+            let isLast = !rest.contains { $0.prediction != nil }
+            let next = rest.first { !$0.core.isEmpty }?.core.lowercased()
             let startedSentence = i > 0 && words[i - 1].trailing.contains(where: { ".?!".contains($0) })
-            out.append(word.leading + core(of: word, prediction, startedSentence: startedSentence)
-                       + trailing(of: word, prediction, isLast: isLast))
+            let end = trailing(of: word, prediction, isLast: isLast, next: next)
+            out.append(word.leading + core(of: word, prediction, startsSentence: sentenceEnded,
+                                           startedSentence: startedSentence) + end)
+            // "U.S." keeps its dot without ending the sentence.
+            let abbreviation = word.core.contains(".") && prediction.mark != "."
+            sentenceEnded = end.contains(where: { "?!".contains($0) }) || (end.contains(".") && !abbreviation)
         }
         return out.joined(separator: " ")
     }
 
-    private static func core(of word: Word, _ prediction: Prediction, startedSentence: Bool) -> String {
-        // Offsets of the core's scalars within `input` (input = leading' + core + trailing').
-        let offset = word.leading.filter { !predicted.contains($0) }.unicodeScalars.count
+    /// Capitals: the speech model's, plus one at the start of each sentence
+    /// and on "I". The model's other capitals are left out: news casing wrote
+    /// "Legal" for the legal team, and names are the speech model's job.
+    private static func core(of word: Word, _ prediction: Prediction, startsSentence: Bool,
+                             startedSentence: Bool) -> String {
         var scalars = Array(word.core.unicodeScalars)
-        for (k, scalar) in scalars.enumerated() where prediction.capitals.contains(offset + k) {
-            scalars[k] = Character(scalar).uppercased().unicodeScalars.first ?? scalar
-        }
-        // The speech model capitalized this word only because it began a
-        // sentence there; the model joins the sentences, so it goes lower.
-        // Not "I", a name mid-sentence, or a mixed-case word like FreeWheel.
+        guard let first = scalars.first else { return word.core }
         let lower = word.core.lowercased()
-        let letters = word.core.filter(\.isLetter)
-        if startedSentence, let first = scalars.first, Character(first).isUppercase,
-           !prediction.capitals.contains(offset),
-           letters.dropFirst().allSatisfy({ !$0.isUppercase }),
-           !firstPersonI.contains(lower) {
+        if startsSentence || firstPersonI.contains(lower) {
+            scalars[0] = Character(first).uppercased().unicodeScalars.first ?? first
+        } else if startedSentence, Character(first).isUppercase,
+                  word.core.filter(\.isLetter).dropFirst().allSatisfy({ !$0.isUppercase }) {
+            // The speech model capitalized it only because it began a sentence
+            // there, and that sentence is now joined to the one before. Not a
+            // mixed-case word like FreeWheel or an all-caps one like CTV.
             scalars[0] = Character(first).lowercased().unicodeScalars.first ?? first
         }
         var view = String.UnicodeScalarView()
@@ -207,10 +222,11 @@ public actor FastPunctuation {
         return String(view)
     }
 
-    private static func trailing(of word: Word, _ prediction: Prediction, isLast: Bool) -> String {
+    private static func trailing(of word: Word, _ prediction: Prediction, isLast: Bool, next: String?) -> String {
         if word.trailing.contains(where: { keptEndings.contains($0) }) { return word.trailing }
         let rest = word.trailing.filter { !predicted.contains($0) }
         var mark = prediction.mark
+        if mark == ".", !isLast, let next, joiningWords.contains(next) { mark = "," }
         if mark == nil {
             // An abbreviation's dot ("U.S."), and the end of the dictation,
             // keep what the speech model wrote.
