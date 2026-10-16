@@ -5,3 +5,4 @@ export { KeyChip, Meter, CloudIcon, LockIcon } from "./ui";
 export { Crop, RIM, LIFT, type Shape } from "./Crop";
 export { PillTake, pillPushIn } from "./PillTake";
 export { EndCard, PriceStack } from "./cards";
+export { Bed, BAR } from "./Bed";

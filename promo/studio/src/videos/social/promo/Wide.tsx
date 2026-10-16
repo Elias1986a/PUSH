@@ -1,10 +1,12 @@
 import React from "react";
-import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Freeze, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { color, font } from "../../../brand/tokens";
 import { s } from "../../../lib/time";
 import { lerp, mixRect } from "../../../lib/anim";
 import { FOOTAGE, LP, SHAPES, SHOTS, TH } from "../../../footage";
 import {
+  BAR,
+  Bed,
   CloudIcon,
   Crop,
   EndCard,
@@ -25,7 +27,16 @@ import {
 import { Redline, SignOffNote, WordsToCloud } from "./beats";
 
 /**
- * 16:9 cut, 50 s. Every time is seconds of the finished video, from the cut VO
+ * The release shot holds one bar of the music longer (2026-10-15, user: "it
+ * doesn't hold long enough" to read the landed text). Everything after it, and
+ * the music, moves by HOLD. 69 frames; the bar is 2.2875 s.
+ */
+export const HOLD = Math.round(BAR * 30) / 30;
+/** Length of the 16:9 cut. */
+export const WIDE_S = 50 + HOLD;
+
+/**
+ * 16:9 cut, 52.3 s. Every time is seconds of the finished video, from the cut VO
  * lines (public/vo/promo/16x9) placed at VO_AT. Source times are seconds into each recording.
  */
 export const VO_AT = {
@@ -33,12 +44,14 @@ export const VO_AT = {
   N2: 5.6,
   N3: 10.2,
   J: 12.5,
-  N4: 23.4,
-  N5: 29.4,
-  N6: 33.7,
-  N7: 39.9,
-  N8: 44.5,
+  N4: 23.4 + HOLD,
+  N5: 29.4 + HOLD,
+  N6: 33.7 + HOLD,
+  N7: 39.9 + HOLD,
+  N8: 44.5 + HOLD,
 };
+/** Where the release shot starts; the music repeats a bar from here. */
+const RELEASE_AT = 22.2;
 
 // live-preview.mp4: J is cut from 8.70 s; the pill closes at 27.65 s, text lands 28.07 s.
 const LP_J_FROM = 8.7;
@@ -88,35 +101,35 @@ export const Wide: React.FC<PromoProps> = ({ web = false }) => (
     </Scene>
 
     {/* 5. Release: the clean paragraph lands in the note. */}
-    <Scene at={22.2} until={23.5} fade={3}>
-      <Release />
+    <Scene at={RELEASE_AT} until={23.5 + HOLD} fade={3}>
+      <Release web={web} />
     </Scene>
 
     {/* 6. Redline: what got cut and fixed. */}
-    <Scene at={23.4} until={29.3}>
+    <Scene at={23.4 + HOLD} until={29.3 + HOLD}>
       <RedlineBeat />
     </Scene>
 
     {/* 7. TYPE: hands, then Tab finishing real sentences. */}
-    <Scene at={29.2} until={29.85} fade={3}>
+    <Scene at={29.2 + HOLD} until={29.85 + HOLD} fade={3}>
       <FullShot src={SHOTS.typing} from={0.6} />
     </Scene>
-    <Scene at={29.8} until={33.75} fade={3}>
+    <Scene at={29.8 + HOLD} until={33.75 + HOLD} fade={3}>
       <TypeBeat />
     </Scene>
 
     {/* 8. It learns you: her own sign-off, suggested. */}
-    <Scene at={33.65} until={40.0}>
+    <Scene at={33.65 + HOLD} until={40.0 + HOLD}>
       <LearnBeat />
     </Scene>
 
     {/* 9. Price. */}
-    <Scene at={39.9} until={44.55}>
+    <Scene at={39.9 + HOLD} until={44.55 + HOLD}>
       <PriceStack vertical={false} yearsFrom={s(0.5)} slamAt={s(2.38)} onceAt={s(2.84)} />
     </Scene>
 
     {/* 10. End card. */}
-    <Scene at={44.45} until={50}>
+    <Scene at={44.45 + HOLD} until={WIDE_S}>
       <EndCard vertical={false} />
     </Scene>
 
@@ -135,10 +148,12 @@ const Voice: React.FC = () => (
     <Sequence from={s(VO_AT.J)}>
       <Audio src={staticFile("vo/promo/16x9/J_dictation_messy.wav")} volume={0.95} />
     </Sequence>
-    <Audio
-      src={staticFile("music/music_loop_16x9.mp3")}
+    <Bed
+      src="music/music_loop_16x9.mp3"
+      repeatAt={RELEASE_AT}
+      repeat={HOLD}
       volume={(f) =>
-        interpolate(f, [0, s(0.3), s(47.9), s(48.3), s(49.2), s(50)], [0, 0.16, 0.16, 0.32, 0.32, 0], {
+        interpolate(f, [0, s(0.3), s(47.9 + HOLD), s(48.3 + HOLD), s(49.2 + HOLD), s(WIDE_S)], [0, 0.16, 0.16, 0.32, 0.32, 0], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         })
@@ -250,13 +265,29 @@ const LiveDictation: React.FC<{ web: boolean }> = ({ web }) => {
   );
 };
 
-const Release: React.FC = () => {
+/** The landed paragraph in live-preview.mp4 (its five lines). */
+const LANDED = { x: 40, y: 180, w: 960, h: 215 };
+
+const Release: React.FC<{ web: boolean }> = ({ web }) => {
   const f = useCurrentFrame();
   const releaseAt = s(27.65 - LP_RELEASE_FROM);
+  const landed = s(28.07 - LP_RELEASE_FROM);
+  // The recording ends ~1 s after the text lands: hold its frame from here.
+  const freezeAt = landed + s(0.6);
+  // Push in on the paragraph while it holds, so it can be read.
+  const t = lerp(f, [landed + s(0.2), landed + s(1.6)], [0, 1]);
+  const crop = mixRect(full, LANDED, t);
+  const width = winBox.width + (1760 - winBox.width) * t;
+  const height = width * (crop.h / crop.w);
+  const box = { left: (1920 - width) / 2, top: (1080 - height) / 2 + 30 * t, width, height };
+  const shot = <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />;
   return (
     <AbsoluteFill>
-      <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={full} srcSize={LP} box={winBox} shapes={[SHAPES.lpWindow]} />
-      <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
+      {f < freezeAt ? shot : <Freeze frame={freezeAt}>{shot}</Freeze>}
+      {/* On the website copy the bigger label would sit on the window until the push. */}
+      <div style={{ opacity: web ? t : 1 }}>
+        <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
+      </div>
       <KeyChip text={f < releaseAt ? "⌥ hold" : "⌥ let go"} down={f < releaseAt} size={40} style={{ left: 90, top: 120 }} />
     </AbsoluteFill>
   );
@@ -264,7 +295,7 @@ const Release: React.FC = () => {
 
 const RedlineBeat: React.FC = () => {
   const f = useCurrentFrame();
-  // Local 0 = 23.4 s = N4 start. "um's" 0.8, "corrections" 2.04, "clean text" 3.32.
+  // Local 0 = 23.4 s + HOLD = N4 start. "um's" 0.8, "corrections" 2.04, "clean text" 3.32.
   const noteIn = lerp(f, [s(3.3), s(3.8)], [0, 1]);
   return (
     <AbsoluteFill>
@@ -278,7 +309,7 @@ const RedlineBeat: React.FC = () => {
 
 const TypeBeat: React.FC = () => {
   const f = useCurrentFrame();
-  // Local 0 = 29.8 s. Segment A to 1.8 s (Tab at 21.97 s src = 1.64 s), B after (Tab at 27.77 = 2.97 s).
+  // Local 0 = 29.8 s + HOLD. Segment A to 1.8 s (Tab at 21.97 s src = 1.64 s), B after (Tab at 27.77 = 2.97 s).
   const bAt = s(1.8);
   const inB = f >= bAt;
   const tabA = s((21.97 - TS_A_FROM) / TS_A_RATE);
@@ -307,7 +338,7 @@ const TypeBeat: React.FC = () => {
 
 const LearnBeat: React.FC = () => {
   const f = useCurrentFrame();
-  // Local 0 = 33.65 s; N6 at 33.7: "writes like you" ~2.1 s, "Learned on your Mac" 3.45, "Never sent to us" 4.8.
+  // Local 0 = 33.65 s + HOLD; N6 at 33.7 + HOLD: "writes like you" ~2.1 s, "Learned on your Mac" 3.45, "Never sent to us" 4.8.
   const zoom = lerp(f, [s(0.2), s(1.4)], [0, 1]);
   const crop = mixRect({ x: 0, y: 0, w: 1040, h: 780 }, { x: 34, y: 250, w: 980, h: 400 }, zoom);
   const width = 1250;

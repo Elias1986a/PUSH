@@ -1,10 +1,11 @@
 import React from "react";
-import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Freeze, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { color, font } from "../../../brand/tokens";
 import { s } from "../../../lib/time";
 import { lerp, mixRect } from "../../../lib/anim";
 import { FOOTAGE, LP, SHAPES, SHOTS, TH } from "../../../footage";
 import {
+  Bed,
   CapLine,
   CloudIcon,
   Crop,
@@ -25,7 +26,7 @@ import {
   WordCaptions,
 } from "../../../components";
 import { Redline, SignOffNote, WordsToCloud } from "./beats";
-import type { PromoProps } from "./Wide";
+import { HOLD, type PromoProps } from "./Wide";
 
 /**
  * 9:16 cut, 28.5 s. Built for phones. Everything that matters sits inside
@@ -34,7 +35,11 @@ import type { PromoProps } from "./Wide";
  * visuals stay within x 60 to 960, y 340 to 1500. Promo4x5 is this frame
  * shifted up 285 px.
  */
-const AT = { V1: 0.0, V2: 5.1, J: 8.0, V3: 14.1, V4: 19.9, V5: 23.4 };
+/** Length of the vertical cut: 28.5 s plus the release shot's one-bar HOLD (see Wide). */
+export const TALL_S = 28.5 + HOLD;
+/** Where the release shot starts; the music repeats a bar from here. */
+const RELEASE_AT = 13.25;
+const AT = { V1: 0.0, V2: 5.1, J: 8.0, V3: 14.1 + HOLD, V4: 19.9 + HOLD, V5: 23.4 + HOLD };
 const LP_J_FROM = 13.2;
 const LP_RELEASE_FROM = 27.55;
 const TS_B_FROM = 26.55; // "you" "think!" taken at 27.77 s → plays under "hit Tab"
@@ -46,10 +51,10 @@ const CAPTIONS: CapLine[] = [
   { words: at("V1", [["And", 2.56], ["bills", 3.22], ["you", 3.5], ["monthly", 3.72], ["for", 3.98], ["it.", 4.4]]), until: 5.0, accent: ["monthly"] },
   { words: at("J", [["the", 0.22], ["new", 0.3], ["build", 0.52], ["loads", 0.76], ["in", 1.1], ["15.2", 1.3], ["seconds.", 2.0]]), until: 11.2, accent: ["15.2"] },
   { words: at("J", [["I", 3.26], ["mean,", 3.32], ["1.52", 3.68], ["seconds.", 4.42]]), until: 13.25, accent: ["1.52"] },
-  { words: at("V3", [["Talk", 0.0], ["messy.", 0.48], ["Get", 1.46], ["clean", 1.58], ["text.", 1.9]]), until: 16.95, accent: ["clean", "text."] },
-  { words: at("V3", [["Then", 2.96], ["hit", 3.02], ["Tab", 3.22], ["and", 3.6], ["it", 3.94], ["finishes", 4.08], ["your", 4.42], ["sentence.", 4.7]]), until: 19.75, accent: ["Tab"] },
-  { words: at("V4", [["It", 0.0], ["learns", 0.32], ["how", 0.66], ["you", 0.94], ["write.", 1.12]]), until: 21.75, accent: ["you"] },
-  { words: at("V4", [["We", 1.94], ["never", 2.08], ["see", 2.42], ["it.", 2.74]]), until: 23.3, accent: ["never"] },
+  { words: at("V3", [["Talk", 0.0], ["messy.", 0.48], ["Get", 1.46], ["clean", 1.58], ["text.", 1.9]]), until: 16.95 + HOLD, accent: ["clean", "text."] },
+  { words: at("V3", [["Then", 2.96], ["hit", 3.02], ["Tab", 3.22], ["and", 3.6], ["it", 3.94], ["finishes", 4.08], ["your", 4.42], ["sentence.", 4.7]]), until: 19.75 + HOLD, accent: ["Tab"] },
+  { words: at("V4", [["It", 0.0], ["learns", 0.32], ["how", 0.66], ["you", 0.94], ["write.", 1.12]]), until: 21.75 + HOLD, accent: ["you"] },
+  { words: at("V4", [["We", 1.94], ["never", 2.08], ["see", 2.42], ["it.", 2.74]]), until: 23.3 + HOLD, accent: ["never"] },
 ];
 
 export const Tall: React.FC<PromoProps> = ({ web = false }) => (
@@ -66,22 +71,22 @@ export const Tall: React.FC<PromoProps> = ({ web = false }) => (
     <Scene at={7.95} until={13.3} fade={4}>
       <LiveDictation />
     </Scene>
-    <Scene at={13.25} until={14.55} fade={3}>
+    <Scene at={RELEASE_AT} until={14.55 + HOLD} fade={3}>
       <Release />
     </Scene>
-    <Scene at={14.45} until={16.15} fade={4}>
+    <Scene at={14.45 + HOLD} until={16.15 + HOLD} fade={4}>
       <RedlineBeat />
     </Scene>
-    <Scene at={16.1} until={19.85} fade={4}>
+    <Scene at={16.1 + HOLD} until={19.85 + HOLD} fade={4}>
       <TypeBeat />
     </Scene>
-    <Scene at={19.8} until={23.45}>
+    <Scene at={19.8 + HOLD} until={23.45 + HOLD}>
       <LearnBeat />
     </Scene>
-    <Scene at={23.35} until={26.1}>
+    <Scene at={23.35 + HOLD} until={26.1 + HOLD}>
       <PriceStack vertical yearsFrom={s(-0.6)} slamAt={s(0.1)} onceAt={s(0.95)} />
     </Scene>
-    <Scene at={26.0} until={28.5}>
+    <Scene at={26.0 + HOLD} until={TALL_S}>
       <EndCard vertical />
     </Scene>
 
@@ -93,11 +98,13 @@ export const Tall: React.FC<PromoProps> = ({ web = false }) => (
     <Sequence from={s(AT.V3)}><Audio src={staticFile("vo/promo/9x16/V3_talk_type.wav")} /></Sequence>
     <Sequence from={s(AT.V4)}><Audio src={staticFile("vo/promo/9x16/V4_learns.wav")} /></Sequence>
     <Sequence from={s(AT.V5)}><Audio src={staticFile("vo/promo/9x16/V5_price_end.wav")} /></Sequence>
-    <Audio
-      src={staticFile("music/music_loop_9x16.mp3")}
-      startFrom={s(1.5)}
+    <Bed
+      src="music/music_loop_9x16.mp3"
+      from={1.5}
+      repeatAt={RELEASE_AT}
+      repeat={HOLD}
       volume={(f) =>
-        interpolate(f, [0, s(0.2), s(26.6), s(26.9), s(27.8), s(28.5)], [0, 0.16, 0.16, 0.32, 0.32, 0], {
+        interpolate(f, [0, s(0.2), s(26.6 + HOLD), s(26.9 + HOLD), s(27.8 + HOLD), s(TALL_S)], [0, 0.16, 0.16, 0.32, 0.32, 0], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         })
@@ -161,19 +168,22 @@ const LiveDictation: React.FC = () => {
 const Release: React.FC = () => {
   const f = useCurrentFrame();
   const releaseAt = s(27.65 - LP_RELEASE_FROM);
-  const crop = { x: 30, y: 190, w: 980, h: 280 };
+  const landed = s(28.07 - LP_RELEASE_FROM);
+  // The recording ends ~1 s after the text lands: hold its frame from here.
+  const freezeAt = landed + s(0.6);
+  // The whole paragraph lands, then the card pushes in on the corrected line
+  // ("build loads in 1.52 seconds.") so it can be read on a phone.
+  const t = lerp(f, [landed + s(0.5), landed + s(1.7)], [0, 1]);
+  const crop = mixRect({ x: 30, y: 190, w: 980, h: 280 }, { x: 52, y: 306, w: 410, h: 44 }, t);
   const width = 900;
+  const height = (width * crop.h) / crop.w;
+  const shot = (
+    <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={crop} srcSize={LP} box={{ left: 90, top: 860 - height / 2, width, height }} card />
+  );
   return (
     <AbsoluteFill>
       <Label text="What it typed" style={{ left: 80, top: 640 }} size={30} />
-      <Crop
-        src={FOOTAGE.livePreview.src}
-        from={LP_RELEASE_FROM}
-        crop={crop}
-        srcSize={LP}
-        box={{ left: 90, top: 730, width, height: (width * crop.h) / crop.w }}
-        card
-      />
+      {f < freezeAt ? shot : <Freeze frame={freezeAt}>{shot}</Freeze>}
       <KeyChip text={f < releaseAt ? "⌥ hold" : "⌥ let go"} down={f < releaseAt} size={36} style={{ left: 520, top: 622 }} />
     </AbsoluteFill>
   );
