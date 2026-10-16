@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Audio, Freeze, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { color, font } from "../../../brand/tokens";
 import { s } from "../../../lib/time";
 import { lerp, mixRect } from "../../../lib/anim";
@@ -41,7 +41,7 @@ export const TALL_S = 28.5 + HOLD;
 const RELEASE_AT = 13.25;
 const AT = { V1: 0.0, V2: 5.1, J: 8.0, V3: 14.1 + HOLD, V4: 19.9 + HOLD, V5: 23.4 + HOLD };
 const LP_J_FROM = 13.2;
-const LP_RELEASE_FROM = 27.55;
+const LP_RELEASE_FROM = 28.05; // just before the paste lands, so it follows her last word
 const TS_B_FROM = 26.55; // "you" "think!" taken at 27.77 s → plays under "hit Tab"
 
 const at = (k: keyof typeof AT, words: [string, number][]): [string, number][] => words.map(([w, t]) => [w, AT[k] + t]);
@@ -167,24 +167,25 @@ const LiveDictation: React.FC = () => {
 
 const Release: React.FC = () => {
   const f = useCurrentFrame();
-  const releaseAt = s(27.65 - LP_RELEASE_FROM);
-  const landed = s(28.07 - LP_RELEASE_FROM);
-  // The recording ends ~1 s after the text lands: hold its frame from here.
-  const freezeAt = landed + s(0.6);
-  // The whole paragraph lands, then the card pushes in on the corrected line
-  // ("build loads in 1.52 seconds.") so it can be read on a phone.
-  const t = lerp(f, [landed + s(0.5), landed + s(1.7)], [0, 1]);
+  // Starts right as she stops: the text lands ~0.1 s in, then a still of the
+  // pasted note holds. The card pushes in on the corrected line ("build loads
+  // in 1.52 seconds.") so it can be read on a phone.
+  const landed = s(FOOTAGE.livePreview.textLands - LP_RELEASE_FROM);
+  const stillAt = landed + s(0.2);
+  const t = lerp(f, [landed + s(0.9), landed + s(2.1)], [0, 1]);
   const crop = mixRect({ x: 30, y: 190, w: 980, h: 280 }, { x: 52, y: 306, w: 410, h: 44 }, t);
   const width = 900;
   const height = (width * crop.h) / crop.w;
-  const shot = (
-    <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={crop} srcSize={LP} box={{ left: 90, top: 860 - height / 2, width, height }} card />
-  );
+  const box = { left: 90, top: 860 - height / 2, width, height };
   return (
     <AbsoluteFill>
       <Label text="What it typed" style={{ left: 80, top: 640 }} size={30} />
-      {f < freezeAt ? shot : <Freeze frame={freezeAt}>{shot}</Freeze>}
-      <KeyChip text={f < releaseAt ? "⌥ hold" : "⌥ let go"} down={f < releaseAt} size={36} style={{ left: 520, top: 622 }} />
+      {f < stillAt ? (
+        <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={crop} srcSize={LP} box={box} card />
+      ) : (
+        <Crop src={FOOTAGE.livePreviewLanded.src} from={0} still crop={crop} srcSize={LP} box={box} card />
+      )}
+      <KeyChip text="⌥ let go" down={false} size={36} style={{ left: 520, top: 622 }} />
     </AbsoluteFill>
   );
 };

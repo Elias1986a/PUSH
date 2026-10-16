@@ -141,6 +141,10 @@ with `npx remotion skills update`) are Remotion's general guidance: load
 ## Gotchas
 - The archived explainer (`videos/archive/explainer`) uses the old charcoal palette
   and its own assets in `public/explainer`. Edit it only on request.
+- To hold on a moment of a recording, cut to a PNG still of that frame
+  (`Crop still`), never `<Freeze>` around a video: Studio's preview reloads the
+  frozen video at its first frame, so the hold shows the wrong picture there
+  even though renders look right (the release shot, 2026-10-15).
 - Composition props must be a `type`, not an `interface` (Remotion needs
   `Record<string, unknown>`).
 - `remotion.config.ts` applies to the CLI and Studio only: PNG frames (clean

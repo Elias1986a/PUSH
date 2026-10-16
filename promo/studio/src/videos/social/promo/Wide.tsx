@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Audio, Freeze, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { color, font } from "../../../brand/tokens";
 import { s } from "../../../lib/time";
 import { lerp, mixRect } from "../../../lib/anim";
@@ -53,9 +53,9 @@ export const VO_AT = {
 /** Where the release shot starts; the music repeats a bar from here. */
 const RELEASE_AT = 22.2;
 
-// live-preview.mp4: J is cut from 8.70 s; the pill closes at 27.65 s, text lands 28.07 s.
+// live-preview.mp4: J is cut from 8.70 s; the pill closes at 27.65 s, the text lands 28.15 s.
 const LP_J_FROM = 8.7;
-const LP_RELEASE_FROM = 27.45;
+const LP_RELEASE_FROM = 28.05; // just before the paste lands, so it follows her last word
 // type-small.mp4: Tab takes "take" at 21.97 s; "you" "think!" at 27.77 s.
 const TS_A_FROM = 20.0;
 const TS_A_RATE = 1.2;
@@ -270,25 +270,28 @@ const LANDED = { x: 40, y: 180, w: 960, h: 215 };
 
 const Release: React.FC<{ web: boolean }> = ({ web }) => {
   const f = useCurrentFrame();
-  const releaseAt = s(27.65 - LP_RELEASE_FROM);
-  const landed = s(28.07 - LP_RELEASE_FROM);
-  // The recording ends ~1 s after the text lands: hold its frame from here.
-  const freezeAt = landed + s(0.6);
+  // Starts right as she stops: the text lands ~0.1 s in, then a still of the
+  // pasted note holds (the recording itself ends ~2.5 s later).
+  const landed = s(FOOTAGE.livePreview.textLands - LP_RELEASE_FROM);
+  const stillAt = landed + s(0.2);
   // Push in on the paragraph while it holds, so it can be read.
-  const t = lerp(f, [landed + s(0.2), landed + s(1.6)], [0, 1]);
+  const t = lerp(f, [landed + s(0.4), landed + s(1.8)], [0, 1]);
   const crop = mixRect(full, LANDED, t);
   const width = winBox.width + (1760 - winBox.width) * t;
   const height = width * (crop.h / crop.w);
   const box = { left: (1920 - width) / 2, top: (1080 - height) / 2 + 30 * t, width, height };
-  const shot = <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />;
   return (
     <AbsoluteFill>
-      {f < freezeAt ? shot : <Freeze frame={freezeAt}>{shot}</Freeze>}
+      {f < stillAt ? (
+        <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />
+      ) : (
+        <Crop src={FOOTAGE.livePreviewLanded.src} from={0} still crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />
+      )}
       {/* On the website copy the bigger label would sit on the window until the push. */}
       <div style={{ opacity: web ? t : 1 }}>
         <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
       </div>
-      <KeyChip text={f < releaseAt ? "⌥ hold" : "⌥ let go"} down={f < releaseAt} size={40} style={{ left: 90, top: 120 }} />
+      <KeyChip text="⌥ let go" down={false} size={40} style={{ left: 90, top: 120 }} />
     </AbsoluteFill>
   );
 };

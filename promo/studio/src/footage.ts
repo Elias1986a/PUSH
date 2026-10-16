@@ -11,7 +11,12 @@ export const FOOTAGE = {
    * Live preview: small pill streaming the words, the cleaned text landing in a note. Its voice is
    * voice/benchmark-passage-jessica.mp3 laid `voiceOffset` s late (measured by cross-correlation).
    */
-  livePreview: { src: "footage/live-preview.mp4", w: 1040, h: 780, pillCloses: 27.65, textLands: 28.07, voiceOffset: 0.45 },
+  livePreview: { src: "footage/live-preview.mp4", w: 1040, h: 780, pillCloses: 27.65, textLands: 28.15, voiceOffset: 0.45 },
+  /**
+   * live-preview.mp4 at 28.4 s, the pasted paragraph in the note, as a still: hold on this,
+   * never on a frozen video (Studio's preview reloads a <Freeze>d video at its first frame).
+   */
+  livePreviewLanded: { src: "footage/live-preview-landed.png", w: 1040, h: 780 },
   /**
    * The Large pill alone (2026-10-15, scripts/promo/pilltake.swift): 2× Retina, lossless master in
    * promo/raw/pill-large-take.mov. The same voice starts `voiceAt` s in; its words show `lag` s after
