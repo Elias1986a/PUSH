@@ -88,24 +88,6 @@ struct GeneralSettingsView: View {
                     }
             }
 
-            Section("iCloud") {
-                Toggle("Sync across my Macs", isOn: $appState.iCloudSyncEnabled)
-
-                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. What TYPE has learned travels only if you switch on Share in Settings ▸ Personal. Everything else is copied once, when you ask, and then each Mac keeps its own.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                HStack {
-                    Button("Copy Settings from My Other Macs") { copied = CloudSync.shared.adoptFromOtherMac() }
-                    if let copied {
-                        Text(copied.foundAnything ? "Copied \(copied.settings) settings." : "Nothing found in iCloud yet.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .disabled(!appState.iCloudSyncEnabled)
-            }
-
             Section("Permissions") {
                 PermissionRow(
                     title: "Microphone",
@@ -131,6 +113,24 @@ struct GeneralSettingsView: View {
                         }
                     }
                 )
+            }
+
+            Section("iCloud") {
+                Toggle("Sync across my Macs", isOn: $appState.iCloudSyncEnabled)
+
+                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. What TYPE has learned travels only if you switch on Share in Settings ▸ Personal. Everything else is copied once, when you ask, and then each Mac keeps its own.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    Button("Copy Settings from My Other Macs") { copied = CloudSync.shared.adoptFromOtherMac() }
+                    if let copied {
+                        Text(copied.foundAnything ? "Copied \(copied.settings) settings." : "Nothing found in iCloud yet.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .disabled(!appState.iCloudSyncEnabled)
             }
 
             // For support: the user can send it when something goes wrong. It
