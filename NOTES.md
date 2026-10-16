@@ -1,5 +1,7 @@
 # NOTES
 
+**SEO plan for v10 (2026-10-15, on `launch` only):** the site side of the user's SEO plan is in (edf36e8): legal pages indexable, new home title, Organization/WebSite/SoftwareApplication JSON-LD, AI-crawler robots group, sitemap lastmod via website/build_sitemap.py, 192 px favicon, netlify.app hosts 301 to the apex, IndexNow on production deploys. What's left (launch-day Search Console/Bing, the 60-day pages) is in docs/launch-seo-checklist.md.
+
 ## 9.3.1 released (2026-10-14)
 
 Everything merged since 9.3.0 (#84–#89): setup in 7 pages (8 with the license), Settings panes General/Talk/TYPE/Models/Dictionary/Personal/Teleprompter/License (TYPE models in Models, pill in Talk), speech models pinned to tested commits, clipboard across quick dictations, wake word built off the main thread, TYPE keeps the old model during a download and ignores keys under secure input, diagnostic log section, and the release-latency fix. Installed on the user's Mac; its downloaded models were kept (pins adoption confirmed on the shipped app).
