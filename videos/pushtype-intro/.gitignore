@@ -1,0 +1,9 @@
+# Re-derivable: `npx hyperframes capture https://pushtype.app -o ./capture`
+capture/
+# Render outputs and tool scratch
+renders/
+.hyperframes/artifacts/
+node_modules/
+.thumbnails/
+.waveform-cache/
+.hyperframes/preview/

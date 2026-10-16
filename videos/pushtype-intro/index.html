@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #08080A;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-199x"
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="10"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div data-hf-id="hf-o0al"
+        id="el-01-push-to-talk"
+        class="scene"
+        data-composition-id="01-push-to-talk"
+        data-composition-src="compositions/frames/01-push-to-talk.html"
+        data-start="0"
+        data-duration="3.6"
+        data-track-index="0"
+      ></div>
+
+      <div data-hf-id="hf-o1bb"
+        id="el-02-tab-to-type"
+        class="scene"
+        data-composition-id="02-tab-to-type"
+        data-composition-src="compositions/frames/02-tab-to-type.html"
+        data-start="3.6"
+        data-duration="4.1"
+        data-track-index="1"
+      ></div>
+
+      <div data-hf-id="hf-d5og"
+        id="el-03-end-card"
+        class="scene"
+        data-composition-id="03-end-card"
+        data-composition-src="compositions/frames/03-end-card.html"
+        data-start="7.2"
+        data-duration="2.8"
+        data-track-index="0"
+      ></div>
+
+      <video data-hf-id="hf-xfil" id="f01-push-to-talk-talk-a" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="0" muted playsinline
+        class="clip"
+        style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover"
+        data-start="0"
+        data-duration="3.6"
+        data-track-index="1005"
+      ></video>
+
+      <video data-hf-id="hf-vijn" id="f01-push-to-talk-talk-b" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="0" muted playsinline
+        class="clip"
+        style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover"
+        data-start="0"
+        data-duration="3.6"
+        data-track-index="1006"
+      ></video>
+
+      <video data-hf-id="hf-1unr" id="f02-tab-to-type-type-a" src="assets/footage/type-clip.mp4" preload="auto" data-media-start="0" muted playsinline
+        class="clip"
+        style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover"
+        data-start="3.6"
+        data-duration="4.1"
+        data-track-index="2005"
+      ></video>
+
+      <!-- BGM -->
+      <audio data-hf-id="hf-z1z2"
+        id="el-bgm"
+        src="assets/music/clean-pulse-10s.mp3"
+        data-start="0"
+        data-duration="9.9"
+        data-track-index="11"
+        data-volume="0.9"
+      ></audio>
+
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+      // ── frame transitions (injected by transitions.mjs) ──
+      (function () { var tl = window.__timelines["main"];
+        tl.to("#el-02-tab-to-type", { opacity: 0, duration: 0.3, ease: "power2.in" }, 7.2);
+        tl.fromTo("#el-03-end-card", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 7.2);
+        // The TYPE footage is hoisted to the root, outside #el-02-tab-to-type: fade it with its frame.
+        tl.fromTo("#f02-tab-to-type-type-a", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 7.2);
+        tl.to({}, { duration: 10 }, 0); // full-span anchor — main.duration() == composition total (Studio master duration)
+      })();
+    </script>
+  </body>
+</html>
