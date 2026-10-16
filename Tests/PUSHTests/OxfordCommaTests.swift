@@ -17,6 +17,7 @@ final class OxfordCommaTests: XCTestCase {
             "We need milk, eggs, cheese and bread.": "We need milk, eggs, cheese, and bread.",
             "We stopped in Paris, Rome and Berlin.": "We stopped in Paris, Rome, and Berlin.",
             "Hi John, can you get milk, eggs and bread?": "Hi John, can you get milk, eggs, and bread?",
+            "Hi, John, can you get milk, eggs and bread?": "Hi, John, can you get milk, eggs, and bread?",
             "I bought apples, bananas and oranges and went home.": "I bought apples, bananas, and oranges and went home.",
         ]
         for (input, expected) in cases {
@@ -28,6 +29,8 @@ final class OxfordCommaTests: XCTestCase {
         let unchanged = [
             "Hi John, Mary and I are coming.",
             "Hey Sarah, Mike and I will be late.",
+            "Hi, John, Mary and I.",
+            "Hi, John, Mary and Sarah are coming.",
             "Thanks, Mike and I appreciate it.",
             "Yes, Mike and I will.",
             "When I got home, Sarah and I talked.",

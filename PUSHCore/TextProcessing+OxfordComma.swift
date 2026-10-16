@@ -21,6 +21,9 @@ extension TranscriptionPipeline {
         "though", "once", "as", "until", "in", "on", "at", "during", "for", "with", "without", "by", "from",
     ]
 
+    /// Greetings that can take a comma before the name as well as after it.
+    private static let oxfordGreetings: Set<String> = ["hi", "hey", "hello", "dear", "thanks", "morning", "evening"]
+
     /// After "and": a subject pronoun means a compound subject ("Sarah and I
     /// talked"), not the last item of a list.
     private static let oxfordSubjects: Set<String> = ["i", "we", "he", "she", "they", "you"]
@@ -67,6 +70,10 @@ extension TranscriptionPipeline {
                       !verbs.contains(where: { $0.overlaps(tokens[item.lowerBound].startIndex..<tokens[item.upperBound - 1].endIndex) })
                 else { continue }
                 if k == firstComma, oxfordOpeners.contains(bare(tokens.startIndex)) { continue }
+                // "Hi, John, Mary and Sarah…": a greeting's own comma comes
+                // before the name, so the comma after the name closes it too.
+                if oxfordGreetings.contains(bare(tokens.startIndex)), tokens.startIndex == firstComma,
+                   k == tokens[(firstComma + 1)...].firstIndex(where: { $0.hasSuffix(",") }) { continue }
                 if j + 1 < tokens.endIndex, oxfordSubjects.contains(bare(j + 1)) { continue }
                 insertions.append(tokens[j - 1].endIndex)
             }
