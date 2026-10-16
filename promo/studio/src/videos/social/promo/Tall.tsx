@@ -168,15 +168,12 @@ const LiveDictation: React.FC = () => {
 const Release: React.FC = () => {
   const f = useCurrentFrame();
   // Starts right as she stops: the text lands ~0.1 s in, then a still of the
-  // pasted note holds. The card pushes in on the corrected line ("build loads
-  // in 1.52 seconds.") so it can be read on a phone.
-  const landed = s(FOOTAGE.livePreview.textLands - LP_RELEASE_FROM);
-  const stillAt = landed + s(0.2);
-  const t = lerp(f, [landed + s(0.9), landed + s(2.1)], [0, 1]);
-  const crop = mixRect({ x: 30, y: 190, w: 980, h: 280 }, { x: 52, y: 306, w: 410, h: 44 }, t);
+  // pasted note holds. No push-in: the redline right after makes the
+  // correction's point (user, 2026-10-15).
+  const stillAt = s(FOOTAGE.livePreview.textLands - LP_RELEASE_FROM) + s(0.2);
+  const crop = { x: 30, y: 190, w: 980, h: 280 };
   const width = 900;
-  const height = (width * crop.h) / crop.w;
-  const box = { left: 90, top: 860 - height / 2, width, height };
+  const box = { left: 90, top: 730, width, height: (width * crop.h) / crop.w };
   return (
     <AbsoluteFill>
       <Label text="What it typed" style={{ left: 80, top: 640 }} size={30} />
