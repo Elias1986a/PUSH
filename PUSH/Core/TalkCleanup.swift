@@ -244,7 +244,11 @@ enum FastPunctuationLoader {
         Task {
             let start = Date()
             do {
-                let loaded = try FastPunctuation(directory: directory)
+                // Off the main thread: CoreML's first load takes seconds, and a
+                // blocked main thread froze Settings and can drop the hotkey tap.
+                let loaded = try await Task.detached(priority: .userInitiated) {
+                    try FastPunctuation(directory: directory)
+                }.value
                 try await loaded.warmUp()
                 guard current == generation else { return }
                 model = loaded
