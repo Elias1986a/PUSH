@@ -64,6 +64,10 @@ ui-debug.log
 
 # Claude Code
 .claude/
+# ...except the Remotion agent skills the studio ships (links into .agents/skills)
+!promo/studio/.claude/
+promo/studio/.claude/*
+!promo/studio/.claude/skills/
 build.log
 dist-build/
 

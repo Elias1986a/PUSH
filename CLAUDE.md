@@ -38,6 +38,8 @@ text field of any app. All speech recognition runs on-device.
   No SwiftUI, no resources (Bundle.module fatal-asserts in distribution builds).
 - `PUSH/Views` — MenuBarView, SettingsView, FloatingPillView
 - `docs/` — design docs and plans
+- `promo/studio` — Remotion motion graphics (ads, explainer); its own CLAUDE.md
+  and Remotion agent skills. Brand rules: `promo/PROMO-PLAYBOOK.md`
 
 ## Key Notes
 - `.build` is a symlink to `~/Library/Developer/SwiftPackages/PUSH-build` —
