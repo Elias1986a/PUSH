@@ -92,6 +92,7 @@ public actor TranscriptionPipeline {
         } else {
             out = closeUnfinishedQuestion(out)
         }
+        out = addOxfordComma(out)
         out = smartSymbols(out)
         if !hasNativePunctuation {
             out = fixCapitalization(out)
