@@ -150,6 +150,8 @@ struct DictationSettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            TalkCleanupSection()
+
             DictationTextSections()
         }
         .formStyle(.grouped)

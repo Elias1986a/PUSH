@@ -122,23 +122,27 @@ public actor LlamaEngine {
     /// newline (not included), an end-of-generation token or `maxTokens`.
     /// The output starts with `forcing` (token healing's partial word), then
     /// a space or punctuation when `wordBoundary`. Cancelling the consuming
-    /// task stops generation within a token.
+    /// task stops generation within a token. `parseSpecial` reads control
+    /// tags in the prompt (a chat template's `<|im_start|>`) as the special
+    /// tokens they name instead of as text; Type's plain prompts leave it off.
     public func complete(prompt: String, maxTokens: Int, forcing: String = "", wordBoundary: Bool = false,
-                         sampling: Sampling = .standard) -> AsyncThrowingStream<String, Error> {
+                         sampling: Sampling = .standard,
+                         parseSpecial: Bool = false) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 await self.run(prompt: prompt, maxTokens: maxTokens,
                                forced: ForcedStart(forcing, wordBoundary: wordBoundary),
-                               sampling: sampling, into: continuation)
+                               sampling: sampling, parseSpecial: parseSpecial, into: continuation)
             }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
 
-    private func run(prompt: String, maxTokens: Int, forced: ForcedStart, sampling: Sampling,
+    private func run(prompt: String, maxTokens: Int, forced: ForcedStart, sampling: Sampling, parseSpecial: Bool,
                      into continuation: AsyncThrowingStream<String, Error>.Continuation) {
         do {
-            try generate(prompt: prompt, maxTokens: maxTokens, forced: forced, sampling: sampling) { continuation.yield($0) }
+            try generate(prompt: prompt, maxTokens: maxTokens, forced: forced, sampling: sampling,
+                         parseSpecial: parseSpecial) { continuation.yield($0) }
             continuation.finish()
         } catch {
             continuation.finish(throwing: error)
@@ -146,9 +150,9 @@ public actor LlamaEngine {
     }
 
     private func generate(prompt: String, maxTokens: Int, forced: ForcedStart, sampling: Sampling,
-                          emit: (String) -> Void) throws {
+                          parseSpecial: Bool = false, emit: (String) -> Void) throws {
         guard let context, let vocab else { throw Failure.notLoaded }
-        let tokens = try tokenize(prompt)
+        let tokens = try tokenize(prompt, parseSpecial: parseSpecial)
         let start = DispatchTime.now()
         let decoded = try prepare(tokens)
         lastStats = Stats(promptTokens: tokens.count, decodedPromptTokens: decoded)
@@ -317,11 +321,11 @@ public actor LlamaEngine {
 
     // MARK: - Tokens and text
 
-    private func tokenize(_ text: String) throws -> [llama_token] {
+    private func tokenize(_ text: String, parseSpecial: Bool = false) throws -> [llama_token] {
         guard let vocab else { throw Failure.notLoaded }
         let utf8 = Array(text.utf8CString)
         var tokens = [llama_token](repeating: 0, count: utf8.count + 8)
-        let n = llama_tokenize(vocab, utf8, Int32(utf8.count - 1), &tokens, Int32(tokens.count), true, false)
+        let n = llama_tokenize(vocab, utf8, Int32(utf8.count - 1), &tokens, Int32(tokens.count), true, parseSpecial)
         guard n > 0 else { throw Failure.tokenize }
         return Array(tokens.prefix(Int(n)))
     }

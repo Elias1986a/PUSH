@@ -959,4 +959,61 @@ final class SpokenFormattingTests: XCTestCase {
             XCTAssertEqual(fmt(s), s)
         }
     }
+
+    // MARK: - "no" → "know"
+
+    func testNoBecomesKnowWhereOnlyKnowFits() {
+        let cases = [
+            "I don't no.": "I don't know.",
+            "I don\u{2019}t no what happened.": "I don\u{2019}t know what happened.",
+            "She didn't no.": "She didn't know.",
+            "I no what you mean.": "I know what you mean.",
+            "You no what I mean?": "You know what I mean?",
+            "We no that already.": "We know that already.",
+            "Do you no where it is?": "Do you know where it is?",
+            "Did they no?": "Did they know?",
+            "Does he no about it?": "Does he know about it?",
+            "Let me no.": "Let me know.",
+            "Let me no if it works.": "Let me know if it works.",
+            "I want to no why.": "I want to know why.",
+            "But you no, I'm frustrated.": "But you know, I'm frustrated.",
+            "You no, it's fine.": "You know, it's fine.",
+            "I think you no that.": "I think you know that.",
+        ]
+        for (input, expected) in cases {
+            XCTAssertEqual(TranscriptionPipeline.fixNoMeaningKnow(input), expected, input)
+        }
+    }
+
+    /// Every one of these is the word no. The first is the dictation that
+    /// prompted the pass: it reads correctly both ways, so it stays.
+    func testNoStaysWhereItCanBeTheWordNo() {
+        let unchanged = [
+            "But no, I'm frustrated, so I won't be that.",
+            "No, I don't think so.", "There's no way.", "I said no.",
+            "I no longer work there.", "We no doubt tried.", "They no more care.",
+            "To no avail.", "Say yes to no one.", "He said to no one.",
+            "I told you no.", "I told you no if you asked.", "I told you no, but you went.",
+            "Give you no reason.", "I'll give you no what?",
+            "Didn't no one tell you?", "Do no harm.", "It did no good.",
+            "Let me no longer worry.", "Do they no longer sell it?",
+            "A no-show.", "Do you no-show often?", "Yes or no?", "Yes, no, maybe.",
+            "I don't, no.", "I, no, never mind.", "It was a no.",
+            "We have no idea.", "No one knows.",
+        ]
+        for input in unchanged {
+            XCTAssertEqual(TranscriptionPipeline.fixNoMeaningKnow(input), input, input)
+        }
+    }
+
+    func testNoBecomesKnowKeepsTheCase() {
+        XCTAssertEqual(TranscriptionPipeline.fixNoMeaningKnow("I DON'T NO"), "I DON'T KNOW")
+        XCTAssertEqual(TranscriptionPipeline.fixNoMeaningKnow("Do you No what"), "Do you Know what")
+    }
+
+    func testNoBecomesKnowInThePipeline() {
+        XCTAssertEqual(
+            TranscriptionPipeline.postProcess("Let me no if you no what time it is.", hasNativePunctuation: true),
+            "Let me know if you know what time it is.")
+    }
 }

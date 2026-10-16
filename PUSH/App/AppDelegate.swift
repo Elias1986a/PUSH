@@ -77,6 +77,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // download — and independent of dictation's warm-up.
         TypingEngineLoader.apply()
         TypingCoordinator.shared.setActive(AppState.shared.typeEnabled)
+        // The Talk cleanup models switched on, when on disk. Never a download.
+        TalkCleanupLoader.apply()
 
         if showingWizard {
             showOnboarding()
@@ -172,6 +174,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let freed = DispatchSemaphore(value: 0)
         Task.detached {
             await LlamaEngine.shared.unload()
+            for pass in TalkCleanupPass.allCases { await TalkCleanupRunner.engine(pass).unload() }
             freed.signal()
         }
         if freed.wait(timeout: .now() + 2) == .timedOut {
