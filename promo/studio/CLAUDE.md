@@ -12,8 +12,13 @@ prefix, the source folder and the render folder all say the same thing.
 | Destination | Studio folder | Ids | Source | Renders to | Then |
 |---|---|---|---|---|---|
 | pushtype.app | Website | `WebHero16x9` (laptops), `WebHero4x5` (phones): the promo's website edition | `src/videos/website/` | `out/website/` | `npm run to-website` writes the small copies + posters into `website/assets/video/` |
-| Ads and posts | Social | `SocialPromo16x9` (YouTube), `SocialPromo4x5` (Instagram/Facebook feed), `SocialPromo9x16` (Reels, Stories, TikTok) | `src/videos/social/` | `out/social/` | upload the files as they are |
+| Ads and posts | Social | `SocialPromo16x9` (YouTube), `SocialPromo4x5` (Instagram/Facebook feed), `SocialPromo9x16` (Reels, Stories, TikTok) | `src/videos/social/` | `out/social/` | copy the approved finals into the content library: `content/social/` (9:16, 4:5), `content/videos/` (16:9), as `pushtype-promo-<ratio>-4k.mp4` |
 | Not in use | Archive | `ArchiveHeroShort16x9`/`4x5` (a 21 s product-first hero, not chosen), `ArchiveExplainer16x9`/`9x16` | `src/videos/archive/` | `out/archive/` | nothing |
+
+`out/` is this project's scratch (each render overwrites it). Finished files,
+reusable media and takes live in the git-ignored `content/` library at the
+repo root: read `content/README.md`. Remotion only reads `public/`, so copy an
+asset from `content/assets/` into `public/` to use it.
 
 The website hero is the promo itself (the user likes it as it is) in its
 website edition: `<Wide web />` / `<Feed web />`. The site plays it muted at

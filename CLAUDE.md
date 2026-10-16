@@ -40,6 +40,12 @@ text field of any app. All speech recognition runs on-device.
 - `docs/` — design docs and plans
 - `promo/studio` — Remotion motion graphics (ads, explainer); its own CLAUDE.md
   and Remotion agent skills. Brand rules: `promo/PROMO-PLAYBOOK.md`
+- `videos/<project>` — HyperFrames video projects (the intros)
+- `content/` — git-ignored, iCloud-backed library of every finished video
+  (`social/` 9:16+4:5, `videos/` 16:9), image, reusable asset (`assets/`: music,
+  videos, elements, voice, brand, sfx), take and draft, whatever tool made it.
+  Read `content/README.md` before saving or delivering media; nothing stays in
+  Downloads or on the Desktop. The `/promo` skill has the rules.
 
 ## Key Notes
 - `.build` is a symlink to `~/Library/Developer/SwiftPackages/PUSH-build` —

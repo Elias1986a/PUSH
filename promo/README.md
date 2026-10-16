@@ -14,15 +14,17 @@ recorded: `scripts/promo/README.md`.
 | `live-preview.mp4` | Live preview, tight 4:3 shot: small pill at the bottom streaming the words, a small note above it where the cleaned text lands on release. 30.7 s, with voice. | Website, Live preview section (2026-10-14) |
 | `type-small.mp4` | TYPE in the tight 4:3 frame of `live-preview.mp4` (1040×780): the same Lisbon message as `type-demo.mp4` in a small note (`freshnote-small.applescript` at 500×372, no pill). 35 s, no sound. **Real time, real suggestions**; live, the whole suggestion after "we could" ran on to "…have dinner at a", so the script continues it with "little place by the water." | Promo candidate (2026-10-15) |
 | `live-preview-large-pill.mp4` | The same take idea with the pill at Large, wide 16:9 frame. 30.6 s, with voice. | Promo video candidate |
-| `pill-large.mp4` | The Large live-preview pill alone, recorded as an element (2026-10-15, `scripts/promo/pilltake.swift`): 2× Retina, the benchmark passage held until every word is up. 1820×192, 31.8 s, no sound (the voice starts 1.342 s in). Master: `raw/pill-large-take.mov` (ProRes). | Promo and website hero, in place of the soft pill inside `live-preview.mp4` |
+| `pill-large.mp4` | The Large live-preview pill alone, recorded as an element (2026-10-15, `scripts/promo/pilltake.swift`): 2× Retina, the benchmark passage held until every word is up. 1820×192, 31.8 s, no sound (the voice starts 1.342 s in). Master: `content/raw/takes/pill-large-take.mov` (ProRes). | Promo and website hero, in place of the soft pill inside `live-preview.mp4` |
 | `voice/benchmark-passage-jessica.mp3` | The ElevenLabs voice (Jessica) reading the benchmark passage, 27.4 s; speech runs 0.04–27.18 s. | Source audio for both |
 | `voice/benchmark-passage-jessica-alt-take.mp3` | Another ElevenLabs read of the benchmark passage (2026-09-30), 27.3 s. | Spare |
 | `voice/jessica-2026-09-30-19s.mp3` | A 19 s Jessica clip from 2026-09-30, not yet labeled. | Spare |
 | `voice/explainer-vo.mp3`, `voice/explainer-music.mp3` | The explainer's voiceover and music bed. | Archived explainer |
 | `archive/dictation-demo-2026-09-30.mp4` | The first dictation demo (1280×720, 31 s, with sound). | Kept for history |
 
-`raw/` holds the screen takes these were cut from. It is local only (git
-ignores it): re-cut from there rather than recording again.
+The screen takes these were cut from (ProRes masters) are in
+`content/raw/takes/`, the git-ignored content library: re-cut from there rather
+than recording again. Every clip here also has a described copy in
+`content/assets/` (`videos/app/`, `elements/`, `voice/`, `music/`).
 
 ## What is real and what was edited
 

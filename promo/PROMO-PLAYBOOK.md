@@ -83,7 +83,7 @@ Captions sit at y 370 (that is y 85 in the 4:5).
 4. **AI shots** in Higgsfield (local API on the Mac): one base still, edit it for other angles so the person matches, then image-to-video. Check stills before animating. Remove brand logos (for example the Apple logo on the laptop).
 5. **Build in Remotion** (`promo/studio`; how: `promo/studio/CLAUDE.md`).
 6. **QA:** stills at key moments for both formats against the safe-zone guides; transcribe the final mix to confirm VO order and timing; check loudness.
-7. **Deliver** 16:9, 4:5, 9:16 from `studio/out/social/` (keep dated copies in `promo/raw/<campaign>/` if you want history; `out/` is overwritten by the next render).
+7. **Deliver** 16:9, 4:5, 9:16 into the content library (`content/README.md`): 16:9 to `content/videos/`, 9:16 and 4:5 to `content/social/`, named `<name>-<ratio>-4k.mp4`, at 4K. The version it replaces moves to `content/archive/`. Drafts for review go to `content/temp/`.
 
 ---
 
@@ -98,7 +98,7 @@ Captions sit at y 370 (that is y 85 in the 4:5).
 
 - Kling 3.0 Pro at 5s with sound off costs the same as Turbo 1080p and looks better.
 - Budget: about $1.50 to $2 per promo (one person, three clips, a few edits). First promo total: about $3.02 including the discarded draft 4 shots.
-- Generations can outlast the 60s tool wait. Never re-run a billable call; check `~/Downloads/Higgsfield` for the file instead.
+- Generations can outlast the 60s tool wait. Never re-run a billable call; check `content/assets/videos/higgsfield/` for the file instead.
 
 **Current person** (from 2026-10-15): late twenties, shoulder-length dark curly hair, olive sweater, light oak desk, soft window light. Files `shot-a-v2.mp4` (talking to laptop), `shot-b-v2.mp4` (hands typing), `shot-v.mp4` (vertical hook).
 

@@ -1,6 +1,6 @@
 ---
 name: promo
-description: Make or change a PUSHTYPE video (social ad, website hero, explainer) end to end in promo/studio. Use for any request to create, edit, re-cut, re-record footage for, render, or deliver a promo or marketing video.
+description: Make or change a PUSHTYPE video (social ad, website hero, explainer, intro) end to end, in Remotion (promo/studio) or HyperFrames (videos/), and decide where every media file goes (the content/ library). Use for any request to create, edit, re-cut, re-record footage for, render, or deliver a promo or marketing video, or to make or save music, voice, images, AI shots or other reusable media with any tool (ElevenLabs, Higgsfield, fal, screen recording).
 ---
 
 # /promo: make or change a PUSHTYPE video
@@ -9,7 +9,32 @@ Every PUSHTYPE video goes through these steps, in order. The detail lives in
 three files; read them first and follow them over anything general:
 `promo/PROMO-PLAYBOOK.md` (brand, claims, voice, look), `promo/studio/CLAUDE.md`
 (how to build in Remotion here), `scripts/promo/README.md` (recording real
-footage). Work in `promo/studio`.
+footage), `content/README.md` (where every file goes). Work in `promo/studio`
+for Remotion videos, in `videos/<project>` for HyperFrames ones.
+
+## 0. Where every file goes, whatever the tool
+All media lives in `content/`: git-ignored (iCloud backs it up; it never goes
+to GitHub). Read `content/README.md`; the short version:
+- **Finished:** 9:16 and 4:5 in `content/social/`, 16:9 in `content/videos/`,
+  images in `content/images/`. Deliver at 4K, -14 LUFS, true peak -1, named
+  `<name>-<ratio>-4k.mp4` (`pushtype-intro-california-9x16-4k.mp4`; a 1080 file
+  drops `-4k`). Only the current cut sits there: the one it replaces moves to
+  `content/archive/<date>-<name>…`, never left beside it as a lookalike.
+- **For review before final:** `content/temp/`; clear it once approved.
+- **Workbench:** screen-take masters in `content/raw/takes/`, drafts and tests
+  in `content/raw/drafts/`, intermediate renders in `content/raw/renders/<project>/`.
+- **Reusable pieces:** `content/assets/` → `music/`, `videos/` (`higgsfield/`
+  AI people, `app/` screen recordings), `elements/` (the pill, note stills),
+  `voice/` (Jessica, Brad), `brand/` (icon art, fonts), `sfx/`. Save every new
+  ElevenLabs track, Higgsfield/fal output or element there the moment it exists,
+  with a plain descriptive name and a line in that folder's README (what it
+  is, length, tempo/mood or what is said, where it is used).
+- **Copies next to code:** Remotion only reads `promo/studio/public/`, a
+  HyperFrames project only its own `assets/`; copy the asset in from the
+  library and keep those copies in git. Finished app clips stay git-tracked
+  in `promo/` too.
+- Nothing stays in Downloads or on the Desktop (`~/Desktop/PUSH Content` is a
+  shortcut to `content/`).
 
 ## 1. Scope, in one line, before anything else
 Say back what you will do in one short line and get a yes:
@@ -25,8 +50,8 @@ it short.
 - Narrator in ElevenLabs (playbook §4): all lines for one format in one
   generation, then cut per line into `public/vo/<video>/` and write word
   timings into `TIMINGS.txt` (ElevenLabs transcription with word timestamps).
-- Keep every source file in the repo (`promo/voice/`, `promo/`), never only in
-  Downloads or on the Desktop.
+- Save every take into `content/assets/voice/` (described in its README); the
+  copy a video uses goes in `promo/voice/` or the project's assets.
 
 ## 3. Footage
 - Real app footage carries the video. Anything a viewer must read up close is
@@ -41,8 +66,8 @@ it short.
   still (same person, new angle or setting, removing a logo), background
   removal, upscaling, cleanup; and as the backup for video models Higgsfield
   lacks or when it is down. Search its catalog for the right model, check
-  `get_pricing` and say the cost before any paid run. Save results into the
-  repo (`promo/raw/<video>/`, or `promo/studio/public/` if a video uses them).
+  `get_pricing` and say the cost before any paid run. Save results into
+  `content/assets/` (described), plus `promo/studio/public/` if a video uses them.
 - Check stills before animating, never re-run a billable call.
 
 ## 4. Build
@@ -70,9 +95,12 @@ the user the exact seconds to look at. Render only once they are happy:
 ≤ -1).
 
 ## 7. Deliver
-- Social: hand over the files in `out/social/` (4:5 for feed ads, 9:16 for
-  Stories/Reels/TikTok, 16:9 for YouTube); copy dated finals to
-  `promo/raw/<campaign>/` if they should be kept.
+- Social: render at 4K and copy the finals out of `out/social/` into the
+  library (§0): 4:5 (feed ads) and 9:16 (Stories/Reels/TikTok) to
+  `content/social/`, 16:9 (YouTube) to `content/videos/`, archiving what they
+  replace. HyperFrames: `npx hyperframes render --resolution <landscape|portrait>-4k
+  --crf 10`, normalize to -14 LUFS, and the 4:5 is the 4K 9:16 cropped
+  `crop=2160:2700:0:570`.
 - Website: `npm run to-website`, bump the `?v=` on the hero files in
   `website/index.html` and `website/assets/home.js`, commit, PR, merge, then
   confirm on https://pushtype.app (www redirects there) that the file sizes match.
