@@ -179,11 +179,11 @@
       var keycap = byId("keycap");
       var pill = hostDoc.getElementById(PREFIX + "pill");
 
-      // The 1820x192 pill take at 1.1208 (2039.9 x 215.2 box at (-993.55, 965.5)):
-      // source x 940-1743 lands on screen x 60-960, the pill's y 120-192 on y 1100-1181.
-      // Its left edge is a cut, so it fades out over 200px.
-      var MASK_PILL = "inset(134.496px 86.302px 0px 1053.552px round 40.349px)";
-      var FADE = "linear-gradient(to right, transparent 1053.552px, #000 1253.552px)";
+      // The 1820x192 pill take at 1.5 (2730 x 288 box at (-1654.5, 906)): source
+      // x 1143-1743 lands on screen x 60-960, the pill's y 120-192 on y 1086-1194.
+      // Its left edge is a cut, so it fades out over 150px.
+      var MASK_PILL = "inset(180px 115.5px 0px 1714.5px round 54px)";
+      var FADE = "linear-gradient(to right, transparent 1714.5px, #000 1864.5px)";
       var FOOTAGE_FILTER = "brightness(1.14)";
       if (pill) {
         Object.assign(pill.style, {
@@ -191,7 +191,7 @@
           maskImage: FADE,
           webkitMaskImage: FADE,
           filter: FOOTAGE_FILTER,
-          transformOrigin: "1503.552px 174.844px",
+          transformOrigin: "2164.5px 234px",
         });
       }
 
