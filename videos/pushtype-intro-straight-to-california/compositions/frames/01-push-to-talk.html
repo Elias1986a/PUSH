@@ -132,8 +132,7 @@
     }
 
     /* Rims sit behind the masked video layers (the hoisted videos paint above the frame). */
-    #f01-push-to-talk-rim-window,
-    #f01-push-to-talk-rim-pill {
+    #f01-push-to-talk-rim-window {
       position: absolute;
       box-sizing: border-box;
       background: #141416;
@@ -147,13 +146,6 @@
       width: 960.577px;
       height: 635.577px;
       border-radius: 23.077px;
-    }
-    #f01-push-to-talk-rim-pill {
-      left: 915.962px;
-      top: 813.846px;
-      width: 849.038px;
-      height: 56.731px;
-      border-radius: 28.365px;
     }
   </style>
 
@@ -182,11 +174,11 @@
     </div>
 
     <div data-hf-id="hf-gxro" id="f01-push-to-talk-rim-window"></div>
-    <div data-hf-id="hf-xigh" id="f01-push-to-talk-rim-pill"></div>
 
-    <!-- Two muted layers of the same Talk recording, in the shared 1000x750 window box.
-         The assembler hoists them to the host root; the timeline below masks them:
-         A to the Notes window, B to the live-preview pill. -->
+    <!-- The Talk recording, masked to the Notes window, and the Large live pill recorded on
+         its own (promo/pill-large.mp4's master, assets/footage/pill-clip.mp4) under it. The
+         recording's own pill trails her by ~2 s and never shows her sentence, so it is not used.
+         Both videos are hoisted to the host root; the timeline below masks them. -->
     <!-- approved frame video hoisted by assemble-index -->
     <!-- approved frame video hoisted by assemble-index -->
   </div>
@@ -211,16 +203,17 @@
       var keyRow = byId("key");
       var keycap = byId("keycap");
       var rimWindow = byId("rim-window");
-      var rimPill = byId("rim-pill");
       var talkA = hostVideo("talk-a");
-      var talkB = hostVideo("talk-b");
+      var pill = hostVideo("pill");
 
       // Masks in the 1000x750 video box (design space 1040x780 at 0.9615).
       var MASK_WINDOW = "inset(15.385px 20.192px 99.038px 19.231px round 23.077px)";
-      var MASK_PILL = "inset(678.846px 75px 14.423px 75.962px round 28.365px)";
+      // The pill take at 1:1 (1820x192 box at (57, 710)): the pill's x 63-1743, y 120-192
+      // lands on screen x 120-1800, y 830-902, under the note.
+      var MASK_PILL = "inset(120px 77px 0px 63px round 36px)";
       var FOOTAGE_FILTER = "brightness(1.14)";
       var layerA = { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER };
-      var layerB = { clipPath: MASK_PILL, filter: FOOTAGE_FILTER };
+      var layerPill = { clipPath: MASK_PILL, filter: FOOTAGE_FILTER };
       if (talkA) Object.assign(talkA.style, { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER });
       // Pieces of the window clip split in Studio (ids "<talk-a id>-split…") get the same mask.
       Array.prototype.forEach.call(
@@ -229,7 +222,7 @@
           Object.assign(piece.style, { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER });
         },
       );
-      if (talkB) Object.assign(talkB.style, { clipPath: MASK_PILL, filter: FOOTAGE_FILTER });
+      if (pill) Object.assign(pill.style, layerPill);
 
       var KEY_REST = { borderColor: "rgba(239,237,232,0.22)", boxShadow: "0 0 0px rgba(255,90,69,0)" };
       var KEY_DOWN = { borderColor: "#FF5A45", boxShadow: "0 0 24px rgba(255,90,69,0.35)" };
@@ -251,8 +244,7 @@
       };
       rise(rimWindow);
       rise(talkA, layerA);
-      rise(rimPill);
-      rise(talkB, layerB);
+      rise(pill, layerPill);
 
       // Kicker fades up at 0.15.
       tl.fromTo(
@@ -294,16 +286,13 @@
         PRESS_START,
       );
 
-      // Scene 4 (2.65-3.6): the key releases as the pill closes in the footage.
+      // Scene 4 (2.65-3.6): the key releases and the pill closes; the text lands at 3.07.
       tl.to(
         keycap,
         Object.assign({ scale: 1, duration: 0.25, ease: "power3.out" }, KEY_REST),
         PILL_CLOSES,
       );
-      [talkB, rimPill].forEach(function (target) {
-        if (!target) return;
-        tl.to(target, { opacity: 0, duration: 0.15, ease: "power1.out" }, PILL_CLOSES);
-      });
+      if (pill) tl.to(pill, { opacity: 0, duration: 0.15, ease: "power1.out" }, PILL_CLOSES);
 
       // Hold still to the cut: the clean text lands in the note at 3.07 on its own and
       // stays on screen for two seconds so it can be read.
