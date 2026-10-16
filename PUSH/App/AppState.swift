@@ -496,21 +496,9 @@ final class AppState {
         }
     }
 
-    /// The Talk cleanup models (`TalkCleanupPass`), on trial: each its own
-    /// switch and download. Per Mac and never synced, like every switch that
+    /// The Talk rewriting pass (`TalkCleanupPass`), on trial: its own switch
+    /// and download. Per Mac and never synced, like every switch that
     /// depends on a download (`CloudSync.seededSettingKeys`).
-    /// Which punctuation model runs after Talk, if any (`TalkPunctuation`).
-    var talkPunctuation: TalkPunctuation = TalkPunctuation(
-        rawValue: UserDefaults.standard.string(forKey: "talkPunctuation") ?? "") ?? .off {
-        didSet {
-            UserDefaults.standard.set(talkPunctuation.rawValue, forKey: "talkPunctuation")
-            if talkPunctuation != oldValue {
-                TalkCleanupLoader.apply()
-                FastPunctuationLoader.apply()
-            }
-        }
-    }
-
     var talkAutocorrectModel: Bool = UserDefaults.standard.bool(forKey: "talkAutocorrectModel") {
         didSet {
             UserDefaults.standard.set(talkAutocorrectModel, forKey: "talkAutocorrectModel")
@@ -520,7 +508,6 @@ final class AppState {
 
     func isTalkCleanupOn(_ pass: TalkCleanupPass) -> Bool {
         switch pass {
-        case .punctuation: return talkPunctuation == .smallModel
         case .autocorrect: return talkAutocorrectModel
         }
     }

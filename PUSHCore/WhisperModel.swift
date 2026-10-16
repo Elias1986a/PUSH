@@ -80,8 +80,9 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     /// Approximate on-disk cost, for the settings list. Matches the figures
     /// `modelDescription` quotes and the progress estimates in the download.
+    /// The English engines bring the fast punctuation model (~59 MB) with them.
     public var downloadSizeLabel: String {
-        "600 MB"
+        writesEnglish ? "660 MB" : "600 MB"
     }
 
     public var modelDescription: String {

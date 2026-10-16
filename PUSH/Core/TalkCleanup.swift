@@ -209,16 +209,10 @@ enum TalkCleanupRunner {
     }
 }
 
-/// The Punctuation choice in Settings ▸ Talk, on trial: the speech model's own
-/// punctuation, the small LLM held to a word lock, or the fast classifier.
-enum TalkPunctuation: String, CaseIterable, Identifiable {
-    case off, smallModel, fastModel
-    var id: String { rawValue }
-}
-
-/// Keeps the fast punctuation model loaded while it is the chosen one and its
-/// files are on disk. The files come down with the English speech models
-/// (`ModelDownload`), or from the Download button in Settings ▸ Talk.
+/// The fast punctuation model: loaded whenever its files are on disk, and
+/// run on every English dictation, with no switch. The files come down with
+/// the English speech models (`ModelDownload`), or from "Get punctuation" in
+/// Settings ▸ Models, and go when the last English model is deleted.
 @MainActor
 enum FastPunctuationLoader {
     nonisolated static let directory = TalkCleanupStore.directory.appendingPathComponent("punctuation-fast", isDirectory: true)
@@ -233,6 +227,15 @@ enum FastPunctuationLoader {
                 atPath: directory.appendingPathComponent(file.path).path)[.size]) as? Int64
             return size == file.bytes
         }
+    }
+
+    /// When the last English speech model is deleted: punctuation only ever
+    /// runs on their text.
+    static func deleteFiles() {
+        generation &+= 1
+        model = nil
+        try? FileManager.default.removeItem(at: directory)
+        PushLogger.log("FastPunctuationLoader: files deleted")
     }
 
     private static var downloadTask: Task<Void, Error>?
@@ -263,7 +266,7 @@ enum FastPunctuationLoader {
     static func apply() {
         generation &+= 1
         let current = generation
-        guard AppState.shared.talkPunctuation == .fastModel, isOnDisk else {
+        guard isOnDisk else {
             if model != nil { PushLogger.log("FastPunctuationLoader: unloaded") }
             model = nil
             return
