@@ -1,0 +1,24 @@
+{
+  "name": "pushtype-explainer",
+  "version": "1.0.0",
+  "description": "The 20-second PUSHTYPE explainer, in two cuts (16:9 and 9:16).",
+  "private": true,
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@remotion/cli": "4.0.535",
+    "@remotion/fonts": "4.0.535",
+    "@remotion/media": "4.0.535",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.535"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "typescript": "5.9.3"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render Explainer16x9 ../explainer-16x9.mp4 && remotion render Explainer9x16 ../explainer-9x16.mp4",
+    "typecheck": "tsc"
+  }
+}
