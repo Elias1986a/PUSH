@@ -35,8 +35,16 @@ final class HotkeyManager: @unchecked Sendable {
     /// recording that never started.
     private var pressStoppedTeleprompter = false
 
-    // Right Option key code
-    private let rightOptionKeyCode: CGKeyCode = 61
+    /// Another key went down while the Talk key was held: it was a shortcut
+    /// or typing (⌘C, a capital letter), not Talk. Nothing more happens until
+    /// the Talk key is released.
+    private var interruptedThisHold = false
+    /// A Shift or Fn press waiting out `holdBeforeStart` (`Hotkey.startsAfterHold`).
+    private var pendingStart: DispatchWorkItem?
+    /// Whether this hold's press reached `onKeyDown`, so its release reaches `onKeyUp`.
+    private var startedThisHold = false
+    /// How long Shift or Fn is held, with nothing else pressed, before it means Talk.
+    private static let holdBeforeStart: TimeInterval = 0.25
 
     private init() {}
 
@@ -205,12 +213,10 @@ final class HotkeyManager: @unchecked Sendable {
     private func startReleaseWatchdog() {
         stopReleaseWatchdog()
         let hotkey = AppState.shared.selectedHotkey
-        // The generic modifier bit, not `flagMask`'s left/right-specific one:
+        // The generic modifier bit, not the left/right-specific one:
         // `flagsState` is only documented to report the generic flags, and a
         // watchdog that misreads "released" would end every dictation instantly.
-        let generic: CGEventFlags = hotkey.requiresAlternate ? .maskAlternate
-            : hotkey.requiresCommand ? .maskCommand
-            : .maskControl
+        let generic = hotkey.modifierFlag
 
         releaseMissTicks = 0
         let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
@@ -328,43 +334,67 @@ final class HotkeyManager: @unchecked Sendable {
     }
 
     private func handleEvent(_ event: CGEvent) {
-        // Only process modifier key changes for hotkey detection
-        guard event.type == .flagsChanged else { return }
-
-        let flags = event.flags
-        let rawFlags = flags.rawValue
-
-        // Get the selected hotkey from AppState
         let hotkey = AppState.shared.selectedHotkey
 
-        // Check if the selected hotkey is pressed
-        let isHotkeyDown: Bool
-
-        if hotkey.requiresAlternate {
-            isHotkeyDown = flags.contains(.maskAlternate) && (rawFlags & hotkey.flagMask) != 0
-        } else if hotkey.requiresCommand {
-            isHotkeyDown = flags.contains(.maskCommand) && (rawFlags & hotkey.flagMask) != 0
-        } else if hotkey.requiresControl {
-            isHotkeyDown = flags.contains(.maskControl) && (rawFlags & hotkey.flagMask) != 0
-        } else {
-            isHotkeyDown = false
+        // Any other key while the Talk key is held: a shortcut or typing, not
+        // Talk. Cancel quietly (no chirp is owed: a Shift or Fn press hasn't
+        // started yet, and the others discard what they recorded).
+        if event.type == .keyDown {
+            if isRightOptionPressed, !interruptedThisHold { interruptHold(hotkey) }
+            return
         }
+        guard event.type == .flagsChanged else { return }
 
-        PushLogger.log("HotkeyManager: handleEvent - hotkey=\(hotkey.displayName), rawFlags=0x\(String(rawFlags, radix: 16)), isHotkeyDown=\(isHotkeyDown), currentlyPressed=\(isRightOptionPressed)")
+        let isHotkeyDown = hotkey.isDown(in: event.flags)
+        PushLogger.log("HotkeyManager: handleEvent - hotkey=\(hotkey.displayName), rawFlags=0x\(String(event.flags.rawValue, radix: 16)), isHotkeyDown=\(isHotkeyDown), currentlyPressed=\(isRightOptionPressed)")
 
         if isHotkeyDown && !isRightOptionPressed {
+            // Still the same hold after an interruption (a cancel resets the
+            // pressed flag): wait for the key to come up first.
+            guard !interruptedThisHold else { return }
             isRightOptionPressed = true
+            startedThisHold = false
             PushLogger.log("HotkeyManager: Detected \(hotkey.displayName) KEY DOWN")
-            DispatchQueue.main.async { [weak self] in
-                self?.onKeyDown?()
+            if hotkey.startsAfterHold {
+                let start = DispatchWorkItem { [weak self] in
+                    guard let self, self.isRightOptionPressed, !self.interruptedThisHold else { return }
+                    self.pendingStart = nil
+                    self.startedThisHold = true
+                    self.onKeyDown?()
+                }
+                pendingStart = start
+                DispatchQueue.main.asyncAfter(deadline: .now() + Self.holdBeforeStart, execute: start)
+            } else {
+                startedThisHold = true
+                DispatchQueue.main.async { [weak self] in
+                    self?.onKeyDown?()
+                }
             }
-        } else if !isHotkeyDown && isRightOptionPressed {
+        } else if !isHotkeyDown {
+            let wasInterrupted = interruptedThisHold
+            interruptedThisHold = false
+            pendingStart?.cancel()
+            pendingStart = nil
+            guard isRightOptionPressed else { return }
             isRightOptionPressed = false
             PushLogger.log("HotkeyManager: Detected \(hotkey.displayName) KEY UP")
+            if wasInterrupted || !startedThisHold {
+                pressStoppedTeleprompter = false
+                return
+            }
+            startedThisHold = false
             DispatchQueue.main.async { [weak self] in
                 self?.onKeyUp?()
             }
         }
+    }
+
+    private func interruptHold(_ hotkey: AppState.Hotkey) {
+        interruptedThisHold = true
+        pendingStart?.cancel()
+        pendingStart = nil
+        PushLogger.log("HotkeyManager: another key while \(hotkey.displayName) was held — not Talk")
+        if isCurrentlyRecording { handleCancelRecording() }
     }
 
     private func handleKeyDown() {

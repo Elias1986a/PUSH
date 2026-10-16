@@ -559,6 +559,10 @@ final class AppState {
 
     // MARK: - Hotkey Configuration
 
+    /// The Talk key: a single modifier, held. Modifiers only, so it never
+    /// types a character and still works in password fields (Secure Input
+    /// hides ordinary keys from event taps, not modifier changes). Raw values
+    /// are what's stored; the first six predate Shift and Fn.
     enum Hotkey: String, CaseIterable, Identifiable {
         case rightOption = "rightOption"
         case leftOption = "leftOption"
@@ -566,21 +570,41 @@ final class AppState {
         case leftCommand = "leftCommand"
         case rightControl = "rightControl"
         case leftControl = "leftControl"
+        case rightShift = "rightShift"
+        case leftShift = "leftShift"
+        case fn = "fn"
 
         var id: String { rawValue }
 
         var displayName: String {
             switch self {
-            case .rightOption: return "⌥ Right Option"
-            case .leftOption: return "⌥ Left Option"
-            case .rightCommand: return "⌘ Right Command"
-            case .leftCommand: return "⌘ Left Command"
-            case .rightControl: return "⌃ Right Control"
-            case .leftControl: return "⌃ Left Control"
+            case .rightOption: return "Right Option"
+            case .leftOption: return "Left Option"
+            case .rightCommand: return "Right Command"
+            case .leftCommand: return "Left Command"
+            case .rightControl: return "Right Control"
+            case .leftControl: return "Left Control"
+            case .rightShift: return "Right Shift"
+            case .leftShift: return "Left Shift"
+            case .fn: return "Fn (Globe)"
             }
         }
 
-        var flagMask: UInt64 {
+        /// The modifier's own flag; also what the release watchdog reads,
+        /// since `flagsState` documents only these generic bits.
+        var modifierFlag: CGEventFlags {
+            switch self {
+            case .rightOption, .leftOption: return .maskAlternate
+            case .rightCommand, .leftCommand: return .maskCommand
+            case .rightControl, .leftControl: return .maskControl
+            case .rightShift, .leftShift: return .maskShift
+            case .fn: return .maskSecondaryFn
+            }
+        }
+
+        /// The left/right device bit (IOKit's NX_DEVICE*KEYMASK); nil for Fn,
+        /// which has only the one.
+        var sideMask: UInt64? {
             switch self {
             case .rightOption: return 0x40
             case .leftOption: return 0x20
@@ -588,19 +612,24 @@ final class AppState {
             case .leftCommand: return 0x08
             case .rightControl: return 0x2000
             case .leftControl: return 0x1
+            case .rightShift: return 0x04
+            case .leftShift: return 0x02
+            case .fn: return nil
             }
         }
 
-        var requiresAlternate: Bool {
-            self == .rightOption || self == .leftOption
+        /// Keys held all the time while typing (capitals, Fn + arrows): the
+        /// recording starts only after a short hold with nothing else pressed,
+        /// so a capital letter never chirps. The others start at once.
+        var startsAfterHold: Bool {
+            self == .rightShift || self == .leftShift || self == .fn
         }
 
-        var requiresCommand: Bool {
-            self == .rightCommand || self == .leftCommand
-        }
-
-        var requiresControl: Bool {
-            self == .rightControl || self == .leftControl
+        /// Down in these flags.
+        func isDown(in flags: CGEventFlags) -> Bool {
+            guard flags.contains(modifierFlag) else { return false }
+            guard let sideMask else { return true }
+            return flags.rawValue & sideMask != 0
         }
     }
 

@@ -44,7 +44,10 @@ struct DictationSettingsView: View {
                 }
                 .disabled(!appState.hotkeyEnabled)
             } footer: {
-                Text("Hold the key, speak, release. Press ⎋ Esc while recording to cancel without inserting text.")
+                Text("Hold the key, speak, release. Press ⎋ Esc while recording to cancel without inserting text."
+                     + (appState.selectedHotkey == .fn
+                        ? " If Fn also opens emoji or dictation, set System Settings ▸ Keyboard ▸ “Press 🌐 key to” to “Do Nothing”."
+                        : ""))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
