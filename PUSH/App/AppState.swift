@@ -249,6 +249,10 @@ final class AppState {
         }
     }
 
+    /// The app the user last typed in (never PUSH), for the menu's "Suggest
+    /// in <App>" switch. Not saved.
+    var typingLastApp: TypedApp?
+
     var typingPausedUntil: Date? = TypingPreferences.pausedUntil() {
         didSet {
             UserDefaults.standard.set(typingPausedUntil, forKey: TypingPreferences.pausedUntilKey)

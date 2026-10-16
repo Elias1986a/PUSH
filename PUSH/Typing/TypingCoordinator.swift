@@ -34,6 +34,12 @@ enum TypingExclusions {
     }
 }
 
+/// An app the user typed in: its bundle id and the name to show.
+struct TypedApp: Equatable {
+    let bundleID: String
+    let name: String
+}
+
 /// Runs Type: keystrokes in, a suggestion out. Debounces, reads the field off
 /// the main thread, builds the prompt, streams from the engine, draws the
 /// suggestion, and types it on accept. Never logs text.
@@ -107,8 +113,6 @@ final class TypingCoordinator {
     private lazy var focusObserver = FocusObserver { [weak self] in self?.refreshIndicator(after: .milliseconds(50)) }
     /// The character after the caret when the last suggestion was asked for.
     private var nextInField: Character?
-    /// The app the user last typed in, for the menu's "Turn Off in <App>".
-    private(set) var lastApp: (bundleID: String, name: String)?
     private var buffer = KeystrokeBuffer()
     private var keystrokes = 0          // bumps on every user key; stale work compares against it
     private var debounceTask: Task<Void, Never>?
@@ -462,10 +466,20 @@ final class TypingCoordinator {
             guard mayRun, AppState.shared.typingShowIndicator else { return TypeIndicatorPanel.shared.hide() }
             let focus = await readFocus()
             guard !Task.isCancelled else { return }
+            if let focus { noteApp(focus) }
             if let focus, buffer.focus(on: focus.elementID, isSecure: focus.isSecure) { promptCaret.reset() }
             if shown != nil, focus?.elementID != suggestedElement { hide() }
             updateIndicator(for: focus)
         }
+    }
+
+    /// The app being typed in, for the menu's "Suggest in <App>" switch. Set
+    /// before the exclusion check, so an app turned off can be turned back
+    /// on; only on a change, so the menu is not redrawn on every key.
+    private func noteApp(_ focus: FocusSnapshot) {
+        guard let id = focus.bundleID, focus.pid != ProcessInfo.processInfo.processIdentifier, focus.isTextInput,
+              AppState.shared.typingLastApp?.bundleID != id else { return }
+        AppState.shared.typingLastApp = TypedApp(bundleID: id, name: focus.appName ?? id)
     }
 
     private func suggest(stamp: Int) async {
@@ -475,9 +489,7 @@ final class TypingCoordinator {
         // Before any rule: keys typed into another field, or a password
         // field, are never this field's text.
         if buffer.focus(on: focus.elementID, isSecure: focus.isSecure) { promptCaret.reset() }
-        if let id = focus.bundleID, focus.pid != ProcessInfo.processInfo.processIdentifier, focus.isTextInput {
-            lastApp = (id, focus.appName ?? id)
-        }
+        noteApp(focus)
         guard let surface = supportedSurface(focus, log: true) else {
             TypeIndicatorPanel.shared.hide()
             return
