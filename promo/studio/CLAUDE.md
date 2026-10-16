@@ -131,6 +131,14 @@ scripts/to-website.sh   web-size copies + posters of the hero for the site
 visuals inside x 60–960, y 340–1500 (4:5 area is y 285–1635; TikTok/Reels UI
 covers the bottom 420 px and right 120 px). Captions sit at y 370.
 
+**Rule (user, 2026-10-15): every 9:16 stays clear of the TikTok/Reels
+buttons.** Nothing that matters may cross x 960 (the like/comment/share
+column) or sit below y 1500. `check.sh` draws that line in red on every 9:16;
+a frame that crosses it is not done. The vertical cut is shared with the 4:5,
+so the 9:16 turns on `clearOfButtons` (cards 870 wide instead of 900, the
+headline and cloud pulled in); give any new shared vertical layout the same
+switch.
+
 ## Remotion skills vs. house rules
 `.agents/skills/remotion-*` (installed with `npx remotion skills add`, refresh
 with `npx remotion skills update`) are Remotion's general guidance: load

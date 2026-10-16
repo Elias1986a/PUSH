@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { color, font } from "../../../brand/tokens";
 import { s } from "../../../lib/time";
@@ -57,7 +57,13 @@ const CAPTIONS: CapLine[] = [
   { words: at("V4", [["We", 1.94], ["never", 2.08], ["see", 2.42], ["it.", 2.74]]), until: 23.3 + HOLD, accent: ["never"] },
 ];
 
-export const Tall: React.FC<PromoProps> = ({ web = false }) => (
+/** True in the 9:16 for TikTok/Reels: content stops at x 960 (their buttons are to the right). */
+const ClearOfButtons = createContext(false);
+/** Width of the cards and window crops (they start at x 90). */
+const useCardWidth = () => (useContext(ClearOfButtons) ? 870 : 900);
+
+export const Tall: React.FC<PromoProps> = ({ web = false, clearOfButtons = false }) => (
+  <ClearOfButtons.Provider value={clearOfButtons}>
   <MinText.Provider value={web ? 40 : 0}>
   <AbsoluteFill style={{ background: color.studio, fontFamily: font.body }}>
     <Glow />
@@ -112,10 +118,12 @@ export const Tall: React.FC<PromoProps> = ({ web = false }) => (
     />
   </AbsoluteFill>
   </MinText.Provider>
+  </ClearOfButtons.Provider>
 );
 
 const Hook: React.FC = () => {
   const f = useCurrentFrame();
+  const clear = useContext(ClearOfButtons);
   const push = lerp(f, [0, s(5.2)], [1.0, 1.07], false);
   return (
     <AbsoluteFill>
@@ -123,7 +131,7 @@ const Hook: React.FC = () => {
         <FullShot src={SHOTS.vertical} dim={0.2} />
       </AbsoluteFill>
       <AbsoluteFill style={{ background: "linear-gradient(to bottom, rgba(14,14,16,0.85) 0%, rgba(14,14,16,0.2) 40%, rgba(14,14,16,0) 60%)" }} />
-      <CloudIcon size={220} style={{ left: 760, top: 560, opacity: lerp(f, [s(1.6), s(2.2)], [0, 1]) }} />
+      <CloudIcon size={220} style={{ left: clear ? 700 : 760, top: 560, opacity: lerp(f, [s(1.6), s(2.2)], [0, 1]) }} />
       <WordsToCloud origin={{ x: 620, y: 1400 }} target={{ x: 870, y: 640 }} startAt={s(1.3)} every={6} travel={s(1.6)} size={36} />
       <Meter label="Subscription dictation" value="$12/mo" size={96} at={s(3.65)} style={{ left: 120, top: 1230 }} />
     </AbsoluteFill>
@@ -132,18 +140,20 @@ const Hook: React.FC = () => {
 
 const LocalBeat: React.FC = () => {
   const f = useCurrentFrame();
+  const clear = useContext(ClearOfButtons);
+  const width = useCardWidth();
   const lockIn = lerp(f, [s(1.9), s(2.3)], [0, 1]);
   const pillIn = lerp(f, [s(1.9), s(2.4)], [0, 1]);
   return (
     <AbsoluteFill>
       <WordsToCloud origin={{ x: 540, y: 1100 }} target={{ x: 860, y: 640 }} startAt={0} every={3} travel={s(1.2)} size={36} reverse count={6} />
       <div style={{ opacity: pillIn }}>
-        <Crop src={FOOTAGE.talkHero.src} from={6} crop={{ x: 947, y: 0, w: 666, h: 79 }} srcSize={TH} box={{ left: 90, top: 640, width: 900, height: 107 }} shapes={[SHAPES.notch]} />
+        <Crop src={FOOTAGE.talkHero.src} from={6} crop={{ x: 947, y: 0, w: 666, h: 79 }} srcSize={TH} box={{ left: 90, top: 640, width, height: (width * 107) / 900 }} shapes={[SHAPES.notch]} />
       </div>
       <div style={{ opacity: lockIn, transform: `scale(${0.7 + 0.3 * lockIn})` }}>
         <LockIcon size={110} style={{ left: 485, top: 820 }} stroke={color.onAir} />
       </div>
-      <Headline text="Every word stays on your Mac." accent="on your Mac." at={s(0.15)} size={100} style={{ left: 80, top: 1000, width: 920 }} align="center" />
+      <Headline text="Every word stays on your Mac." accent="on your Mac." at={s(0.15)} size={100} style={{ left: 80, top: 1000, width: clear ? 880 : 920 }} align="center" />
     </AbsoluteFill>
   );
 };
@@ -152,8 +162,8 @@ const LiveDictation: React.FC = () => {
   const f = useCurrentFrame();
   // Window full width; then push in on the pill for the correction.
   const t = lerp(f, [s(2.4), s(3.4)], [0, 1]);
-  const crop = mixRect({ x: 0, y: 0, w: 1040, h: 780 }, pillPushIn(900), t);
-  const width = 900;
+  const width = useCardWidth();
+  const crop = mixRect({ x: 0, y: 0, w: 1040, h: 780 }, pillPushIn(width), t);
   const box = { left: 90, top: 1095 - (width * crop.h) / crop.w / 2, width, height: (width * crop.h) / crop.w };
   return (
     <AbsoluteFill>
@@ -172,7 +182,7 @@ const Release: React.FC = () => {
   // correction's point (user, 2026-10-15).
   const stillAt = s(FOOTAGE.livePreview.textLands - LP_RELEASE_FROM) + s(0.2);
   const crop = { x: 30, y: 190, w: 980, h: 280 };
-  const width = 900;
+  const width = useCardWidth();
   const box = { left: 90, top: 730, width, height: (width * crop.h) / crop.w };
   return (
     <AbsoluteFill>
@@ -198,7 +208,7 @@ const TypeBeat: React.FC = () => {
   // Local 0 = 16.1 s. Tab taken at 27.77 s src → 1.22 s local = 17.32 s ("hit Tab").
   const tab = s(27.77 - TS_B_FROM);
   const crop = { x: 40, y: 381, w: 560, h: 48 };
-  const width = 900;
+  const width = useCardWidth();
   return (
     <AbsoluteFill>
       <Label text="TYPE" style={{ left: 80, top: 640 }} size={30} />
@@ -212,7 +222,7 @@ const LearnBeat: React.FC = () => {
   const f = useCurrentFrame();
   // Local 0 = 19.8 s; V4 at 19.9.
   const crop = { x: 30, y: 440, w: 560, h: 200 };
-  const width = 900;
+  const width = useCardWidth();
   const scale = width / crop.w;
   const box = { left: 90, top: 700, width, height: width * (crop.h / crop.w) };
   const lock = lerp(f, [s(2.0), s(2.3)], [0, 1]);

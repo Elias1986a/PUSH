@@ -36,10 +36,14 @@ it short.
 - AI people (Higgsfield) only frame the product. Use the user's pay-as-you-go
   API through `node scripts/promo/higgsfield-gen.mjs` (client in
   `~/Dev/higgsfield-mcp`, key in the Keychain, priced first, capped by
-  BUDGET_USD), not the claude.ai Higgsfield connector (a subscription). fal
-  (`fal` MCP, pay per run) is the backup for models Higgsfield lacks or when
-  it is down; check `get_pricing` first. Check stills before animating, never
-  re-run a billable call.
+  BUDGET_USD), not the claude.ai Higgsfield connector (a subscription).
+- **fal** (`fal` MCP, user scope, pay per run) for image editing: editing a
+  still (same person, new angle or setting, removing a logo), background
+  removal, upscaling, cleanup; and as the backup for video models Higgsfield
+  lacks or when it is down. Search its catalog for the right model, check
+  `get_pricing` and say the cost before any paid run. Save results into the
+  repo (`promo/raw/<video>/`, or `promo/studio/public/` if a video uses them).
+- Check stills before animating, never re-run a billable call.
 
 ## 4. Build
 - Destination decides the folder and id: `src/videos/<website|social|archive>/`,
@@ -54,6 +58,9 @@ Run `./scripts/check.sh <Id>` for every composition you touched (add the
 seconds you changed: `./scripts/check.sh <Id> 22.5 24`). Read the sheet it
 prints: every word readable at that size, nothing outside the red safe box on
 vertical frames, nothing blank or cut off. `npx tsc` must be clean.
+**Every 9:16 must stay clear of the TikTok/Reels buttons:** nothing that
+matters past x 960 or below y 1500 (the red line). A crossing frame is a fail,
+not a note.
 
 ## 6. Show, then render
 Open Studio on the composition (`open http://localhost:3000/<Id>`) and tell
