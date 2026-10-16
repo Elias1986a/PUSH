@@ -37,7 +37,7 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="10"
+      data-duration="11.5"
       data-width="1920"
       data-height="1080"
     >
@@ -47,7 +47,7 @@
         data-composition-id="01-push-to-talk"
         data-composition-src="compositions/frames/01-push-to-talk.html"
         data-start="0"
-        data-duration="3.6"
+        data-duration="5.1"
         data-track-index="0"
       ></div>
 
@@ -56,7 +56,7 @@
         class="scene"
         data-composition-id="02-tab-to-type"
         data-composition-src="compositions/frames/02-tab-to-type.html"
-        data-start="3.6"
+        data-start="5.1"
         data-duration="4.1"
         data-track-index="1"
       ></div>
@@ -66,7 +66,7 @@
         class="scene"
         data-composition-id="03-end-card"
         data-composition-src="compositions/frames/03-end-card.html"
-        data-start="7.2"
+        data-start="8.7"
         data-duration="2.8"
         data-track-index="0"
       ></div>
@@ -75,7 +75,7 @@
         class="clip"
         style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover"
         data-start="0"
-        data-duration="3.6"
+        data-duration="5.1"
         data-track-index="1005"
       ></video>
 
@@ -83,14 +83,14 @@
         class="clip"
         style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover"
         data-start="0"
-        data-duration="3.6"
+        data-duration="5.1"
         data-track-index="1006"
       ></video>
 
       <video data-hf-id="hf-1unr" id="f02-tab-to-type-type-a" src="assets/footage/type-clip.mp4" preload="auto" data-media-start="0" muted playsinline
         class="clip"
         style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover"
-        data-start="3.6"
+        data-start="5.1"
         data-duration="4.1"
         data-track-index="2005"
       ></video>
@@ -98,9 +98,9 @@
       <!-- BGM -->
       <audio data-hf-id="hf-z1z2"
         id="el-bgm"
-        src="assets/music/clean-pulse-10s.mp3"
+        src="assets/music/clean-pulse-11s.mp3"
         data-start="0"
-        data-duration="9.9"
+        data-duration="11.4"
         data-track-index="11"
         data-volume="0.9"
       ></audio>
@@ -112,11 +112,11 @@
       window.__timelines["main"] = gsap.timeline({ paused: true });
       // ── frame transitions (injected by transitions.mjs) ──
       (function () { var tl = window.__timelines["main"];
-        tl.to("#el-02-tab-to-type", { opacity: 0, duration: 0.3, ease: "power2.in" }, 7.2);
-        tl.fromTo("#el-03-end-card", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 7.2);
+        tl.to("#el-02-tab-to-type", { opacity: 0, duration: 0.3, ease: "power2.out" }, 8.7);
+        tl.fromTo("#el-03-end-card", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 8.7);
         // The TYPE footage is hoisted to the root, outside #el-02-tab-to-type: fade it with its frame.
-        tl.fromTo("#f02-tab-to-type-type-a", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.in", immediateRender: false }, 7.2);
-        tl.to({}, { duration: 10 }, 0); // full-span anchor — main.duration() == composition total (Studio master duration)
+        tl.fromTo("#f02-tab-to-type-type-a", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.7);
+        tl.to({}, { duration: 11.5 }, 0); // full-span anchor — main.duration() == composition total (Studio master duration)
       })();
     </script>
   </body>

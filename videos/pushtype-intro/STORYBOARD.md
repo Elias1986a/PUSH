@@ -1,6 +1,6 @@
 ---
 format: 1920x1080
-duration: 10s
+duration: 11.5s
 message: "PUSH to talk. Tab to TYPE."
 arc: Demo Loop (product intro → demo 1 → demo 2 → CTA), compressed to three beats
 audience: Mac users who write a lot
@@ -18,12 +18,12 @@ captions: skipped (no narration; the on-screen headlines carry the words)
 - **Motion grammar:** smooth long-tail settles (`power3.out`, `expo.out` on fast arrivals), no bounce or overshoot, entrances with `fromTo`. Reveals follow the on-screen words: nothing appears before its beat. Holds are still; subtle jitter at most.
 - **Rhythm:** frame 1 builds, frame 2 swaps in place (same window, same headline slot; it feels like one shot that changes its mind), frame 3 is the held breather: the wordmark lands and holds.
 - **Negative list:** no slideshow (everything dumped at t=0 then frozen), no screensaver (independent floating), no lazy breathing, no back-half slow pan or push, no bounce, no stock icons, no fake UI, no cursor, no second accent color. No caption pill.
-- **Audio:** the music bed `assets/music/clean-pulse-10s.mp3` (the explainer's "Clean Pulse" bed, its last 10s with the original ending) is host audio at the root; frames embed no audio. Footage is muted.
+- **Audio:** the music bed `assets/music/clean-pulse-11s.mp3` (the explainer's "Clean Pulse" bed, its last 11.5s with the original ending) is host audio at the root; frames embed no audio. Footage is muted.
 
 ## Frame 1 — PUSH to talk
 
 - scene: "PUSH to talk." builds on the left while the real Notes window on the right streams spoken words into the pill, the key releases, and clean text lands in the note
-- duration: 3.6s
+- duration: 5.1s
 - transition_in: cut
 - type: product_intro
 - beat: the promise, shown working
@@ -32,7 +32,7 @@ captions: skipped (no narration; the on-screen headlines carry the words)
 - blueprint: device-surface-showcase (Adapt)
 - focal: assets/footage/talk-clip.mp4
 - roles: talk-clip = supporting hero (masked window, right 55%) · headline = focal type (left 40%)
-- poster: 3.3s
+- poster: 4.0s
 - handoff_out: product window — left 859.2, top 150.4, 960.5×635.6, scale 1, opacity 1, static (no motion at the cut); headline block — left 100, baseline of line 1 at y 470, scale 1, opacity 1, static; key cap — left 100, top 560, scale 1, opacity 1, static
 - src: compositions/frames/01-push-to-talk.html
 - status: animated
@@ -47,7 +47,7 @@ In the clip, the pill streams words from 0.0s, the pill closes at 2.65s and the 
 Scene 1 (0.0–0.7s): ground holds; the product window (layer A + its rim) rises into place, y +40 → 0 and opacity 0 → 1, `power3.out` (→ `spring-pop-entrance`, smooth settle); the pill layer B and its rim come with it. The kicker fades up at 0.15s.
 Scene 2 (0.25–1.1s): the headline assembles word by word: "PUSH" lands first, then "to", then "talk." (→ `dynamic-content-sequencing`, `power3.out`, y +30 → 0, 0.12s stagger). Asymmetric 40/60 framing, three depth layers (ground glows, window, type).
 Scene 3 (1.0–2.65s): the key cap enters (opacity 0 → 1, y +16 → 0) and immediately goes to its pressed state: scale 0.94, border turns fire-orange #FF5A45, a faint fire-orange glow `box-shadow: 0 0 24px rgba(255,90,69,0.35)` (→ `press-release-spring`, but no overshoot). It stays pressed while the pill streams the words (the footage is the motion here).
-Scene 4 (2.65–3.6s): at 2.65s exactly the key releases (scale 1, border back to rgba(239,237,232,0.22), glow off, `power3.out` 0.25s) and at the same moment the pill layer B and its rim fade to 0 over 0.15s (the pill closes in the footage, and its backdrop must never show). At 3.07s the clean text lands in the note on its own. Then hold still to the cut.
+Scene 4 (2.65–5.1s): at 2.65s exactly the key releases (scale 1, border back to rgba(239,237,232,0.22), glow off, `power3.out` 0.25s) and at the same moment the pill layer B and its rim fade to 0 over 0.15s (the pill closes in the footage, and its backdrop must never show). At 3.07s the clean text lands in the note on its own. Then hold still for two full seconds so the text can be read (user note: it cut away too fast).
 
 ## Frame 2 — Tab to TYPE
 

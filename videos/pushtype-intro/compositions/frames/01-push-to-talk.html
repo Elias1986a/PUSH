@@ -158,7 +158,7 @@
   </style>
 
   <div data-hf-id="hf-3vro" id="root" data-composition-id="01-push-to-talk" data-width="1920" data-height="1080">
-    <div data-hf-id="hf-t9iq" id="f01-push-to-talk-ground" class="clip" data-start="0" data-duration="3.6" data-track-index="0"></div>
+    <div data-hf-id="hf-t9iq" id="f01-push-to-talk-ground" class="clip" data-start="0" data-duration="5.1" data-track-index="0"></div>
 
     <p data-hf-id="hf-8qvq" id="f01-push-to-talk-kicker">Dictation and autocomplete for the Mac</p>
 
@@ -298,8 +298,9 @@
         tl.to(target, { opacity: 0, duration: 0.15, ease: "power1.out" }, PILL_CLOSES);
       });
 
-      // Hold still to the cut (the clean text lands in the note at 3.07 on its own).
-      tl.set({}, {}, 3.6);
+      // Hold still to the cut: the clean text lands in the note at 3.07 on its own and
+      // stays on screen for two seconds so it can be read.
+      tl.set({}, {}, 5.1);
 
       window.__timelines = window.__timelines || {};
       window.__timelines[ID] = tl;
