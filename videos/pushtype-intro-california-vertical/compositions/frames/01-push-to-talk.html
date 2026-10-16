@@ -57,12 +57,12 @@
     }
 
     /* 9:16 layout: everything inside the TikTok/Reels-safe column x 60-960, y 340-1500
-       (promo/PROMO-PLAYBOOK.md), whose 4:5 crop is y 285-1635.
+       (promo/PROMO-PLAYBOOK.md), centered on y 940 so the 4:5 crop (y 285-1635) holds it.
        Kicker: JetBrains Mono 24px, uppercase, 0.14em, walnut. */
     #f01-push-to-talk-kicker {
       position: absolute;
       left: 90px;
-      top: 400px;
+      top: 700px;
       margin: 0;
       font-family: "JetBrains Mono", monospace;
       font-weight: 400;
@@ -78,7 +78,7 @@
     #f01-push-to-talk-headline {
       position: absolute;
       left: 86px;
-      top: 450px;
+      top: 750px;
       margin: 0;
       font-family: "Archivo", sans-serif;
       font-weight: 800;
@@ -94,11 +94,11 @@
       will-change: transform, opacity;
     }
 
-    /* Key cap row: chip 96x88 at left 90, top 610; label to its right. */
+    /* Key cap row: chip 96x88 at left 90, top 910; label to its right. */
     #f01-push-to-talk-key {
       position: absolute;
       left: 90px;
-      top: 610px;
+      top: 910px;
       height: 88px;
       display: flex;
       align-items: center;
@@ -131,46 +131,20 @@
       white-space: nowrap;
       color: #bdb9b1;
     }
-
-    /* Rims sit behind the masked video layers (the hoisted videos paint above the frame). */
-    #f01-push-to-talk-rim-window,
-    #f01-push-to-talk-rim-pill {
-      position: absolute;
-      box-sizing: border-box;
-      background: #141416;
-      box-shadow:
-        0 0 0 1px rgba(239, 237, 232, 0.16),
-        0 0 48px rgba(239, 237, 232, 0.06);
-    }
-    /* The 16:9 rims at 0.92 around the 920x690 video box at (50, 760). */
-    #f01-push-to-talk-rim-window {
-      left: 67.692px;
-      top: 774.154px;
-      width: 883.731px;
-      height: 584.731px;
-      border-radius: 21.231px;
-    }
-    #f01-push-to-talk-rim-pill {
-      left: 119.885px;
-      top: 1384.538px;
-      width: 781.115px;
-      height: 52.192px;
-      border-radius: 26.096px;
-    }
   </style>
 
-  <div data-hf-id="hf-3vro" id="root" data-composition-id="01-push-to-talk" data-width="1080" data-height="1920">
-    <div data-hf-id="hf-t9iq" id="f01-push-to-talk-ground" class="clip" data-start="0" data-duration="5.6" data-track-index="0"></div>
+  <div id="root" data-composition-id="01-push-to-talk" data-width="1080" data-height="1920">
+    <div id="f01-push-to-talk-ground" class="clip" data-start="0" data-duration="5.6" data-track-index="0"></div>
 
-    <p data-hf-id="hf-8qvq" id="f01-push-to-talk-kicker">Dictation and autocomplete for the Mac</p>
+    <p id="f01-push-to-talk-kicker">Dictation and autocomplete for the Mac</p>
 
-    <h1 data-hf-id="hf-gwcj" id="f01-push-to-talk-headline"><span data-hf-id="hf-oefl">PUSH</span> <span data-hf-id="hf-1jhc">to</span> <span data-hf-id="hf-2i0f">talk.</span></h1>
+    <h1 id="f01-push-to-talk-headline"><span>PUSH</span> <span>to</span> <span>talk.</span></h1>
 
-    <div data-hf-id="hf-2cea" id="f01-push-to-talk-key">
-      <div data-hf-id="hf-ziij" id="f01-push-to-talk-keycap" aria-label="Option key">
+    <div id="f01-push-to-talk-key">
+      <div id="f01-push-to-talk-keycap" aria-label="Option key">
         <!-- The Option glyph (U+2325) is not in the shipped JetBrains Mono subset, so it is drawn. -->
-        <svg data-hf-id="hf-jcxn" viewBox="0 0 32 24" aria-hidden="true">
-          <path data-hf-id="hf-o7yx"
+        <svg viewBox="0 0 32 24" aria-hidden="true">
+          <path
             d="M2 4 H10.5 L21.5 20 H30 M19.5 4 H30"
             fill="none"
             stroke="currentColor"
@@ -180,17 +154,12 @@
           />
         </svg>
       </div>
-      <div data-hf-id="hf-sfxo" id="f01-push-to-talk-keylabel">hold to talk</div>
+      <div id="f01-push-to-talk-keylabel">hold to talk</div>
     </div>
 
-    <div data-hf-id="hf-gxro" id="f01-push-to-talk-rim-window"></div>
-    <div data-hf-id="hf-xigh" id="f01-push-to-talk-rim-pill"></div>
-
-    <!-- Two muted layers of the same Talk recording, in the shared 1000x750 window box.
-         The assembler hoists them to the host root; the timeline below masks them:
-         A to the Notes window, B to the live-preview pill. -->
-    <!-- approved frame video hoisted by assemble-index -->
-    <!-- approved frame video hoisted by assemble-index -->
+    <!-- The live pill (promo/pill-large.mp4's ProRes master, cut to assets/footage/pill-clip.mp4)
+         is a <video> on the host root (index.html); the script below masks it to the pill's
+         right end, where the newest words arrive. -->
   </div>
 
   <script>
@@ -200,116 +169,64 @@
       var byId = function (name) {
         return document.getElementById(PREFIX + name);
       };
-      // The approved videos are hoisted to the host root, outside this frame's
-      // scoped document, so they are looked up on the real owner document.
+      // The pill video sits on the host root, outside this frame's scoped document.
       var root = document.querySelector('[data-composition-id="' + ID + '"]');
       var hostDoc = (root && root.ownerDocument) || window.document;
-      var hostVideo = function (name) {
-        return hostDoc.getElementById(PREFIX + name) || byId(name);
-      };
 
       var kicker = byId("kicker");
       var words = Array.prototype.slice.call(byId("headline").querySelectorAll("span"));
       var keyRow = byId("key");
       var keycap = byId("keycap");
-      var rimWindow = byId("rim-window");
-      var rimPill = byId("rim-pill");
-      var talkA = hostVideo("talk-a");
-      var talkB = hostVideo("talk-b");
+      var pill = hostDoc.getElementById(PREFIX + "pill");
 
-      // Masks in the 920x690 video box (the 16:9 masks at 0.92).
-      var MASK_WINDOW = "inset(14.154px 18.577px 91.115px 17.692px round 21.231px)";
-      var MASK_PILL = "inset(624.538px 69px 13.269px 69.885px round 26.096px)";
+      // The 1820x192 pill take at 1.1208 (2039.9 x 215.2 box at (-993.55, 965.5)):
+      // source x 940-1743 lands on screen x 60-960, the pill's y 120-192 on y 1100-1181.
+      // Its left edge is a cut, so it fades out over 200px.
+      var MASK_PILL = "inset(134.496px 86.302px 0px 1053.552px round 40.349px)";
+      var FADE = "linear-gradient(to right, transparent 1053.552px, #000 1253.552px)";
       var FOOTAGE_FILTER = "brightness(1.14)";
-      var layerA = { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER };
-      var layerB = { clipPath: MASK_PILL, filter: FOOTAGE_FILTER };
-      if (talkA) Object.assign(talkA.style, { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER });
-      // Pieces of the window clip split in Studio (ids "<talk-a id>-split…") get the same mask.
-      Array.prototype.forEach.call(
-        hostDoc.querySelectorAll('video[id^="' + PREFIX + 'talk-a-"]'),
-        function (piece) {
-          Object.assign(piece.style, { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER });
-        },
-      );
-      if (talkB) Object.assign(talkB.style, { clipPath: MASK_PILL, filter: FOOTAGE_FILTER });
+      if (pill) {
+        Object.assign(pill.style, {
+          clipPath: MASK_PILL,
+          maskImage: FADE,
+          webkitMaskImage: FADE,
+          filter: FOOTAGE_FILTER,
+          transformOrigin: "1503.552px 174.844px",
+        });
+      }
 
       var KEY_REST = { borderColor: "rgba(239,237,232,0.22)", boxShadow: "0 0 0px rgba(255,90,69,0)" };
       var KEY_DOWN = { borderColor: "#FF5A45", boxShadow: "0 0 24px rgba(255,90,69,0.35)" };
 
-      // Footage cues (frame-local seconds).
-      var PILL_CLOSES = 2.65;
+      // Cues (frame-local seconds). Jessica speaks 0.14-2.73; the key comes up as she ends.
+      var KEY_UP = 2.65;
 
       var tl = gsap.timeline({ paused: true });
 
-      // Scene 1 (0.0-0.7): the product window rises into place, pill layer with it.
-      var rise = function (target, extra) {
-        if (!target) return;
-        tl.fromTo(
-          target,
-          Object.assign({ y: 40, opacity: 0 }, extra || {}),
-          Object.assign({ y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, extra || {}),
-          0,
-        );
-      };
-      rise(rimWindow);
-      rise(talkA, layerA);
-      rise(rimPill);
-      rise(talkB, layerB);
-
-      // Kicker fades up at 0.15.
-      tl.fromTo(
-        kicker,
-        { y: 12, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" },
-        0.15,
-      );
-
-      // Scene 2 (0.25-1.1): "PUSH", "to", "talk." land word by word.
-      var WORD_START = 0.25;
-      var WORD_STAGGER = 0.12;
-      var WORD_DUR = 0.6;
-      var wordTimes = words.map(function (_, i) {
-        return WORD_START + i * WORD_STAGGER;
-      });
+      // Scene 1 (0.0-0.5): kicker, "PUSH to talk." word by word, the key row and the pill.
+      tl.fromTo(kicker, { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }, 0);
       words.forEach(function (word, i) {
-        tl.fromTo(
-          word,
-          { y: 30, opacity: 0 },
-          { y: 0, opacity: 1, duration: WORD_DUR, ease: "power3.out" },
-          wordTimes[i],
-        );
+        tl.fromTo(word, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 0.05 + i * 0.06);
       });
+      tl.fromTo(keyRow, { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "power3.out" }, 0.1);
+      if (pill) {
+        tl.fromTo(pill, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.05);
+        // A slow push-in while she talks; at 1.0 the pill fills the safe column exactly.
+        tl.fromTo(pill, { scale: 0.96 }, { scale: 1, duration: 2.7, ease: "sine.out" }, 0.05);
+      }
 
-      // Scene 3 (1.0-2.65): key cap enters, then goes straight down and holds.
-      tl.fromTo(
-        keyRow,
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" },
-        1.0,
-      );
-      var PRESS_START = 1.25;
-      var PRESS_DUR = 0.15;
+      // Scene 2 (0.15-2.65): the key goes down before she speaks and holds.
       tl.fromTo(
         keycap,
         Object.assign({ scale: 1 }, KEY_REST),
-        Object.assign({ scale: 0.94, duration: PRESS_DUR, ease: "power1.in" }, KEY_DOWN),
-        PRESS_START,
+        Object.assign({ scale: 0.94, duration: 0.12, ease: "power1.in" }, KEY_DOWN),
+        0.15,
       );
 
-      // Scene 4 (2.65-3.6): the key releases as the pill closes in the footage.
-      tl.to(
-        keycap,
-        Object.assign({ scale: 1, duration: 0.25, ease: "power3.out" }, KEY_REST),
-        PILL_CLOSES,
-      );
-      [talkB, rimPill].forEach(function (target) {
-        if (!target) return;
-        tl.to(target, { opacity: 0, duration: 0.15, ease: "power1.out" }, PILL_CLOSES);
-      });
+      // Scene 3 (2.65): the key comes up as she finishes; the sunset wipes up from 2.75 (frame 1b).
+      tl.to(keycap, Object.assign({ scale: 1, duration: 0.25, ease: "power3.out" }, KEY_REST), KEY_UP);
 
-      // Hold still to the cut: the clean text lands in the note at 3.07 on its own and
-      // stays on screen for two seconds so it can be read.
-      tl.set({}, {}, 5.6);
+      tl.set({}, {}, 3.3);
 
       window.__timelines = window.__timelines || {};
       window.__timelines[ID] = tl;
