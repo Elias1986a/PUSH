@@ -1,5 +1,9 @@
 # NOTES
 
+## "no" → "know" (2026-10-16, next-release, not released)
+
+User dictated "but no, I'm frustrated" expecting "know". That sentence reads both ways, so it stays; only the audio could tell. New pass `fixNoMeaningKnow` (PUSHCore/TextProcessing+KnowNo.swift, English chain after stutters) fixes only the shapes where "no" cannot be the word: negated auxiliary ("don't no"), "let me no", question ("do you no where"), subject + a word that needs a verb ("I no what"), "to no" + question word, and clause-opening "you no,". "No" stays before one/longer/more/avail etc., after told/give + you, and before hyphens. Tests in TextProcessingTests; written in a Linux session without a Swift toolchain (logic checked with a Python mirror, 46 cases), so run `swift test` on the Mac before release.
+
 ## 9.4.0 built, not published (2026-10-15)
 
 Menu bar "Suggest in <App>" switch: TYPE on/off in the app last typed in, both ways (Pause stays global and timed; its "Always in <App>" option is gone). Signed + notarized and installed on the user's Mac for them to try. Not released: no GitHub release, appcast.xml in the repo restored. The built ZIP, DMG and the generated feed are in ~/Library/Developer/SwiftPackages/PUSH-dist (appcast-9.4.0.xml); if nothing changes before release, publish those (`gh release create v9.4.0 …`, copy the feed over appcast.xml, commit). Plan: the benchmark study Fri 2026-10-16, production Sun 2026-10-18.

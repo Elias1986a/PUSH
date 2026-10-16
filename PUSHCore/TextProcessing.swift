@@ -76,6 +76,7 @@ public actor TranscriptionPipeline {
         var out = collapseDoubledPeriods(normalizeCause(text))
         out = removeFillerWords(out)
         out = removeStutteredWords(out)
+        out = fixNoMeaningKnow(out)
         out = stripConnectingAnd(out)
         out = normalizeOrdinals(out)
         out = normalizeDecimalDictation(out)
