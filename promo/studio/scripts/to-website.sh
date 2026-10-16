@@ -2,15 +2,15 @@
 # Make the website's copies of the hero from the masters in out/website/
 # (run ./scripts/render.sh WebHero16x9 WebHero4x5 first): small H.264 files and
 # a poster for each, written straight into website/assets/video/.
-#   WebHero16x9 → hero.mp4 + hero.jpg      (laptops and up)
-#   WebHero4x5  → hero-4x5.mp4 + hero-4x5.jpg   (phones)
+#   WebHero16x9 → hero.mp4 + hero.jpg          (laptops and up)
+#   WebHero4x5  → hero-4x5.mp4 + hero-4x5.jpg  (phones)
+# Posters: the 16:9 at TYPE's gray "think!" just before Tab, the 4:5 on the
+# pasted paragraph (seconds into each video; move them if the cut changes).
 set -euo pipefail
 cd "${0:A:h}/.."
 site=../../website/assets/video
-poster_at=2.0 # seconds in: the pill streaming words under "Hold a key and talk."
-
-for pair in WebHero16x9:hero WebHero4x5:hero-4x5; do
-  id=${pair%%:*} name=${pair#*:}
+for spec in WebHero16x9:hero:34.8 WebHero4x5:hero-4x5:14.5; do
+  id=${spec%%:*} rest=${spec#*:} name=${rest%%:*} poster_at=${rest#*:}
   src=out/website/$id.mp4
   [[ -f $src ]] || { echo "missing $src: render it first" >&2; exit 1; }
   npx remotion ffmpeg -loglevel error -y -i "$src" \
