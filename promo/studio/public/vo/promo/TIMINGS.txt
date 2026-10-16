@@ -1,0 +1,22 @@
+PUSHTYPE promo VO cuts (48 kHz WAV)
+Narrator: "Hey It's Brad" take 15_49_11 (a2542a70) for 16:9, take 15_50_28 (294c6c61) for 9:16
+Dictation: Jessica, pulled from the audio inside live-preview.mp4 (in sync with that footage)
+
+16x9  (~45s once spaced)
+N1_hook            5.32s  Most dictation apps send your voice to the cloud. Then charge you every month for it.
+N2_local           4.28s  PUSHTYPE keeps your voice, and every word, on your Mac.
+N3_holdkey         2.10s  Hold a key, and just talk.
+J_dictation_messy  9.70s  live-preview.mp4 8.70s to 18.40s  ("Um, we've spent 37%... I mean, 1.52 seconds.")
+N4_cleanup         5.65s  It cuts the ums, catches your corrections, and drops clean text wherever you're typing.
+N5_type            3.95s  Start typing, and it finishes your sentence. Just press Tab.
+N6_learns          5.90s  The more you use it, the more it writes like you. Learned on your Mac. Never sent to us.
+N7_price           4.30s  No subscription. No account. Thirty-five dollars, once.
+N8_endcard         3.50s  PUSHTYPE. Push to talk. Tab to type.
+
+9x16  (~26s once spaced)
+V1_hook            4.85s  Your dictation app sends your voice to the cloud. And bills you monthly for it.
+V2_local           2.70s  PUSHTYPE keeps every word on your Mac.
+J_dictation_messy  5.20s  live-preview.mp4 13.20s to 18.40s  ("...the new build loads in 15.2 seconds. I mean, 1.52 seconds.")
+V3_talk_type       5.50s  Talk messy. Get clean text. Then hit Tab and it finishes your sentence.
+V4_learns          3.20s  It learns how you write. We never see it.
+V5_price_end       3.24s  Thirty-five dollars. Once. PUSHTYPE.
