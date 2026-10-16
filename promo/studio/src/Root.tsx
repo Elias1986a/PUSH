@@ -3,12 +3,13 @@ import { Composition, Folder } from "remotion";
 // Starts the font loads; loadFont holds rendering until they land.
 import "./brand/tokens";
 import { FPS, s } from "./lib/time";
-import { DURATION_S, Explainer } from "./videos/explainer/Explainer";
-import { Feed } from "./videos/promo/Feed";
-import { Tall } from "./videos/promo/Tall";
-import { Wide } from "./videos/promo/Wide";
+import { DURATION_S, Explainer } from "./videos/archive/explainer/Explainer";
+import { Feed } from "./videos/social/promo/Feed";
+import { Tall } from "./videos/social/promo/Tall";
+import { Wide } from "./videos/social/promo/Wide";
+import { HERO_S, Hero } from "./videos/website/hero/Hero";
 
-/** Ad sizes (promo/PROMO-PLAYBOOK.md §1). */
+/** Frame sizes (promo/PROMO-PLAYBOOK.md §1). */
 const SIZE = {
   wide: { width: 1920, height: 1080 },
   feed: { width: 1080, height: 1350 },
@@ -18,17 +19,28 @@ const SIZE = {
 /** "Clean Pulse", ElevenLabs Music, from the user (2026-10-15). */
 const music = "explainer-music.mp3";
 
-// Every video registers here, one <Folder> per video, ids <Video><Format> (Promo16x9).
+// Grouped by where the video goes. The id starts with that group (Web, Social,
+// Archive) and ends with the frame (16x9, 4x5, 9x16); scripts/render.sh files
+// each render under out/<group>/ by that prefix.
 export const RemotionRoot: React.FC = () => (
   <>
-    <Folder name="Promo">
-      <Composition id="Promo16x9" component={Wide} durationInFrames={s(50)} fps={FPS} {...SIZE.wide} />
-      <Composition id="Promo4x5" component={Feed} durationInFrames={s(28.5)} fps={FPS} {...SIZE.feed} />
-      <Composition id="Promo9x16" component={Tall} durationInFrames={s(28.5)} fps={FPS} {...SIZE.tall} />
+    {/* On pushtype.app. */}
+    <Folder name="Website">
+      <Composition id="WebHero16x9" component={Hero} durationInFrames={s(HERO_S)} fps={FPS} {...SIZE.wide} defaultProps={{ format: "wide" as const }} />
+      <Composition id="WebHero4x5" component={Hero} durationInFrames={s(HERO_S)} fps={FPS} {...SIZE.feed} defaultProps={{ format: "feed" as const }} />
     </Folder>
-    <Folder name="Explainer">
+
+    {/* Ads and posts: 16:9 YouTube, 4:5 Instagram/Facebook feed, 9:16 Reels/Stories/TikTok. */}
+    <Folder name="Social">
+      <Composition id="SocialPromo16x9" component={Wide} durationInFrames={s(50)} fps={FPS} {...SIZE.wide} />
+      <Composition id="SocialPromo4x5" component={Feed} durationInFrames={s(28.5)} fps={FPS} {...SIZE.feed} />
+      <Composition id="SocialPromo9x16" component={Tall} durationInFrames={s(28.5)} fps={FPS} {...SIZE.tall} />
+    </Folder>
+
+    {/* Not in use; kept so they can be re-rendered. */}
+    <Folder name="Archive">
       <Composition
-        id="Explainer16x9"
+        id="ArchiveExplainer16x9"
         component={Explainer}
         durationInFrames={s(DURATION_S)}
         fps={FPS}
@@ -36,7 +48,7 @@ export const RemotionRoot: React.FC = () => (
         defaultProps={{ vertical: false, music }}
       />
       <Composition
-        id="Explainer9x16"
+        id="ArchiveExplainer9x16"
         component={Explainer}
         durationInFrames={s(DURATION_S)}
         fps={FPS}

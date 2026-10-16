@@ -1,20 +1,40 @@
 # CLAUDE.md — PUSHTYPE studio (Remotion)
 
-Motion graphics for PUSHTYPE: the ad promo (16:9, 4:5, 9:16) and the website
-explainer, written as React and rendered with Remotion 4. **Brand, messaging,
+Motion graphics for PUSHTYPE (the website hero, the social ads), written as
+React and rendered with Remotion 4. **Brand, messaging,
 claims, voice and the ad pipeline live in `../PROMO-PLAYBOOK.md`; read it
 before making or changing any video.** This file is how to build one here.
 
+## Where each video goes
+Everything is labeled by destination: the Studio folder, the composition id's
+prefix, the source folder and the render folder all say the same thing.
+
+| Destination | Studio folder | Ids | Source | Renders to | Then |
+|---|---|---|---|---|---|
+| pushtype.app | Website | `WebHero16x9` (laptops), `WebHero4x5` (phones) | `src/videos/website/` | `out/website/` | `npm run to-website` writes the small copies + posters into `website/assets/video/` |
+| Ads and posts | Social | `SocialPromo16x9` (YouTube), `SocialPromo4x5` (Instagram/Facebook feed), `SocialPromo9x16` (Reels, Stories, TikTok) | `src/videos/social/` | `out/social/` | upload the files as they are |
+| Not in use | Archive | `ArchiveExplainer16x9`, `ArchiveExplainer9x16` | `src/videos/archive/` | `out/archive/` | nothing |
+
+Website videos and ads are different jobs. The hero plays muted at about a
+quarter of its size beside the page's headline: product first, one idea per
+beat, every word ≥ ~50 px in the frame, price and qualifiers in the page copy.
+Ads play full screen with sound: problem, turn, proof, price, end card
+(playbook §3). Don't put an ad on the site or the hero in an ad; make a cut for
+each. Check website stills scaled to their real size (496 px wide for the
+16:9, 327 px for the 4:5) before calling them done.
+
 ## Commands (run in promo/studio)
 - `npm run dev`: Remotion Studio at http://localhost:3000. Every composition is
-  in the left sidebar, grouped by video, with a timeline you can scrub. It hot-reloads
+  in the left sidebar, grouped by destination, with a timeline you can scrub. It hot-reloads
   on save; keep it open while you work so the user can watch.
 - `npx remotion still <Id> out/check.png --frame=<n>`: one frame as PNG. Use
   stills to check your work (read the PNG back), not just the type check.
 - `npm run typecheck`: `tsc`; must be clean.
-- `npm run render:promo` / `npm run render:explainer` / `npm run render -- <Id>...`:
-  renders to `out/<Id>.mp4` (git-ignored), then normalizes audio to -14 LUFS,
-  -1 dBTP. `npm run render -- --4k <Id>` renders at 2× (`out/<Id>-4k.mp4`).
+- `npm run render:website` / `render:social` / `render:archive` / `npm run render -- <Id>...`:
+  renders to `out/<group>/<Id>.mp4` (git-ignored), then normalizes audio to
+  -14 LUFS, -1 dBTP. `npm run render -- --4k <Id>` renders at 2× (`<Id>-4k.mp4`).
+- `npm run to-website`: after `render:website`, encodes the site's copies
+  (`hero.mp4`, `hero-4x5.mp4` and their `.jpg` posters) into `website/assets/video/`.
 - `npx remotion add <package>`: add any `@remotion/*` package. It pins the
   same version as `remotion`; mismatched versions break the bundle.
 - `npx remotion ffmpeg` / `npx remotion ffprobe`: ffmpeg is not installed on
@@ -25,37 +45,43 @@ before making or changing any video.** This file is how to build one here.
 ## Layout
 ```
 src/
-  Root.tsx              registers every composition, one <Folder> per video
+  Root.tsx              registers every composition in Website / Social / Archive folders
   brand/tokens.ts       color, font (importing it loads the fonts)
   lib/time.ts           FPS (30), s(seconds) → frames
   lib/anim.ts           lerp, rise, mixRect, clamp, Box/Rect
   footage.ts            catalogue of real recordings: sizes, SHAPES, key moments, SHOTS
   components/           shared: Scene, Glow, FullShot, Label, Headline, BrandDot,
                         WordCaptions, KeyChip, Meter, icons, Crop, EndCard, PriceStack
-  videos/<video>/       one folder per video; promo/ (Wide, Tall, Feed, beats), explainer/
+  videos/website/hero/  the site hero (one component, wide + feed layouts)
+  videos/social/promo/  the ad: Wide (16:9), Tall (9:16), Feed (4:5), beats
+  videos/archive/explainer/   the 21 s explainer, not in use
 public/
   fonts/  footage/  shots/  music/  vo/<video>/    shared assets; staticFile("footage/…")
-  explainer/            the explainer's own frozen copies
+  explainer/            the archived explainer's own copies
 .agents/skills/         Remotion's official agent skills (.claude/skills links here)
-scripts/render.sh       render + loudness normalize
+scripts/render.sh       render + loudness normalize, into out/<group>/
+scripts/to-website.sh   web-size copies + posters of the hero for the site
 ```
 
 ## Making a new video
 1. Script and VO first (playbook §5): cut the VO per line into `public/vo/<video>/`
    and write word timings into `TIMINGS.txt` beside them. Timings drive every cut.
-2. Create `src/videos/<video>/` with one component per format: a 16:9 edit
-   (`Wide`), a 9:16 edit designed 4:5-safe (`Tall`), and `Feed`, the 4:5 crop of
-   `Tall` (copy `videos/promo/Feed.tsx`). The 16:9 is its own edit, never a crop.
-3. Register them in `Root.tsx` inside a `<Folder name="…">`, ids `<Video><Format>`
-   (`Launch16x9`), sizes from `SIZE`, `fps={FPS}`, `durationInFrames={s(seconds)}`.
+2. Decide where it goes (table above) and create `src/videos/<destination>/<video>/`.
+   For social: a 16:9 edit (`Wide`), a 9:16 edit designed 4:5-safe (`Tall`), and
+   `Feed`, the 4:5 crop of `Tall` (copy `videos/social/promo/Feed.tsx`). The 16:9
+   is its own edit, never a crop.
+3. Register them in `Root.tsx` in that destination's `<Folder>`, ids
+   `<Destination><Video><Format>` (`SocialLaunch9x16`, `WebPricing16x9`), sizes
+   from `SIZE`, `fps={FPS}`, `durationInFrames={s(seconds)}`. render.sh files
+   renders by the prefix and refuses an id without one.
 4. Build from `components/` and `footage.ts`. Put anything with baked-in words
-   in the video's own folder (as `videos/promo/beats.tsx` does). Promote a piece
+   in the video's own folder (as `videos/social/promo/beats.tsx` does). Promote a piece
    to `components/` once a second video needs it.
 5. Check stills at each beat in every format, then render.
 
 ## Scenes and timing
 - Write every time in **seconds of the finished video** and convert with `s()`.
-  Keep a map of when each VO line starts (`VO_AT` in `videos/promo/Wide.tsx`) and
+  Keep a map of when each VO line starts (`VO_AT` in `videos/social/promo/Wide.tsx`) and
   time scenes and animations from it.
 - `<Scene at until fade>` is a `Sequence` with short fades. Inside it,
   `useCurrentFrame()` counts from the scene's start, so in-scene times are local.
@@ -108,8 +134,8 @@ with `npx remotion skills update`) are Remotion's general guidance: load
   when delivering.
 
 ## Gotchas
-- The explainer (`videos/explainer`) shipped on the old charcoal palette with its
-  own assets in `public/explainer`. It is frozen: edit it only on request.
+- The archived explainer (`videos/archive/explainer`) uses the old charcoal palette
+  and its own assets in `public/explainer`. Edit it only on request.
 - Composition props must be a `type`, not an `interface` (Remotion needs
   `Record<string, unknown>`).
 - `remotion.config.ts` applies to the CLI and Studio only: PNG frames (clean

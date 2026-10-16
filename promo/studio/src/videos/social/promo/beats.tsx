@@ -1,8 +1,8 @@
 import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
-import { color, font } from "../../brand/tokens";
-import { clamp, lerp } from "../../lib/anim";
-import { FOOTAGE } from "../../footage";
+import { color, font } from "../../../brand/tokens";
+import { clamp, lerp } from "../../../lib/anim";
+import { FOOTAGE } from "../../../footage";
 
 // Promo-only pieces: their words are baked in, so they are not shared components.
 

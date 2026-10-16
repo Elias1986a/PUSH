@@ -1,7 +1,8 @@
 # Promo clips
 
-Finished clips, full quality. Videos built from them (the promo ads, the
-explainer) are made in Remotion in `studio/`; see `studio/CLAUDE.md` and
+Finished clips, full quality. Videos built from them are made in Remotion in
+`studio/`, labeled by where they go: **Website** (the hero), **Social** (the ad
+in 16:9, 4:5 and 9:16) and **Archive** (not in use). See `studio/CLAUDE.md` and
 `PROMO-PLAYBOOK.md`. The website uses a compressed copy of
 `live-preview.mp4` (`website/assets/video/live-preview.mp4`). How they are
 recorded: `scripts/promo/README.md`.

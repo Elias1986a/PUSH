@@ -10,12 +10,12 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { color as brand, font } from "../../brand/tokens";
-import { s } from "../../lib/time";
+import { color as brand, font } from "../../../brand/tokens";
+import { s } from "../../../lib/time";
 
-// Shipped 2026-10-15 on the website's charcoal look, before the promo moved to
-// near-black. Frozen: it keeps its own palette and assets (public/explainer) so
-// it renders as shipped. New videos use the brand tokens and shared components.
+// Made 2026-10-15 on the website's charcoal look, before the promo moved to
+// near-black. Archived: it keeps its own palette and assets (public/explainer)
+// so it renders as made. New videos use the brand tokens and shared components.
 const color = { ...brand, studio: "#141416", raised: "#1e1e22", muted: "#a7a39b", chrome: "#3a3d44" };
 
 export const DURATION_S = 21;

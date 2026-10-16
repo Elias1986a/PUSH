@@ -1,9 +1,9 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
-import { color, font } from "../../brand/tokens";
-import { s } from "../../lib/time";
-import { lerp, mixRect } from "../../lib/anim";
-import { FOOTAGE, LP, SHAPES, SHOTS, TH } from "../../footage";
+import { color, font } from "../../../brand/tokens";
+import { s } from "../../../lib/time";
+import { lerp, mixRect } from "../../../lib/anim";
+import { FOOTAGE, LP, SHAPES, SHOTS, TH } from "../../../footage";
 import {
   CapLine,
   CloudIcon,
@@ -19,7 +19,7 @@ import {
   PriceStack,
   Scene,
   WordCaptions,
-} from "../../components";
+} from "../../../components";
 import { Redline, SignOffNote, WordsToCloud } from "./beats";
 
 /**
