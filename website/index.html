@@ -62,25 +62,33 @@
       "@id": "https://pushtype.app/#website",
       "name": "PUSHTYPE",
       "url": "https://pushtype.app/",
-      "publisher": { "@id": "https://pushtype.app/#org" }
+      "publisher": {
+        "@id": "https://pushtype.app/#org"
+      }
     },
     {
       "@type": "SoftwareApplication",
       "name": "PUSHTYPE",
       "description": "Offline dictation and inline autocomplete for Mac.  Speech and suggestions run on your Mac and never leave it.",
       "url": "https://pushtype.app/",
-      "image": "https://pushtype.app/assets/share.png",
+      "image": "https://pushtype.app/assets/icon.png",
       "applicationCategory": "UtilitiesApplication",
       "operatingSystem": "macOS 15 or later, Apple silicon",
       "softwareVersion": "10.0",
-      "publisher": { "@id": "https://pushtype.app/#org" },
+      "publisher": {
+        "@id": "https://pushtype.app/#org"
+      },
       "offers": {
         "@type": "Offer",
         "price": "35.00",
         "priceCurrency": "USD",
         "availability": "https://schema.org/InStock",
         "url": "https://pushtype.app/#pricing"
-      }
+      },
+      "screenshot": [
+        "https://pushtype.app/assets/video/dictation.jpg",
+        "https://pushtype.app/assets/video/typing.jpg"
+      ]
     }
   ]
 }
@@ -109,21 +117,28 @@
 
 <main>
 
-<section class="wrap hero hero-solo" id="top">
-<div class="stack" style="gap: 20px;">
-<p class="eyebrow">Dictation and autocomplete for the Mac</p>
-<h1 class="disp">PUSH to talk.<br>Tab to TYPE.</h1>
-<p class="lede"><strong>What you say and type never leaves your Mac.</strong> Hold a key and speak, or just start typing and PUSHTYPE finishes your sentence.&nbsp; Two tools in one app, both learning how you write.</p>
-<div class="row">
+<section class="wrap hero hero-split" id="top">
+<p class="eyebrow hero-eyebrow">Dictation and autocomplete for the Mac</p>
+<h1 class="disp"><span>PUSH to talk.</span><br><span>Tab to TYPE.</span></h1>
+<p class="lede hero-lede"><strong>What you say and type never leaves your Mac.</strong> Hold a key and speak, or just start typing and PUSHTYPE finishes your sentence.&nbsp; Two tools in one app, both learning how you write.</p>
+<figure class="hero-media">
+<!-- Phones get the 4:5 cut, everything wider the 16:9.  The poster is the
+     4:5 one; home.js swaps in the 16:9 poster from 768 px up. -->
+<video data-sound id="hero-video" muted loop playsinline autoplay preload="metadata" poster="assets/video/hero-4x5.jpg" aria-label="A short PUSHTYPE demo: dictating with the pill, the text landing in a note, and TYPE finishing a sentence with Tab">
+<source media="(max-width: 767px)" src="assets/video/hero-4x5.mp4" type="video/mp4">
+<source src="assets/video/hero.mp4" type="video/mp4">
+</video>
+<div class="chips"><span class="pb-chip pb-chip-mono">Hold ⌥ to talk</span><span class="pb-chip pb-chip-mono">● Real time.&nbsp; Nothing sped up.</span></div>
+</figure>
+<div class="row hero-buttons">
 <a class="pb-btn pb-btn-push" data-umami-event="Buy (hero)" href="#pricing">Buy PUSHTYPE <span class="pb-price">$35</span></a>
 <a class="pb-btn pb-btn-quiet" href="#voice">See what's inside</a>
 </div>
-<div class="chips">
+<div class="chips hero-specs">
 <span class="pb-chip pb-chip-mono"><s class="chip-was">$50</s> $35 launch price · 3 Macs</span>
 <span class="pb-chip pb-chip-mono">Talk + TYPE</span>
 <span class="pb-chip pb-chip-mono">macOS 15+</span>
-<span class="pb-chip pb-chip-mono">Apple silicon</span>
-</div>
+<span class="pb-chip pb-chip-mono">Apple silicon required</span>
 </div>
 </section>
 
@@ -144,7 +159,7 @@
 </ul>
 </div>
 <div class="screen-video">
-<video src="assets/video/dictation.mp4?v=2" poster="assets/video/dictation.jpg?v=2" data-autoplay muted loop playsinline controls preload="none" aria-label="Dictating into Notes with PUSHTYPE: the pill listens, and the text appears when the key is released"></video>
+<video data-sound src="assets/video/dictation.mp4?v=2" poster="assets/video/dictation.jpg?v=2" data-autoplay muted loop playsinline controls preload="none" aria-label="Dictating into Notes with PUSHTYPE: the pill listens, and the text appears when the key is released"></video>
 <div class="chips"><span class="pb-chip pb-chip-mono">Hold ⌥ to talk</span><span class="pb-chip pb-chip-mono">● Real time.&nbsp; Nothing sped up.</span></div>
 </div>
 </div>
@@ -287,7 +302,7 @@
 <p class="learn-note" id="live-note"><span class="footnote-star">*</span> The preview trails your voice slightly.</p>
 </div>
 <div class="screen-video">
-<video src="assets/video/live-preview.mp4?v=2" poster="assets/video/live-preview.jpg" data-autoplay muted loop playsinline controls preload="none" aria-label="Dictating into Notes with live preview on: the pill at the bottom shows the words as they are spoken, and the cleaned-up text lands in the note when the key is released"></video>
+<video data-sound src="assets/video/live-preview.mp4?v=2" poster="assets/video/live-preview.jpg" data-autoplay muted loop playsinline controls preload="none" aria-label="Dictating into Notes with live preview on: the pill at the bottom shows the words as they are spoken, and the cleaned-up text lands in the note when the key is released"></video>
 <div class="chips"><span class="pb-chip pb-chip-mono">Parakeet Streaming</span><span class="pb-chip pb-chip-mono">Unmute to hear the voice</span></div>
 </div>
 </div>
@@ -359,7 +374,7 @@
 </ul>
 </div>
 <div class="screen-video">
-<video src="assets/video/teleprompter.mp4?v=2" poster="assets/video/teleprompter.jpg?v=2" data-autoplay muted loop playsinline controls preload="none" aria-label="The teleprompter following a reader line by line"></video>
+<video data-sound src="assets/video/teleprompter.mp4?v=2" poster="assets/video/teleprompter.jpg?v=2" data-autoplay muted loop playsinline controls preload="none" aria-label="The teleprompter following a reader line by line"></video>
 <div class="chips"><span class="pb-chip pb-chip-mono">Follow my voice: on</span><span class="pb-chip pb-chip-mono">● REC · prompter not in shot</span></div>
 </div>
 </div>
@@ -462,7 +477,7 @@
 <li><span class="dot"></span>14-day refund, no questions</li>
 </ul>
 <a class="pb-btn pb-btn-push" id="buy" data-umami-event="Buy" href="https://buy.polar.sh/polar_cl_ArikCs6D9ybDAfy0Hw5dPnjIqbhVBr7gKZYQx4QxxOY" aria-describedby="buy-note">Buy PUSHTYPE <span class="pb-price">$35</span></a>
-<p id="buy-note" style="margin: 0; font-size: 14px; color: var(--ink-muted);"><a data-umami-event="Buy Extra Mac" href="https://buy.polar.sh/polar_cl_vJwZTQYxnZStBuc837CtUnfAJ0Jp8fTjCLELa2ef7kZ">More Macs?&nbsp; $12 each</a>.&nbsp; Buy them with the same email so everything stays on one license.&nbsp; Taxes handled by Polar.&nbsp; By buying, you agree to the <a href="legal/terms.html">Terms of Sale</a> and the <a href="legal/eula.html">License Agreement</a>.</p>
+<p id="buy-note" style="margin: 0; font-size: 14px; color: var(--ink-muted);"><a data-umami-event="Buy Extra Mac" href="https://buy.polar.sh/polar_cl_vJwZTQYxnZStBuc837CtUnfAJ0Jp8fTjCLELa2ef7kZ">More Macs?&nbsp; $12 each</a>.&nbsp; Buy them with the same email so everything stays on one license.&nbsp; By buying, you agree to the <a href="legal/terms.html">Terms of Sale</a> and the <a href="legal/eula.html">License Agreement</a>.</p>
 </div>
 </div>
 </section>
@@ -477,6 +492,7 @@
 <div><h3>Is it really private?</h3><p class="body small">Your audio, your transcripts, and what you type never leave your Mac.&nbsp; The <a href="legal/privacy.html">privacy policy</a> lists the few things that do connect: model downloads, update checks, license checks with Polar, and iCloud sync of your settings and dictionary (on unless you switch it off).</p></div>
 <div><h3>Does TYPE learn from what I write?</h3><p class="body small">Only if you switch on “Learn from my writing and voice”.&nbsp; Then it keeps what you type and dictate, encrypted on your Mac, so suggestions sound like you.&nbsp; The writing is never sent to us, and Delete All erases it.&nbsp; If you choose, it's shared with your other Macs through your own iCloud, encrypted with a key only your Apple Account has.&nbsp; Your name and About you note follow you there too.</p></div>
 <div><h3>Can I use just one of them?</h3><p class="body small">Yes.&nbsp; Talk and TYPE each have their own switch in the menu bar and in Settings.&nbsp; Use one, the other, or both.</p></div>
+<div><h3>How does checkout work?</h3><p class="body small">Polar runs the checkout as our merchant of record and handles the taxes: it works out the sales tax or VAT for your country and sends your receipt.&nbsp; Your license key arrives by email as soon as payment clears.</p></div>
 <div><h3>What if it's not for me?</h3><p class="body small">Email us within 14 days for a full refund.&nbsp; No questions, no forms.</p></div>
 <div><h3>Buying for a team?</h3><p class="body small">One license per person.&nbsp; Write to us for 10 or more and we'll sort out a volume price.</p></div>
 </div>
