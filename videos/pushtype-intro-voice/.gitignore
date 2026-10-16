@@ -7,3 +7,4 @@ node_modules/
 .thumbnails/
 .waveform-cache/
 .hyperframes/preview/
+.hyperframes/backup/

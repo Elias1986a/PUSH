@@ -222,6 +222,13 @@
       var layerA = { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER };
       var layerB = { clipPath: MASK_PILL, filter: FOOTAGE_FILTER };
       if (talkA) Object.assign(talkA.style, { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER });
+      // Pieces of the window clip split in Studio (ids "<talk-a id>-split…") get the same mask.
+      Array.prototype.forEach.call(
+        hostDoc.querySelectorAll('video[id^="' + PREFIX + 'talk-a-"]'),
+        function (piece) {
+          Object.assign(piece.style, { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER });
+        },
+      );
       if (talkB) Object.assign(talkB.style, { clipPath: MASK_PILL, filter: FOOTAGE_FILTER });
 
       var KEY_REST = { borderColor: "rgba(239,237,232,0.22)", boxShadow: "0 0 0px rgba(255,90,69,0)" };
