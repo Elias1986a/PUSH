@@ -52,6 +52,7 @@ struct TypingSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                Toggle("Pause on battery and in Low Power Mode", isOn: $appState.typingPauseOnBattery)
             }
 
             Section {
@@ -154,10 +155,6 @@ struct TypingSettingsView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            Section("Battery") {
-                Toggle("Pause on battery and in Low Power Mode", isOn: $appState.typingPauseOnBattery)
             }
 
             if inlinePredictionsOn {

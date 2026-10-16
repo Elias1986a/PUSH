@@ -24,6 +24,7 @@ struct DictationSettingsView: View {
         Form {
             // The welcome flow promises each feature can be switched later in
             // Settings; Type had its switch, dictation did not (user, 2026-10-12).
+            // The PUSH-to-talk key sits with it: one section for "how Talk starts".
             Section {
                 Toggle(isOn: $appState.dictationEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -33,6 +34,21 @@ struct DictationSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                Toggle("Hold a key to talk", isOn: $appState.hotkeyEnabled)
+
+                Picker("Key", selection: $appState.selectedHotkey) {
+                    ForEach(AppState.Hotkey.allCases) { hotkey in
+                        Text(hotkey.displayName).tag(hotkey)
+                    }
+                }
+                .disabled(!appState.hotkeyEnabled)
+            } footer: {
+                Text("Hold the key, speak, release. Press ⎋ Esc while recording to cancel without inserting text.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Section {
@@ -70,25 +86,6 @@ struct DictationSettingsView: View {
             }
 
             Section {
-                Toggle("Hold a key to dictate", isOn: $appState.hotkeyEnabled)
-
-                Picker("Key", selection: $appState.selectedHotkey) {
-                    ForEach(AppState.Hotkey.allCases) { hotkey in
-                        Text(hotkey.displayName).tag(hotkey)
-                    }
-                }
-                .disabled(!appState.hotkeyEnabled)
-            } header: {
-                Text("PUSH to talk")
-            } footer: {
-                Text("Hold the key, speak, release. Press ⎋ Esc while recording to cancel without inserting text.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            Section {
                 Toggle("Play a sound when recording starts", isOn: $appState.playSoundOnStart)
 
                 // Choosing one plays it, so the menu doubles as a preview.
@@ -108,7 +105,7 @@ struct DictationSettingsView: View {
             } header: {
                 Text("While recording")
             } footer: {
-                Text("Lowers the output volume while you dictate, then restores it.")
+                Text("“Lower volume” turns other apps down while you talk, then back up.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
@@ -150,9 +147,9 @@ struct DictationSettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            TalkCleanupSection()
-
             DictationTextSections()
+
+            TalkCleanupSection()
         }
         .formStyle(.grouped)
         .onAppear(perform: refreshDevices)

@@ -35,7 +35,8 @@ struct SettingsView: View {
     }
 
     enum Pane: String, CaseIterable, Identifiable {
-        case general, dictation, typing, models, dictionary, personal, teleprompter, licence
+        // The sidebar's order (the user's, 2026-10-16).
+        case personal, general, dictation, typing, teleprompter, dictionary, models, licence
 
         var id: String { rawValue }
 

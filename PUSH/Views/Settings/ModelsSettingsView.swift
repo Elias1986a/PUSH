@@ -55,7 +55,7 @@ struct ModelsSettingsView: View {
                 }
 
             } header: {
-                Text("Speech model")
+                Text("Talk model")
             } footer: {
                 Text("Every model runs on this Mac. Nothing you say is sent anywhere.")
                     .font(.caption)
@@ -76,7 +76,7 @@ struct ModelsSettingsView: View {
                 typingStorageRow
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Speech models")
+                        Text("Talk models")
                         Text(storageBytes > 0
                              ? "\(Self.format(bytes: storageBytes)) in Application Support"
                              : "Nothing downloaded yet")

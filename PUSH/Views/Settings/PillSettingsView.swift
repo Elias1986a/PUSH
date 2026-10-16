@@ -4,7 +4,7 @@ import PUSHCore
 
 // MARK: - Pill
 
-/// The pill's sections, shown in Settings ▸ Talk (the Pill pane was folded
+/// The pill's section, shown in Settings ▸ Talk (the Pill pane was folded
 /// into Talk, 2026-10-14: everything here is about dictation).
 struct PillSettingsSections: View {
     @Environment(AppState.self) private var appState
@@ -21,58 +21,49 @@ struct PillSettingsSections: View {
         // is what gives the controls below their `$appState` bindings.
         @Bindable var appState = appState
 
-        Group {
-            Section {
-                HStack(spacing: 16) {
-                    Spacer()
-                    ForEach(AppState.PillPosition.allCases) { position in
-                        PillPositionThumbnail(
-                            position: position,
-                            isSelected: appState.pillPosition == position
-                        )
-                        .onTapGesture { appState.pillPosition = position }
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(position.displayName)
-                        .accessibilityAddTraits(appState.pillPosition == position ? [.isButton, .isSelected] : .isButton)
-                        .accessibilityAction { appState.pillPosition = position }
-                    }
-                    Spacer()
+        Section {
+            HStack(spacing: 16) {
+                Spacer()
+                ForEach(AppState.PillPosition.allCases) { position in
+                    PillPositionThumbnail(
+                        position: position,
+                        isSelected: appState.pillPosition == position
+                    )
+                    .onTapGesture { appState.pillPosition = position }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(position.displayName)
+                    .accessibilityAddTraits(appState.pillPosition == position ? [.isButton, .isSelected] : .isButton)
+                    .accessibilityAction { appState.pillPosition = position }
                 }
-                .padding(.vertical, 4)
-
-            } header: {
-                Text("Pill position")
-            } footer: {
-                Text("At the bottom the pill floats as a capsule, out of the way. At the top it hangs off the screen edge under the notch, where you are already reading.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                Spacer()
             }
+            .padding(.vertical, 4)
 
-            Section {
-                Toggle("Show text in the pill as you speak", isOn: $appState.showLivePreview)
-                    .disabled(!supportsLivePreview)
+            Text("At the bottom the pill floats as a capsule, out of the way. At the top it hangs off the screen edge under the notch, where you are already reading.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-                Picker("Text size", selection: $appState.previewSize) {
-                    ForEach(AppState.PreviewSize.allCases) { size in
-                        Text(size.displayName).tag(size)
-                    }
+            Toggle("Show text in the pill as you speak", isOn: $appState.showLivePreview)
+                .disabled(!supportsLivePreview)
+
+            Picker("Text size", selection: $appState.previewSize) {
+                ForEach(AppState.PreviewSize.allCases) { size in
+                    Text(size.displayName).tag(size)
                 }
-                .pickerStyle(.segmented)
-                .disabled(!supportsLivePreview || !appState.showLivePreview)
-
-            } header: {
-                Text("Live preview")
-            } footer: {
-                Text(supportsLivePreview
-                     ? "A rough transcript, about two seconds behind you — the final text is cleaned up before it is inserted."
-                     : "Only Parakeet Streaming transcribes while you speak, and \(appState.selectedWhisperModel.shortName) is selected. Switch in Models to turn this on.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .pickerStyle(.segmented)
+            .disabled(!supportsLivePreview || !appState.showLivePreview)
+        } header: {
+            Text("Pill")
+        } footer: {
+            Text(supportsLivePreview
+                 ? "The text in the pill is a rough transcript, about two seconds behind you; the final text is cleaned up before it is inserted."
+                 : "Only Parakeet Streaming shows text while you speak, and \(appState.selectedWhisperModel.shortName) is selected. Switch in Models to turn this on.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
