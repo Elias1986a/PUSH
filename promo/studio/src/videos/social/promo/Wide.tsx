@@ -1,10 +1,12 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
-import { color, font } from "../../brand/tokens";
-import { s } from "../../lib/time";
-import { lerp, mixRect } from "../../lib/anim";
-import { FOOTAGE, LP, SHAPES, SHOTS, TH } from "../../footage";
+import { color, font } from "../../../brand/tokens";
+import { s } from "../../../lib/time";
+import { lerp, mixRect } from "../../../lib/anim";
+import { FOOTAGE, LP, SHAPES, SHOTS, TH } from "../../../footage";
 import {
+  BAR,
+  Bed,
   CloudIcon,
   Crop,
   EndCard,
@@ -15,13 +17,26 @@ import {
   Label,
   LockIcon,
   Meter,
+  MinText,
+  PillTake,
+  pillPushIn,
   PriceStack,
   Scene,
-} from "../../components";
+  useLegible,
+} from "../../../components";
 import { Redline, SignOffNote, WordsToCloud } from "./beats";
 
 /**
- * 16:9 cut, 50 s. Every time is seconds of the finished video, from the cut VO
+ * The release shot holds one bar of the music longer (2026-10-15, user: "it
+ * doesn't hold long enough" to read the landed text). Everything after it, and
+ * the music, moves by HOLD. 69 frames; the bar is 2.2875 s.
+ */
+export const HOLD = Math.round(BAR * 30) / 30;
+/** Length of the 16:9 cut. */
+export const WIDE_S = 50 + HOLD;
+
+/**
+ * 16:9 cut, 52.3 s. Every time is seconds of the finished video, from the cut VO
  * lines (public/vo/promo/16x9) placed at VO_AT. Source times are seconds into each recording.
  */
 export const VO_AT = {
@@ -29,16 +44,18 @@ export const VO_AT = {
   N2: 5.6,
   N3: 10.2,
   J: 12.5,
-  N4: 23.4,
-  N5: 29.4,
-  N6: 33.7,
-  N7: 39.9,
-  N8: 44.5,
+  N4: 23.4 + HOLD,
+  N5: 29.4 + HOLD,
+  N6: 33.7 + HOLD,
+  N7: 39.9 + HOLD,
+  N8: 44.5 + HOLD,
 };
+/** Where the release shot starts; the music repeats a bar from here. */
+const RELEASE_AT = 22.2;
 
-// live-preview.mp4: J is cut from 8.70 s; the pill closes at 27.65 s, text lands 28.07 s.
+// live-preview.mp4: J is cut from 8.70 s; the pill closes at 27.65 s, the text lands 28.15 s.
 const LP_J_FROM = 8.7;
-const LP_RELEASE_FROM = 27.45;
+const LP_RELEASE_FROM = 28.05; // just before the paste lands, so it follows her last word
 // type-small.mp4: Tab takes "take" at 21.97 s; "you" "think!" at 27.77 s.
 const TS_A_FROM = 20.0;
 const TS_A_RATE = 1.2;
@@ -48,13 +65,24 @@ const WIN_SCALE = 1.3;
 const winBox = { left: (1920 - LP.w * WIN_SCALE) / 2, top: (1080 - LP.h * WIN_SCALE) / 2, width: LP.w * WIN_SCALE, height: LP.h * WIN_SCALE };
 const full = { x: 0, y: 0, w: LP.w, h: LP.h };
 
-export const Wide: React.FC = () => (
+// A type, not an interface: Remotion needs props it can treat as Record<string, unknown>.
+export type PromoProps = {
+  /**
+   * The website copy (videos/website): same cut, but small text raised to a
+   * readable minimum and the hook captioned, since it plays muted at about a
+   * quarter of its size.
+   */
+  web?: boolean;
+};
+
+export const Wide: React.FC<PromoProps> = ({ web = false }) => (
+  <MinText.Provider value={web ? 44 : 0}>
   <AbsoluteFill style={{ background: color.studio, fontFamily: font.body }}>
     <Glow />
 
     {/* 1. Hook: her voice goes to the cloud, and the bill follows. */}
     <Scene at={0} until={5.25} fade={0}>
-      <Hook />
+      <Hook web={web} />
     </Scene>
 
     {/* 2. PUSHTYPE keeps it on your Mac: words fall back, the real pill lights up. */}
@@ -69,44 +97,45 @@ export const Wide: React.FC = () => (
 
     {/* 4. Jessica dictates: live pill streaming her messy words. */}
     <Scene at={12.45} until={22.25} fade={4}>
-      <LiveDictation />
+      <LiveDictation web={web} />
     </Scene>
 
     {/* 5. Release: the clean paragraph lands in the note. */}
-    <Scene at={22.2} until={23.5} fade={3}>
-      <Release />
+    <Scene at={RELEASE_AT} until={23.5 + HOLD} fade={3}>
+      <Release web={web} />
     </Scene>
 
     {/* 6. Redline: what got cut and fixed. */}
-    <Scene at={23.4} until={29.3}>
+    <Scene at={23.4 + HOLD} until={29.3 + HOLD}>
       <RedlineBeat />
     </Scene>
 
     {/* 7. TYPE: hands, then Tab finishing real sentences. */}
-    <Scene at={29.2} until={29.85} fade={3}>
+    <Scene at={29.2 + HOLD} until={29.85 + HOLD} fade={3}>
       <FullShot src={SHOTS.typing} from={0.6} />
     </Scene>
-    <Scene at={29.8} until={33.75} fade={3}>
+    <Scene at={29.8 + HOLD} until={33.75 + HOLD} fade={3}>
       <TypeBeat />
     </Scene>
 
     {/* 8. It learns you: her own sign-off, suggested. */}
-    <Scene at={33.65} until={40.0}>
+    <Scene at={33.65 + HOLD} until={40.0 + HOLD}>
       <LearnBeat />
     </Scene>
 
     {/* 9. Price. */}
-    <Scene at={39.9} until={44.55}>
+    <Scene at={39.9 + HOLD} until={44.55 + HOLD}>
       <PriceStack vertical={false} yearsFrom={s(0.5)} slamAt={s(2.38)} onceAt={s(2.84)} />
     </Scene>
 
     {/* 10. End card. */}
-    <Scene at={44.45} until={50}>
+    <Scene at={44.45 + HOLD} until={WIDE_S}>
       <EndCard vertical={false} />
     </Scene>
 
     <Voice />
   </AbsoluteFill>
+  </MinText.Provider>
 );
 
 const Voice: React.FC = () => (
@@ -119,10 +148,12 @@ const Voice: React.FC = () => (
     <Sequence from={s(VO_AT.J)}>
       <Audio src={staticFile("vo/promo/16x9/J_dictation_messy.wav")} volume={0.95} />
     </Sequence>
-    <Audio
-      src={staticFile("music/music_loop_16x9.mp3")}
+    <Bed
+      src="music/music_loop_16x9.mp3"
+      repeatAt={RELEASE_AT}
+      repeat={HOLD}
       volume={(f) =>
-        interpolate(f, [0, s(0.3), s(47.9), s(48.3), s(49.2), s(50)], [0, 0.16, 0.16, 0.32, 0.32, 0], {
+        interpolate(f, [0, s(0.3), s(47.9 + HOLD), s(48.3 + HOLD), s(49.2 + HOLD), s(WIDE_S)], [0, 0.16, 0.16, 0.32, 0.32, 0], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
         })
@@ -146,7 +177,7 @@ function fileFor(k: string) {
 
 // MARK: Scenes
 
-const Hook: React.FC = () => {
+const Hook: React.FC<{ web: boolean }> = ({ web }) => {
   const f = useCurrentFrame();
   const push = lerp(f, [0, s(5.2)], [1.0, 1.08], false);
   const cloudIn = lerp(f, [s(1.6), s(2.2)], [0, 1]);
@@ -158,10 +189,22 @@ const Hook: React.FC = () => {
       <AbsoluteFill style={{ background: "linear-gradient(to right, rgba(14,14,16,0) 35%, rgba(14,14,16,0.7) 100%)" }} />
       <div style={{ opacity: cloudIn }}>
         <CloudIcon size={260} style={{ left: 1520, top: 70 }} />
-        <Label text="Their servers" style={{ left: 1530, top: 250 }} size={22} />
+        <Label text="Their servers" style={{ left: web ? 1450 : 1530, top: 250 }} size={22} />
       </div>
       <WordsToCloud origin={{ x: 1080, y: 640 }} target={{ x: 1650, y: 160 }} startAt={s(1.4)} every={6} travel={s(1.6)} size={30} />
-      <Meter label="Subscription dictation" value="$12/mo" size={80} at={s(3.4)} style={{ left: 1290, top: 760 }} />
+      <Meter label="Subscription dictation" value="$12/mo" size={80} at={s(3.4)} style={{ left: web ? 1130 : 1290, top: 760 }} />
+      {web ? (
+        // N1's two sentences, for the muted website copy (pauses measured in N1_hook.wav).
+        <>
+          <AbsoluteFill style={{ background: "linear-gradient(to top, rgba(8,8,10,0.8) 0%, rgba(8,8,10,0) 45%)" }} />
+          <Sequence from={s(0.1)} durationInFrames={s(3.0)} layout="none">
+            <Headline text="Most dictation apps send your voice to the cloud." accent="the cloud." size={76} style={{ left: 90, top: 790, width: 1000 }} />
+          </Sequence>
+          <Sequence from={s(3.15)} layout="none">
+            <Headline text="Then charge you every month for it." accent="every month" size={76} style={{ left: 90, top: 790, width: 1000 }} />
+          </Sequence>
+        </>
+      ) : null}
     </AbsoluteFill>
   );
 };
@@ -201,38 +244,61 @@ const HoldKey: React.FC = () => {
   );
 };
 
-const LiveDictation: React.FC = () => {
+const LiveDictation: React.FC<{ web: boolean }> = ({ web }) => {
   const f = useCurrentFrame();
   // Local 0 = 12.45 s; push in on the pill for the correction ("15.2… I mean, 1.52").
   const t = lerp(f, [s(1.0), s(2.2)], [0, 1]);
-  const crop = mixRect(full, { x: 50, y: 688, w: 940, h: 96 }, t);
+  const crop = mixRect(full, pillPushIn(1760), t);
   const width = winBox.width + (1760 - winBox.width) * t;
   const box = { left: (1920 - width) / 2, top: 0, width, height: width * (crop.h / crop.w) };
   box.top = (1080 - box.height) / 2 + 40 * t;
   return (
     <AbsoluteFill>
-      <Crop src={FOOTAGE.livePreview.src} from={LP_J_FROM - 0.05} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow, SHAPES.lpPill]} />
-      <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
-      <KeyChip text="⌥ hold" down size={40} style={{ left: 90, top: 120 }} />
+      <Crop src={FOOTAGE.livePreview.src} from={LP_J_FROM - 0.05} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />
+      <PillTake crop={crop} box={box} voiceFrom={LP_J_FROM - 0.05 - FOOTAGE.livePreview.voiceOffset} />
+      {/* On the website copy the bigger label would sit on the window; it comes in with the push. */}
+      <div style={{ opacity: web ? t : 1 }}>
+        <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
+        <KeyChip text="⌥ hold" down size={40} style={{ left: 90, top: 120 }} />
+      </div>
     </AbsoluteFill>
   );
 };
 
-const Release: React.FC = () => {
+/** The landed paragraph in live-preview.mp4 (its five lines). */
+const LANDED = { x: 40, y: 180, w: 960, h: 215 };
+
+const Release: React.FC<{ web: boolean }> = ({ web }) => {
   const f = useCurrentFrame();
-  const releaseAt = s(27.65 - LP_RELEASE_FROM);
+  // Starts right as she stops: the text lands ~0.1 s in, then a still of the
+  // pasted note holds (the recording itself ends ~2.5 s later).
+  const landed = s(FOOTAGE.livePreview.textLands - LP_RELEASE_FROM);
+  const stillAt = landed + s(0.2);
+  // Push in on the paragraph while it holds, so it can be read.
+  const t = lerp(f, [landed + s(0.4), landed + s(1.8)], [0, 1]);
+  const crop = mixRect(full, LANDED, t);
+  const width = winBox.width + (1760 - winBox.width) * t;
+  const height = width * (crop.h / crop.w);
+  const box = { left: (1920 - width) / 2, top: (1080 - height) / 2 + 30 * t, width, height };
   return (
     <AbsoluteFill>
-      <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={full} srcSize={LP} box={winBox} shapes={[SHAPES.lpWindow]} />
-      <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
-      <KeyChip text={f < releaseAt ? "⌥ hold" : "⌥ let go"} down={f < releaseAt} size={40} style={{ left: 90, top: 120 }} />
+      {f < stillAt ? (
+        <Crop src={FOOTAGE.livePreview.src} from={LP_RELEASE_FROM} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />
+      ) : (
+        <Crop src={FOOTAGE.livePreviewLanded.src} from={0} still crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />
+      )}
+      {/* On the website copy the bigger label would sit on the window until the push. */}
+      <div style={{ opacity: web ? t : 1 }}>
+        <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
+      </div>
+      <KeyChip text="⌥ let go" down={false} size={40} style={{ left: 90, top: 120 }} />
     </AbsoluteFill>
   );
 };
 
 const RedlineBeat: React.FC = () => {
   const f = useCurrentFrame();
-  // Local 0 = 23.4 s = N4 start. "um's" 0.8, "corrections" 2.04, "clean text" 3.32.
+  // Local 0 = 23.4 s + HOLD = N4 start. "um's" 0.8, "corrections" 2.04, "clean text" 3.32.
   const noteIn = lerp(f, [s(3.3), s(3.8)], [0, 1]);
   return (
     <AbsoluteFill>
@@ -246,7 +312,7 @@ const RedlineBeat: React.FC = () => {
 
 const TypeBeat: React.FC = () => {
   const f = useCurrentFrame();
-  // Local 0 = 29.8 s. Segment A to 1.8 s (Tab at 21.97 s src = 1.64 s), B after (Tab at 27.77 = 2.97 s).
+  // Local 0 = 29.8 s + HOLD. Segment A to 1.8 s (Tab at 21.97 s src = 1.64 s), B after (Tab at 27.77 = 2.97 s).
   const bAt = s(1.8);
   const inB = f >= bAt;
   const tabA = s((21.97 - TS_A_FROM) / TS_A_RATE);
@@ -275,7 +341,7 @@ const TypeBeat: React.FC = () => {
 
 const LearnBeat: React.FC = () => {
   const f = useCurrentFrame();
-  // Local 0 = 33.65 s; N6 at 33.7: "writes like you" ~2.1 s, "Learned on your Mac" 3.45, "Never sent to us" 4.8.
+  // Local 0 = 33.65 s + HOLD; N6 at 33.7 + HOLD: "writes like you" ~2.1 s, "Learned on your Mac" 3.45, "Never sent to us" 4.8.
   const zoom = lerp(f, [s(0.2), s(1.4)], [0, 1]);
   const crop = mixRect({ x: 0, y: 0, w: 1040, h: 780 }, { x: 34, y: 250, w: 980, h: 400 }, zoom);
   const width = 1250;
@@ -283,6 +349,7 @@ const LearnBeat: React.FC = () => {
   const scale = box.width / crop.w;
   const chip = lerp(f, [s(3.4), s(3.8)], [0, 1]);
   const lock = lerp(f, [s(4.75), s(5.1)], [0, 1]);
+  const small = useLegible(24);
   return (
     <AbsoluteFill>
       <div style={{ position: "absolute", ...box, overflow: "hidden", borderRadius: 22, border: "1px solid rgba(255,255,255,0.16)", background: color.noteBg, boxShadow: "0 0 26px rgba(255,255,255,0.06), 0 30px 70px rgba(0,0,0,0.6)" }}>
@@ -303,7 +370,7 @@ const LearnBeat: React.FC = () => {
         </div>
         <div style={{ fontFamily: font.display, fontWeight: 800, fontStretch: "112%", fontSize: 42, color: color.ink }}>Never sent to us.</div>
       </div>
-      <div style={{ position: "absolute", left: 1430, top: 740, fontFamily: font.body, fontSize: 24, color: color.muted, opacity: lock }}>
+      <div style={{ position: "absolute", left: 1430, top: 740, fontFamily: font.body, fontSize: small, color: color.muted, opacity: lock }}>
         Learning is opt-in.
       </div>
     </AbsoluteFill>

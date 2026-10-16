@@ -34,7 +34,7 @@
 (function () {
   var hero = document.getElementById('hero-video');
   if (!hero || !window.matchMedia) return;
-  if (window.matchMedia('(min-width: 768px)').matches) hero.poster = 'assets/video/hero.jpg';
+  if (window.matchMedia('(min-width: 768px)').matches) hero.poster = 'assets/video/hero.jpg?v=2';
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   hero.autoplay = false;
   hero.pause();

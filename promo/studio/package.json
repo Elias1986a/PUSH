@@ -1,7 +1,7 @@
 {
   "name": "pushtype-studio",
   "version": "1.0.0",
-  "description": "PUSHTYPE motion graphics in Remotion: the promo ads and the explainer.",
+  "description": "PUSHTYPE motion graphics in Remotion: the website hero, the social ads, archived cuts.",
   "private": true,
   "license": "UNLICENSED",
   "dependencies": {
@@ -20,7 +20,9 @@
     "typecheck": "tsc",
     "still": "remotion still",
     "render": "./scripts/render.sh",
-    "render:promo": "./scripts/render.sh Promo16x9 Promo4x5 Promo9x16",
-    "render:explainer": "./scripts/render.sh Explainer16x9 Explainer9x16"
+    "render:website": "./scripts/render.sh WebHero16x9 WebHero4x5",
+    "render:social": "./scripts/render.sh SocialPromo16x9 SocialPromo4x5 SocialPromo9x16",
+    "render:archive": "./scripts/render.sh ArchiveExplainer16x9 ArchiveExplainer9x16",
+    "to-website": "./scripts/to-website.sh"
   }
 }

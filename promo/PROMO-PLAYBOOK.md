@@ -8,7 +8,7 @@ Last updated: 2026-10-15 (first promo, "v5" intro).
 
 ## 1. Deliverables
 
-Every ad promo ships in three formats, rendered at 1080 (no 4K for ads for now). The website gets its own 16:9 4K hero (`pushtype-hero-16x9-4k.mp4`: render with `--scale=2`, `-movflags +faststart`).
+Every ad promo ships in three formats, rendered at 1080 (no 4K for ads for now). The website does not reuse the ad: it gets its own hero cut (`WebHero16x9` for laptops, `WebHero4x5` for phones), made to read muted at about a quarter of its size. Where every video goes: `studio/CLAUDE.md`, "Where each video goes".
 
 | Format | Size | Use it for |
 |---|---|---|
@@ -16,7 +16,7 @@ Every ad promo ships in three formats, rendered at 1080 (no 4K for ads for now).
 | 4:5 | 1080×1350 | Facebook and Instagram Feed |
 | 9:16 | 1080×1920 | Stories, Reels, TikTok |
 
-- Design the vertical once, in 9:16, with everything important inside the 4:5 safe area. The 4:5 is the center of that layout (`Promo4x5` in Remotion), not a separate edit.
+- Design the vertical once, in 9:16, with everything important inside the 4:5 safe area. The 4:5 is the center of that layout (`SocialPromo4x5` in Remotion), not a separate edit.
 - The 16:9 is its own edit (wider layouts, longer VO), never a crop.
 - In Meta Ads, put the 4:5 on Feed placements and the 9:16 on Stories and Reels in the same ad set.
 
@@ -79,11 +79,11 @@ Captions sit at y 370 (that is y 85 in the 4:5).
 
 1. **Script and shot list** (doc): one idea, beats timed to VO, a 16:9 and a vertical shot list.
 2. **VO** in ElevenLabs, then cut per line and get word timings (faster-whisper). Timings drive every cut and caption.
-3. **Screen recordings** of the real app (scripts in `scripts/promo/`). Record at the 1040×780 Notes framing for vertical-friendly layouts. Next time: record at Retina 2× with a higher bitrate; the current takes are 1x and soft.
+3. **Screen recordings** of the real app (scripts in `scripts/promo/`). Record at the 1040×780 Notes framing for vertical-friendly layouts. Anything the viewer must read up close (the pill) is recorded as its own element with `pilltake.swift`: 2× Retina, ProRes, Large pill, key held 2.5 s past the voice so every word shows. `screencapture -v` compresses to ~1–2 Mbps, which is why the first takes are soft.
 4. **AI shots** in Higgsfield (local API on the Mac): one base still, edit it for other angles so the person matches, then image-to-video. Check stills before animating. Remove brand logos (for example the Apple logo on the laptop).
 5. **Build in Remotion** (`promo/studio`; how: `promo/studio/CLAUDE.md`).
 6. **QA:** stills at key moments for both formats against the safe-zone guides; transcribe the final mix to confirm VO order and timing; check loudness.
-7. **Deliver** 16:9, 4:5, 9:16 to `promo/raw/explainer/<version>/`.
+7. **Deliver** 16:9, 4:5, 9:16 from `studio/out/social/` (keep dated copies in `promo/raw/<campaign>/` if you want history; `out/` is overwritten by the next render).
 
 ---
 
@@ -114,13 +114,17 @@ Captions sit at y 370 (that is y 85 in the 4:5).
 | `src/lib/` | `s()` seconds-to-frames, `lerp`, `rise`, `mixRect` |
 | `src/footage.ts` | The recordings: sizes, UI shapes for masks, key moments |
 | `src/components/` | Crop (shape masks, cards), captions, labels, keys, price, end card, brand dot |
-| `src/videos/promo/` | `Wide` (16:9), `Tall` (9:16, 4:5-safe), `Feed` (4:5), `beats` (redline, sign-off note, words to cloud) |
-| `src/Root.tsx` | Compositions: `Promo16x9`, `Promo4x5`, `Promo9x16`, `Explainer16x9`, `Explainer9x16` |
+| `src/videos/website/Hero.tsx` | The site hero: the promo with `web` on (bigger small text, captioned hook) |
+| `src/videos/social/promo/` | The ad: `Wide` (16:9), `Tall` (9:16, 4:5-safe), `Feed` (4:5), `beats` (redline, sign-off note, words to cloud) |
+| `src/videos/archive/` | Not in use: `hero-short/` (21 s product-first hero), `explainer/` |
+| `src/Root.tsx` | Studio folders Website (`WebHero16x9`, `WebHero4x5`), Social (`SocialPromo16x9`, `SocialPromo4x5`, `SocialPromo9x16`), Archive (`ArchiveHeroShort…`, `ArchiveExplainer…`) |
 
 ```bash
-npm run dev            # Studio: preview every composition
-npm run render:promo   # out/Promo16x9.mp4, Promo4x5, Promo9x16, audio at -14 LUFS
-npm run render -- --4k Promo16x9
+npm run dev              # Studio: preview every composition
+npm run render:social    # out/social/SocialPromo16x9.mp4, …4x5, …9x16, audio at -14 LUFS
+npm run render:website   # out/website/WebHero16x9.mp4, WebHero4x5.mp4
+npm run to-website       # the site's copies + posters into website/assets/video/
+npm run render -- --4k SocialPromo16x9
 ```
 
 - 4K uses `--scale=2 --concurrency=1` (the render script sets both); with the default concurrency a small machine runs out of memory.
