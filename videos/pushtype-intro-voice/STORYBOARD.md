@@ -1,6 +1,6 @@
 ---
 format: 1920x1080
-duration: 11.5s
+duration: 15s
 message: "PUSH to talk. Tab to TYPE."
 arc: Demo Loop (product intro → demo 1 → demo 2 → CTA), compressed to three beats
 audience: Mac users who write a lot
@@ -48,6 +48,18 @@ Scene 1 (0.0–0.7s): ground holds; the product window (layer A + its rim) rises
 Scene 2 (0.25–1.1s): the headline assembles word by word: "PUSH" lands first, then "to", then "talk." (→ `dynamic-content-sequencing`, `power3.out`, y +30 → 0, 0.12s stagger). Asymmetric 40/60 framing, three depth layers (ground glows, window, type).
 Scene 3 (1.0–2.65s): the key cap enters (opacity 0 → 1, y +16 → 0) and immediately goes to its pressed state: scale 0.94, border turns fire-orange #FF5A45, a faint fire-orange glow `box-shadow: 0 0 24px rgba(255,90,69,0.35)` (→ `press-release-spring`, but no overshoot). It stays pressed while the pill streams the words (the footage is the motion here).
 Scene 4 (2.65–5.1s): at 2.65s exactly the key releases (scale 1, border back to rgba(239,237,232,0.22), glow off, `power3.out` 0.25s) and at the same moment the pill layer B and its rim fade to 0 over 0.15s (the pill closes in the footage, and its backdrop must never show). At 3.07s the clean text lands in the note on its own. Then hold still for two full seconds so the text can be read (user note: it cut away too fast).
+
+## Frame 1b — California mode
+
+- scene: the website's California mode section at frame scale: a sunset panel wipes up over the landed note, her sentence as she said it with "like" marked in peach, the switch flips ON, "like" is struck through and lifts out, the words close up; the panel wipes away upward into Tab to TYPE
+- duration: 3.8s (5.1–8.9, over the end of Frame 1 and the start of Frame 2)
+- transition_in: wipe (built in the frame)
+- type: feature_showcase
+- voiceover: "Could you like send the final numbers before Friday?" → "Could you send the final numbers before Friday?"
+- src: compositions/frames/01b-california.html
+- status: animated
+
+Look: the site's own tokens (sunset-peach #ffb38a → coral #ff7a5c → violet #6b3fc4, ink #2a1b3d, mark #ffd9c7), Shrikhand title, the site's palm and its `.pb-cali` switch at 1.5×. Claim check: only California mode removes this "like" (`BenchmarkPassageTests.testCaliforniaModeIsWhatRemovesTheCasualLikes`). Cues: switch ON 1.3 s, strike 1.55 s, "like" out 1.75 s, exit wipe 3.4–3.8 s.
 
 ## Frame 2 — Tab to TYPE
 

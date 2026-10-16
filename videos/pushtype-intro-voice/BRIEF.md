@@ -7,7 +7,7 @@ destination: website
 aspect: 1920x1080
 language: en
 audience: Mac users who write a lot
-length: 11.5s
+length: 15s
 angle: talk-plus-type
 narration: no
 ---
@@ -26,6 +26,8 @@ the PUSHTYPE wordmark and pushtype.app.
 - assets/music/clean-pulse-11s-ducked.mp3 — ducked about 10 dB under Jessica for 0–2.7 s, back up by 3.3 s; the explainer's "Clean Pulse" bed (repo `music_loop_16x9.mp3`, last 11.5s with its original ending), -14 LUFS. Root music bed.
 
 ## Notes
+
+- Review 3 (California mode): a 3.5 s beat after Talk shows the "like" she said being removed by California mode, in the website's California styling. Total 15 s. Frame 1 runs to 5.6 s under the wipe; Tab to TYPE starts at 8.6 s, the end card at 12.2 s. Her "like" is not echoed in the audio: an isolated cut could not be confirmed by transcription.
 
 - Version 2 (voice): Jessica's real voice under the Talk section, `assets/voice/jessica-final-question.wav` = `promo/voice/benchmark-passage-jessica.mp3` 24.55–27.40 s, laid at 0 s (the take's measured 0.45 s offset, so it matches the footage). She says "Could you, like, send the final numbers before Friday?"; the note lands with "Could you send the final numbers before Friday?". The live pill trails her by about 2 s in this take (real), so it still shows the previous sentence while she speaks.
 

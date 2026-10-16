@@ -33,21 +33,25 @@
     </style>
   </head>
   <body>
-    <div data-hf-id="hf-199x" id="root" data-composition-id="main" data-start="0" data-duration="11.5" data-width="1920" data-height="1080">
-      <div data-hf-id="hf-o0al" id="el-01-push-to-talk" class="scene" data-composition-id="01-push-to-talk" data-composition-src="compositions/frames/01-push-to-talk.html" data-start="0" data-duration="5.1" data-track-index="0"></div>
+    <div data-hf-id="hf-199x" id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-o0al" id="el-01-push-to-talk" class="scene" data-composition-id="01-push-to-talk" data-composition-src="compositions/frames/01-push-to-talk.html" data-start="0" data-duration="5.6" data-track-index="0"></div>
 
-      <div data-hf-id="hf-o1bb" id="el-02-tab-to-type" class="scene" data-composition-id="02-tab-to-type" data-composition-src="compositions/frames/02-tab-to-type.html" data-start="5.1" data-duration="4.1" data-track-index="1"></div>
+      <!-- California mode beat: the sunset wipes up over the landed note (5.1), the "like" goes, then it
+           wipes away upward into Tab to TYPE (8.5–8.9). z-index keeps it above the hoisted footage. -->
+      <div id="el-01b-california" class="scene" data-composition-id="01b-california" data-composition-src="compositions/frames/01b-california.html" data-start="5.1" data-duration="3.8" data-track-index="2" style="z-index: 20"></div>
 
-      <div data-hf-id="hf-d5og" id="el-03-end-card" class="scene" data-composition-id="03-end-card" data-composition-src="compositions/frames/03-end-card.html" data-start="8.7" data-duration="2.8" data-track-index="0"></div>
+      <div data-hf-id="hf-o1bb" id="el-02-tab-to-type" class="scene" data-composition-id="02-tab-to-type" data-composition-src="compositions/frames/02-tab-to-type.html" data-start="8.6" data-duration="4.1" data-track-index="1"></div>
 
-      <video data-hf-id="hf-xfil" id="f01-push-to-talk-talk-a" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="0" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="0" data-duration="2.918" data-track-index="1005"></video><video data-hf-id="hf-kd4u" id="f01-push-to-talk-talk-a-split" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="2.92" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="2.92" data-duration="2.18" data-track-index="1005"></video>
+      <div data-hf-id="hf-d5og" id="el-03-end-card" class="scene" data-composition-id="03-end-card" data-composition-src="compositions/frames/03-end-card.html" data-start="12.2" data-duration="2.8" data-track-index="0"></div>
+
+      <video data-hf-id="hf-xfil" id="f01-push-to-talk-talk-a" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="0" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="0" data-duration="2.918" data-track-index="1005"></video><video data-hf-id="hf-kd4u" id="f01-push-to-talk-talk-a-split" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="2.92" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="2.92" data-duration="2.68" data-track-index="1005"></video>
 
       <video data-hf-id="hf-vijn" id="f01-push-to-talk-talk-b" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="0" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="0" data-duration="2.9" data-track-index="1006"></video>
 
-      <video data-hf-id="hf-1unr" id="f02-tab-to-type-type-a" src="assets/footage/type-clip.mp4" preload="auto" data-media-start="0" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="5.1" data-duration="4.1" data-track-index="2005"></video>
+      <video data-hf-id="hf-1unr" id="f02-tab-to-type-type-a" src="assets/footage/type-clip.mp4" preload="auto" data-media-start="0" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="8.6" data-duration="4.1" data-track-index="2005"></video>
 
       <!-- BGM -->
-      <audio data-hf-id="hf-z1z2" id="el-bgm" src="assets/music/clean-pulse-11s-ducked.mp3" data-start="0" data-duration="11.4" data-track-index="11" data-volume="0.9"></audio>
+      <audio data-hf-id="hf-z1z2" id="el-bgm" src="assets/music/clean-pulse-15s-ducked.mp3" data-start="0" data-duration="14.9" data-track-index="11" data-volume="0.9"></audio>
 
       <!-- Jessica, in sync with the Talk footage (benchmark-passage-jessica.mp3 from 24.55 s =
            footage 25.0 s, the take's measured 0.45 s voice offset): "Could you, like, send the
@@ -61,11 +65,11 @@
       window.__timelines["main"] = gsap.timeline({ paused: true });
       // ── frame transitions (injected by transitions.mjs) ──
       (function () { var tl = window.__timelines["main"];
-        tl.to("#el-02-tab-to-type", { opacity: 0, duration: 0.3, ease: "power2.out" }, 8.7);
-        tl.fromTo("#el-03-end-card", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 8.7);
+        tl.to("#el-02-tab-to-type", { opacity: 0, duration: 0.3, ease: "power2.out" }, 12.2);
+        tl.fromTo("#el-03-end-card", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 12.2);
         // The TYPE footage is hoisted to the root, outside #el-02-tab-to-type: fade it with its frame.
-        tl.fromTo("#f02-tab-to-type-type-a", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 8.7);
-        tl.to({}, { duration: 11.5 }, 0); // full-span anchor — main.duration() == composition total (Studio master duration)
+        tl.fromTo("#f02-tab-to-type-type-a", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 12.2);
+        tl.to({}, { duration: 15 }, 0); // full-span anchor — main.duration() == composition total (Studio master duration)
       })();
     </script>
   </body>
