@@ -188,6 +188,14 @@ extension TranscriptionPipeline {
                 filteredText = Self.removeCasualLike(filteredText)
             }
 
+            // The fast punctuation model, when chosen (Settings ▸ Talk), redoes
+            // the speech model's commas, periods, question marks and capitals.
+            // Before the rules, so spoken "comma", "new line" and the "know"
+            // fixes still apply on top of it. English only.
+            if language.isEnglish {
+                filteredText = await FastPunctuationLoader.run(filteredText)
+            }
+
             // Post-processing pipeline varies by model capability:
             // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.

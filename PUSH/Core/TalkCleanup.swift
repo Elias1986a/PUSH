@@ -208,3 +208,67 @@ enum TalkCleanupRunner {
         }
     }
 }
+
+/// The Punctuation choice in Settings ▸ Talk, on trial: the speech model's own
+/// punctuation, the small LLM held to a word lock, or the fast classifier.
+enum TalkPunctuation: String, CaseIterable, Identifiable {
+    case off, smallModel, fastModel
+    var id: String { rawValue }
+}
+
+/// Keeps the fast punctuation model loaded while it is the chosen one and its
+/// files are on disk. Test copy for now: the files are placed by hand in
+/// TalkModels/punctuation-fast (see NOTES); hosting and the Streaming
+/// download come only if it wins the A/B.
+@MainActor
+enum FastPunctuationLoader {
+    nonisolated static let directory = TalkCleanupStore.directory.appendingPathComponent("punctuation-fast", isDirectory: true)
+    private static var generation = 0
+    private(set) static var model: FastPunctuation?
+
+    static var isOnDisk: Bool {
+        let fm = FileManager.default
+        return fm.fileExists(atPath: directory.appendingPathComponent(FastPunctuation.modelName).path)
+            && fm.fileExists(atPath: directory.appendingPathComponent(FastPunctuation.vocabularyName).path)
+    }
+
+    static func apply() {
+        generation &+= 1
+        let current = generation
+        guard AppState.shared.talkPunctuation == .fastModel, isOnDisk else {
+            if model != nil { PushLogger.log("FastPunctuationLoader: unloaded") }
+            model = nil
+            return
+        }
+        guard model == nil else { return }
+        Task {
+            let start = Date()
+            do {
+                let loaded = try FastPunctuation(directory: directory)
+                try await loaded.warmUp()
+                guard current == generation else { return }
+                model = loaded
+                PushLogger.log("FastPunctuationLoader: ready in \(String(format: "%.2f", Date().timeIntervalSince(start)))s")
+            } catch {
+                PushLogger.log("FastPunctuationLoader: loading failed: \(error)")
+            }
+        }
+    }
+
+    /// The text re-punctuated, or as it was when the model isn't loaded or
+    /// fails. Logs the time only — never the text.
+    nonisolated static func run(_ text: String) async -> String {
+        guard let model = await MainActor.run(body: { FastPunctuationLoader.model }) else { return text }
+        let start = DispatchTime.now()
+        do {
+            let out = try await model.punctuate(text)
+            let ms = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1e6
+            PushLogger.log("FastPunctuation: \(Int(ms))ms")
+            ReleaseTiming.mark("fast punctuation")
+            return out
+        } catch {
+            PushLogger.log("FastPunctuation: failed (\(error)); kept the speech model's punctuation")
+            return text
+        }
+    }
+}

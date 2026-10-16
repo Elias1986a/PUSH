@@ -10,7 +10,20 @@ struct TalkCleanupSection: View {
         @Bindable var appState = appState
 
         Section {
-            TalkCleanupRow(pass: .punctuation, isOn: $appState.talkPunctuationModel)
+            Picker("Punctuation", selection: $appState.talkPunctuation) {
+                Text("Off (speech model's own)").tag(TalkPunctuation.off)
+                Text("Small model").tag(TalkPunctuation.smallModel)
+                Text("Fast model").tag(TalkPunctuation.fastModel)
+            }
+            if appState.talkPunctuation == .smallModel {
+                TalkCleanupRow(pass: .punctuation, isOn: nil)
+            } else if appState.talkPunctuation == .fastModel {
+                Text(FastPunctuationLoader.isOnDisk
+                     ? "Fast model: about 55 MB, about 10 ms. Test copy on this Mac."
+                     : "Fast model isn't on this Mac yet.")
+                    .font(.caption)
+                    .foregroundStyle(FastPunctuationLoader.isOnDisk ? Color.secondary : Color.red)
+            }
             TalkCleanupRow(pass: .autocorrect, isOn: $appState.talkAutocorrectModel)
         } header: {
             Text("Cleanup models (experimental)")
@@ -26,7 +39,8 @@ struct TalkCleanupSection: View {
 
 private struct TalkCleanupRow: View {
     let pass: TalkCleanupPass
-    @Binding var isOn: Bool
+    /// Nil for the small punctuation model, chosen in the Punctuation menu instead.
+    var isOn: Binding<Bool>?
     @State private var confirmingDelete = false
 
     private var store: TalkCleanupStore { .shared }
@@ -35,8 +49,12 @@ private struct TalkCleanupRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                Toggle(pass.title, isOn: $isOn)
-                    .disabled(!isOnDisk)
+                if let isOn {
+                    Toggle(pass.title, isOn: isOn)
+                        .disabled(!isOnDisk)
+                } else {
+                    Text(pass.title)
+                }
                 Spacer(minLength: 8)
                 trailing
             }
@@ -64,7 +82,7 @@ private struct TalkCleanupRow: View {
             Button("Cancel") { store.cancelDownload() }
         } else if isOnDisk {
             HStack(spacing: 10) {
-                if isOn {
+                if isOn?.wrappedValue ?? true {
                     Text(store.ready.contains(pass) ? "In use" : "Loading…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -73,7 +91,7 @@ private struct TalkCleanupRow: View {
                     .foregroundStyle(.red)
                     .confirmationDialog("Delete the \(pass.title.lowercased())?", isPresented: $confirmingDelete) {
                         Button("Delete", role: .destructive) {
-                            isOn = false
+                            isOn?.wrappedValue = false
                             Task { await store.delete(pass) }
                         }
                     }
@@ -90,7 +108,7 @@ private struct TalkCleanupRow: View {
 extension TalkCleanupPass {
     var title: String {
         switch self {
-        case .punctuation: return "Punctuation model"
+        case .punctuation: return "Small punctuation model"
         case .autocorrect: return "Autocorrect model"
         }
     }

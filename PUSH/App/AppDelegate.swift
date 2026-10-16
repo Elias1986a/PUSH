@@ -79,6 +79,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         TypingCoordinator.shared.setActive(AppState.shared.typeEnabled)
         // The Talk cleanup models switched on, when on disk. Never a download.
         TalkCleanupLoader.apply()
+        FastPunctuationLoader.apply()
 
         if showingWizard {
             showOnboarding()
