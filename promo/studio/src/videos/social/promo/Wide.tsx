@@ -15,8 +15,12 @@ import {
   Label,
   LockIcon,
   Meter,
+  MinText,
+  PillTake,
+  pillPushIn,
   PriceStack,
   Scene,
+  useLegible,
 } from "../../../components";
 import { Redline, SignOffNote, WordsToCloud } from "./beats";
 
@@ -48,13 +52,24 @@ const WIN_SCALE = 1.3;
 const winBox = { left: (1920 - LP.w * WIN_SCALE) / 2, top: (1080 - LP.h * WIN_SCALE) / 2, width: LP.w * WIN_SCALE, height: LP.h * WIN_SCALE };
 const full = { x: 0, y: 0, w: LP.w, h: LP.h };
 
-export const Wide: React.FC = () => (
+// A type, not an interface: Remotion needs props it can treat as Record<string, unknown>.
+export type PromoProps = {
+  /**
+   * The website copy (videos/website): same cut, but small text raised to a
+   * readable minimum and the hook captioned, since it plays muted at about a
+   * quarter of its size.
+   */
+  web?: boolean;
+};
+
+export const Wide: React.FC<PromoProps> = ({ web = false }) => (
+  <MinText.Provider value={web ? 44 : 0}>
   <AbsoluteFill style={{ background: color.studio, fontFamily: font.body }}>
     <Glow />
 
     {/* 1. Hook: her voice goes to the cloud, and the bill follows. */}
     <Scene at={0} until={5.25} fade={0}>
-      <Hook />
+      <Hook web={web} />
     </Scene>
 
     {/* 2. PUSHTYPE keeps it on your Mac: words fall back, the real pill lights up. */}
@@ -69,7 +84,7 @@ export const Wide: React.FC = () => (
 
     {/* 4. Jessica dictates: live pill streaming her messy words. */}
     <Scene at={12.45} until={22.25} fade={4}>
-      <LiveDictation />
+      <LiveDictation web={web} />
     </Scene>
 
     {/* 5. Release: the clean paragraph lands in the note. */}
@@ -107,6 +122,7 @@ export const Wide: React.FC = () => (
 
     <Voice />
   </AbsoluteFill>
+  </MinText.Provider>
 );
 
 const Voice: React.FC = () => (
@@ -146,7 +162,7 @@ function fileFor(k: string) {
 
 // MARK: Scenes
 
-const Hook: React.FC = () => {
+const Hook: React.FC<{ web: boolean }> = ({ web }) => {
   const f = useCurrentFrame();
   const push = lerp(f, [0, s(5.2)], [1.0, 1.08], false);
   const cloudIn = lerp(f, [s(1.6), s(2.2)], [0, 1]);
@@ -158,10 +174,22 @@ const Hook: React.FC = () => {
       <AbsoluteFill style={{ background: "linear-gradient(to right, rgba(14,14,16,0) 35%, rgba(14,14,16,0.7) 100%)" }} />
       <div style={{ opacity: cloudIn }}>
         <CloudIcon size={260} style={{ left: 1520, top: 70 }} />
-        <Label text="Their servers" style={{ left: 1530, top: 250 }} size={22} />
+        <Label text="Their servers" style={{ left: web ? 1450 : 1530, top: 250 }} size={22} />
       </div>
       <WordsToCloud origin={{ x: 1080, y: 640 }} target={{ x: 1650, y: 160 }} startAt={s(1.4)} every={6} travel={s(1.6)} size={30} />
-      <Meter label="Subscription dictation" value="$12/mo" size={80} at={s(3.4)} style={{ left: 1290, top: 760 }} />
+      <Meter label="Subscription dictation" value="$12/mo" size={80} at={s(3.4)} style={{ left: web ? 1130 : 1290, top: 760 }} />
+      {web ? (
+        // N1's two sentences, for the muted website copy (pauses measured in N1_hook.wav).
+        <>
+          <AbsoluteFill style={{ background: "linear-gradient(to top, rgba(8,8,10,0.8) 0%, rgba(8,8,10,0) 45%)" }} />
+          <Sequence from={s(0.1)} durationInFrames={s(3.0)} layout="none">
+            <Headline text="Most dictation apps send your voice to the cloud." accent="the cloud." size={76} style={{ left: 90, top: 790, width: 1000 }} />
+          </Sequence>
+          <Sequence from={s(3.15)} layout="none">
+            <Headline text="Then charge you every month for it." accent="every month" size={76} style={{ left: 90, top: 790, width: 1000 }} />
+          </Sequence>
+        </>
+      ) : null}
     </AbsoluteFill>
   );
 };
@@ -201,19 +229,23 @@ const HoldKey: React.FC = () => {
   );
 };
 
-const LiveDictation: React.FC = () => {
+const LiveDictation: React.FC<{ web: boolean }> = ({ web }) => {
   const f = useCurrentFrame();
   // Local 0 = 12.45 s; push in on the pill for the correction ("15.2… I mean, 1.52").
   const t = lerp(f, [s(1.0), s(2.2)], [0, 1]);
-  const crop = mixRect(full, { x: 50, y: 688, w: 940, h: 96 }, t);
+  const crop = mixRect(full, pillPushIn(1760), t);
   const width = winBox.width + (1760 - winBox.width) * t;
   const box = { left: (1920 - width) / 2, top: 0, width, height: width * (crop.h / crop.w) };
   box.top = (1080 - box.height) / 2 + 40 * t;
   return (
     <AbsoluteFill>
-      <Crop src={FOOTAGE.livePreview.src} from={LP_J_FROM - 0.05} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow, SHAPES.lpPill]} />
-      <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
-      <KeyChip text="⌥ hold" down size={40} style={{ left: 90, top: 120 }} />
+      <Crop src={FOOTAGE.livePreview.src} from={LP_J_FROM - 0.05} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />
+      <PillTake crop={crop} box={box} voiceFrom={LP_J_FROM - 0.05 - FOOTAGE.livePreview.voiceOffset} />
+      {/* On the website copy the bigger label would sit on the window; it comes in with the push. */}
+      <div style={{ opacity: web ? t : 1 }}>
+        <Label text="Talk · live preview" style={{ left: 90, top: 60 }} />
+        <KeyChip text="⌥ hold" down size={40} style={{ left: 90, top: 120 }} />
+      </div>
     </AbsoluteFill>
   );
 };
@@ -283,6 +315,7 @@ const LearnBeat: React.FC = () => {
   const scale = box.width / crop.w;
   const chip = lerp(f, [s(3.4), s(3.8)], [0, 1]);
   const lock = lerp(f, [s(4.75), s(5.1)], [0, 1]);
+  const small = useLegible(24);
   return (
     <AbsoluteFill>
       <div style={{ position: "absolute", ...box, overflow: "hidden", borderRadius: 22, border: "1px solid rgba(255,255,255,0.16)", background: color.noteBg, boxShadow: "0 0 26px rgba(255,255,255,0.06), 0 30px 70px rgba(0,0,0,0.6)" }}>
@@ -303,7 +336,7 @@ const LearnBeat: React.FC = () => {
         </div>
         <div style={{ fontFamily: font.display, fontWeight: 800, fontStretch: "112%", fontSize: 42, color: color.ink }}>Never sent to us.</div>
       </div>
-      <div style={{ position: "absolute", left: 1430, top: 740, fontFamily: font.body, fontSize: 24, color: color.muted, opacity: lock }}>
+      <div style={{ position: "absolute", left: 1430, top: 740, fontFamily: font.body, fontSize: small, color: color.muted, opacity: lock }}>
         Learning is opt-in.
       </div>
     </AbsoluteFill>

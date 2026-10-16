@@ -1,10 +1,23 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { color, font } from "../brand/tokens";
 import { clamp } from "../lib/anim";
 
+/**
+ * The smallest font size allowed, in frame pixels. 0 (the default) changes
+ * nothing; the website copies set it so labels and small print survive being
+ * shown at about a quarter size (videos/website). Read it with `useMinText()`
+ * wherever a size could fall below it.
+ */
+export const MinText = createContext(0);
+export const useMinText = () => useContext(MinText);
+/** `size`, raised to the minimum when one is set. */
+export const useLegible = (size: number) => Math.max(size, useMinText());
+
 /** Small uppercase section label with the on-air dot. */
-export const Label: React.FC<{ text: string; style?: React.CSSProperties; size?: number }> = ({ text, style, size = 26 }) => (
+export const Label: React.FC<{ text: string; style?: React.CSSProperties; size?: number }> = ({ text, style, size: asked = 26 }) => {
+  const size = useLegible(asked);
+  return (
   <div
     style={{
       position: "absolute",
@@ -23,7 +36,8 @@ export const Label: React.FC<{ text: string; style?: React.CSSProperties; size?:
     <span style={{ width: size * 0.45, height: size * 0.45, borderRadius: size, background: color.onAir }} />
     {text}
   </div>
-);
+  );
+};
 
 /** Big display line, one accent phrase in on-air red. Rises in at frame `at` of its parent. */
 export const Headline: React.FC<{

@@ -7,8 +7,24 @@ import type { Shape } from "./components/Crop";
  * How they were recorded: scripts/promo/README.md and promo/README.md.
  */
 export const FOOTAGE = {
-  /** Live preview: small pill streaming the words, the cleaned text landing in a note. Voice in sync. */
-  livePreview: { src: "footage/live-preview.mp4", w: 1040, h: 780, pillCloses: 27.65, textLands: 28.07 },
+  /**
+   * Live preview: small pill streaming the words, the cleaned text landing in a note. Its voice is
+   * voice/benchmark-passage-jessica.mp3 laid `voiceOffset` s late (measured by cross-correlation).
+   */
+  livePreview: { src: "footage/live-preview.mp4", w: 1040, h: 780, pillCloses: 27.65, textLands: 28.07, voiceOffset: 0.45 },
+  /**
+   * The Large pill alone (2026-10-15, scripts/promo/pilltake.swift): 2× Retina, lossless master in
+   * promo/raw/pill-large-take.mov. The same voice starts `voiceAt` s in; its words show `lag` s after
+   * they are spoken; the key is held until every word is up. `pill` is the pill's body in its pixels.
+   */
+  pillLarge: {
+    src: "footage/pill-large.mp4",
+    w: 1820,
+    h: 192,
+    voiceAt: 1.342,
+    lag: 2.85,
+    pill: { x: 65, y: 120, w: 1675, h: 61, r: 30.5 },
+  },
   /** TYPE in the same 4:3 frame: the Lisbon message. Tab takes "take" at 21.97 s, "you think!" at 27.77 s. */
   typeSmall: { src: "footage/type-small.mp4", w: 1040, h: 780, tabTake: 21.97, tabThink: 27.77 },
   /** Talk, full screen: the notch pill at the top. */

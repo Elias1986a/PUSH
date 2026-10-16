@@ -1,6 +1,7 @@
 import React from "react";
 import { spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { color, font } from "../brand/tokens";
+import { useLegible } from "./text";
 
 /** A key that presses and lets go. */
 export const KeyChip: React.FC<{ text: string; down: boolean; size?: number; style?: React.CSSProperties }> = ({
@@ -40,6 +41,7 @@ export const Meter: React.FC<{ label: string; value: string; size: number; style
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
   const p = spring({ frame: f - at, fps, config: { damping: 14, stiffness: 160 } });
+  const labelSize = useLegible(size * 0.32);
   return (
     <div
       style={{
@@ -56,7 +58,7 @@ export const Meter: React.FC<{ label: string; value: string; size: number; style
         ...style,
       }}
     >
-      <div style={{ fontFamily: font.body, fontWeight: 600, fontSize: size * 0.32, letterSpacing: "0.1em", textTransform: "uppercase", color: color.muted }}>
+      <div style={{ fontFamily: font.body, fontWeight: 600, fontSize: labelSize, letterSpacing: "0.1em", textTransform: "uppercase", color: color.muted }}>
         {label}
       </div>
       <div style={{ fontFamily: font.display, fontWeight: 800, fontStretch: "112%", fontSize: size, color: color.ink, lineHeight: 1 }}>

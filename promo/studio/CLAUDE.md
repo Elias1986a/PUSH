@@ -11,17 +11,17 @@ prefix, the source folder and the render folder all say the same thing.
 
 | Destination | Studio folder | Ids | Source | Renders to | Then |
 |---|---|---|---|---|---|
-| pushtype.app | Website | `WebHero16x9` (laptops), `WebHero4x5` (phones) | `src/videos/website/` | `out/website/` | `npm run to-website` writes the small copies + posters into `website/assets/video/` |
+| pushtype.app | Website | `WebHero16x9` (laptops), `WebHero4x5` (phones): the promo's website edition | `src/videos/website/` | `out/website/` | `npm run to-website` writes the small copies + posters into `website/assets/video/` |
 | Ads and posts | Social | `SocialPromo16x9` (YouTube), `SocialPromo4x5` (Instagram/Facebook feed), `SocialPromo9x16` (Reels, Stories, TikTok) | `src/videos/social/` | `out/social/` | upload the files as they are |
-| Not in use | Archive | `ArchiveExplainer16x9`, `ArchiveExplainer9x16` | `src/videos/archive/` | `out/archive/` | nothing |
+| Not in use | Archive | `ArchiveHeroShort16x9`/`4x5` (a 21 s product-first hero, not chosen), `ArchiveExplainer16x9`/`9x16` | `src/videos/archive/` | `out/archive/` | nothing |
 
-Website videos and ads are different jobs. The hero plays muted at about a
-quarter of its size beside the page's headline: product first, one idea per
-beat, every word ≥ ~50 px in the frame, price and qualifiers in the page copy.
-Ads play full screen with sound: problem, turn, proof, price, end card
-(playbook §3). Don't put an ad on the site or the hero in an ad; make a cut for
-each. Check website stills scaled to their real size (496 px wide for the
-16:9, 327 px for the 4:5) before calling them done.
+The website hero is the promo itself (the user likes it as it is) in its
+website edition: `<Wide web />` / `<Feed web />`. The site plays it muted at
+about a quarter of its size, so `web` raises every small text to a minimum
+(`MinText`: 44 px wide, 40 px feed; read it with `useLegible(size)` in any new
+small text) and captions the hook. Change the cut in `videos/social/promo` and
+both follow. Check website stills scaled to their real size (496 px wide for
+the 16:9, 327 px for the 4:5) before calling them done.
 
 ## Commands (run in promo/studio)
 - `npm run dev`: Remotion Studio at http://localhost:3000. Every composition is
@@ -52,9 +52,9 @@ src/
   footage.ts            catalogue of real recordings: sizes, SHAPES, key moments, SHOTS
   components/           shared: Scene, Glow, FullShot, Label, Headline, BrandDot,
                         WordCaptions, KeyChip, Meter, icons, Crop, EndCard, PriceStack
-  videos/website/hero/  the site hero (one component, wide + feed layouts)
+  videos/website/Hero.tsx     the site hero: the promo with `web` on
   videos/social/promo/  the ad: Wide (16:9), Tall (9:16), Feed (4:5), beats
-  videos/archive/explainer/   the 21 s explainer, not in use
+  videos/archive/       hero-short/ (unused 21 s hero), explainer/ (unused)
 public/
   fonts/  footage/  shots/  music/  vo/<video>/    shared assets; staticFile("footage/…")
   explainer/            the archived explainer's own copies
@@ -102,6 +102,11 @@ scripts/to-website.sh   web-size copies + posters of the hero for the site
   burned-in captions (vertical cuts need them; viewers watch muted).
 - Use only `color`/`font` from `brand/tokens.ts`; never hard-code a new hex.
   Use `BrandDot` after standalone brand statements ("$35•").
+- The live preview pill is `PillTake` (the sharp Large-pill take) laid where
+  live-preview.mp4's own soft pill was; push in with `pillPushIn()` so its
+  pixels stay ≤ 1.4×. Never zoom the old pill. Record new UI as its own element
+  at full Retina resolution (`scripts/promo/pilltake.swift`), not with
+  `screencapture -v` (~1–2 Mbps).
 - Real UI: `Crop` a recording. Use `shapes={[SHAPES.…]}` to keep only the real
   window/pill/notch, or `card` for a zoomed crop framed as a card. Never show a
   recording's own backdrop rectangle. Push in with `mixRect` + `lerp`.

@@ -16,11 +16,16 @@ import {
   Label,
   LockIcon,
   Meter,
+  MinText,
+  PillTake,
+  pillPushIn,
   PriceStack,
   Scene,
+  useLegible,
   WordCaptions,
 } from "../../../components";
 import { Redline, SignOffNote, WordsToCloud } from "./beats";
+import type { PromoProps } from "./Wide";
 
 /**
  * 9:16 cut, 28.5 s. Built for phones. Everything that matters sits inside
@@ -47,7 +52,8 @@ const CAPTIONS: CapLine[] = [
   { words: at("V4", [["We", 1.94], ["never", 2.08], ["see", 2.42], ["it.", 2.74]]), until: 23.3, accent: ["never"] },
 ];
 
-export const Tall: React.FC = () => (
+export const Tall: React.FC<PromoProps> = ({ web = false }) => (
+  <MinText.Provider value={web ? 40 : 0}>
   <AbsoluteFill style={{ background: color.studio, fontFamily: font.body }}>
     <Glow />
 
@@ -98,6 +104,7 @@ export const Tall: React.FC = () => (
       }
     />
   </AbsoluteFill>
+  </MinText.Provider>
 );
 
 const Hook: React.FC = () => {
@@ -138,13 +145,14 @@ const LiveDictation: React.FC = () => {
   const f = useCurrentFrame();
   // Window full width; then push in on the pill for the correction.
   const t = lerp(f, [s(2.4), s(3.4)], [0, 1]);
-  const crop = mixRect({ x: 0, y: 0, w: 1040, h: 780 }, { x: 400, y: 690, w: 600, h: 90 }, t);
+  const crop = mixRect({ x: 0, y: 0, w: 1040, h: 780 }, pillPushIn(900), t);
   const width = 900;
   const box = { left: 90, top: 1095 - (width * crop.h) / crop.w / 2, width, height: (width * crop.h) / crop.w };
   return (
     <AbsoluteFill>
       <Label text="What she said" style={{ left: 80, top: 640 }} size={30} />
-      <Crop src={FOOTAGE.livePreview.src} from={LP_J_FROM - 0.05} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow, SHAPES.lpPill]} />
+      <Crop src={FOOTAGE.livePreview.src} from={LP_J_FROM - 0.05} crop={crop} srcSize={LP} box={box} shapes={[SHAPES.lpWindow]} />
+      <PillTake crop={crop} box={box} voiceFrom={LP_J_FROM - 0.05 - FOOTAGE.livePreview.voiceOffset} />
       <KeyChip text="⌥ hold" down size={36} style={{ left: 520, top: 622 }} />
     </AbsoluteFill>
   );
@@ -200,6 +208,7 @@ const LearnBeat: React.FC = () => {
   const scale = width / crop.w;
   const box = { left: 90, top: 700, width, height: width * (crop.h / crop.w) };
   const lock = lerp(f, [s(2.0), s(2.3)], [0, 1]);
+  const small = useLegible(28);
   return (
     <AbsoluteFill>
       <Label text="TYPE · learns you" style={{ left: 80, top: 640 }} size={30} />
@@ -215,7 +224,7 @@ const LearnBeat: React.FC = () => {
         </div>
         <div style={{ fontFamily: font.display, fontWeight: 800, fontStretch: "112%", fontSize: 46, color: color.ink }}>On your Mac.</div>
       </div>
-      <div style={{ position: "absolute", left: 300, top: 1210, fontFamily: font.body, fontSize: 28, color: color.muted, opacity: lock }}>
+      <div style={{ position: "absolute", left: 300, top: 1210, fontFamily: font.body, fontSize: small, color: color.muted, opacity: lock }}>
         Learning is opt-in.
       </div>
     </AbsoluteFill>

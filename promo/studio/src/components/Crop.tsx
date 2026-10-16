@@ -4,6 +4,11 @@ import { color } from "../brand/tokens";
 import type { Box, Rect } from "../lib/anim";
 import { s } from "../lib/time";
 
+/** Rim light around a real UI shape: 1 px outline, faint halo, drop shadow. */
+export const RIM = "0 0 0 1px rgba(255,255,255,0.28), 0 0 22px rgba(255,255,255,0.07), 0 24px 40px rgba(0,0,0,0.6)";
+/** Lifts a recording a step above the near-black background. */
+export const LIFT = "brightness(1.14) contrast(1.04)";
+
 /** A rounded rect in a recording's source pixels: a window, the pill, the notch. */
 
 export type Shape = { x: number; y: number; w: number; h: number; r: number };
@@ -52,7 +57,7 @@ export const Crop: React.FC<{
     WebkitMaskSize: "100% 100%",
     maskSize: "100% 100%",
     // Lift the recordings a step above the near-black background.
-    filter: "brightness(1.14) contrast(1.04)",
+    filter: LIFT,
   };
   const fill: React.CSSProperties = { position: "absolute", inset: 0, width: "100%", height: "100%", maxWidth: "none" };
   // Rim light, drawn as plain box-shadows on rounded rects behind each UI shape
@@ -69,7 +74,7 @@ export const Crop: React.FC<{
         width: r.w * scale,
         height: r.h * scale,
         borderRadius: r.r * scale,
-        boxShadow: "0 0 0 1px rgba(255,255,255,0.28), 0 0 22px rgba(255,255,255,0.07), 0 24px 40px rgba(0,0,0,0.6)",
+        boxShadow: RIM,
       }}
     />
   ));

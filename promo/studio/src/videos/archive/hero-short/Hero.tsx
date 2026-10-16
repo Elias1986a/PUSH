@@ -7,7 +7,9 @@ import { FOOTAGE, LP, SHAPES } from "../../../footage";
 import { BrandDot, Crop, Glow, Headline, KeyChip, LockIcon, Scene } from "../../../components";
 
 /**
- * The website hero: a loop that autoplays muted beside the headline. It shows
+ * Archived 2026-10-15: a 21 s product-first hero, made when the user wanted the
+ * existing promo kept and only its small text fixed (that is videos/website).
+ * Kept for ideas. Originally: a loop that autoplays muted beside the headline. It shows
  * at about a quarter of its size (≈500 px wide on a laptop, 330–480 px on a
  * phone), so it opens on the product, says one thing per beat, and keeps
  * every word ≥ ~50 px in the frame. Price and qualifiers live in the page copy,

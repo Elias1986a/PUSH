@@ -79,7 +79,7 @@ Captions sit at y 370 (that is y 85 in the 4:5).
 
 1. **Script and shot list** (doc): one idea, beats timed to VO, a 16:9 and a vertical shot list.
 2. **VO** in ElevenLabs, then cut per line and get word timings (faster-whisper). Timings drive every cut and caption.
-3. **Screen recordings** of the real app (scripts in `scripts/promo/`). Record at the 1040×780 Notes framing for vertical-friendly layouts. Next time: record at Retina 2× with a higher bitrate; the current takes are 1x and soft.
+3. **Screen recordings** of the real app (scripts in `scripts/promo/`). Record at the 1040×780 Notes framing for vertical-friendly layouts. Anything the viewer must read up close (the pill) is recorded as its own element with `pilltake.swift`: 2× Retina, ProRes, Large pill, key held 2.5 s past the voice so every word shows. `screencapture -v` compresses to ~1–2 Mbps, which is why the first takes are soft.
 4. **AI shots** in Higgsfield (local API on the Mac): one base still, edit it for other angles so the person matches, then image-to-video. Check stills before animating. Remove brand logos (for example the Apple logo on the laptop).
 5. **Build in Remotion** (`promo/studio`; how: `promo/studio/CLAUDE.md`).
 6. **QA:** stills at key moments for both formats against the safe-zone guides; transcribe the final mix to confirm VO order and timing; check loudness.
@@ -114,10 +114,10 @@ Captions sit at y 370 (that is y 85 in the 4:5).
 | `src/lib/` | `s()` seconds-to-frames, `lerp`, `rise`, `mixRect` |
 | `src/footage.ts` | The recordings: sizes, UI shapes for masks, key moments |
 | `src/components/` | Crop (shape masks, cards), captions, labels, keys, price, end card, brand dot |
-| `src/videos/website/hero/` | The site hero, 16:9 and 4:5 layouts |
+| `src/videos/website/Hero.tsx` | The site hero: the promo with `web` on (bigger small text, captioned hook) |
 | `src/videos/social/promo/` | The ad: `Wide` (16:9), `Tall` (9:16, 4:5-safe), `Feed` (4:5), `beats` (redline, sign-off note, words to cloud) |
-| `src/videos/archive/explainer/` | The 21 s explainer, not in use |
-| `src/Root.tsx` | Studio folders Website (`WebHero16x9`, `WebHero4x5`), Social (`SocialPromo16x9`, `SocialPromo4x5`, `SocialPromo9x16`), Archive (`ArchiveExplainer16x9`, `ArchiveExplainer9x16`) |
+| `src/videos/archive/` | Not in use: `hero-short/` (21 s product-first hero), `explainer/` |
+| `src/Root.tsx` | Studio folders Website (`WebHero16x9`, `WebHero4x5`), Social (`SocialPromo16x9`, `SocialPromo4x5`, `SocialPromo9x16`), Archive (`ArchiveHeroShort…`, `ArchiveExplainer…`) |
 
 ```bash
 npm run dev              # Studio: preview every composition

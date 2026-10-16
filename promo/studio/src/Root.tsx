@@ -7,7 +7,8 @@ import { DURATION_S, Explainer } from "./videos/archive/explainer/Explainer";
 import { Feed } from "./videos/social/promo/Feed";
 import { Tall } from "./videos/social/promo/Tall";
 import { Wide } from "./videos/social/promo/Wide";
-import { HERO_S, Hero } from "./videos/website/hero/Hero";
+import { HERO_S, Hero } from "./videos/archive/hero-short/Hero";
+import { HeroFeed, HeroWide } from "./videos/website/Hero";
 
 /** Frame sizes (promo/PROMO-PLAYBOOK.md §1). */
 const SIZE = {
@@ -24,10 +25,10 @@ const music = "explainer-music.mp3";
 // each render under out/<group>/ by that prefix.
 export const RemotionRoot: React.FC = () => (
   <>
-    {/* On pushtype.app. */}
+    {/* On pushtype.app: the promo's website edition (laptops 16:9, phones 4:5). */}
     <Folder name="Website">
-      <Composition id="WebHero16x9" component={Hero} durationInFrames={s(HERO_S)} fps={FPS} {...SIZE.wide} defaultProps={{ format: "wide" as const }} />
-      <Composition id="WebHero4x5" component={Hero} durationInFrames={s(HERO_S)} fps={FPS} {...SIZE.feed} defaultProps={{ format: "feed" as const }} />
+      <Composition id="WebHero16x9" component={HeroWide} durationInFrames={s(50)} fps={FPS} {...SIZE.wide} />
+      <Composition id="WebHero4x5" component={HeroFeed} durationInFrames={s(28.5)} fps={FPS} {...SIZE.feed} />
     </Folder>
 
     {/* Ads and posts: 16:9 YouTube, 4:5 Instagram/Facebook feed, 9:16 Reels/Stories/TikTok. */}
@@ -39,6 +40,8 @@ export const RemotionRoot: React.FC = () => (
 
     {/* Not in use; kept so they can be re-rendered. */}
     <Folder name="Archive">
+      <Composition id="ArchiveHeroShort16x9" component={Hero} durationInFrames={s(HERO_S)} fps={FPS} {...SIZE.wide} defaultProps={{ format: "wide" as const }} />
+      <Composition id="ArchiveHeroShort4x5" component={Hero} durationInFrames={s(HERO_S)} fps={FPS} {...SIZE.feed} defaultProps={{ format: "feed" as const }} />
       <Composition
         id="ArchiveExplainer16x9"
         component={Explainer}

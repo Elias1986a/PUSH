@@ -16,6 +16,7 @@ Small tools used to record and cut the live preview clips in `promo/`
 | `unstick.swift` | Releases a stuck Option and, only if Notes is in front, presses Esc. |
 | `notes-spelling.applescript get\|off\|on` | Notes' spelling/grammar-while-typing switches. Its menu checkmarks read unreliably: confirm with `defaults read com.apple.Notes ShouldCorrectSpellingAutomatically`. |
 | `miclevel.swift <s>` | Prints the microphone level per second, to check the speakers reach the mic. |
+| `pilltake.swift` | Records a dictation take as its own element: a screen region at full Retina resolution in ProRes, holding Left Option and playing the voice in the same process, and prints when the key went down, the voice started and the key came up (seconds into the movie). `--probe` prints where PUSH's pill window is. |
 
 Recipe: use the debug build (its settings live in the `PUSH` domain; make its
 cleanup settings match the shipped defaults first, e.g. `resolveSelfCorrections`
@@ -27,6 +28,16 @@ real; record with `screencapture -v -V <s> -R x,y,w,h`. Restore the volume, the
 installed app, and the clipboard afterwards; delete the test notes.
 
 TYPE takes: Grammarly Desktop draws pink underlines in Notes; quit it for the take and reopen it after. Plan the message so names, places and times are typed and TYPE only finishes everyday phrasing; dry-run every stop through the model (the replay harness's `suggest`) and rehearse once live, since in-app suggestions differ from the dry run.
+
+Element takes (`pilltake`, 2026-10-15; made `promo/pill-large.mp4`): dev build
+with `showLivePreview` on, `previewSize large`, `pillPosition bottom`; a fresh
+note in front so the release pastes there; region from `--probe` with margin
+(the Large pill was 731,1260, 841 pt wide; recorded 700,1200 910×96). Measure
+the mic with `miclevel` while the voice plays first: at ~0.01 RMS Silero hears
+no speech and the pill only says "Listening" (take 1); input volume 100 gave
+~0.05 and worked. Hold `--after 2.5`: the live words run ~2.85 s behind the
+voice, so a 0.1 s hold cuts off the last sentence. Restore input volume, the
+dev build's three settings, the clipboard and the installed app afterwards.
 
 Never send Esc or other keys while the terminal is in front: they reach Claude
 Code and cancel the running command.

@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { color, font } from "../brand/tokens";
 import { lerp, rise } from "../lib/anim";
-import { BrandDot } from "./text";
+import { BrandDot, useLegible } from "./text";
 
 // MARK: End card
 
@@ -49,6 +49,8 @@ export const PriceStack: React.FC<{ vertical: boolean; yearsFrom: number; slamAt
   const once = spring({ frame: f - onceAt, fps, config: { damping: 200 } });
   const strike = lerp(f, [slamAt - 2, slamAt + 6], [0, 1]);
   const big = vertical ? 200 : 210;
+  const label = useLegible(vertical ? 34 : 30);
+  const small = useLegible(vertical ? 28 : 24);
   return (
     <AbsoluteFill
       style={{
@@ -59,7 +61,7 @@ export const PriceStack: React.FC<{ vertical: boolean; yearsFrom: number; slamAt
       }}
     >
       <div style={{ textAlign: "center", opacity: 1 - 0.55 * strike }}>
-        <div style={{ fontFamily: font.body, fontWeight: 600, fontSize: vertical ? 34 : 30, letterSpacing: "0.12em", textTransform: "uppercase", color: color.muted }}>
+        <div style={{ fontFamily: font.body, fontWeight: 600, fontSize: label, letterSpacing: "0.12em", textTransform: "uppercase", color: color.muted }}>
           Subscription dictation · {yearLabel}
         </div>
         <div style={{ position: "relative", display: "inline-block", fontFamily: font.display, fontWeight: 800, fontStretch: "112%", fontSize: big * 0.7, color: color.muted, marginTop: 10 }}>
@@ -68,7 +70,7 @@ export const PriceStack: React.FC<{ vertical: boolean; yearsFrom: number; slamAt
         </div>
       </div>
       <div style={{ textAlign: "center", transform: `scale(${0.4 + 0.6 * slam})`, opacity: Math.min(1, slam * 2) }}>
-        <div style={{ fontFamily: font.body, fontWeight: 600, fontSize: vertical ? 34 : 30, letterSpacing: "0.12em", textTransform: "uppercase", color: color.walnut }}>
+        <div style={{ fontFamily: font.body, fontWeight: 600, fontSize: label, letterSpacing: "0.12em", textTransform: "uppercase", color: color.walnut }}>
           PUSHTYPE
         </div>
         <div style={{ fontFamily: font.display, fontWeight: 900, fontStretch: "112%", fontSize: big, color: color.ink, lineHeight: 1 }}>
@@ -77,7 +79,7 @@ export const PriceStack: React.FC<{ vertical: boolean; yearsFrom: number; slamAt
         <div style={{ fontFamily: font.display, fontWeight: 800, fontStretch: "112%", fontSize: big * 0.42, color: color.onAir, opacity: once, transform: `translateY(${(1 - once) * 20}px)` }}>
           Once.
         </div>
-        <div style={{ fontFamily: font.body, fontSize: vertical ? 28 : 24, color: color.muted, marginTop: 16, opacity: once }}>
+        <div style={{ fontFamily: font.body, fontSize: small, color: color.muted, marginTop: 16, opacity: once }}>
           Launch price · up to 3 Macs
         </div>
       </div>
