@@ -55,7 +55,7 @@ struct ModelsSettingsView: View {
                 }
 
             } header: {
-                Text("Speech model")
+                Text("Talk model")
             } footer: {
                 Text("Every model runs on this Mac. Nothing you say is sent anywhere.")
                     .font(.caption)
@@ -76,7 +76,7 @@ struct ModelsSettingsView: View {
                 typingStorageRow
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Speech models")
+                        Text("Talk models")
                         Text(storageBytes > 0
                              ? "\(Self.format(bytes: storageBytes)) in Application Support"
                              : "Nothing downloaded yet")
@@ -265,8 +265,10 @@ struct ModelsSettingsView: View {
         // described a 1.2 GB row as 600 MB. Before the download that constant is
         // still the right number — it is what the user is about to fetch — and
         // it also stands in until the first size walk finishes.
+        // On disk, the English engines' figure adds the punctuation files they brought.
+        let punctuationBytes = model.writesEnglish && FastPunctuationLoader.isOnDisk ? Double(FastPunctuation.totalBytes) : 0
         let measured = isDownloaded
-            ? modelBytes[model].flatMap { $0 > 0 ? Self.format(bytes: $0) : nil }
+            ? modelBytes[model].flatMap { $0 > 0 ? Self.format(bytes: $0 + punctuationBytes) : nil }
             : nil
         let size = measured ?? model.downloadSizeLabel
         // Unified and Streaming used to be one download that deleted as one,
@@ -532,6 +534,11 @@ struct ModelsSettingsView: View {
             // Logged because every other delete path is: a model folder that
             // vanished with no line in the log once read as an update bug.
             PushLogger.log("ModelsSettings: user deleted \(model.rawValue)")
+            // Punctuation only runs on the English engines' text: it goes with the last of them.
+            if model.writesEnglish,
+               !AppState.WhisperModel.selectable.contains(where: { $0.writesEnglish && ModelAvailability.isDownloaded($0) }) {
+                FastPunctuationLoader.deleteFiles()
+            }
             // Whatever is serving must still have its files. Checked by
             // availability, not by comparing models, because deleting the last
             // of two modes takes the shared files the other one was using.

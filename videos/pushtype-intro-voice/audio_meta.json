@@ -1,0 +1,11 @@
+{
+  "bgm": {
+    "path": "assets/music/clean-pulse-15s-ducked.mp3",
+    "source": "host",
+    "volume": 0.9,
+    "duration_s": 14.9
+  },
+  "bgm_pending": false,
+  "voices": [],
+  "sfx": []
+}

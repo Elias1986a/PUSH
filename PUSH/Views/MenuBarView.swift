@@ -240,6 +240,20 @@ struct MenuBarView: View {
 
     // MARK: - Type
 
+    /// TYPE on or off in the app last typed in, both ways from the menu: Pause
+    /// is for a while, this is for good (user, 2026-10-15). Not shown for the
+    /// apps TYPE is always off in.
+    @ViewBuilder private var appSwitch: some View {
+        if let app = appState.typingLastApp, !TypingExclusions.isExcluded(bundleID: app.bundleID) {
+            Toggle("Suggest in \(app.name)", isOn: Binding(
+                get: { !appState.typingExcludedApps.contains(app.bundleID) },
+                set: { on in
+                    if on { appState.typingExcludedApps.removeAll { $0 == app.bundleID } }
+                    else { appState.typingExcludedApps.append(app.bundleID) }
+                }))
+        }
+    }
+
     /// Type's model (downloaded only, like dictation's), length and pause.
     private var typingControls: some View {
         @Bindable var appState = appState
@@ -291,6 +305,7 @@ struct MenuBarView: View {
                 }
             }
             TypingPauseControl()
+            appSwitch
             LearningPauseControl()
         }
         .font(.system(size: 12))

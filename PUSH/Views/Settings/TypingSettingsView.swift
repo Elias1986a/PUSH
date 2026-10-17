@@ -52,6 +52,7 @@ struct TypingSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                Toggle("Pause on battery and in Low Power Mode", isOn: $appState.typingPauseOnBattery)
             }
 
             Section {
@@ -156,10 +157,6 @@ struct TypingSettingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Section("Battery") {
-                Toggle("Pause on battery and in Low Power Mode", isOn: $appState.typingPauseOnBattery)
-            }
-
             if inlinePredictionsOn {
                 Section("macOS predictions") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -205,15 +202,10 @@ struct TypingSettingsView: View {
         let layout = KeyboardLayoutMap.current()
         let next = TypingPreferences.nextWordKey()
         let whole = TypingPreferences.wholeKey(layout: layout)
-        LabeledContent("Next word") {
-            AcceptKeyRecorder(defaultsKey: TypingPreferences.nextWordKeyKey, fallback: AcceptKeyResolver.tab,
-                              other: whole, onChange: { keysVersion += 1 })
-        }
-        LabeledContent("Whole suggestion") {
-            AcceptKeyRecorder(defaultsKey: TypingPreferences.wholeKeyKey,
-                              fallback: AcceptKeyResolver.wholeSuggestionKey(layout: layout),
-                              other: next, onChange: { keysVersion += 1 })
-        }
+        keyPicker("Next word", defaultsKey: TypingPreferences.nextWordKeyKey,
+                  current: next, other: whole, otherName: "Whole suggestion", layout: layout)
+        keyPicker("Whole suggestion", defaultsKey: TypingPreferences.wholeKeyKey,
+                  current: whole, other: next, otherName: "Next word", layout: layout)
         LabeledContent("In Terminal and other terminals") {
             Text(next == AcceptKeyResolver.tab
                  ? "→ takes the next word. Tab stays the terminal’s, for completing commands."
@@ -236,6 +228,34 @@ struct TypingSettingsView: View {
                     keysVersion += 1
                 }
             }
+        }
+    }
+
+    /// One accept key: a short menu of single keys, the other one's key
+    /// greyed out. (A key recorder offered every key; most were wrong ones.)
+    private func keyPicker(_ title: String, defaultsKey: String, current: AcceptKeyResolver.Key,
+                           other: AcceptKeyResolver.Key, otherName: String,
+                           layout: [Int64: String]) -> some View {
+        Picker(title, selection: Binding(
+            get: { current.stored },
+            set: { stored in
+                UserDefaults.standard.set(stored, forKey: defaultsKey)
+                keysVersion += 1
+            })) {
+            ForEach(AcceptKeyResolver.choices(layout: layout), id: \.stored) { key in
+                Text(Self.keyLabel(key, layout: layout) + (key == other ? " (Used by \(otherName))" : ""))
+                    .tag(key.stored)
+                    .disabled(key == other)
+            }
+        }
+    }
+
+    private static func keyLabel(_ key: AcceptKeyResolver.Key, layout: [Int64: String]) -> String {
+        switch key.keyCode {
+        case 48: return "Tab"
+        case 124: return "Right Arrow"
+        case 119: return "End"
+        default: return AcceptKeyResolver.name(of: key, layout: layout)
         }
     }
 

@@ -29,14 +29,6 @@ struct TypingPauseControl: View {
                     Button("Until Tomorrow") {
                         pause(until: Calendar.current.startOfDay(for: Date().addingTimeInterval(86_400)))
                     }
-                    if let app = TypingCoordinator.shared.lastApp,
-                       !appState.typingExcludedApps.contains(app.bundleID) {
-                        Button("Always in \(app.name)") {
-                            appState.typingExcludedApps.append(app.bundleID)
-                            choosing = false
-                        }
-                        .help("Turns suggestions off in \(app.name) until you remove it in Settings ▸ TYPE")
-                    }
                 }
             }
         } else {

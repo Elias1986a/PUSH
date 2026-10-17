@@ -5,10 +5,10 @@
         <description>Updates for PUSH voice-to-text</description>
         <language>en</language>
         <item>
-            <title>Version 9.3.2</title>
-            <pubDate>Wed, 14 Oct 2026 22:19:06 -0700</pubDate>
-            <sparkle:version>113</sparkle:version>
-            <sparkle:shortVersionString>9.3.2</sparkle:shortVersionString>
+            <title>Version 9.4.1</title>
+            <pubDate>Fri, 16 Oct 2026 19:08:05 -0700</pubDate>
+            <sparkle:version>115</sparkle:version>
+            <sparkle:shortVersionString>9.4.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
 <meta charset="utf-8">
@@ -25,7 +25,28 @@ li { margin: 3px 0; }
 code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
 .older { opacity: .75; }
 </style>
-<div class="latest"><h2>Version 9.3.2 <span class="tag">New</span></h2>
+<div class="latest"><h2>Version 9.4.1 <span class="tag">New</span></h2>
+<h3>New</h3>
+<ul>
+<li><strong>Better punctuation when you speak English.</strong> Parakeet Streaming and Parakeet Ultra now come with a small punctuation model that puts periods, commas, question marks, and capitals where they belong.  It adds about 60 MB to the download and about 0.01 seconds after you let go.</li>
+<li><strong>The Oxford comma.</strong> "Milk, eggs and bread" is now written "milk, eggs, and bread."</li>
+<li><strong>"Know," not "no."</strong> When you say "I don't know" or "let me know," PUSHTYPE writes "know" wherever "no" can't be the word you meant.</li>
+<li><strong>More PUSH-to-talk keys.</strong> Settings ▸ Talk ▸ Key now offers Right or Left Shift and Fn (Globe) as well as Option, Command, and Control.  Shift and Fn wait a quarter of a second before listening, so typing capitals never starts Talk.</li>
+<li><strong>Shortcuts don't trigger Talk.</strong> Press another key while holding the PUSH-to-talk key (⌥Tab, ⌘C) and the recording is quietly dropped.</li>
+<li><strong>Pick TYPE's keys from a menu.</strong> Settings ▸ TYPE has two menus, Next word and Whole suggestion, each offering Tab, ~, Right Arrow, and End.</li>
+<li><strong>Turn TYPE off in one app from the menu bar.</strong> Under Suggestions there is now a checkbox for the app you were last typing in.  Uncheck it and TYPE stays off in that app until you check it again.  Pause still turns TYPE off everywhere for a while.</li>
+<li><strong>Rewriting (experimental).</strong> An optional model in Settings ▸ Talk that fixes misheard words and grammar after you speak, in English.  It's a 1.1 GB download and adds up to a second and a half.</li>
+</ul>
+<h3>Better</h3>
+<ul>
+<li><strong>Tidier Settings.</strong> The panes are in a new order (Personal, General, Talk, TYPE, Teleprompter, Dictionary, Models) with fewer, clearer sections.</li>
+<li><strong>Live text in the pill offers to switch for you.</strong> Turning it on with a model other than Parakeet Streaming asks to switch to Streaming, downloading it if needed.</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>Dictations that started with "Thanks for" or "Thank you" were sometimes thrown away.</li>
+</ul></div>
+<div class="older"><h2>Version 9.3.2</h2>
 <h3>Better</h3>
 <ul>
 <li><strong>Your words land even sooner.</strong> PUSHTYPE no longer waits before pasting what you said, which takes about another 0.05 seconds off the moment you let go of the PUSH-to-talk key.</li>
@@ -269,6 +290,14 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li>Parakeet TDT v2 removed; FluidAudio updated to 0.17.4.</li>
 </ul></div>
             ]]></description>
+            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.4.1/PUSH-v9.4.1.zip" type="application/octet-stream" sparkle:edSignature="v6oqrdCyMFzW9ut/b82se0BEzw44M8zks7HMt4JADh3DM7qLqsGly29PAezFQArLAnBmwMY7/DO2Oq82yS72Dg==" length="21269036" />
+        </item>
+        <item>
+            <title>Version 9.3.2</title>
+            <pubDate>Wed, 14 Oct 2026 22:19:06 -0700</pubDate>
+            <sparkle:version>113</sparkle:version>
+            <sparkle:shortVersionString>9.3.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v9.3.2/PUSH-v9.3.2.zip" type="application/octet-stream" sparkle:edSignature="2lZF99xwSGP7i4moEIDEHwZyjk0Y3LSTsCmVurMuU/53Z2KAHZQ2eBy/Gxdt+iolva+GbgTjX75MDH6cl/o+AQ==" length="21256559" />
         </item>
         <item>

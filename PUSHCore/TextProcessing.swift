@@ -76,6 +76,7 @@ public actor TranscriptionPipeline {
         var out = collapseDoubledPeriods(normalizeCause(text))
         out = removeFillerWords(out)
         out = removeStutteredWords(out)
+        out = fixNoMeaningKnow(out)
         out = stripConnectingAnd(out)
         out = normalizeOrdinals(out)
         out = normalizeDecimalDictation(out)
@@ -91,6 +92,7 @@ public actor TranscriptionPipeline {
         } else {
             out = closeUnfinishedQuestion(out)
         }
+        out = addOxfordComma(out)
         out = smartSymbols(out)
         if !hasNativePunctuation {
             out = fixCapitalization(out)

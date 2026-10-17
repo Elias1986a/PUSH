@@ -1,0 +1,305 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    @font-face {
+      font-family: "Archivo";
+      font-style: normal;
+      font-weight: 400 900;
+      font-stretch: 100% 125%;
+      font-display: swap;
+      src: url("assets/fonts/captured-archivo-latin-ext.woff2") format("woff2");
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: "Archivo";
+      font-style: normal;
+      font-weight: 400 900;
+      font-stretch: 100% 125%;
+      font-display: swap;
+      src: url("assets/fonts/captured-archivo-latin.woff2") format("woff2");
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: "JetBrains Mono";
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url("assets/fonts/captured-jetbrains-mono-latin-ext.woff2") format("woff2");
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: "JetBrains Mono";
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url("assets/fonts/captured-jetbrains-mono-latin.woff2") format("woff2");
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #efede8;
+    }
+
+    /* Ground: identical in every frame so the cuts never jump. */
+    #f01-push-to-talk-ground {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(60% 50% at 80% 100%, #ff7a5c22, transparent 70%),
+        radial-gradient(50% 45% at 10% 0%, #6b3fc422, transparent 70%),
+        #08080A;
+    }
+
+    /* Kicker: JetBrains Mono 18px, uppercase, 0.14em, walnut. */
+    #f01-push-to-talk-kicker {
+      position: absolute;
+      left: 100px;
+      top: 300px;
+      margin: 0;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 400;
+      font-size: 18px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: #b88a63;
+    }
+
+    /* Headline: Archivo 800, stretch 112%. 98px is the largest size that fits the
+       700px column at this stretch (measured 698px); top 391 puts the baseline at y 470. */
+    #f01-push-to-talk-headline {
+      position: absolute;
+      left: 100px;
+      top: 391px;
+      margin: 0;
+      font-family: "Archivo", sans-serif;
+      font-weight: 800;
+      font-stretch: 112%;
+      font-size: 98px;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      color: #efede8;
+    }
+    #f01-push-to-talk-headline span {
+      display: inline-block;
+      will-change: transform, opacity;
+    }
+
+    /* Key cap row: chip 96x88 at left 100, top 560; label 24px to its right. */
+    #f01-push-to-talk-key {
+      position: absolute;
+      left: 100px;
+      top: 560px;
+      height: 88px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    #f01-push-to-talk-keycap {
+      box-sizing: border-box;
+      width: 96px;
+      height: 88px;
+      border-radius: 14px;
+      border: 1px solid rgba(239, 237, 232, 0.22);
+      background: #141416;
+      color: #efede8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: 50% 50%;
+      box-shadow: 0 0 0 rgba(255, 90, 69, 0);
+    }
+    #f01-push-to-talk-keycap svg {
+      display: block;
+      width: 40px;
+      height: 30px;
+    }
+    #f01-push-to-talk-keylabel {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 400;
+      font-size: 22px;
+      line-height: 1;
+      white-space: nowrap;
+      color: #bdb9b1;
+    }
+
+    /* Rims sit behind the masked video layers (the hoisted videos paint above the frame). */
+    #f01-push-to-talk-rim-window {
+      position: absolute;
+      box-sizing: border-box;
+      background: #141416;
+      box-shadow:
+        0 0 0 1px rgba(239, 237, 232, 0.16),
+        0 0 48px rgba(239, 237, 232, 0.06);
+    }
+    #f01-push-to-talk-rim-window {
+      left: 859.231px;
+      top: 150.385px;
+      width: 960.577px;
+      height: 635.577px;
+      border-radius: 23.077px;
+    }
+  </style>
+
+  <div data-hf-id="hf-3vro" id="root" data-composition-id="01-push-to-talk" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-t9iq" id="f01-push-to-talk-ground" class="clip" data-start="0" data-duration="5.6" data-track-index="0"></div>
+
+    <p data-hf-id="hf-8qvq" id="f01-push-to-talk-kicker">Dictation and autocomplete for the Mac</p>
+
+    <h1 data-hf-id="hf-gwcj" id="f01-push-to-talk-headline"><span data-hf-id="hf-oefl">PUSH</span> <span data-hf-id="hf-1jhc">to</span> <span data-hf-id="hf-2i0f">talk.</span></h1>
+
+    <div data-hf-id="hf-2cea" id="f01-push-to-talk-key">
+      <div data-hf-id="hf-ziij" id="f01-push-to-talk-keycap" aria-label="Option key">
+        <!-- The Option glyph (U+2325) is not in the shipped JetBrains Mono subset, so it is drawn. -->
+        <svg data-hf-id="hf-jcxn" viewBox="0 0 32 24" aria-hidden="true">
+          <path data-hf-id="hf-o7yx"
+            d="M2 4 H10.5 L21.5 20 H30 M19.5 4 H30"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3.4"
+            stroke-linecap="square"
+            stroke-linejoin="miter"
+          />
+        </svg>
+      </div>
+      <div data-hf-id="hf-sfxo" id="f01-push-to-talk-keylabel">hold to talk</div>
+    </div>
+
+    <div data-hf-id="hf-gxro" id="f01-push-to-talk-rim-window"></div>
+
+    <!-- The Talk recording, masked to the Notes window, and the Large live pill recorded on
+         its own (promo/pill-large.mp4's master, assets/footage/pill-clip.mp4) under it. The
+         recording's own pill trails her by ~2 s and never shows her sentence, so it is not used.
+         Both videos are hoisted to the host root; the timeline below masks them. -->
+    <!-- approved frame video hoisted by assemble-index -->
+    <!-- approved frame video hoisted by assemble-index -->
+  </div>
+
+  <script>
+    (function () {
+      var ID = "01-push-to-talk";
+      var PREFIX = "f" + ID + "-";
+      var byId = function (name) {
+        return document.getElementById(PREFIX + name);
+      };
+      // The approved videos are hoisted to the host root, outside this frame's
+      // scoped document, so they are looked up on the real owner document.
+      var root = document.querySelector('[data-composition-id="' + ID + '"]');
+      var hostDoc = (root && root.ownerDocument) || window.document;
+      var hostVideo = function (name) {
+        return hostDoc.getElementById(PREFIX + name) || byId(name);
+      };
+
+      var kicker = byId("kicker");
+      var words = Array.prototype.slice.call(byId("headline").querySelectorAll("span"));
+      var keyRow = byId("key");
+      var keycap = byId("keycap");
+      var rimWindow = byId("rim-window");
+      var talkA = hostVideo("talk-a");
+      var pill = hostVideo("pill");
+
+      // Masks in the 1000x750 video box (design space 1040x780 at 0.9615).
+      var MASK_WINDOW = "inset(15.385px 20.192px 99.038px 19.231px round 23.077px)";
+      // The pill take at 1:1 (1820x192 box at (57, 710)): the pill's x 63-1743, y 120-192
+      // lands on screen x 120-1800, y 830-902, under the note.
+      var MASK_PILL = "inset(120px 77px 0px 63px round 36px)";
+      var FOOTAGE_FILTER = "brightness(1.14)";
+      var layerA = { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER };
+      var layerPill = { clipPath: MASK_PILL, filter: FOOTAGE_FILTER };
+      if (talkA) Object.assign(talkA.style, { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER });
+      // Pieces of the window clip split in Studio (ids "<talk-a id>-split…") get the same mask.
+      Array.prototype.forEach.call(
+        hostDoc.querySelectorAll('video[id^="' + PREFIX + 'talk-a-"]'),
+        function (piece) {
+          Object.assign(piece.style, { clipPath: MASK_WINDOW, filter: FOOTAGE_FILTER });
+        },
+      );
+      if (pill) Object.assign(pill.style, layerPill);
+
+      var KEY_REST = { borderColor: "rgba(239,237,232,0.22)", boxShadow: "0 0 0px rgba(255,90,69,0)" };
+      var KEY_DOWN = { borderColor: "#FF5A45", boxShadow: "0 0 24px rgba(255,90,69,0.35)" };
+
+      // Footage cues (frame-local seconds).
+      var PILL_CLOSES = 2.65;
+
+      var tl = gsap.timeline({ paused: true });
+
+      // Scene 1 (0.0-0.7): the product window rises into place, pill layer with it.
+      var rise = function (target, extra) {
+        if (!target) return;
+        tl.fromTo(
+          target,
+          Object.assign({ y: 40, opacity: 0 }, extra || {}),
+          Object.assign({ y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, extra || {}),
+          0,
+        );
+      };
+      rise(rimWindow);
+      rise(talkA, layerA);
+      rise(pill, layerPill);
+
+      // Kicker fades up at 0.15.
+      tl.fromTo(
+        kicker,
+        { y: 12, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, ease: "power3.out" },
+        0.15,
+      );
+
+      // Scene 2 (0.25-1.1): "PUSH", "to", "talk." land word by word.
+      var WORD_START = 0.25;
+      var WORD_STAGGER = 0.12;
+      var WORD_DUR = 0.6;
+      var wordTimes = words.map(function (_, i) {
+        return WORD_START + i * WORD_STAGGER;
+      });
+      words.forEach(function (word, i) {
+        tl.fromTo(
+          word,
+          { y: 30, opacity: 0 },
+          { y: 0, opacity: 1, duration: WORD_DUR, ease: "power3.out" },
+          wordTimes[i],
+        );
+      });
+
+      // Scene 3 (1.0-2.65): key cap enters, then goes straight down and holds.
+      tl.fromTo(
+        keyRow,
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" },
+        1.0,
+      );
+      var PRESS_START = 1.25;
+      var PRESS_DUR = 0.15;
+      tl.fromTo(
+        keycap,
+        Object.assign({ scale: 1 }, KEY_REST),
+        Object.assign({ scale: 0.94, duration: PRESS_DUR, ease: "power1.in" }, KEY_DOWN),
+        PRESS_START,
+      );
+
+      // Scene 4 (2.65-3.6): the key releases and the pill closes; the text lands at 3.07.
+      tl.to(
+        keycap,
+        Object.assign({ scale: 1, duration: 0.25, ease: "power3.out" }, KEY_REST),
+        PILL_CLOSES,
+      );
+      if (pill) tl.to(pill, { opacity: 0, duration: 0.15, ease: "power1.out" }, PILL_CLOSES);
+
+      // Hold still to the cut: the clean text lands in the note at 3.07 on its own and
+      // stays on screen for two seconds so it can be read.
+      tl.set({}, {}, 5.6);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines[ID] = tl;
+    })();
+  </script>
+</template>

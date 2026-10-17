@@ -35,12 +35,14 @@ enum TypingPreferences {
 
     /// Tab unless the user chose another key in Settings → Typing.
     static func nextWordKey(in d: UserDefaults = .standard) -> AcceptKeyResolver.Key {
-        d.string(forKey: nextWordKeyKey).flatMap(AcceptKeyResolver.Key.init(stored:)) ?? AcceptKeyResolver.tab
+        d.string(forKey: nextWordKeyKey).flatMap(AcceptKeyResolver.Key.init(stored:))
+            .flatMap { AcceptKeyResolver.isOffered($0) ? $0 : nil } ?? AcceptKeyResolver.tab
     }
 
     /// The key that types a backtick (the ` ~ key) unless the user chose another.
     static func wholeKey(in d: UserDefaults = .standard, layout: [Int64: String]) -> AcceptKeyResolver.Key {
         d.string(forKey: wholeKeyKey).flatMap(AcceptKeyResolver.Key.init(stored:))
+            .flatMap { AcceptKeyResolver.isOffered($0) ? $0 : nil }
             ?? AcceptKeyResolver.wholeSuggestionKey(layout: layout)
     }
 

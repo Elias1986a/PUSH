@@ -114,7 +114,7 @@ struct TeleprompterSettingsView: View {
             } header: {
                 Text("While the prompter is running")
             } footer: {
-                Text("These belong to the prompter only while it is running. The arrow keys work normally the rest of the time, and \(appState.selectedHotkey.displayName) goes back to starting dictation.")
+                Text("These belong to the prompter only while it is running. The arrow keys work normally the rest of the time, and \(appState.selectedHotkey.displayName) goes back to starting Talk.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)

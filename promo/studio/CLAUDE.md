@@ -12,8 +12,13 @@ prefix, the source folder and the render folder all say the same thing.
 | Destination | Studio folder | Ids | Source | Renders to | Then |
 |---|---|---|---|---|---|
 | pushtype.app | Website | `WebHero16x9` (laptops), `WebHero4x5` (phones): the promo's website edition | `src/videos/website/` | `out/website/` | `npm run to-website` writes the small copies + posters into `website/assets/video/` |
-| Ads and posts | Social | `SocialPromo16x9` (YouTube), `SocialPromo4x5` (Instagram/Facebook feed), `SocialPromo9x16` (Reels, Stories, TikTok) | `src/videos/social/` | `out/social/` | upload the files as they are |
+| Ads and posts | Social | `SocialPromo16x9` (YouTube), `SocialPromo4x5` (Instagram/Facebook feed), `SocialPromo9x16` (Reels, Stories, TikTok) | `src/videos/social/` | `out/social/` | copy the approved finals into the content library: `content/social/` (9:16, 4:5), `content/videos/` (16:9), as `pushtype-promo-<ratio>-4k.mp4` |
 | Not in use | Archive | `ArchiveHeroShort16x9`/`4x5` (a 21 s product-first hero, not chosen), `ArchiveExplainer16x9`/`9x16` | `src/videos/archive/` | `out/archive/` | nothing |
+
+`out/` is this project's scratch (each render overwrites it). Finished files,
+reusable media and takes live in the git-ignored `content/` library at the
+repo root: read `content/README.md`. Remotion only reads `public/`, so copy an
+asset from `content/assets/` into `public/` to use it.
 
 The website hero is the promo itself (the user likes it as it is) in its
 website edition: `<Wide web />` / `<Feed web />`. The site plays it muted at
@@ -37,10 +42,14 @@ the 16:9, 327 px for the 4:5) before calling them done.
   (`hero.mp4`, `hero-4x5.mp4` and their `.jpg` posters) into `website/assets/video/`.
 - `npx remotion add <package>`: add any `@remotion/*` package. It pins the
   same version as `remotion`; mismatched versions break the bundle.
-- `npx remotion ffmpeg` / `npx remotion ffprobe`: ffmpeg is not installed on
-  this Mac; use Remotion's. It is a trimmed build: loudnorm, aac and mp4 work, but
-  rawvideo, md5, psnr and ebur128 don't. Measure loudness with
-  `-af loudnorm=print_format=summary -f null -`.
+- `./scripts/check.sh <Id> [seconds…]`: stills at the size people see them,
+  tiled into `out/check/<Id>.png`, safe-zone guides on vertical frames, and the
+  render's loudness. Run it on every composition you change.
+- `ffmpeg` / `ffprobe` (Homebrew, full build) for anything else; `npx remotion
+  ffmpeg` is a trimmed fallback (no ebur128, psnr, tile, fps, rawvideo). In zsh
+  scripts, brace variables before a colon (`${LN}:${x}`): `$x:l…` is a zsh
+  modifier and silently mangles ffmpeg filter strings.
+- The whole flow, step by step: the `/promo` skill (`.claude/skills/promo`).
 
 ## Layout
 ```
@@ -126,6 +135,14 @@ scripts/to-website.sh   web-size copies + posters of the hero for the site
 16:9 1920×1080 · 4:5 1080×1350 · 9:16 1080×1920. In 9:16, keep text and key
 visuals inside x 60–960, y 340–1500 (4:5 area is y 285–1635; TikTok/Reels UI
 covers the bottom 420 px and right 120 px). Captions sit at y 370.
+
+**Rule (user, 2026-10-15): every 9:16 stays clear of the TikTok/Reels
+buttons.** Nothing that matters may cross x 960 (the like/comment/share
+column) or sit below y 1500. `check.sh` draws that line in red on every 9:16;
+a frame that crosses it is not done. The vertical cut is shared with the 4:5,
+so the 9:16 turns on `clearOfButtons` (cards 870 wide instead of 900, the
+headline and cloud pulled in); give any new shared vertical layout the same
+switch.
 
 ## Remotion skills vs. house rules
 `.agents/skills/remotion-*` (installed with `npx remotion skills add`, refresh

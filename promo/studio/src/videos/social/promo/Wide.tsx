@@ -73,6 +73,11 @@ export type PromoProps = {
    * quarter of its size.
    */
   web?: boolean;
+  /**
+   * 9:16 for TikTok/Reels/Stories: keep everything left of x 960, where the
+   * apps' like/comment/share buttons sit (playbook §1). Vertical cut only.
+   */
+  clearOfButtons?: boolean;
 };
 
 export const Wide: React.FC<PromoProps> = ({ web = false }) => (

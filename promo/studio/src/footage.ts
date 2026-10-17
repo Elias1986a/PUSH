@@ -19,7 +19,7 @@ export const FOOTAGE = {
   livePreviewLanded: { src: "footage/live-preview-landed.png", w: 1040, h: 780 },
   /**
    * The Large pill alone (2026-10-15, scripts/promo/pilltake.swift): 2× Retina, lossless master in
-   * promo/raw/pill-large-take.mov. The same voice starts `voiceAt` s in; its words show `lag` s after
+   * content/raw/takes/pill-large-take.mov. The same voice starts `voiceAt` s in; its words show `lag` s after
    * they are spoken; the key is held until every word is up. `pill` is the pill's body in its pixels.
    */
   pillLarge: {

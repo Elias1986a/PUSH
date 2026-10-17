@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js" integrity="sha384-sG0Hv1tP1lZCk9KQmrIbY/XNwi+OY84GQqhMscbnsoBFqAz8KNCil1kvfL3Hbbk2" crossorigin="anonymous"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #08080A;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-199x" id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-o0al" id="el-01-push-to-talk" class="scene" data-composition-id="01-push-to-talk" data-composition-src="compositions/frames/01-push-to-talk.html" data-start="0" data-duration="5.6" data-track-index="0"></div>
+
+      <!-- California mode beat: the sunset wipes up over the landed note (5.1), the "like" goes, then it
+           wipes away upward into Tab to TYPE (8.5–8.9). z-index keeps it above the hoisted footage. -->
+      <div data-playback-start="0" data-hf-id="hf-6sm7" id="el-01b-california" class="scene" data-composition-id="01b-california" data-composition-src="compositions/frames/01b-california.html" data-start="5.1" data-duration="0.036" data-track-index="2" style="z-index: 20"></div><div data-hf-id="hf-fq9y" data-playback-start="0.036" id="el-01b-california-split" class="scene" data-composition-id="01b-california-split" data-composition-src="compositions/frames/01b-california.html" data-start="5.136" data-duration="3.764" data-track-index="2" style="z-index: 20"></div>
+
+      <div data-hf-id="hf-o1bb" id="el-02-tab-to-type" class="scene" data-composition-id="02-tab-to-type" data-composition-src="compositions/frames/02-tab-to-type.html" data-start="8.6" data-duration="4.1" data-track-index="1"></div>
+
+      <div data-hf-id="hf-d5og" id="el-03-end-card" class="scene" data-composition-id="03-end-card" data-composition-src="compositions/frames/03-end-card.html" data-start="12.2" data-duration="2.8" data-track-index="0"></div>
+
+      <video data-hf-id="hf-xfil" id="f01-push-to-talk-talk-a" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="0" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="0" data-duration="2.918" data-track-index="1005"></video><video data-hf-id="hf-kd4u" id="f01-push-to-talk-talk-a-split" src="assets/footage/talk-clip.mp4" preload="auto" data-media-start="2.92" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="2.92" data-duration="2.68" data-track-index="1005"></video>
+
+      <!-- The Large live pill, sped to 1.35 so each chunk lands as she says it: source 0.567 s =
+           take 27.567 s; "Could you like" at 0.6, "send the final numbers" 1.35, "before Friday" 2.15. -->
+      <video id="f01-push-to-talk-pill" src="assets/footage/pill-clip.mp4" preload="auto" data-media-start="0.567" data-playback-rate="1.35" muted playsinline class="clip" style="position:absolute;left:57px;top:710px;width:1820px;height:192px;object-fit:cover" data-start="0" data-duration="2.9" data-track-index="1006"></video>
+
+      <video data-hf-id="hf-1unr" id="f02-tab-to-type-type-a" src="assets/footage/type-clip.mp4" preload="auto" data-media-start="0" muted playsinline class="clip" style="position:absolute;left:840px;top:135px;width:1000px;height:750px;object-fit:cover" data-start="8.6" data-duration="4.1" data-track-index="2005"></video>
+
+      <!-- BGM -->
+      <audio data-hf-id="hf-z1z2" id="el-bgm" src="assets/music/clean-pulse-15s-ducked.mp3" data-start="0" data-duration="14.9" data-track-index="11" data-volume="0.9"></audio>
+
+      <!-- Jessica, in sync with the Talk footage (benchmark-passage-jessica.mp3 from 24.55 s =
+           footage 25.0 s, the take's measured 0.45 s voice offset): "Could you, like, send the
+           final numbers before Friday?" She finishes as the key comes up at 2.65 s. -->
+      <audio data-hf-id="hf-g215" id="el-jess-voice" src="assets/voice/jessica-final-question.wav" data-start="0" data-duration="2.85" data-track-index="12" data-volume="1" data-audio-group="voiceover"></audio>
+      <!-- Old-school mechanical keys under the Tab scene: three Tab clacks as the gray words land (1.68, 2.25, 2.75 s into the scene), then "space L e t" (3.58-3.85). -->
+      <audio id="el-tab-keys" src="assets/sfx/tab-scene-keys-4.1s.wav" data-start="8.6" data-duration="4.1" data-track-index="13" data-volume="1"></audio>
+
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+      // ── frame transitions (injected by transitions.mjs) ──
+      (function () { var tl = window.__timelines["main"];
+        tl.to("#el-02-tab-to-type", { opacity: 0, duration: 0.3, ease: "power2.out" }, 12.2);
+        tl.fromTo("#el-03-end-card", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.inOut" }, 12.2);
+        // The TYPE footage is hoisted to the root, outside #el-02-tab-to-type: fade it with its frame.
+        tl.fromTo("#f02-tab-to-type-type-a", { opacity: 1 }, { opacity: 0, duration: 0.3, ease: "power2.out", immediateRender: false }, 12.2);
+        tl.to({}, { duration: 15 }, 0); // full-span anchor — main.duration() == composition total (Studio master duration)
+      })();
+    </script>
+  </body>
+</html>

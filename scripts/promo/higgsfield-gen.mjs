@@ -7,8 +7,9 @@
 //   node higgsfield-gen.mjs generate <endpoint> '<json input>' <name>
 //
 // Every generate is priced first and refused if it would take the ledger
-// (promo/raw/explainer/higgsfield-spend.json) past BUDGET_USD. Outputs land
-// in promo/raw/explainer/<name>.<ext>.
+// (content/assets/videos/higgsfield/higgsfield-spend.json) past BUDGET_USD.
+// Outputs land in content/assets/videos/higgsfield/<name>.<ext> (the git-ignored
+// content library; describe each new clip in that folder's README).
 import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { existsSync } from "node:fs"
 import { join, dirname } from "node:path"
@@ -18,7 +19,7 @@ import { homedir } from "node:os"
 const client = await import(join(homedir(), "Dev/higgsfield-mcp/dist/higgsfield.js"))
 const BUDGET_USD = Number(process.env.BUDGET_USD ?? 5)
 const repo = join(dirname(fileURLToPath(import.meta.url)), "../..")
-const outDir = join(repo, "promo/raw/explainer")
+const outDir = join(repo, "content/assets/videos/higgsfield")
 const ledgerPath = join(outDir, "higgsfield-spend.json")
 
 async function ledger() {

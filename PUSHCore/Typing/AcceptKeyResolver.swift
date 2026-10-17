@@ -26,7 +26,23 @@ public enum AcceptKeyResolver {
     }
 
     public static let tab = Key(keyCode: 48, option: false)
-    static let rightArrow = Key(keyCode: 124, option: false)
+    public static let rightArrow = Key(keyCode: 124, option: false)
+    public static let end = Key(keyCode: 119, option: false)
+
+    /// What Settings offers for each accept key: single keys that type
+    /// nothing, so taking them while a suggestion shows costs no character.
+    /// Tab and the key that types `` ` `` (~ above Tab on US keyboards) are
+    /// the defaults, as in Cotypist.
+    public static func choices(layout: [Int64: String]) -> [Key] {
+        [tab, wholeSuggestionKey(layout: layout), rightArrow, end]
+    }
+
+    /// A saved key that is one of the offered ones on some layout: Tab, →,
+    /// End, the backtick key (50) or the key above Tab on ISO keyboards (10).
+    /// Anything else (an older recorded key) falls back to the default.
+    public static func isOffered(_ key: Key) -> Bool {
+        !key.option && [48, 124, 119, 50, 10].contains(key.keyCode)
+    }
     /// ⌥Tab is never an accept key: it sends a plain Tab (Cotypist's way out
     /// of a suggestion when moving between form fields).
     static let optionTab = Key(keyCode: 48, option: true)

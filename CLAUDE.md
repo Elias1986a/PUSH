@@ -40,6 +40,12 @@ text field of any app. All speech recognition runs on-device.
 - `docs/` — design docs and plans
 - `promo/studio` — Remotion motion graphics (ads, explainer); its own CLAUDE.md
   and Remotion agent skills. Brand rules: `promo/PROMO-PLAYBOOK.md`
+- `videos/<project>` — HyperFrames video projects (the intros)
+- `content/` — git-ignored, iCloud-backed library of every finished video
+  (`social/` 9:16+4:5, `videos/` 16:9), image, reusable asset (`assets/`: music,
+  videos, elements, voice, brand, sfx), take and draft, whatever tool made it.
+  Read `content/README.md` before saving or delivering media; nothing stays in
+  Downloads or on the Desktop. The `/promo` skill has the rules.
 
 ## Key Notes
 - `.build` is a symlink to `~/Library/Developer/SwiftPackages/PUSH-build` —
@@ -77,6 +83,13 @@ text field of any app. All speech recognition runs on-device.
   system's rounded popover chrome, and without it the `Settings` scene stops
   materialising entirely — `showSettingsWindow:` returns true while
   `NSApp.windows` holds no settings window. Don't reinstate either scene.
+
+- Talk cleanup models (on trial): `PUSHCore/TalkCleanup` (pass, prompts, guards)
+  and `PUSH/Core/TalkCleanup.swift` (store, loader, runner). A model's answer is
+  pasted only if it passes its pass's guard; never loosen a guard to make a
+  model look better. The rewriting model is pinned in `TalkCleanupPass.file`. The fast punctuation model (`FastPunctuation`, CoreML) is pinned to
+  our own Hugging Face repo, PUSHTYPE/punct-cap-seg-en-coreml, and downloads
+  with Streaming and Ultra; a new conversion means a new commit and new pins.
 
 ## Type (inline autocomplete, 9.0)
 - `PUSH/Typing` (app side: TypingCoordinator, FocusReader, GhostTextPanel,

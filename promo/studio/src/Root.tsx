@@ -35,7 +35,7 @@ export const RemotionRoot: React.FC = () => (
     <Folder name="Social">
       <Composition id="SocialPromo16x9" component={Wide} durationInFrames={s(WIDE_S)} fps={FPS} {...SIZE.wide} />
       <Composition id="SocialPromo4x5" component={Feed} durationInFrames={s(TALL_S)} fps={FPS} {...SIZE.feed} />
-      <Composition id="SocialPromo9x16" component={Tall} durationInFrames={s(TALL_S)} fps={FPS} {...SIZE.tall} />
+      <Composition id="SocialPromo9x16" component={Tall} durationInFrames={s(TALL_S)} fps={FPS} {...SIZE.tall} defaultProps={{ clearOfButtons: true }} />
     </Folder>
 
     {/* Not in use; kept so they can be re-rendered. */}

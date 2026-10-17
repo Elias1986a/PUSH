@@ -6,20 +6,6 @@ import PUSHCore
 /// live in `PUSHCore`.
 extension TranscriptionPipeline {
 
-    // MARK: - Hallucination Filters
-
-    /// Exact-match hallucination phrases (Whisper outputs these on silence/ambient noise)
-    private static let hallucinationPhrases: Set<String> = [
-        "subscribe", "like and subscribe",
-        "see you next time", "bye", "goodbye",
-        "you", "the end", "the end."
-    ]
-
-    /// Prefix-match hallucinations (catch "thank you", "thank you so much", "thanks for watching", etc.)
-    private static let hallucinationPrefixes = [
-        "thank you", "thanks for"
-    ]
-
     // MARK: - Active language
 
     /// The language the *active* engine is actually transcribing in.
@@ -91,15 +77,16 @@ extension TranscriptionPipeline {
             // Filter out empty results and Whisper's blank audio markers
             var filteredText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            // Check for empty, [BLANK_AUDIO], bracketed text, silence markers,
-            // and common Whisper hallucinations on silence/ambient noise
+            // Check for empty output, [BLANK_AUDIO] and bracketed markers.
+            // Whisper's phrase lists ("thank you…", "thanks for…", "bye",
+            // anything containing "silence") went with Whisper (7.0): Parakeet
+            // doesn't invent them, Silero VAD drops silent recordings first,
+            // and the lists were throwing away real dictations that start
+            // "Thanks for the update…".
             var lowerText = filteredText.lowercased()
             if filteredText.isEmpty ||
                lowerText.contains("blank_audio") ||
                lowerText.contains("blank audio") ||
-               lowerText.contains("silence") ||
-               Self.hallucinationPhrases.contains(lowerText) ||
-               Self.hallucinationPrefixes.contains(where: { lowerText.hasPrefix($0) }) ||
                filteredText.hasPrefix("(") && filteredText.hasSuffix(")") ||
                filteredText.hasPrefix("[") && filteredText.hasSuffix("]") {
                 PushLogger.log("TranscriptionPipeline: No speech detected (empty, blank, or hallucination)")
@@ -201,6 +188,14 @@ extension TranscriptionPipeline {
                 filteredText = Self.removeCasualLike(filteredText)
             }
 
+            // The fast punctuation model, when chosen (Settings ▸ Talk), redoes
+            // the speech model's commas, periods, question marks and capitals.
+            // Before the rules, so spoken "comma", "new line" and the "know"
+            // fixes still apply on top of it. English only.
+            if language.isEnglish {
+                filteredText = await FastPunctuationLoader.run(filteredText)
+            }
+
             // Post-processing pipeline varies by model capability:
             // Models with native punctuation (Parakeet) get a reduced pipeline
             // to avoid overriding their higher-quality formatting.
@@ -211,6 +206,15 @@ extension TranscriptionPipeline {
                 filteredText,
                 hasNativePunctuation: activeModel.hasNativePunctuation,
                 language: language)
+
+            // The Talk cleanup models switched on (punctuation, autocorrect),
+            // English only; each keeps the text as it was when its answer
+            // fails the pass's guard or runs past its timeout. After the rules
+            // so the models see clean text, before the symbol entries and the
+            // double space so those still apply on top.
+            if language.isEnglish {
+                formattedText = await TalkCleanupRunner.run(formattedText)
+            }
 
             // Entries for a symbol ("&" heard, "AMP" wanted) can only match now:
             // "ampersand" becomes "&" in the formatting above, after the first

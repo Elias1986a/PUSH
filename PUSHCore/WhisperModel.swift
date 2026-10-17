@@ -80,8 +80,9 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
 
     /// Approximate on-disk cost, for the settings list. Matches the figures
     /// `modelDescription` quotes and the progress estimates in the download.
+    /// The English engines bring the fast punctuation model (~59 MB) with them.
     public var downloadSizeLabel: String {
-        "600 MB"
+        writesEnglish ? "660 MB" : "600 MB"
     }
 
     public var modelDescription: String {
@@ -127,6 +128,16 @@ public enum WhisperModel: String, CaseIterable, Identifiable, Sendable {
         case .parakeetUltra: return true
         case .parakeetStreaming, .nemotronMultilingual:
             return false
+        }
+    }
+
+    /// Whether this engine writes English, and so brings the fast punctuation
+    /// model (English only) down with it. Nemotron is offered only for the
+    /// languages Ultra doesn't cover.
+    public var writesEnglish: Bool {
+        switch self {
+        case .parakeetUltra, .parakeetStreaming: return true
+        case .nemotronMultilingual: return false
         }
     }
 

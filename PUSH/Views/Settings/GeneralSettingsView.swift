@@ -53,7 +53,7 @@ struct GeneralSettingsView: View {
                         HStack(spacing: 10) {
                             // Short names, never broken mid-word: three links share
                             // the row with Check for Updates.
-                            Link("License", destination: Self.licenseAgreementURL).fixedSize()
+                            Link("License Agreement", destination: Self.licenseAgreementURL).fixedSize()
                             Link("Privacy", destination: Self.privacyURL).fixedSize()
                             Link("Acknowledgments", destination: Self.acknowledgementsURL).fixedSize()
                         }
@@ -88,24 +88,6 @@ struct GeneralSettingsView: View {
                     }
             }
 
-            Section("iCloud") {
-                Toggle("Sync across my Macs", isOn: $appState.iCloudSyncEnabled)
-
-                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. What TYPE has learned travels only if you switch on Share in Settings ▸ Personal. Everything else is copied once, when you ask, and then each Mac keeps its own.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                HStack {
-                    Button("Copy Settings From My Other Macs") { copied = CloudSync.shared.adoptFromOtherMac() }
-                    if let copied {
-                        Text(copied.foundAnything ? "Copied \(copied.settings) settings." : "Nothing found in iCloud yet.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .disabled(!appState.iCloudSyncEnabled)
-            }
-
             Section("Permissions") {
                 PermissionRow(
                     title: "Microphone",
@@ -119,6 +101,36 @@ struct GeneralSettingsView: View {
                     status: permissions.accessibility,
                     openSettings: { PermissionGuide.shared.show(.accessibility) }
                 )
+                // Optional, and only for TYPE: shown here too so every
+                // permission PUSHTYPE can ask for is in one list.
+                PermissionRow(
+                    title: "Screen Recording (optional)",
+                    reason: "Lets TYPE read the few apps that hide their text. Settings ▸ TYPE ▸ Context.",
+                    status: ScreenOCR.isAllowed ? .granted : .denied,
+                    openSettings: {
+                        if !CGRequestScreenCaptureAccess() {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+                        }
+                    }
+                )
+            }
+
+            Section("iCloud") {
+                Toggle("Sync across my Macs", isOn: $appState.iCloudSyncEnabled)
+
+                Text("Uses the iCloud account this Mac is signed into — no separate login. Dictionary entries are merged, never replaced, and your name and About you follow you. What TYPE has learned travels only if you switch on Share in Settings ▸ Personal. Everything else is copied once, when you ask, and then each Mac keeps its own.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    Button("Copy Settings from My Other Macs") { copied = CloudSync.shared.adoptFromOtherMac() }
+                    if let copied {
+                        Text(copied.foundAnything ? "Copied \(copied.settings) settings." : "Nothing found in iCloud yet.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .disabled(!appState.iCloudSyncEnabled)
             }
 
             // For support: the user can send it when something goes wrong. It
@@ -132,6 +144,8 @@ struct GeneralSettingsView: View {
                     }
                     Button("Clear") { PushLogger.clear() }
                 }
+            } header: {
+                Text("Troubleshooting")
             } footer: {
                 Text("Records what PUSHTYPE does and how long it takes, never what you say or type. It stays on this Mac unless you send it to us.")
                     .font(.caption)
