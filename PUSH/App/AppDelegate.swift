@@ -77,9 +77,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // download — and independent of dictation's warm-up.
         TypingEngineLoader.apply()
         TypingCoordinator.shared.setActive(AppState.shared.typeEnabled)
-        // The Talk cleanup models switched on, when on disk. Never a download.
-        TalkCleanupLoader.apply()
         FastPunctuationLoader.apply()
+        removeRewritingModel()
 
         if showingWizard {
             showOnboarding()
@@ -175,7 +174,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let freed = DispatchSemaphore(value: 0)
         Task.detached {
             await LlamaEngine.shared.unload()
-            for pass in TalkCleanupPass.allCases { await TalkCleanupRunner.engine(pass).unload() }
             freed.signal()
         }
         if freed.wait(timeout: .now() + 2) == .timedOut {
@@ -377,6 +375,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated { UpdaterManager.shared.start() }
         }
         RunLoop.main.add(timer, forMode: .common)
+    }
+
+    /// Rewriting (9.4.1's experimental rewriting model, removed 2026-10-16:
+    /// 0.34 s median and over 1 s at worst on short dictations) left a 1.1 GB
+    /// file and its switch behind on any Mac that tried it.
+    private func removeRewritingModel() {
+        UserDefaults.standard.removeObject(forKey: "talkAutocorrectModel")
+        let model = FastPunctuationLoader.directory.deletingLastPathComponent().appendingPathComponent("autocorrect.gguf")
+        for path in [model.path, model.path + ".partial"] where FileManager.default.fileExists(atPath: path) {
+            try? FileManager.default.removeItem(atPath: path)
+            PushLogger.log("AppDelegate: removed the retired rewriting model")
+        }
     }
 
     private func preloadModels() {

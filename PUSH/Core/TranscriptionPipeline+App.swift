@@ -207,15 +207,6 @@ extension TranscriptionPipeline {
                 hasNativePunctuation: activeModel.hasNativePunctuation,
                 language: language)
 
-            // The Talk cleanup models switched on (punctuation, autocorrect),
-            // English only; each keeps the text as it was when its answer
-            // fails the pass's guard or runs past its timeout. After the rules
-            // so the models see clean text, before the symbol entries and the
-            // double space so those still apply on top.
-            if language.isEnglish {
-                formattedText = await TalkCleanupRunner.run(formattedText)
-            }
-
             // Entries for a symbol ("&" heard, "AMP" wanted) can only match now:
             // "ampersand" becomes "&" in the formatting above, after the first
             // pass of the dictionary has already run.

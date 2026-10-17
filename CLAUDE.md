@@ -25,6 +25,7 @@ text field of any app. All speech recognition runs on-device.
 - `swift build` — build
 - `swift test` — unit tests (Tests/PUSHTests; text post-processing + context gate)
 - `swift run` — run the app
+- `scripts/speedtest.sh` — the website's speed numbers (release to text on screen, installed app vs Wispr Flow); takes over the Mac ~45 min
 - `./build_distribution.sh` — signed/notarized release ZIP + DMG + Sparkle appcast
   (run with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`; CLT's
   Foundation breaks FluidAudio)
@@ -84,12 +85,12 @@ text field of any app. All speech recognition runs on-device.
   materialising entirely — `showSettingsWindow:` returns true while
   `NSApp.windows` holds no settings window. Don't reinstate either scene.
 
-- Talk cleanup models (on trial): `PUSHCore/TalkCleanup` (pass, prompts, guards)
-  and `PUSH/Core/TalkCleanup.swift` (store, loader, runner). A model's answer is
-  pasted only if it passes its pass's guard; never loosen a guard to make a
-  model look better. The rewriting model is pinned in `TalkCleanupPass.file`. The fast punctuation model (`FastPunctuation`, CoreML) is pinned to
-  our own Hugging Face repo, PUSHTYPE/punct-cap-seg-en-coreml, and downloads
-  with Streaming and Ultra; a new conversion means a new commit and new pins.
+- Punctuation after Talk is the fast punctuation model (`FastPunctuation`, CoreML,
+  `PUSH/Core/FastPunctuationLoader.swift`), pinned to our own Hugging Face repo,
+  PUSHTYPE/punct-cap-seg-en-coreml; it downloads with Streaming and Ultra, and a
+  new conversion means a new commit and new pins. LLM rewriting after Talk was
+  tried in 9.4.1 and removed (0.34 s median, over 1 s at worst, and it added
+  words): don't bring an LLM back into the release-to-text path.
 
 ## Type (inline autocomplete, 9.0)
 - `PUSH/Typing` (app side: TypingCoordinator, FocusReader, GhostTextPanel,

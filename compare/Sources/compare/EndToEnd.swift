@@ -22,6 +22,29 @@ enum DictationTarget: String, CaseIterable, Identifiable, Codable {
 
     /// The user's setup: PUSHTYPE on Left Option, Wispr Flow on Left Control.
     var defaultKey: HoldKey { self == .pushtype ? .leftOption : .leftControl }
+
+    var bundleID: String { self == .pushtype ? "com.push.voicetotext" : "com.electron.wispr-flow" }
+
+    /// The pause before the next hold. Wispr Flow returns nothing for a hold
+    /// started within ~10 s of its last paste (2026-10-16: with 2 s, every run
+    /// after a success came back empty).
+    var gap: Duration { self == .pushtype ? .seconds(2) : .seconds(10) }
+
+    /// The copy that is running, which is the one being measured.
+    var running: NSRunningApplication? {
+        NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first
+    }
+
+    var version: String? {
+        running?.bundleURL.flatMap { Bundle(url: $0)?.infoDictionary?["CFBundleShortVersionString"] as? String }
+    }
+
+    /// PUSHTYPE's chosen speech model, read from its preferences. It is only
+    /// the model serving the run if PUSHTYPE was relaunched after it was set.
+    var model: String? {
+        guard self == .pushtype else { return nil }
+        return CFPreferencesCopyAppValue("selectedWhisperModel" as CFString, bundleID as CFString) as? String
+    }
 }
 
 /// A modifier held like a finger on it. Flags as a real press reports them:
@@ -77,6 +100,9 @@ struct EndToEndRun: Codable, Identifiable {
     /// key may have been released early and the paste may have gone elsewhere.
     /// Left out of the medians.
     var interrupted: Bool? = nil
+    var appVersion: String? = nil
+    /// PUSHTYPE's speech model (`parakeet-streaming`, `parakeet-ultra`).
+    var model: String? = nil
 }
 
 @MainActor
@@ -137,10 +163,14 @@ final class EndToEndModel {
         run([(target, key, count)])
     }
 
-    /// Unattended: `COMPARE_E2E="pushtype:25,wispr:25"` opens this window and
-    /// runs each in turn, so a long study is one command.
+    /// Unattended: `COMPARE_E2E="pushtype:25,wispr:25"` opens this window,
+    /// runs each in turn and quits (exit 1 if a series stopped early).
+    /// `scripts/speedtest.sh` drives a whole study with it.
+    private var unattended = false
+
     func runFromEnvironment() {
         guard let spec = ProcessInfo.processInfo.environment["COMPARE_E2E"] else { return }
+        unattended = true
         let plan = spec.split(separator: ",").compactMap { item -> (DictationTarget, HoldKey, Int)? in
             let parts = item.split(separator: ":")
             guard let name = parts.first, let n = parts.last.flatMap({ Int($0) }),
@@ -153,42 +183,63 @@ final class EndToEndModel {
         run(plan)
     }
 
+    private func finish(_ message: String, failed: Bool) {
+        status = message
+        isRunning = false
+        guard unattended else { return }
+        print(failed ? "compare: \(message)" : "compare: done")
+        exit(failed ? 1 : 0)
+    }
+
+    /// Runs until `count` runs brought text. An empty run is logged and
+    /// retried, up to 10 in a series; an interrupted one stops everything.
     private func run(_ plan: [(DictationTarget, HoldKey, Int)]) {
         guard !isRunning, let audioURL, !plan.isEmpty else { return }
         guard AXIsProcessTrusted() else {
-            status = "Needs Accessibility to hold the key: System Settings ▸ Privacy & Security ▸ Accessibility ▸ PUSH Compare."
+            finish("Needs Accessibility to hold the key: System Settings ▸ Privacy & Security ▸ Accessibility ▸ PUSH Compare.", failed: true)
+            return
+        }
+        if let missing = plan.first(where: { $0.0.running == nil })?.0 {
+            finish("\(missing.rawValue) isn't running.", failed: true)
             return
         }
         let speechEnd: Double
         do {
             speechEnd = try Self.speechEnd(of: audioURL)
         } catch {
-            status = error.localizedDescription
+            finish(error.localizedDescription, failed: true)
             return
         }
         isRunning = true
         Task {
             for (target, key, count) in plan {
-                for n in 1...max(count, 1) {
-                    guard isRunning else { break }
-                    status = "\(target.rawValue): run \(n) of \(count) (speech ends at \(speechEnd.formatted(.number.precision(.fractionLength(2)))) s)…"
+                var good = 0, empty = 0
+                while good < max(count, 1) {
+                    guard isRunning else { return }
+                    status = "\(target.rawValue): run \(good + 1) of \(count)\(empty > 0 ? ", \(empty) empty" : "") (speech ends at \(speechEnd.formatted(.number.precision(.fractionLength(2)))) s)…"
                     guard let run = await runOnce(target: target, key: key, audioURL: audioURL, speechEnd: speechEnd) else {
-                        status = "Stopped: the text box lost focus, so a paste would land somewhere else."
-                        isRunning = false
+                        finish("Stopped: the text box lost focus, so a paste would land somewhere else.", failed: true)
                         return
                     }
                     runs.insert(run, at: 0)
                     EndToEndLog.append(run)
                     if run.interrupted == true {
-                        status = "Stopped: another app came to the front during the hold. Leave the Mac alone while this runs."
-                        isRunning = false
+                        finish("Stopped: another app came to the front during the hold. Leave the Mac alone while this runs.", failed: true)
                         return
                     }
-                    try? await Task.sleep(for: .seconds(2))
+                    if run.releaseToTextMs == nil {
+                        empty += 1
+                        if empty > 10 {
+                            finish("Stopped: \(target.rawValue) brought no text 11 times.", failed: true)
+                            return
+                        }
+                    } else {
+                        good += 1
+                    }
+                    try? await Task.sleep(for: target.gap)
                 }
             }
-            status = ""
-            isRunning = false
+            finish("", failed: false)
         }
     }
 
@@ -238,7 +289,8 @@ final class EndToEndModel {
             heldSeconds: Double(released - pressed) / 1_000_000_000,
             releaseToTextMs: ms(firstChange), releaseToSettledMs: ms(lastChange),
             text: textView?.string ?? "",
-            interrupted: interrupted ? true : nil)
+            interrupted: interrupted ? true : nil,
+            appVersion: target.version, model: target.model)
     }
 
     /// Where the voice stops in `url`: the end of the last 10 ms window above
