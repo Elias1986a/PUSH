@@ -1,6 +1,10 @@
 # NOTES
 
-## Fast punctuation model on trial (2026-10-16, next-release, not released)
+## 9.4.1 released (2026-10-16)
+
+Published early at the user's request (the Sunday 10/18 plan is moot): GitHub release v9.4.1, appcast on main (#105 merged), build 115. 9.4.0 (build 114) was never published; 9.4.1 folds its notes in. The user's work Mac already has Streaming, so it needs Streaming deleted and downloaded again to get the punctuation model (no repair path, user's call). Start chirp stays instant at key-down even when a shortcut then cancels (user chose this). Next: the rewriting/autocorrect discussion (share TYPE's model, prompt rules, name).
+
+## Fast punctuation model (2026-10-16, shipped in 9.4.1)
 
 A/B of the LLM passes (Streaming, user's Mac): both gave the same text as Streaming on simple sentences (Streaming already punctuates them), punctuation LLM added 100–270 ms (3 stalls hit its 800 ms cap), autocorrect 155–570 ms and added words the user didn't say ("showed up", "on Friday", quotes). User's call: punctuation should be built in, no choice; the rewriting pass may stay as an opt-in (to be renamed), ideally sharing TYPE's model — discuss before building.
 
