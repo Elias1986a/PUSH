@@ -63,7 +63,8 @@ text field of any app. All speech recognition runs on-device.
 - Feature names users see: **Talk** (voice; never Voice or Dictation as its name) and **TYPE** (all caps), and **PUSH** always in caps ("PUSH to talk", the "PUSH-to-talk key"). Plain words for the act or the category stay (speak, your voice, dictation apps, the "Dictation and autocomplete" tagline). Code identifiers and stored keys keep their names.
 - American spelling in anything users see (license, color, behavior; "period", not "full stop"). Stored keys keep their old names (`licence.offered`, the Keychain services): renaming them would orphan saved data.
 - Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.
-  Then move the DMG into `releases/` (git-ignored, every past DMG) and delete the ZIP.
+  Then move the previous DMG into `releases/past/`, the new one into `releases/`
+  (git-ignored; it holds only the current release), and delete the ZIP.
   The feed keeps every past release's `<item>`; the build script prepends.
 - The chosen model is per-machine and never synced (`CloudSync.mirroredSettingKeys`),
   and launch never downloads: `ModelLoader.activateAtLaunch` loads what is already
