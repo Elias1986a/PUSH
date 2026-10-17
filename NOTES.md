@@ -1,5 +1,11 @@
 # NOTES
 
+## 10.0.0 released: the store is open (2026-10-16, late)
+
+User called the launch early ("no reason to wait till Sunday"). Shipped from main via #108: the `launch` branch (licensing on in release builds, production PolarConfig, live Buy buttons, SEO: robots, sitemap, JSON-LD, IndexNow), Rewriting removed, downloads named PUSHTYPE.app (Sparkle installs updates at the existing path, so older installs keep PUSH.app: checked in Sparkle 2.9.3's SUInstaller, normalization is off), release notes archived to release-notes/archive, appcast restarted with 10.0.0 alone (build 116). Notarized, stapled, spctl accepted; the user uploaded the DMG to Polar's File Downloads benefit. Verified live: feed (build 116), ZIP 200, both buy.polar.sh links redirect to live checkouts, no noindex, robots 200. Netlify was already production (POLAR_SERVER, live token, webhook secret).
+User decisions: repo stays public for now (go private later this week after moving downloads + feed off GitHub: e.g. a public releases-only repo and the feed on pushtype.app); Extra Mac refund eviction fixed after launch (deactivate by hand in Polar if one happens); no DBA/LLC or attorney review before launch (user's call).
+Next: user buys their own copy with a code and activates their Macs; refund-eviction fix + sandbox test; repo private; speedtest.sh smoke run.
+
 ## Rewriting removed (2026-10-16, next-release, not released)
 
 User tried Rewriting (Qwen 1.5B after Talk) for an evening and asked to remove it: "even on short things it took so long". Log, 20 dictations: the rewrite step 342 ms median, 1015 ms max; release → paste 423 ms median with it vs 117 ms without (86). Gone: TalkCleanupPass/Store/Loader/Runner, HuggingFaceFile, Settings ▸ Talk ▸ Rewriting, the `talkAutocorrectModel` switch. Launch deletes a leftover TalkModels/autocorrect.gguf (1.1 GB) and the pref. FastPunctuationLoader stays (now its own file; its files stay under TalkModels/punctuation-fast). LlamaEngine's `parseSpecial` is now unused, left in place. Ship in the next release.
