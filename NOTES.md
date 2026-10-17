@@ -1,8 +1,12 @@
 # NOTES
 
+## Rewriting removed (2026-10-16, next-release, not released)
+
+User tried Rewriting (Qwen 1.5B after Talk) for an evening and asked to remove it: "even on short things it took so long". Log, 20 dictations: the rewrite step 342 ms median, 1015 ms max; release → paste 423 ms median with it vs 117 ms without (86). Gone: TalkCleanupPass/Store/Loader/Runner, HuggingFaceFile, Settings ▸ Talk ▸ Rewriting, the `talkAutocorrectModel` switch. Launch deletes a leftover TalkModels/autocorrect.gguf (1.1 GB) and the pref. FastPunctuationLoader stays (now its own file; its files stay under TalkModels/punctuation-fast). LlamaEngine's `parseSpecial` is now unused, left in place. Ship in the next release.
+
 ## 9.4.1 released (2026-10-16)
 
-Published early at the user's request (the Sunday 10/18 plan is moot): GitHub release v9.4.1, appcast on main (#105 merged), build 115. 9.4.0 (build 114) was never published; 9.4.1 folds its notes in. The user's work Mac already has Streaming, so it needs Streaming deleted and downloaded again to get the punctuation model (no repair path, user's call). Start chirp stays instant at key-down even when a shortcut then cancels (user chose this). Next: the rewriting/autocorrect discussion (share TYPE's model, prompt rules, name).
+Published early at the user's request (the Sunday 10/18 plan is moot): GitHub release v9.4.1, appcast on main (#105 merged), build 115. 9.4.0 (build 114) was never published; 9.4.1 folds its notes in. The user's work Mac already has Streaming, so it needs Streaming deleted and downloaded again to get the punctuation model (no repair path, user's call). Start chirp stays instant at key-down even when a shortcut then cancels (user chose this). Rewriting was then removed (see above).
 
 ## Fast punctuation model (2026-10-16, shipped in 9.4.1)
 

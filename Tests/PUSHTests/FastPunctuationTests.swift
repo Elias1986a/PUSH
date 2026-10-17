@@ -141,7 +141,10 @@ final class FastPunctuationTests: XCTestCase {
         let long = "It showed that it can deliver in full, and had room but in reality the campaign is live right now and it's underpacing significantly but FreeWheel also thought it could deliver in full and had a bigger net of avails than we did."
         let output = try await model.punctuate(long)
         print("FastPunctuation: \(output)")
-        XCTAssertEqual(TalkCleanupPass.words(output), TalkCleanupPass.words(long))
+        func words(_ text: String) -> [String] {
+            text.lowercased().split { !$0.isLetter && !$0.isNumber && $0 != "'" }.map(String.init)
+        }
+        XCTAssertEqual(words(output), words(long))
         XCTAssertTrue(output.contains("FreeWheel"))
     }
 }

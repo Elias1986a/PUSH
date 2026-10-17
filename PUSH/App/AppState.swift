@@ -496,22 +496,6 @@ final class AppState {
         }
     }
 
-    /// The Talk rewriting pass (`TalkCleanupPass`), on trial: its own switch
-    /// and download. Per Mac and never synced, like every switch that
-    /// depends on a download (`CloudSync.seededSettingKeys`).
-    var talkAutocorrectModel: Bool = UserDefaults.standard.bool(forKey: "talkAutocorrectModel") {
-        didSet {
-            UserDefaults.standard.set(talkAutocorrectModel, forKey: "talkAutocorrectModel")
-            if talkAutocorrectModel != oldValue { TalkCleanupLoader.apply() }
-        }
-    }
-
-    func isTalkCleanupOn(_ pass: TalkCleanupPass) -> Bool {
-        switch pass {
-        case .autocorrect: return talkAutocorrectModel
-        }
-    }
-
     /// Where the pill lives on screen. At the top it stops being a floating
     /// capsule and becomes a tab hanging off the screen's top edge, continuing
     /// the notch downward — the reading position for a live transcript, rather

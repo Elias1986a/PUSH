@@ -151,8 +151,6 @@ struct DictationSettingsView: View {
             }
 
             DictationTextSections()
-
-            TalkCleanupSection()
         }
         .formStyle(.grouped)
         .onAppear(perform: refreshDevices)
