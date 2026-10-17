@@ -60,7 +60,7 @@ Captions sit at y 370 (that is y 85 in the 4:5).
 | Your voice and words stay on your Mac | Accurate | None. Avoid "nothing ever leaves": license checks, updates and iCloud settings sync do connect |
 | It learns how you write | Off by default | "Learning is opt-in." |
 | $35 once | Launch price ($50 regular) | "Launch price · up to 3 Macs" |
-| 20× faster than cloud | PUSHTYPE's own benchmark | "PUSHTYPE benchmark, see www.pushtype.app" if used |
+| 6.7× faster than Wispr Flow (0.12 s vs 0.83 s, release to text on screen) | PUSHTYPE's own benchmark, 16 Oct 2026, Parakeet Streaming; Ultra is 5.5× (0.15 s). The old "20×" timed the transcript, not the screen: don't use it | "PUSHTYPE benchmark, see www.pushtype.app" if used |
 
 ---
 
@@ -146,4 +146,4 @@ npm run render -- --4k SocialPromo16x9
 
 - Re-record screen takes at Retina 2× and higher bitrate.
 - The sign-off name "Maya" is a placeholder.
-- Optional proof shots for later videos: Wi-Fi off while dictating, teleprompter, the 20× speed race.
+- Optional proof shots for later videos: Wi-Fi off while dictating, teleprompter, the release-to-screen speed race.
