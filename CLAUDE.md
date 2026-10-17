@@ -1,8 +1,9 @@
 # CLAUDE.md — PUSH
 
 ## Project Overview
-Users see the name **PUSHTYPE** (since 9.1.0); the bundle id, executable,
-`PUSH.app`, prefs domain and Application Support/PUSH stay PUSH.
+Users see the name **PUSHTYPE** (since 9.1.0); downloads are `PUSHTYPE.app`
+(since 10.0; Sparkle updates keep an older install's `PUSH.app` name). The
+bundle id, executable, prefs domain and Application Support/PUSH stay PUSH.
 PUSH is a macOS menu bar app for offline voice-to-text dictation. Hold a hotkey
 (or say a wake word), speak, and the transcription is pasted into the focused
 text field of any app. All speech recognition runs on-device.
@@ -58,7 +59,7 @@ text field of any app. All speech recognition runs on-device.
   Exception: Type's accepted words are posted as Unicode key events
   (`KeystrokeTyper`); Catalyst Messages ignores them.
 - Never log transcript text (privacy); PushLogger events are operational only.
-- Website house style: two spaces after every sentence and the Oxford comma. After editing a page run `python3 website/typography.py` (build_legal.py does it for the legal pages); it is idempotent.
+- Website house style: two spaces after every sentence and the Oxford comma. After editing a page run `python3 website/typography.py` (build_legal.py does it for the legal pages); it is idempotent.  Then `python3 website/build_sitemap.py` so lastmod stays true (SEO launch notes: `docs/launch-seo-checklist.md`).
 - Feature names users see: **Talk** (voice; never Voice or Dictation as its name) and **TYPE** (all caps), and **PUSH** always in caps ("PUSH to talk", the "PUSH-to-talk key"). Plain words for the act or the category stay (speak, your voice, dictation apps, the "Dictation and autocomplete" tagline). Code identifiers and stored keys keep their names.
 - American spelling in anything users see (license, color, behavior; "period", not "full stop"). Stored keys keep their old names (`licence.offered`, the Keychain services): renaming them would orphan saved data.
 - Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.

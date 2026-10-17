@@ -10,8 +10,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Third-party notices · PUSHTYPE</title>
-<meta name="robots" content="noindex">
+<meta name="description" content="The open-source software and models PUSHTYPE uses, and their licenses.">
+<link rel="canonical" href="https://pushtype.app/legal/notices.html">
 <link rel="icon" href="../assets/favicon-32.png" sizes="32x32">
+<link rel="icon" href="../assets/favicon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <meta name="theme-color" content="#edebe6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
@@ -34,9 +36,9 @@
 </header>
 <main class="wrap doc">
 <h1 class="disp">Third-party notices</h1>
-<p>PUSHTYPE is built on open-source software and open speech models.&nbsp; We're grateful to the people who made them.&nbsp; This file lists each one, its license and what the license asks of us.&nbsp; The full license texts are in <code>legal/third-party/</code>, and the release build copies this whole folder into <code>PUSH.app/Contents/Resources/Legal</code>.</p>
+<p>PUSHTYPE is built on open-source software and open speech models.&nbsp; We're grateful to the people who made them.&nbsp; This file lists each one, its license and what the license asks of us.&nbsp; The full license texts are in <code>legal/third-party/</code>, and the release build copies this whole folder into <code>PUSHTYPE.app/Contents/Resources/Legal</code>.</p>
 <p>The companies named here have not endorsed PUSHTYPE.&nbsp; Their names are used only to say where each component comes from.</p>
-<h2>Software shipped inside PUSH.app</h2>
+<h2>Software shipped inside PUSHTYPE.app</h2>
 <p>These are compiled into the app or bundled with it.&nbsp; Their licenses require us to include the copyright notice and license text with every copy we distribute.</p>
 <div class="table-wrap"><table><thead><tr><th>Component</th><th>Version</th><th>License</th><th>Copyright</th><th>Full text</th></tr></thead><tbody><tr><td><a href="https://github.com/FluidInference/FluidAudio">FluidAudio</a></td><td>0.17.4</td><td>Apache License 2.0</td><td>FluidInference</td><td><code>third-party/FluidAudio/LICENSE.txt</code></td></tr><tr><td>↳ NemoTextProcessing (text-processing-rs), linked by FluidAudio</td><td>0.3.1</td><td>Apache License 2.0 (with MIT/Apache sub-components)</td><td>FluidInference and contributors</td><td><code>third-party/FluidAudio/NemoTextProcessing-LICENSE.md</code></td></tr><tr><td>↳ fastcluster, compiled into FluidAudio</td><td>—</td><td>BSD 2-Clause</td><td>© 2011 Daniel Müllner; © Google Inc.</td><td><code>third-party/FluidAudio/fastcluster-LICENSE.md</code></td></tr><tr><td>↳ <a href="https://github.com/BUTSpeechFIT/VBx">VBx</a>, ported in FluidAudio</td><td>—</td><td>Apache License 2.0</td><td>VBx authors</td><td><code>third-party/FluidAudio/vbx-LICENSE.md</code></td></tr><tr><td>↳ Kokoro text frontends, in FluidAudio</td><td>—</td><td>Apache 2.0 / MIT / BSD (see file)</td><td>Various</td><td><code>third-party/FluidAudio/JapaneseG2P-LICENSE.md</code>, <code>KokoroAneSpanishFrenchG2P-LICENSE.md</code></td></tr><tr><td><a href="https://sparkle-project.org">Sparkle</a></td><td>2.9.3</td><td>MIT, plus BSD-style and public-domain components (bsdiff, sais-lite, ed25519, SUSignatureVerifier)</td><td>Andy Matuschak and the Sparkle contributors</td><td><code>third-party/Sparkle-LICENSE.txt</code></td></tr><tr><td><a href="https://github.com/sindresorhus/LaunchAtLogin-Modern">LaunchAtLogin-Modern</a></td><td>1.1.0</td><td>MIT</td><td>Sindre Sorhus</td><td><code>third-party/LaunchAtLogin-Modern-LICENSE.txt</code></td></tr><tr><td><a href="https://github.com/Jakubantalik/Libraries.dev">voice-glow</a>, ported as <code>VoiceGlow.swift</code></td><td>—</td><td>MIT</td><td>© 2026 Jakub Antalik</td><td><code>third-party/voice-glow-LICENSE.txt</code></td></tr><tr><td><a href="https://github.com/ggml-org/llama.cpp">llama.cpp</a> (with ggml), TYPE's text engine</td><td>b11147</td><td>MIT</td><td>© 2023-2026 The ggml authors</td><td><code>third-party/llama.cpp-LICENSE.txt</code></td></tr></tbody></table></div>
 <p>We didn't change FluidAudio, Sparkle, LaunchAtLogin, or llama.cpp.&nbsp; They're used as released (llama.cpp as its official prebuilt framework).&nbsp; Apache 2.0 §4(b) asks that modified files be marked; since we modified nothing, there is nothing to mark.</p>

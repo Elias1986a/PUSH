@@ -30,6 +30,8 @@ User dictated "but no, I'm frustrated" expecting "know". That sentence reads bot
 
 Menu bar "Suggest in <App>" switch: TYPE on/off in the app last typed in, both ways (Pause stays global and timed; its "Always in <App>" option is gone). Signed + notarized and installed on the user's Mac for them to try. Not released: no GitHub release, appcast.xml in the repo restored. The built ZIP, DMG and the generated feed are in ~/Library/Developer/SwiftPackages/PUSH-dist (appcast-9.4.0.xml); if nothing changes before release, publish those (`gh release create v9.4.0 …`, copy the feed over appcast.xml, commit). Plan: the benchmark study Fri 2026-10-16, production Sun 2026-10-18.
 
+**SEO plan for v10 (2026-10-15, on `launch` only):** the site side of the user's SEO plan is in (edf36e8): legal pages indexable, new home title, Organization/WebSite/SoftwareApplication JSON-LD, AI-crawler robots group, sitemap lastmod via website/build_sitemap.py, 192 px favicon, netlify.app hosts 301 to the apex, IndexNow on production deploys. What's left (launch-day Search Console/Bing, the 60-day pages) is in docs/launch-seo-checklist.md.
+
 ## 9.3.1 released (2026-10-14)
 
 Everything merged since 9.3.0 (#84–#89): setup in 7 pages (8 with the license), Settings panes General/Talk/TYPE/Models/Dictionary/Personal/Teleprompter/License (TYPE models in Models, pill in Talk), speech models pinned to tested commits, clipboard across quick dictations, wake word built off the main thread, TYPE keeps the old model during a download and ignores keys under secure input, diagnostic log section, and the release-latency fix. Installed on the user's Mac; its downloaded models were kept (pins adoption confirmed on the shipped app).
@@ -115,21 +117,18 @@ two real Macs, and the new pages are not yet eyeballed in the app.
 - Bump PUSH/Info.plist to 10.0 (build number keeps climbing; Sparkle compares that).
 - Move release-notes/*.md into release-notes/archive/. scripts/release_notes.py only reads the top folder, so Sparkle's window shows 10.0 alone.
 - Delete appcast.xml before building, so the feed holds only the 10.0 item. The script then prepends each later release as usual.
-- 10.0 is also the release that moves SUFeedURL to pushtype.app. Serve the same appcast at the old GitHub URL until the repo goes private, so the user's 9.x Macs get it.
+- 10.0 is also the release that moves SUFeedURL to pushtype.app. Serve the same appcast at the old GitHub URL until the repo goes private, so 9.x Macs get it.
 
-User side:
-- Live Polar store and products, with the 10.0 DMG.
-- Success URL `https://pushtype.app/thanks/?checkout_id={CHECKOUT_ID}`.
-- Live token (checkouts:read + customer_sessions:write) in Netlify, with POLAR_SERVER=production.
-- DBA or LLC, the EULA date and county, and attorney review.
+**Staged on the `launch` branch (PR, draft, not merged; merge WITH the 10.0 release):**
+production PolarConfig (live org d5c12043…, products e05a47f1… $35 / b764aace… Extra Mac $12, one checkout link each, portal polar.sh/pushtype/portal; release builds use it, DEBUG keeps the sandbox), LicenseModel.isOffered on by default (10.0 asks for a licence; a debug build can `defaults write PUSH licence.offered -bool false`), the website Buy button on the live link, the "Checkout opens at launch" note gone, noindex off home + benchmark, robots.txt and sitemap.xml. Legal pages keep noindex until the attorney review.
+Merging it to main publishes the site changes immediately, so it must go with the 10.0 release, not before: 9.x is ungated and downloadable.
 
-Then:
-- Production PolarConfig, and LicenseModel.isOffered on.
-- Buy buttons pointed at the live checkout; "Checkout opens at launch" removed.
-- noindex removed; robots and sitemap added.
-- PUSHTYPE.app/DMG rename, with a Sparkle test on the user's Mac.
-- Merge PR #37; make the repo private.
-- One real purchase and refund.
+User side, done: live store, products, both links, discount codes, live token + POLAR_SERVER=production in Netlify, success-URL stray full stop fixed (function also tolerates one now).
+User side, left: upload the 10.0 DMG to the live Polar product; DBA or LLC, EULA date and county, attorney review; test purchase with a 100%-off code (user clicks; I check the thanks page and key); one real purchase and refund.
+
+**Name off everything (2026-10-14):** legal pages, LICENSE and sample names no longer say the user's name; the legal pages name PUSHTYPE as the party. That is only accurate once PUSHTYPE is a registered DBA (LA County fictitious business name) or an LLC: do it before the first paid sale. Still showing the name: the Developer ID certificate (only an Apple organization account, which needs an LLC + D-U-N-S, changes it) and the GitHub username in the feed/download URLs (gone when the feed moves to pushtype.app and the repo goes private at 10.0).
+
+Then me: Sparkle feed to pushtype.app and 10.0 release, merge `launch`, make the repo private, PUSHTYPE.app/DMG rename with a Sparkle test on the user's Mac.
 
 ## External review follow-up (2026-10-14)
 

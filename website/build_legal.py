@@ -14,10 +14,14 @@ from typography import typeset  # two spaces after each sentence (house style)
 
 ROOT = Path(__file__).resolve().parent.parent
 PAGES = {
-    "privacy": ("legal/PRIVACY.md", "Privacy Policy"),
-    "terms": ("legal/TERMS_OF_SALE.md", "Terms of Sale"),
-    "eula": ("legal/EULA.md", "End User License Agreement"),
-    "notices": ("legal/THIRD_PARTY_NOTICES.md", "Third-party notices"),
+    "privacy": ("legal/PRIVACY.md", "Privacy Policy",
+                "What PUSHTYPE collects and what it never does: your voice and your typing stay on your Mac."),
+    "terms": ("legal/TERMS_OF_SALE.md", "Terms of Sale",
+              "What you buy with PUSHTYPE, how it is delivered, refunds, and moving it between Macs."),
+    "eula": ("legal/EULA.md", "End User License Agreement",
+             "The license terms for using the PUSHTYPE app on your Macs."),
+    "notices": ("legal/THIRD_PARTY_NOTICES.md", "Third-party notices",
+                "The open-source software and models PUSHTYPE uses, and their licenses."),
 }
 
 
@@ -102,8 +106,10 @@ TEMPLATE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} · PUSHTYPE</title>
-<meta name="robots" content="noindex">
+<meta name="description" content="{description}">
+<link rel="canonical" href="https://pushtype.app/legal/{slug}.html">
 <link rel="icon" href="../assets/favicon-32.png" sizes="32x32">
+<link rel="icon" href="../assets/favicon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <meta name="theme-color" content="#edebe6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
@@ -150,10 +156,10 @@ TEMPLATE = """<!doctype html>
 if __name__ == "__main__":
     out_dir = ROOT / "website" / "legal"
     out_dir.mkdir(parents=True, exist_ok=True)
-    for slug, (src, title) in PAGES.items():
+    for slug, (src, title, description) in PAGES.items():
         body = render((ROOT / src).read_text(encoding="utf-8"))
         if not body.lstrip().startswith("<h1"):
             body = f'<h1 class="disp">{html.escape(title)}</h1>\n' + body
         body = body.replace("<h1>", '<h1 class="disp">', 1)
-        (out_dir / f"{slug}.html").write_text(typeset(TEMPLATE.format(title=html.escape(title), body=body)), encoding="utf-8")
+        (out_dir / f"{slug}.html").write_text(typeset(TEMPLATE.format(title=html.escape(title), description=html.escape(description), slug=slug, body=body)), encoding="utf-8")
         print(f"wrote website/legal/{slug}.html")

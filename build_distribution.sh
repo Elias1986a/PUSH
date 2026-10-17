@@ -11,7 +11,7 @@ APP_NAME="PUSH"
 DIST_ROOT="${HOME}/Library/Developer/SwiftPackages/PUSH-dist"
 SCRATCH_PATH="${HOME}/Library/Developer/SwiftPackages/PUSH-build"
 mkdir -p "$DIST_ROOT" "$SCRATCH_PATH"
-APP_DIR="${DIST_ROOT}/PUSH.app"
+APP_DIR="${DIST_ROOT}/PUSHTYPE.app"
 BUILD_DIR="${SCRATCH_PATH}"
 BUNDLE_ID="com.push.voicetotext"
 DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
@@ -20,8 +20,8 @@ DEVELOPER_ID="Developer ID Application: Elias Atalah (B8R5B24PMP)"
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" PUSH/Info.plist)
 BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" PUSH/Info.plist)
 MIN_OS=$(/usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" PUSH/Info.plist)
-ZIP_NAME="PUSH-v${VERSION}.zip"
-DMG_NAME="PUSH-v${VERSION}.dmg"
+ZIP_NAME="PUSHTYPE-v${VERSION}.zip"
+DMG_NAME="PUSHTYPE-v${VERSION}.dmg"
 
 # Sparkle: framework + CLI tools live in the resolved SPM artifacts.
 SPARKLE_DIR="${SCRATCH_PATH}/artifacts/sparkle/Sparkle"
@@ -267,7 +267,7 @@ cp -R "$APP_DIR" "$DMG_TEMP/"
 ln -s /Applications "$DMG_TEMP/Applications"
 
 # Create DMG
-hdiutil create -volname "PUSH" -srcfolder "$DMG_TEMP" -ov -format UDZO "$DMG_NAME"
+hdiutil create -volname "PUSHTYPE" -srcfolder "$DMG_TEMP" -ov -format UDZO "$DMG_NAME"
 
 # Cleanup
 rm -rf "$DMG_TEMP"
@@ -308,8 +308,8 @@ cat > "$APPCAST" <<XML
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
-        <title>PUSH</title>
-        <description>Updates for PUSH voice-to-text</description>
+        <title>PUSHTYPE</title>
+        <description>Updates for PUSHTYPE</description>
         <language>en</language>
         <item>
             <title>Version ${VERSION}</title>
@@ -339,7 +339,7 @@ echo "   - $APPCAST (Sparkle update feed)"
 echo ""
 echo "🚀 Ready to distribute! To publish this update:"
 echo "   1. Create the GitHub release (the tag must match the appcast URL):"
-echo "        gh release create v${VERSION} --title \"PUSH v${VERSION}\" --notes-file release-notes/${VERSION}.md \"$ZIP_NAME\" \"$DMG_NAME\""
+echo "        gh release create v${VERSION} --title \"PUSHTYPE v${VERSION}\" --notes-file release-notes/${VERSION}.md \"$ZIP_NAME\" \"$DMG_NAME\""
 echo "   2. Commit & push the appcast so existing users get the update:"
 echo "        git add $APPCAST && git commit -m \"Release v${VERSION}\" && git push"
 echo ""

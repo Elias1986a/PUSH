@@ -170,7 +170,7 @@ final class BundleDragView: NSView, NSDraggingSource {
 #if DEBUG
 #Preview("Permission guide") {
     PermissionGuideCard(permissionTitle: "Accessibility",
-                        bundleURL: URL(fileURLWithPath: "/Applications/PUSH.app"),
+                        bundleURL: URL(fileURLWithPath: "/Applications/PUSHTYPE.app"),
                         onClose: {})
         .padding()
 }
