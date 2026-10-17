@@ -8,7 +8,7 @@
 #
 # Takes over the Mac for ~45 minutes at 25 runs: the recording plays through
 # the speakers at full volume and the compare window must stay in front.
-# Rewriting and audio ducking are switched off for the runs; every setting it
+# Audio ducking is switched off for the runs; every setting it
 # touches, the volume, and whether Wispr Flow was open are put back at the end.
 set -u
 RUNS=${1:-25}
@@ -24,7 +24,6 @@ COMPARE="$REPO/compare/.build/debug/compare"
 
 saved_model=$(defaults read $DOMAIN selectedWhisperModel 2>/dev/null)
 saved_media=$(defaults read $DOMAIN mediaBehavior 2>/dev/null)
-saved_rewrite=$(defaults read $DOMAIN talkAutocorrectModel 2>/dev/null)
 saved_volume=$(osascript -e 'output volume of (get volume settings)')
 pgrep -qf "Wispr Flow.app/Contents/MacOS/Wispr Flow" && wispr_was_open=1 || wispr_was_open=0
 
@@ -33,11 +32,11 @@ quit_wispr() { pkill -f "Wispr Flow.app/Contents/MacOS/Wispr Flow"; sleep 2; }  
 # Quits PUSHTYPE, applies $1 as its model, relaunches it and waits for that
 # model to finish warming up (a model not on disk fails here).
 relaunch_push() {
-  osascript -e 'quit app "PUSH"'
+  osascript -e 'quit app id "com.push.voicetotext"'
   while pgrep -qx PUSH; do sleep 0.5; done
   [ -n "${1:-}" ] && defaults write $DOMAIN selectedWhisperModel "$1"
   local mark=$(wc -l < "$LOG")
-  open -a /Applications/PUSH.app
+  open -b com.push.voicetotext
   for _ in {1..90}; do
     sleep 1
     tail -n +$((mark + 1)) "$LOG" | grep -q "warm-up complete" || continue
@@ -53,19 +52,17 @@ restore() {
   osascript -e 'tell application "System Events" to key up {option, control}' 2>/dev/null
   [ $wispr_was_open = 0 ] && quit_wispr
   [ $wispr_was_open = 1 ] && ! pgrep -qf "Wispr Flow.app/Contents/MacOS/Wispr Flow" && open -a "Wispr Flow"
-  osascript -e 'quit app "PUSH"'; while pgrep -qx PUSH; do sleep 0.5; done
+  osascript -e 'quit app id "com.push.voicetotext"'; while pgrep -qx PUSH; do sleep 0.5; done
   [ -n "$saved_model" ] && defaults write $DOMAIN selectedWhisperModel "$saved_model"
   [ -n "$saved_media" ] && defaults write $DOMAIN mediaBehavior "$saved_media" || defaults delete $DOMAIN mediaBehavior 2>/dev/null
-  [ -n "$saved_rewrite" ] && defaults write $DOMAIN talkAutocorrectModel -bool "$saved_rewrite" || defaults delete $DOMAIN talkAutocorrectModel 2>/dev/null
   osascript -e "set volume output volume $saved_volume"
-  open -a /Applications/PUSH.app
+  open -b com.push.voicetotext
   echo "Settings restored."
 }
 trap restore EXIT
 trap 'exit 130' INT TERM
 
 defaults write $DOMAIN mediaBehavior off           # ducking would lower the recording it has to hear
-defaults write $DOMAIN talkAutocorrectModel -bool false
 osascript -e 'set volume output volume 100'
 start=$(( $( [ -f "$RESULTS" ] && wc -l < "$RESULTS" || echo 0 ) + 1 ))
 

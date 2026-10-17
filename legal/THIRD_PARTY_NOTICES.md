@@ -3,12 +3,12 @@
 PUSHTYPE is built on open-source software and open speech models. We're grateful to
 the people who made them. This file lists each one, its license and what the
 license asks of us. The full license texts are in `legal/third-party/`, and the
-release build copies this whole folder into `PUSH.app/Contents/Resources/Legal`.
+release build copies this whole folder into `PUSHTYPE.app/Contents/Resources/Legal`.
 
 The companies named here have not endorsed PUSHTYPE. Their names are used only to
 say where each component comes from.
 
-## Software shipped inside PUSH.app
+## Software shipped inside PUSHTYPE.app
 
 These are compiled into the app or bundled with it. Their licenses require us
 to include the copyright notice and license text with every copy we distribute.
