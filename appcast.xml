@@ -37,7 +37,7 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 <li><strong>Rewriting is gone.</strong> The experimental model that rewrote what you said made every dictation slower, so we removed it.  If you downloaded it, PUSHTYPE deletes the 1.1 GB file for you.  Punctuation still comes from the fast punctuation model.</li>
 </ul></div>
             ]]></description>
-            <enclosure url="https://github.com/Elias1986a/PUSH/releases/download/v10.0.0/PUSHTYPE-v10.0.0.zip" type="application/octet-stream" sparkle:edSignature="OQEKABrKnYYC7D+9fcTRzJ8tNMGcUtE4QaN7IJAC7MxViNZfkTiDpvlxVTyGKu6AJVbnJ+4ca6DxnfYpTDI4AA==" length="21224404" />
+            <enclosure url="https://github.com/Elias1986a/pushtype-releases/releases/download/v10.0.0/PUSHTYPE-v10.0.0.zip" type="application/octet-stream" sparkle:edSignature="OQEKABrKnYYC7D+9fcTRzJ8tNMGcUtE4QaN7IJAC7MxViNZfkTiDpvlxVTyGKu6AJVbnJ+4ca6DxnfYpTDI4AA==" length="21224404" />
         </item>
 
     </channel>

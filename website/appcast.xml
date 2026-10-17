@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>PUSHTYPE</title>
+        <description>Updates for PUSHTYPE</description>
+        <language>en</language>
+        <item>
+            <title>Version 10.0.0</title>
+            <pubDate>Fri, 16 Oct 2026 22:56:54 -0700</pubDate>
+            <sparkle:version>116</sparkle:version>
+            <sparkle:shortVersionString>10.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+<meta charset="utf-8">
+<style>
+:root { color-scheme: light dark; }
+body { font: 13px -apple-system, sans-serif; line-height: 1.45; margin: 12px 16px; }
+h2 { font-size: 15px; margin: 0 0 6px; }
+.older { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(128,128,128,.3); }
+h2 .tag { font-size: 11px; font-weight: 600; color: #fff; background: #0a84ff;
+          border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; }
+h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; opacity: .6; margin: 10px 0 4px; }
+ul { margin: 0; padding-left: 18px; }
+li { margin: 3px 0; }
+code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); border-radius: 3px; padding: 0 3px; }
+.older { opacity: .75; }
+</style>
+<div class="latest"><h2>Version 10.0.0 <span class="tag">New</span></h2>
+<h3>New</h3>
+<ul>
+<li><strong>PUSHTYPE is for sale.</strong> A license covers up to three Macs, and you can add more later.  Enter your key in Settings ▸ License, or when setup asks for it.  Talk and TYPE need a license to run.</li>
+<li><strong>Works offline.</strong> Your license is checked with our store when you're online.  Without the internet, PUSHTYPE keeps working for 30 days before it asks to check again.</li>
+<li><strong>The app is now called PUSHTYPE.app.</strong> New downloads use the new name.  If you update from an earlier version, your copy keeps its old name and works the same.</li>
+</ul>
+<h3>Better</h3>
+<ul>
+<li><strong>Rewriting is gone.</strong> The experimental model that rewrote what you said made every dictation slower, so we removed it.  If you downloaded it, PUSHTYPE deletes the 1.1 GB file for you.  Punctuation still comes from the fast punctuation model.</li>
+</ul></div>
+            ]]></description>
+            <enclosure url="https://github.com/Elias1986a/pushtype-releases/releases/download/v10.0.0/PUSHTYPE-v10.0.0.zip" type="application/octet-stream" sparkle:edSignature="OQEKABrKnYYC7D+9fcTRzJ8tNMGcUtE4QaN7IJAC7MxViNZfkTiDpvlxVTyGKu6AJVbnJ+4ca6DxnfYpTDI4AA==" length="21224404" />
+        </item>
+
+    </channel>
+</rss>
