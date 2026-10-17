@@ -34,3 +34,18 @@
   for = "/assets/*.png"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+
+# Netlify's own hostnames serve the same site, so once the site is indexable
+# they would be duplicate copies.  Send them to the real domain.  Deploy
+# previews (deploy-preview-N--) are a different host and keep working.
+[[redirects]]
+  from = "https://pushtype.netlify.app/*"
+  to = "https://pushtype.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://main--pushtype.netlify.app/*"
+  to = "https://pushtype.app/:splat"
+  status = 301
+  force = true

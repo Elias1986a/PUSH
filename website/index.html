@@ -10,7 +10,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="facebook-domain-verification" content="b7uizq2gnco0773g36pkg60kidmu48">
-<title>PUSHTYPE — PUSH to talk. Tab to TYPE. Offline, on your Mac.</title>
+<title>PUSHTYPE: Offline Dictation and Autocomplete for Mac</title>
 <meta name="description" content="Dictation and inline autocomplete in one Mac app. Everything runs on your Mac, and it learns how you talk and how you type. $35 once for 3 Macs.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PUSHTYPE">
@@ -26,8 +26,8 @@
 <meta name="twitter:title" content="PUSHTYPE — PUSH to talk. Tab to TYPE. Offline, on your Mac.">
 <meta name="twitter:description" content="Dictation and inline autocomplete in one Mac app. Everything runs on your Mac, and it learns how you talk and how you type. $35 once for 3 Macs.">
 <meta name="twitter:image" content="https://pushtype.app/assets/share.png?v=3">
-<meta name="robots" content="noindex">
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="icon" href="assets/favicon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta name="theme-color" content="#edebe6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
@@ -38,8 +38,60 @@
 <link rel="stylesheet" href="assets/components.css">
 <link rel="stylesheet" href="assets/site.css">
 <script src="assets/theme.js"></script>
+<!-- Structured data: every value must match what the page shows.  Add
+     aggregateRating only once real reviews are on the page, and change the
+     price here the day it changes on the card. -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "PUSHTYPE", "url": "https://pushtype.app/", "operatingSystem": "macOS 15 or later (Apple silicon)", "applicationCategory": "UtilitiesApplication", "description": "Dictation and inline autocomplete in one Mac app. Everything runs on your Mac.", "offers": {"@type": "Offer", "price": "35", "priceCurrency": "USD", "url": "https://pushtype.app/#pricing", "availability": "https://schema.org/PreOrder"}, "image": "https://pushtype.app/assets/icon.png", "screenshot": ["https://pushtype.app/assets/video/dictation.jpg", "https://pushtype.app/assets/video/typing.jpg"]}
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://pushtype.app/#org",
+      "name": "PUSHTYPE",
+      "url": "https://pushtype.app/",
+      "logo": "https://pushtype.app/assets/icon.png",
+      "sameAs": [
+        "https://x.com/pushtype",
+        "https://www.instagram.com/pushtype/",
+        "https://www.tiktok.com/@pushtypeapp"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://pushtype.app/#website",
+      "name": "PUSHTYPE",
+      "url": "https://pushtype.app/",
+      "publisher": {
+        "@id": "https://pushtype.app/#org"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "PUSHTYPE",
+      "description": "Offline dictation and inline autocomplete for Mac.  Speech and suggestions run on your Mac and never leave it.",
+      "url": "https://pushtype.app/",
+      "image": "https://pushtype.app/assets/icon.png",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "macOS 15 or later, Apple silicon",
+      "softwareVersion": "10.0",
+      "publisher": {
+        "@id": "https://pushtype.app/#org"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "35.00",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "url": "https://pushtype.app/#pricing"
+      },
+      "screenshot": [
+        "https://pushtype.app/assets/video/dictation.jpg",
+        "https://pushtype.app/assets/video/typing.jpg"
+      ]
+    }
+  ]
+}
 </script>
 </head>
 <body>
@@ -424,8 +476,8 @@
 <li><span class="dot"></span>All speech and typing models</li>
 <li><span class="dot"></span>14-day refund, no questions</li>
 </ul>
-<a class="pb-btn pb-btn-push" id="buy" data-umami-event="Buy" href="#pricing" aria-describedby="buy-note">Buy PUSHTYPE <span class="pb-price">$35</span></a>
-<p id="buy-note" style="margin: 0; font-size: 14px; color: var(--ink-muted);">Checkout opens at launch.&nbsp; More Macs?&nbsp; $12 each.</p>
+<a class="pb-btn pb-btn-push" id="buy" data-umami-event="Buy" href="https://buy.polar.sh/polar_cl_ArikCs6D9ybDAfy0Hw5dPnjIqbhVBr7gKZYQx4QxxOY" aria-describedby="buy-note">Buy PUSHTYPE <span class="pb-price">$35</span></a>
+<p id="buy-note" style="margin: 0; font-size: 14px; color: var(--ink-muted);"><a data-umami-event="Buy Extra Mac" href="https://buy.polar.sh/polar_cl_vJwZTQYxnZStBuc837CtUnfAJ0Jp8fTjCLELa2ef7kZ">More Macs?&nbsp; $12 each</a>.&nbsp; Buy them with the same email so everything stays on one license.&nbsp; By buying, you agree to the <a href="legal/terms.html">Terms of Sale</a> and the <a href="legal/eula.html">License Agreement</a>.</p>
 </div>
 </div>
 </section>

@@ -31,8 +31,24 @@ public struct PolarConfig: Sendable, Equatable {
         addMacCheckoutURL: URL(string: "https://sandbox-api.polar.sh/v1/checkout-links/polar_cl_HEce7BcHyVzWkIfAxiIQ9yYd7nztXdKsjwede2iyJDB/redirect")!,
         portalURL: URL(string: "https://sandbox.polar.sh/pushtype/portal")!)
 
-    /// What the app uses. Sandbox until the store opens.
+    /// The live store (organization "pushtype"). Checkout links carry one
+    /// product each: the website's Buy and the app's "add this Mac" must not
+    /// offer the other.
+    public static let production = PolarConfig(
+        baseURL: URL(string: "https://api.polar.sh")!,
+        organizationID: "d5c12043-0896-4c20-99a9-bbe1e2a833f1",
+        productIDs: ["e05a47f1-acab-4221-af17-41dcb56a94e4", "b764aace-6737-4932-9028-75b890ac4c11"],
+        checkoutURL: URL(string: "https://api.polar.sh/v1/checkout-links/polar_cl_ArikCs6D9ybDAfy0Hw5dPnjIqbhVBr7gKZYQx4QxxOY/redirect")!,
+        addMacCheckoutURL: URL(string: "https://api.polar.sh/v1/checkout-links/polar_cl_vJwZTQYxnZStBuc837CtUnfAJ0Jp8fTjCLELa2ef7kZ/redirect")!,
+        portalURL: URL(string: "https://polar.sh/pushtype/portal")!)
+
+    /// What the app uses: the live store in a release build, the sandbox in a
+    /// debug build so development never touches real orders.
+    #if DEBUG
     public static let current = sandbox
+    #else
+    public static let current = production
+    #endif
 }
 
 /// A licence as Polar reports it on this Mac.
