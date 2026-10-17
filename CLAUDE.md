@@ -87,8 +87,7 @@ text field of any app. All speech recognition runs on-device.
 - Talk cleanup models (on trial): `PUSHCore/TalkCleanup` (pass, prompts, guards)
   and `PUSH/Core/TalkCleanup.swift` (store, loader, runner). A model's answer is
   pasted only if it passes its pass's guard; never loosen a guard to make a
-  model look better. The LLM passes' downloads are not pinned yet — pin before
-  shipping. The fast punctuation model (`FastPunctuation`, CoreML) is pinned to
+  model look better. The rewriting model is pinned in `TalkCleanupPass.file`. The fast punctuation model (`FastPunctuation`, CoreML) is pinned to
   our own Hugging Face repo, PUSHTYPE/punct-cap-seg-en-coreml, and downloads
   with Streaming and Ultra; a new conversion means a new commit and new pins.
 

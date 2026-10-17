@@ -19,13 +19,15 @@ public enum TalkCleanupPass: String, CaseIterable, Sendable, Identifiable {
 
     /// Qwen2.5-1.5B Instruct, Apache 2.0: it kept 15/15 of the untouched
     /// sentences in the 2026-09-29 self-correction eval (NOTES.md).
-    public var repo: String { "Qwen/Qwen2.5-1.5B-Instruct-GGUF" }
-
-    /// Matched case-insensitively against the end of a file name in `repo`.
-    public var fileSuffix: String { "q4_k_m.gguf" }
-
-    /// For the button before the real size is known. Not a pin.
-    public var approximateBytes: Int64 { 1_100_000_000 }
+    /// Pinned to the commit tried on 2026-10-16; a newer one means re-testing.
+    public var file: HuggingFaceFile {
+        HuggingFaceFile(
+            repo: "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+            revision: "91cad51170dc346986eccefdc2dd33a9da36ead9",
+            path: "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+            bytes: 1_117_320_736,
+            sha256: "6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e")
+    }
 
     public var licence: String { "Apache 2.0" }
 

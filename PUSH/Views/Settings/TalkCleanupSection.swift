@@ -84,7 +84,7 @@ private struct TalkCleanupRow: View {
                     }
             }
         } else {
-            Button("Download (about \(ByteCountFormatter.string(fromByteCount: pass.approximateBytes, countStyle: .file)))") {
+            Button("Download (\(ByteCountFormatter.string(fromByteCount: pass.file.bytes, countStyle: .file)))") {
                 store.download(pass)
             }
             .disabled(store.downloading != nil)

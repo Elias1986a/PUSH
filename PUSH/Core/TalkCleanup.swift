@@ -44,7 +44,7 @@ final class TalkCleanupStore {
         PushLogger.log("TalkCleanupStore: downloading \(pass.rawValue)")
         downloadTask = Task {
             do {
-                let file = try await HuggingFaceFile.resolve(repo: pass.repo, suffix: pass.fileSuffix)
+                let file = pass.file
                 let spec = ModelFileDownloader.Spec(url: file.downloadURL, bytes: file.bytes, sha256: file.sha256)
                 try await ModelFileDownloader().download(spec, to: Self.url(for: pass)) { value in
                     Task { @MainActor in TalkCleanupStore.shared.progress = value }
