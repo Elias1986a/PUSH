@@ -27,8 +27,14 @@ DMG_NAME="PUSHTYPE-v${VERSION}.dmg"
 SPARKLE_DIR="${SCRATCH_PATH}/artifacts/sparkle/Sparkle"
 SPARKLE_BIN="${SPARKLE_DIR}/bin"
 SPARKLE_FRAMEWORK="${SPARKLE_DIR}/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
-APPCAST="appcast.xml"
-DOWNLOAD_URL="https://github.com/Elias1986a/PUSH/releases/download/v${VERSION}/${ZIP_NAME}"
+# The feed is served by the website (https://pushtype.app/appcast.xml, the
+# app's SUFeedURL since 10.0.1); the update ZIPs live in a public repo that
+# holds nothing else, so this one can go private. LEGACY_APPCAST is the feed
+# 10.0.0 and older read from this repo: kept in step until the repo is private.
+APPCAST="website/appcast.xml"
+LEGACY_APPCAST="appcast.xml"
+RELEASES_REPO="Elias1986a/pushtype-releases"
+DOWNLOAD_URL="https://github.com/${RELEASES_REPO}/releases/download/v${VERSION}/${ZIP_NAME}"
 
 echo "🚀 Building PUSH for distribution..."
 echo ""
@@ -326,7 +332,8 @@ ${PREVIOUS_ITEMS}
     </channel>
 </rss>
 XML
-echo "   Wrote $APPCAST (enclosure → $DOWNLOAD_URL)"
+cp "$APPCAST" "$LEGACY_APPCAST"
+echo "   Wrote $APPCAST and $LEGACY_APPCAST (enclosure → $DOWNLOAD_URL)"
 
 echo ""
 echo "✅ Distribution build complete!"
@@ -338,10 +345,12 @@ echo "   - $DMG_NAME (for drag-and-drop install)"
 echo "   - $APPCAST (Sparkle update feed)"
 echo ""
 echo "🚀 Ready to distribute! To publish this update:"
-echo "   1. Create the GitHub release (the tag must match the appcast URL):"
-echo "        gh release create v${VERSION} --title \"PUSHTYPE v${VERSION}\" --notes-file release-notes/${VERSION}.md \"$ZIP_NAME\" \"$DMG_NAME\""
-echo "   2. Commit & push the appcast so existing users get the update:"
-echo "        git add $APPCAST && git commit -m \"Release v${VERSION}\" && git push"
+echo "   1. Publish the update ZIP (the tag must match the appcast URL):"
+echo "        gh release create v${VERSION} -R ${RELEASES_REPO} --title \"PUSHTYPE v${VERSION}\" --notes-file release-notes/${VERSION}.md \"$ZIP_NAME\""
+echo "   2. Make it the buyers' download in Polar (token in the Keychain):"
+echo "        python3 scripts/polar_upload.py upload \"$DMG_NAME\""
+echo "   3. Commit the feeds and merge to main (Netlify serves $APPCAST):"
+echo "        git add $APPCAST $LEGACY_APPCAST && git commit -m \"Release v${VERSION}\""
 echo ""
 echo "   Existing users will be offered v${VERSION} via Check for Updates / the daily check."
 echo ""

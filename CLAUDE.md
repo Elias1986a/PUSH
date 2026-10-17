@@ -62,7 +62,12 @@ text field of any app. All speech recognition runs on-device.
 - Website house style: two spaces after every sentence and the Oxford comma. After editing a page run `python3 website/typography.py` (build_legal.py does it for the legal pages); it is idempotent.  Then `python3 website/build_sitemap.py` so lastmod stays true (SEO launch notes: `docs/launch-seo-checklist.md`).
 - Feature names users see: **Talk** (voice; never Voice or Dictation as its name) and **TYPE** (all caps), and **PUSH** always in caps ("PUSH to talk", the "PUSH-to-talk key"). Plain words for the act or the category stay (speak, your voice, dictation apps, the "Dictation and autocomplete" tagline). Code identifiers and stored keys keep their names.
 - American spelling in anything users see (license, color, behavior; "period", not "full stop"). Stored keys keep their old names (`licence.offered`, the Keychain services): renaming them would orphan saved data.
-- Version lives in `PUSH/Info.plist`; commit `appcast.xml` after each release.
+- Version lives in `PUSH/Info.plist`. The update feed is `website/appcast.xml`
+  (served at pushtype.app/appcast.xml, SUFeedURL since 10.0.1; root `appcast.xml`
+  is a copy for 10.0.0 installs until this repo goes private). Update ZIPs go to
+  the public Elias1986a/pushtype-releases repo; the DMG goes to Polar's File
+  Downloads benefit (shared by both products) via `scripts/polar_upload.py`
+  (token in the Keychain). The build script prints the steps.
   Then move the previous DMG into `releases/past/`, the new one into `releases/`
   (git-ignored; it holds only the current release), and delete the ZIP.
   The feed keeps every past release's `<item>`; the build script prepends.

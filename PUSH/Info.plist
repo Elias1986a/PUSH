@@ -21,7 +21,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>10.0.0</string>
+	<string>10.0.1</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -34,7 +34,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>116</string>
+	<string>117</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
@@ -59,7 +59,7 @@
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/Elias1986a/PUSH/main/appcast.xml</string>
+	<string>https://pushtype.app/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>mZgb4K+4aV6djmFAUuIl2WKw2ou7iuzdr8Ey35A6mgQ=</string>
 	<key>SUScheduledCheckInterval</key>
