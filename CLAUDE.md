@@ -66,7 +66,8 @@ text field of any app. All speech recognition runs on-device.
   (served at pushtype.app/appcast.xml, SUFeedURL since 10.0.1; root `appcast.xml`
   is a copy for 10.0.0 installs until this repo goes private). Update ZIPs go to
   the public Elias1986a/pushtype-releases repo; the DMG goes to Polar's File
-  Downloads benefit (shared by both products). The build script prints the steps.
+  Downloads benefit (shared by both products) via `scripts/polar_upload.py`
+  (token in the Keychain). The build script prints the steps.
   Then move the previous DMG into `releases/past/`, the new one into `releases/`
   (git-ignored; it holds only the current release), and delete the ZIP.
   The feed keeps every past release's `<item>`; the build script prepends.
