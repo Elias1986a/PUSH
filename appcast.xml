@@ -26,17 +26,16 @@ code { font: 12px ui-monospace, monospace; background: rgba(128,128,128,.15); bo
 .older { opacity: .75; }
 </style>
 <div class="latest"><h2>Version 10.0.1 <span class="tag">New</span></h2>
-<h3>Better</h3>
 <ul>
-<li><strong>Updates come from pushtype.app.</strong> PUSHTYPE now checks for updates on our own website.  Nothing changes for you: updates still arrive by themselves.</li>
+<li>Bug fixes and improvements.</li>
 </ul></div>
 <div class="older"><h2>Version 10.0.0</h2>
 <h3>New</h3>
 <ul>
-<li><strong>PUSHTYPE is for sale.</strong> A license covers up to three Macs, and you can add more later.  Enter your key in Settings ▸ License, or when setup asks for it.  Talk and TYPE need a license to run.</li>
-<li><strong>Works offline.</strong> Your license is checked with our store when you're online.  Without the internet, PUSHTYPE keeps working for 30 days before it asks to check again.</li>
-<li><strong>The app is now called PUSHTYPE.app.</strong> New downloads use the new name.  If you update from an earlier version, your copy keeps its old name and works the same.</li>
+<li><strong>Welcome to PUSHTYPE 10.</strong> Enter your license key in Settings ▸ License, or when setup asks for it.  One license covers up to three Macs.</li>
+<li><strong>Works offline.</strong> PUSHTYPE checks your license when you're online, and keeps working for 30 days without the internet.</li>
 </ul></div>
+
             ]]></description>
             <enclosure url="https://github.com/Elias1986a/pushtype-releases/releases/download/v10.0.1/PUSHTYPE-v10.0.1.zip" type="application/octet-stream" sparkle:edSignature="yrp09bVLjGwPqCoQhfBMPcUZEvelgufJVoW1k47kGo97rTadEG3M4YD44jRZ+kNRZGv8tmjB/z3vWgYKldplAg==" length="21224364" />
         </item>
