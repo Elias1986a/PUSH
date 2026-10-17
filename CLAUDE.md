@@ -25,6 +25,7 @@ text field of any app. All speech recognition runs on-device.
 - `swift build` — build
 - `swift test` — unit tests (Tests/PUSHTests; text post-processing + context gate)
 - `swift run` — run the app
+- `scripts/speedtest.sh` — the website's speed numbers (release to text on screen, installed app vs Wispr Flow); takes over the Mac ~45 min
 - `./build_distribution.sh` — signed/notarized release ZIP + DMG + Sparkle appcast
   (run with `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`; CLT's
   Foundation breaks FluidAudio)
