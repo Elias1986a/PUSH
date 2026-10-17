@@ -95,3 +95,6 @@ docs/**/* [0-9].md
 # Content library: finished videos, reusable assets, screen-take masters (content/raw/takes/).
 # iCloud-backed, never sent to GitHub. See content/README.md.
 /content/
+
+# Past release DMGs (iCloud-backed, never committed)
+/releases/
